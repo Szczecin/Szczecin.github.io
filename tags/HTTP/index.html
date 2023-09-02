@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Tag: HTTP | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Open your eyes to see the light in life">
+<meta property="og:type" content="website">
+<meta property="og:title" content="氕氘氚">
+<meta property="og:url" content="http://example.com/tags/HTTP/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Open your eyes to see the light in life">
+<meta property="og:locale">
+<meta property="article:author" content="Szczecin">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        
+  <section class="page-header tag">
+    <h1>- <span>HTTP</span> -</h1>
+  </section>
+
+
+
+
+
+
+<section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/06/27/HTTP-request-smuggling-vulnerability/">
+                HTTP请求走私漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Jun 27, 2023
+    </time>
+    <section class="content">
+        <h1><span id="http请求走私漏洞">HTTP请求走私漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_46150940/article/details/115311234">Atkxor</a> 并作补充</p>
+</blockquote>
+<h2><span id="简介">简介</span></h2><blockquote>
+<p>HTTP请求走私是一种干扰网站处理从一个或多个用户接收的HTTP请求序列的方式的技术。请求走私漏洞本质上通常很关键，它使攻击者可以绕过安全控制，未经授权访问敏感数据并直接危害其他应用程序用户。</p>
+<ul>
+<li>利用Content-Length字段来判定请求体的内容长度</li>
+<li>利用Transfer-Encoding字段来判定请求体的结束位置</li>
+</ul>
+</blockquote>
+<h2><span id="基础知识">基础知识</span></h2><h3><span id="content-length">Content-Length</span></h3><blockquote>
+<p>Content-Length即为实体长度。浏览器可以通过 Content-Length 的长度信息，判断出响应实体已结束。通常如果 Content-Length 比实际长度短，会造成内容被截断；如果比实体内容长，会造成 pending。</p>
+</blockquote>
+<h3><span id="transfer-encoding">Transfer-Encoding</span></h3><blockquote>
+<p>历史上 Transfer-Encoding 可以有多种取值，但最新的 HTTP 规范里，只定义了一种传输编码：分块编码（chunked）。<br>分块编码相当简单，在头部加入 Transfer-Encoding: chunked 之后，就代表这个报文采用了分块编码。这时，报文中的实体需要改为用一系列分块来传输。每个分块包含十六进制的长度值和数据，长度值独占一行，长度不包括它结尾的 CRLF（\r\n），也不包括分块数据结尾的 CRLF。最后一个分块长度值必须为 0，对应的分块数据没有内容，表示实体结束。</p>
+</blockquote>
+<h3><span id="cl与te解析优先级顺序">CL与TE解析优先级顺序</span></h3><blockquote>
+<p>CL表示Content-Length，TE表示Transfer-Encoding。优先级顺序详见 <a target="_blank" rel="noopener" href="https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.3">RFC7230 section 3.3.3</a></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">If a message is received with both a Transfer-Encoding and a</span><br><span class="line">Content-Length header field, the Transfer-Encoding overrides the</span><br><span class="line">Content-Length. Such a message might indicate an attempt to perform</span><br><span class="line">request smuggling (Section 9.5) or response splitting (Section 9.4)</span><br><span class="line">and ought to be handled as an error. A sender MUST remove the received Content-Length field prior to forwarding such a message downstream.</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>TE 优先于 CL ，但可以通过一些方式绕过</p>
+</blockquote>
+<h2><span id="请求走私分类">请求走私分类</span></h2><blockquote>
+<p>请求走私攻击包括将Content-Length标头和Transfer-Encoding 标头都放入单个HTTP请求中并进行处理，以便前端服务器和后端服务器以不同的方式处理请求。完成此操作的确切方式取决于两个服务器的行为：</p>
+<ul>
+<li>CL不为0:前端代理服务器允许请求携带请求体，而后端服务器不允许请求携带请求体。</li>
+<li>CL-CL：前端服务器使用Transfer-Encoding头，而后端服务器使用Content-Length头。</li>
+<li>CL-TE：前端服务器使用Content-Length标头，而后端服务器使用Transfer- Encoding标头。</li>
+<li>TE-TE：前端服务器和后端服务器都支持Transfer-Encoding标头，但是可以通过某种方式混淆标头来诱导其中一台服务器不对其进行处理。</li>
+<li>TE-CL：前端服务器使用Transfer-Encoding头，而后端服务器使用Content-Length头。</li>
+</ul>
+</blockquote>
+<h3><span id="cl不为0">CL不为0</span></h3><blockquote>
+<p>所有不携带请求体的HTTP请求都有可能受此影响,这里以GET请求为例。<br>当前端服务器允许GET请求携带请求体，而后端服务器不允许GET请求携带请求体，它会直接忽略掉GET请求中的Content-Length头，不进行处理。这就有可能导致请求走私。<br>比如构造请求：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>44\r\n</span><br><span class="line">\r\n</span><br><span class="line">GET /secret HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br><span class="line">\r\n</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>注：\r\n表示 CRLF即换行</p>
+</blockquote>
+<blockquote>
+<p>前端服务器处理了Content-Length，而后端服务器没有处理 Content-Length ，基于pipeline机制认为这是两个独立的请求：<br>第一个请求：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>第二个请求：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET /secret HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br></pre></td></tr></table></figure>
+
+<h3><span id="cl-cl漏洞">CL-CL漏洞</span></h3><blockquote>
+<p>RFC7230规范：在RFC7230的第3.3.3节中的第四条中，规定当服务器收到的请求中包含两个Content-Length，而且两者的值不同时，需要返回400错误。<br>构造请求：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">POST / HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>5\r\n</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>6\r\n</span><br><span class="line">\r\n</span><br><span class="line">12345\r\n</span><br><span class="line">a</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>得到响应，返回400 Bad Request<br><img src="/2023/06/27/HTTP-request-smuggling-vulnerability/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>触发过程：但是总有服务器不会严格的实现该规范，假设中间的代理服务器和后端的源站服务器在收到类似的请求时，都不会返回400错误，但是中间代理服务器按照第一个Content-Length的值对请求进行处理，而后端源站服务器按照第二个Content-Length的值进行处理。</p>
+</blockquote>
+<h3><span id="cl-te漏洞">CL-TE漏洞</span></h3><blockquote>
+<p>CL-TE，就是当收到存在两个请求头的请求包时，前端代理服务器只处理Content-Length请求头，而后端服务器会遵守RFC2616的规定，忽略掉Content-Length，处理Transfer-Encoding请求头。<br><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/lab-basic-cl-te">CL.TE实验环境</a></p>
+</blockquote>
+<h3><span id="te-te漏洞">TE-TE漏洞</span></h3><blockquote>
+<p>在这里，前端服务器和后端服务器都支持Transfer-Encoding标头，但是可以通过对标头进行某种方式的混淆来诱导其中一台服务器不对其进行处理。<br>详见 RFC7230 section 3.3.3.3</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">If a Transfer-Encoding header field is present in a response and</span><br><span class="line">the chunked transfer coding is not the final encoding, the</span><br><span class="line">message body length is determined by reading the connection until</span><br><span class="line">it is closed by the server.  If a Transfer-Encoding header field</span><br><span class="line">is present in a request and the chunked transfer coding is not</span><br><span class="line">the final encoding, the message body length cannot be determined</span><br><span class="line">reliably; the server MUST respond with the 400 (Bad Request)</span><br><span class="line">status code and then close the connection.</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这里列出七种混淆方式:</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">Transfer-Encoding</span><span class="punctuation">: </span>xchunked</span><br><span class="line"></span><br><span class="line">Transfer-Encoding : chunked</span><br><span class="line"></span><br><span class="line"><span class="attribute">Transfer-Encoding</span><span class="punctuation">: </span>x</span><br><span class="line"></span><br><span class="line">Transfer-Encoding:[tab]chunked</span><br><span class="line"></span><br><span class="line">[space]Transfer-Encoding: chunked</span><br><span class="line"></span><br><span class="line"><span class="attribute">X</span><span class="punctuation">: </span>X[\n]Transfer-Encoding: chunked</span><br><span class="line"></span><br><span class="line">Transfer-Encoding</span><br><span class="line">: chunked</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>之所以在处理这些请求头时会出现问题，是因为在实际的HTTP协议实现中，很少有代码精确的遵循了其中的规范，以此导致面对变形的请求头时会出现不同的处理方式。<br><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/lab-obfuscating-te-header">TE.CL实验环境</a></p>
+</blockquote>
+<h3><span id="te-cl漏洞">TE-CL漏洞</span></h3><blockquote>
+<p>所谓TE-CL，就是当收到存在两个请求头的请求包时，前端代理服务器处理Transfer-Encoding这一请求头，而后端服务器处理Content-Length请求头。<br><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/lab-basic-cl-te">TE.CL验环境</a></p>
+</blockquote>
+<h2><span id="绕过前端服务器安全控制">绕过前端服务器安全控制</span></h2><h3><span id="利用cl-te漏洞绕过">利用CL-TE漏洞绕过</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/exploiting/lab-bypass-front-end-controls-cl-te">CL.TE实验环境</a></p>
+</blockquote>
+<h3><span id="利用te-cl漏洞绕过">利用TE-CL漏洞绕过</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/exploiting/lab-bypass-front-end-controls-cl-te">TE.CL实验环境</a></p>
+</blockquote>
+<h2><span id="漏洞防御">漏洞防御</span></h2><blockquote>
+<p>在前端服务器通过同一网络连接将多个请求转发到后端服务器的情况下，会出现HTTP请求走私漏洞，并且后端连接所使用的协议会带来两个服务器不同意边界的风险。要求。防止HTTP请求走私漏洞的一些通用方法如下：</p>
+<ul>
+<li>禁用后端连接的重用，以便每个后端请求通过单独的网络连接发送。</li>
+<li>使用HTTP &#x2F; 2进行后端连接，因为此协议可防止对请求之间的边界产生歧义。</li>
+<li>前端服务器和后端服务器使用完全相同的Web服务器软件，以便它们就请求之间的界限达成一致。<br>在某些情况下，可以通过使前端服务器规范歧义请求或使后端服务器拒绝歧义请求并关闭网络连接来避免漏洞。但是，这些方法比上面确定的通用缓解措施更容易出错。</li>
+</ul>
+</blockquote>
+<h2><span id="参考文章">参考文章</span></h2><blockquote>
+<p>(<a target="_blank" rel="noopener" href="https://paper.seebug.org/1048">https://paper.seebug.org/1048</a>)<br>(<a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling">https://portswigger.net/web-security/request-smuggling</a>)<br>(<a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/exploiting">https://portswigger.net/web-security/request-smuggling/exploiting</a>)</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/25/Slowhttptest-Usage/">
+                Slowhttptest Usage
+            </a>
+        </h2>
+    
+    <time>
+        Aug 25, 2022
+    </time>
+    <section class="content">
+        <h1><span id="slowhttptest-对-slow-http-dos-的误判">Slowhttptest 对 Slow HTTP Dos 的误判</span></h1><h2><span id="当场滑跪">当场滑跪</span></h2><blockquote>
+<p>前段时间在巡检公司项目的时候发现了<a target="_blank" rel="noopener" href="https://szczecin.github.io/2022/08/08/Slow-HTTP-Dos/">HTTP慢速拒绝服务攻击（Slow HTTP Dos）</a><br>于是就下发让项目运维去修复了，但是反馈说明明配置了正确的参数，于是我当（zhi）场（jie）滑（dao）跪（qian） ORZ</p>
+<p><img src="/2022/08/25/Slowhttptest-Usage/1.jpg" alt="image"></p>
+</blockquote>
+<h2><span id="发生了什么">发生了什么</span></h2><blockquote>
+<p>所以是发生了什么？漏扫就那么垃圾和我过不去这么多误报？我还好好用 slowhttptest 去验证了，确实存在<code>service available:   NO</code>的显示，图就不发了，拿阿B的给你们看看：<br><img src="/2022/08/25/Slowhttptest-Usage/1.png" alt="image"></p>
+<p>后来看得多了我发现（其实早就发现了），slowhttptest 的<code>slowbody</code>模式下很容易出现<code>service available:   NO</code>，<code>read</code>和<code>header</code>就很容易通过测试<br>但是归根到底是否触发拒绝服务，肯定看：</p>
+<ul>
+<li><ol>
+<li>网站载入延时</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>网站是否还可访问</li>
+</ol>
+</li>
+</ul>
+<p>在看了<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41901122/article/details/114143913">星球守护者</a> 的漏洞复现后我发现，用 slowhttptest 验证 Slow HTTP Dos 真实存在，需要注意：</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1. slow HTTP test status on Xth second:		X 数字较小，即较早就开始拒绝服务</span><br><span class="line">2. service available:   NO</span><br><span class="line">3. Test ended on X+1th second</span><br><span class="line">4. Exit status: Connection refused		这两点比较重要，真的拒绝服务了直接下一秒就停止测试了</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2022/08/25/Slowhttptest-Usage/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="不得不说">不得不说</span></h2><blockquote>
+<p>其实 Dos 类的漏洞你很不好说，因为访问量过大必然服务器承受不住，这个只能做缓解（流量分析、请求时限、扩容等等）<br>所以漏扫出来是否存在这个漏洞或者 slowhttptest 的<code>service available:   NO</code>，有可能是看片面了（某些请求在开始或者后来被识别后被拒绝、中断，或者网页响应时间是否有某个范围内的增量变化等，尤其是这个增量变化，我曾经发现因为一个资产页面正常请求的数量会变化，时延直接从几百ms级变成几s级的）</p>
+<p>好吧，okk</p>
+<p><img src="/2022/08/25/Slowhttptest-Usage/2.jpg" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/DOS/" rel="tag">DOS</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/08/Slow-HTTP-Dos/">
+                Slow HTTP Dos
+            </a>
+        </h2>
+    
+    <time>
+        Aug 8, 2022
+    </time>
+    <section class="content">
+        <h1><span id="http慢速拒绝服务攻击slow-http-dos">HTTP慢速拒绝服务攻击（Slow HTTP Dos）</span></h1><blockquote>
+<p>本文摘自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/Cl0ud/p/13409171.html">春告鳥</a>及<a target="_blank" rel="noopener" href="https://www.freebuf.com/vuls/285282.html">libaisec</a></p>
+</blockquote>
+<h2><span id="http慢速拒绝服务攻击简介">HTTP慢速拒绝服务攻击简介</span></h2><blockquote>
+<p>HTTP慢速攻击是利用HTTP合法机制，以极低的速度往服务器发送HTTP请求，尽量长时间保持连接，不释放，若是达到了Web Server对于并发连接数的上限，同时恶意占用的连接没有被释放，那么服务器端将无法接受新的请求，导致拒绝服务。</p>
+</blockquote>
+<h2><span id="http慢速攻击原理摘抄自倾旋师傅的博客httpspayloadsonlinearchivers2018-04-162">HTTP慢速攻击原理（摘抄自倾旋师傅的博客:</span></h2><blockquote>
+<p>既然是一个HTTP协议的缓慢攻击，这就要从HTTP协议说起了。</p>
+<p>首先HTTP协议的报文都是一行一行的，类似于：</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/<span class="number">1.1</span>\r\n</span><br><span class="line">Host : payloads.online\r\n</span><br><span class="line">Connection: keep-alive\r\n</span><br><span class="line">Keep-Alive: <span class="number">900</span>\r\n</span><br><span class="line">Content-Length: <span class="number">100000000</span>\r\n</span><br><span class="line">Content_Type: application/x-www-form-urlencoded\r\n</span><br><span class="line">Accept: *.*\r\n</span><br><span class="line">\r\n</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>那么报文中的\r\n是什么？</p>
+<p>\r\n代表一行报文的结束也被称为空行（CRLF），而\r\n\r\n代表整个报文的结束</p>
+<p>从上面贴出的GET请求包可以看出，我们的客户端请求到服务器后，告知服务器这个连接需要保留。</p>
+<p>通常我们知道HTTP协议采用“请求-应答”模式，当使用普通模式，即非KeepAlive模式时，每个请求&#x2F;应答客户和服务器都要新建一个连接，完成之后立即断开连接（HTTP协议为无连接的协议）；当使用Keep-Alive模式（又称持久连接、连接重用）时，Keep-Alive功能使客户端到服 务器端的连接持续有效，当出现对服务器的后继请求时，Keep-Alive功能避免了建立或者重新建立连接。</p>
+<p>那么当我们客户端发送一个报文，不以CRLF结尾，而是10s发送一行报文，我们的报文需要80s才能发送完毕，这80s内，服务器需要一直等待客户端的CRLF，然后才能解析这个报文。</p>
+<p>如果客户端使用更多的程序发送这样的报文，那么服务器端会给客户端留出更多的资源来处理、等待这迟迟不传完的报文。假设服务器端的客户端最大连接数是100个，我们使用测试程序先连接上100次服务器端，并且报文中启用Keep-Alive，那么其他正常用户101、102就无法正常访问网站了。</p>
+<p>简单来说，就是我们每次只发一行，每次发送之间的间隔时间很长，这迟迟未发送结束的HTTP包会占用服务端的资源，当达到服务端处理请求的上限时，这时候再用户对网站正常请求，服务端也处理不了了，导致了拒绝服务。</p>
+</blockquote>
+<h2><span id="http慢速攻击分类">HTTP慢速攻击分类</span></h2><blockquote>
+<p>HTTP慢速攻击分为三类：</p>
+<ul>
+<li>Slow headers</li>
+<li>Slow body</li>
+<li>Slow read</li>
+</ul>
+</blockquote>
+<h3><span id="1slow-headers">1，Slow headers</span></h3><blockquote>
+<p>第一类是最经典的HTTP Slow慢速攻击，由rsnake发明的，原理在上面已介绍。</p>
+</blockquote>
+<h3><span id="2slow-body">2，Slow body</span></h3><blockquote>
+<p>第二类也叫做Slow HTTP POST</p>
+<p>原理为在POST提交方式中，允许在HTTP的头中声明content-length，即POST内容的长度。</p>
+<p>提交了恶意头之后，将需要传输的body缓慢进行发送，跟Slow headers类似，导致服务器端长时间等待需要传输的POST数据，当请求的数量变多后，达到了消耗服务器资源的效果，导致服务器宕机。</p>
+</blockquote>
+<h3><span id="3slow-read-attack">3，Slow Read attack</span></h3><blockquote>
+<p>第三类攻击方式采用调整TCP协议中滑动窗口大小，来对服务器单次发送的数据大小进行控制，使得服务器需要对一个相应包分为很多个包来发送，想要使这种攻击效果明显，请求的资源要尽量大，这里很容易理解，当请求的资源越大，返回包才越大，这样才能分成更多的包让服务器发送，导致拒绝服务的产生。</p>
+<p>也就是说，客户端以极低的速度来读取返回包，来消耗服务器的连接和内存资源。</p>
+</blockquote>
+<h2><span id="http慢速攻击实战">HTTP慢速攻击实战</span></h2><blockquote>
+<p>一般使用slowhttptest工具（安装方式很多，不再赘述）</p>
+</blockquote>
+<h3><span id="工具简介">工具简介</span></h3><blockquote>
+<p>SlowHTTPTest是一个可配置的应用层拒绝服务攻击测试工具，它可以工作在Linux，OSX和Cygwin环境以及Windows命令行接口，可以帮助安全测试人员检验服务器对慢速攻击的处理能力。</p>
+<p>这个工具可以模拟低带宽耗费下的DoS攻击，比如慢速攻击，慢速HTTP POST，通过并发连接池进行的慢速读攻击（基于TCP持久时间）等。慢速攻击基于HTTP协议，通过精心的设计和构造，这种特殊的请求包会造成服务器延时，而当服务器负载能力消耗过大即会导致拒绝服务。</p>
+</blockquote>
+<h3><span id="使用参数介绍">使用参数介绍</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">测试模式:</span><br><span class="line">-H                            slow header,slowloris默认采用此模式          </span><br><span class="line">-B                            slow body</span><br><span class="line">-R                            远程攻击又名Apache killer</span><br><span class="line">-X                            slow <span class="built_in">read</span></span><br><span class="line">​</span><br><span class="line">报告选项：</span><br><span class="line">-g                            生成具有套接字状态更改的统计信息（默认关闭）</span><br><span class="line">-o file_prefix                将统计信息输出保存在file.html和file.csv中（需要-g）</span><br><span class="line">-v level                      日志信息，详细级别0-4：致命，信息，错误，警告，调试</span><br><span class="line">​</span><br><span class="line">常规选项：</span><br><span class="line">-c connections                连接目标连接数（50）</span><br><span class="line">-i seconds                    后续数据之间的间隔（以秒为单位）（10）</span><br><span class="line">-l seconds                    测试目标时间长度，以秒为单位（240）</span><br><span class="line">-r rate                       每秒连接数（50）</span><br><span class="line">-s                            如果需要，Content-Length标头的值（4096）</span><br><span class="line">-t                            在请求中使用的动词，对于slow header和response，默认为GET；对于slow body，默认为POST</span><br><span class="line">-u URL                        目标的绝对URL（http://localhost/）</span><br><span class="line">-x                            在slowloris and Slow POST tests模式中，指定发送的最大数据长度</span><br><span class="line">-f                            Content-Type标头的值（application/x-www-form-urlencoded）</span><br><span class="line">-m                            接受(Accept)标头的值（text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5）</span><br><span class="line">​</span><br><span class="line">探测/代理选项：</span><br><span class="line">-d host:port                  为所有连接指定代理</span><br><span class="line">-e host:port                  为探测连接指定代理</span><br><span class="line">-p seconds                    指定等待时间来确认DoS攻击已经成功</span><br><span class="line">​</span><br><span class="line">range attack特定选项：</span><br><span class="line">-a                            标头中的起始位置</span><br><span class="line">-b                            标头中的结束位置</span><br><span class="line">​</span><br><span class="line">slow <span class="built_in">read</span>特定选项：</span><br><span class="line">-k                            在连接中重复相同请求的次数。如果服务器支持永久连接，则用于成倍增加响应大小。</span><br><span class="line">-n                            从recv缓冲区读取操作之间的时间间隔，以秒为单位（1）</span><br><span class="line">-w                            slow <span class="built_in">read</span>模式中指定tcp窗口范围下限</span><br><span class="line">-y                            slow <span class="built_in">read</span>模式中指定tcp窗口范围上限</span><br><span class="line">-z                            在每次的<span class="built_in">read</span>中，从buffer中读取数据量</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>对于三种类型的慢速攻击，分别给出payload：（摘抄的！）</p>
+</blockquote>
+<h3><span id="slow-header">Slow Header</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">slowhttptest -c 65500 -H -i 10 -r 200 -s 8192 -t SLOWHEADER -u http://vulurl.com</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>该攻击会像我们刚才讲的慢速传递HTTP报文，占用服务器资源让其等待我们最后的CRLF。</p>
+</blockquote>
+<h3><span id="slow-read">Slow Read</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">slowhttptest -c 65500 -X -r 1000 -w 10 -y 20 -t SLOWREAD -n 5 -z 32 -u http://vulurl.com</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>该攻击会在Web服务器响应内容传输回来的时候，我们客户端缓慢的读取响应报文，这样服务器端也会一直等待客户端来接收完毕。</p>
+</blockquote>
+<h3><span id="slow-post">Slow Post</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">slowhttptest -c 65500 -B -i 10 -r 200 -s 8192 -t SLOWBODY -u http://vulurl.com</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>该攻击会构造一个POST数据包，将数据缓慢传输，使服务器端一直等待接收报文。</p>
+<p>找一个存在漏洞的网址进行检测：</p>
+<p>使用Slow Post的payload：（漏洞网址已高码）</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">slowhttptest -c 65500 -B -i 10 -r 200 -s 8192 -t SLOWBODY -u https://xxxxxx</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2022/08/08/Slow-HTTP-Dos/1.png" alt="image"></p>
+<p>当显示为NO，则表示存在HTTP慢速攻击漏洞，可导致拒绝服务。</p>
+</blockquote>
+<h2><span id="解决办法">解决办法</span></h2><blockquote>
+<p>针对不同的Server其对慢速http拒绝服务攻击防范方法也不同：</p>
+</blockquote>
+<h3><span id="websphere">WebSphere</span></h3><blockquote>
+<p>1、限制 HTTP 数据的大小</p>
+<p>在WebSphere Application Server 中进行如下设置：</p>
+<p>任何单个 HTTP 头的默认最大大小为 32768 字节。可以将它设置为不同的值。</p>
+<p>HTTP 头的默认最大数量为 50。可以将它设置为不同的限制值。</p>
+<p>另一种常见的 DOS 攻击是发送一个请求，这个请求会导致一个长期运行的 GET 请求。WebSphere Application Server Plug-in 中的 ServerIOTimeoutRetry 属性可限制任何请求的重试数量。这可以降低这种长期运行的请求的影响。</p>
+<p>设置限制任何请求正文的最大大小。</p>
+</blockquote>
+<blockquote>
+<p>2、设置keepalive参数</p>
+<p>打开ibm http server安装目录，打开文件夹conf，打开文件httpd.conf,查找KeepAlive值，改ON为OFF,其默认为ON。</p>
+<p>这个值说明是否保持客户与HTTP SERVER的连接，如果设置为ON，则请求数到达MaxKeepAliveRequests设定值时请求将排队，导致响应变慢。</p>
+</blockquote>
+<blockquote>
+<p>详见<a target="_blank" rel="noopener" href="http://www.ibm.com/developerworks/cn/websphere/techjournal/1210_lansche/1210_lansche.html#new-step32">参考链接</a></p>
+</blockquote>
+<h3><span id="weblogic">Weblogic</span></h3><blockquote>
+<p>1、在配置管理界面中的协议-&gt;一般信息下设置 完成消息超时时间小于200</p>
+</blockquote>
+<blockquote>
+<p>2、在配置管理界面中的协议-&gt;HTTP下设置 POST 超时、持续时间、最大 POST 大小为安全值范围。</p>
+</blockquote>
+<blockquote>
+<p>详见<a target="_blank" rel="noopener" href="http://docs.oracle.com/cd/E12890_01/ales/docs32/integrateappenviron/configWLS.html#wp1101063">参考链接</a></p>
+</blockquote>
+<h3><span id="nginx">Nginx</span></h3><blockquote>
+<p>1、通过调整$request_method，配置服务器接受http包的操作限制；</p>
+</blockquote>
+<blockquote>
+<p>2、在保证业务不受影响的前提下，调整</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">client_max_body_size</span><br><span class="line">client_body_buffer_size</span><br><span class="line">client_header_buffer_size</span><br><span class="line">large_client_header_buffersclient_body_timeout</span><br><span class="line">client_header_timeout</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>的值，必要时可以适当的增加；</p>
+</blockquote>
+<blockquote>
+<p>3、对于会话或者相同的ip地址，可以使用HttpLimitReqModule and HttpLimitZoneModule参数去限制请求量或者并发连接数；</p>
+</blockquote>
+<blockquote>
+<p>4、根据CPU和负载的大小，来配置worker_processes 和 worker_connections的值，公式是：max_clients &#x3D; worker_processes * worker_connections。</p>
+</blockquote>
+<h3><span id="apache">Apache</span></h3><blockquote>
+<p>建议使用mod_reqtimeout和mod_qos两个模块相互配合来防护。</p>
+</blockquote>
+<blockquote>
+<p>1、mod_reqtimeout用于控制每个连接上请求发送的速率。配置例如：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#请求头部分，设置超时时间初始为10秒，并在收到客户端发送的数据后，每接收到500字节数据就将超时时间延长1秒，但最长不超过40秒。可以防护slowloris型的慢速攻击。</span></span><br><span class="line"></span><br><span class="line">RequestReadTimeout header=10-40,minrate=500</span><br><span class="line"></span><br><span class="line"><span class="comment">#请求正文部分，设置超时时间初始为10秒，并在收到客户端发送的数据后，每接收到500字节数据就将超时时间延长1秒，但最长不超过40秒。可以防护slow message body型的慢速攻击。</span></span><br><span class="line"></span><br><span class="line">RequestReadTimeout body=10-40,minrate=500</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>需注意，对于HTTPS站点，需要把初始超时时间上调，比如调整到20秒。<br>示例：</p>
+</blockquote>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">LoadModule reqtimeout_module modules/mod_reqtimeout.so</span><br><span class="line"><span class="tag">&lt;<span class="name">IfModule</span> <span class="attr">reqtimeout_module</span>&gt;</span></span><br><span class="line">        RequestReadTimeout header=10-40,minrate=500 body=10-40,minrate=500</span><br><span class="line"><span class="tag">&lt;/<span class="name">IfModule</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>2、mod_qos用于控制并发连接数。配置例如：</p>
+<p>当服务器并发连接数超过600时，关闭keepalive<br><code>QS_SrvMaxConnClose 600</code></p>
+<p>限制每个源IP最大并发连接数为50<br><code>QS_SrvMaxConnPerIP 50</code><br>这两个数值可以根据服务器的性能调整。</p>
+</blockquote>
+<blockquote>
+<p>更多关于qos_module配置<a target="_blank" rel="noopener" href="http://mod-qos.sourceforge.net/dos.html">参考</a><br>示例：</p>
+</blockquote>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">LoadModule qos_module modules/mod_qos.so</span><br><span class="line"><span class="tag">&lt;<span class="name">IfModule</span> <span class="attr">qos_module</span>&gt;</span></span><br><span class="line">QS_SrvMaxConnClose 600</span><br><span class="line">QS_SrvMaxConnPerIP 50</span><br><span class="line"><span class="tag">&lt;/<span class="name">IfModule</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3><span id="ihs服务器">IHS服务器</span></h3><blockquote>
+<p>请您先安装最新补丁包，然后启用mod_reqtimeout模块，在配置文件中加入：<br><code>LoadModule reqtimeout_module modules/mod_reqtimeout.so</code></p>
+</blockquote>
+<blockquote>
+<p>为mod_reqtimeout模块添加配置：</p>
+</blockquote>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">IfModule</span> <span class="attr">mod_reqtimeout.c</span>&gt;</span></span><br><span class="line">RequestReadTimeout header=10-40,MinRate=500 body=10-40,MinRate=500</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>对于HTTPS站点，建议header&#x3D;20-40,MinRate&#x3D;500。</p>
+</blockquote>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="http://www-01.ibm.com/support/docview.wss?uid=swg21652165">参见</a></p>
+</blockquote>
+<h3><span id="f5负载均衡">F5负载均衡</span></h3><blockquote>
+<p>F5负载均衡设备有相应的防护模块，如无购买可参考附件中的详细配置过程。<br>关于F5的慢速攻击防护配置，请参考<a target="_blank" rel="noopener" href="https://support.f5.com/kb/en-us/solutions/public/10000/200/sol10260.html">Page1</a>,<a target="_blank" rel="noopener" href="https://devcentral.f5.com/articles/mitigating-slow-http-post-ddos-attacks-with-irules-ndash-follow-up">Page2</a></p>
+</blockquote>
+<h3><span id="iis服务器">IIS服务器</span></h3><blockquote>
+<p>IIS可配置相关网站的Web.config如下：</p>
+</blockquote>
+<blockquote>
+<p>1、WebLimits设置：</p>
+</blockquote>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">system.applicationHost</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">webLimits</span> <span class="attr">connectionTimeout</span>=<span class="string">&quot;00:00:30&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">headerWaitTimeout</span>=<span class="string">&quot;00:00:10&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">dynamicIdleThreshold</span>=<span class="string">&quot;150&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">minBytesPerSecond</span>=<span class="string">&quot;512&quot;</span></span></span><br><span class="line"><span class="tag">    /&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">system.applicationHost</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>参考以下<a target="_blank" rel="noopener" href="https://docs.microsoft.com/en-us/iis/configuration/system.applicationhost/weblimits#configuration">链接</a></p>
+</blockquote>
+<blockquote>
+<p>2、headerLimits设置：</p>
+</blockquote>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;<span class="name">system.webServer</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">security</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">requestFiltering</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">requestLimits</span>&gt;</span></span><br><span class="line">     <span class="tag">&lt;<span class="name">headerLimits</span>&gt;</span></span><br><span class="line">     <span class="tag">&lt;<span class="name">add</span> <span class="attr">header</span>=<span class="string">&quot;Content-type&quot;</span> <span class="attr">sizeLimit</span>=<span class="string">&quot;100&quot;</span> /&gt;</span></span><br><span class="line">     <span class="tag">&lt;/<span class="name">headerLimits</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">requestLimits</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;/<span class="name">requestFiltering</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">security</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;/<span class="name">system.webServer</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/en-us/iis/configuration/system.webserver/security/requestfiltering/requestlimits/headerlimits/">参考</a></p>
+</blockquote>
+<h2><span id="参考链接">参考链接：</span></h2><blockquote>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://payloads.online/archivers/2018-04-16/2">https://payloads.online/archivers/2018-04-16/2</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.f4guo.top/2019/10/09/HTTP%E6%85%A2%E9%80%9F%E6%8B%92%E7%BB%9D%E6%9C%8D%E5%8A%A1%E6%94%BB%E5%87%BB/">https://www.f4guo.top/2019/10/09/HTTP%E6%85%A2%E9%80%9F%E6%8B%92%E7%BB%9D%E6%9C%8D%E5%8A%A1%E6%94%BB%E5%87%BB/</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xiaoliu66007/p/10174672.html">https://www.cnblogs.com/xiaoliu66007/p/10174672.html</a></li>
+<li><a target="_blank" rel="noopener" href="https://forum.huawei.com/enterprise/zh/thread-293945.html">https://forum.huawei.com/enterprise/zh/thread-293945.html</a></li>
+</ul>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/DOS/" rel="tag">DOS</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/03/HTTP.sys%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/">
+                HTTP.sys远程代码执行
+            </a>
+        </h2>
+    
+    <time>
+        Aug 3, 2022
+    </time>
+    <section class="content">
+        <h1><span id="渗透整理httpsys远程代码执行">【渗透整理】HTTP.sys远程代码执行</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_42742658/article/details/106548456">久违 °</a></p>
+</blockquote>
+<h2><span id="漏洞介绍">漏洞介绍</span></h2><blockquote>
+<p>HTTP.sys是Microsoft Windows处理HTTP请求的内核驱动程序，为了优化IIS服务器性能，从IIS6.0引入，IIS服务进程依赖HTTP.sys。HTTP.sys远程代码执行漏洞实质是HTTP.sys的整数溢出漏洞，当攻击者向受影响的Windows系统发送特殊设计的HTTP 请求，HTTP.sys 未正确分析时就会导致此漏洞，成功利用此漏洞的攻击者可以在系统帐户的上下文中执行任意代码。</p>
+<p>影响环境：Windows+IIS的环境下，任何安装了微软IIS 6.0以上的Windows Server 2008 R2&#x2F;Server 2012&#x2F;Server 2012 R2以及Windows 7&#x2F;8&#x2F;8.1操作系统都受到这个漏洞的影响。</p>
+</blockquote>
+<h2><span id="漏洞知识">漏洞知识</span></h2><blockquote>
+<p>说到HTTP.sys远程代码执行漏洞，不得不先介绍一下Range首部字段。</p>
+<p>在“上古时代”，网络并不是很好，下载大型文件很不容易。下载途中如果网络中断，就得重头开始下。为了解决这个问题，HTTP&#x2F;1.1引入了范围请求。</p>
+<p>在请求报文的Range首部字段中指定资源的byte范围，告诉服务器，请求的是资源哪个范围的内容，让断点续传和并行下载得以实现。</p>
+<p>如果服务器支持范围请求，响应包中就会存在Accept-Ranges字段(且值不为“none”，bytes为资源范围的单位)，并在Content-Length字段中告诉客户端资源的大小范围。</p>
+<p><img src="/2022/08/03/HTTP.sys%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/1.png" alt="image"></p>
+<p>如果没有Accept-Ranges字段，则服务器可能不支持范围请求，有的服务器会明确将值设为“none”。</p>
+<p>服务器面对范围请求，有三种响应：</p>
+<p>请求成功：</p>
+<p>响应206Partial Content请求范围越界：（范围超过资源的大小）</p>
+<p>响应416Requested Range Not Satisfiable不支持范围请求：</p>
+<p>响应200OK</p>
+<p>而HTTP.sys远程代码执行漏洞正是利用Range字段注入恶意数据。该漏洞的检测，也是利用服务器面对范围请求时的响应特征来判断。</p>
+</blockquote>
+<h2><span id="漏洞检测方法">漏洞检测方法</span></h2><blockquote>
+<p>1、先判断目标环境是否为Windows+IIS</p>
+<p>2、然后构建Range字段进行检测即可</p>
+<p>检测时，在请求包中添加Range字段，如下：</p>
+<p><code>Range: bytes=0-18446744073709551615</code></p>
+<p>【18446744073709551615的十六进制为0xFFFFFFFFFFFFFFFF(16个F)是64位无符号整数所能表达的最大整数，整数溢出和这个超大整数有关】</p>
+<p>然后go给服务器</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/<span class="number">1.1</span></span><br><span class="line">Host: stuff</span><br><span class="line">Range: <span class="built_in">bytes</span>=<span class="number">0</span>-<span class="number">18446744073709551615</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>或者：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -v www.test.com -H <span class="string">&quot;Host: irrelevant&quot;</span> -H <span class="string">&quot;Range: bytes=0-18446744073709551615&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>服务器响应 400，证明不存在HTTP.sys远程代码执行漏洞</p>
+<p><code>HTTP Error 400. The request has an invalid header name.</code></p>
+<p>服务器响应 416，则证明存在该漏洞</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">HTTP/<span class="number">1.1</span> <span class="number">416</span> Requested Range Not Satisfiable</span><br><span class="line">Content-<span class="type">Type</span>: text/html</span><br><span class="line">Last-Modified: Thu, <span class="number">22</span> Aug <span class="number">2013</span> <span class="number">23</span>:<span class="number">53</span>:<span class="number">12</span> GMT</span><br><span class="line">Accept-Ranges: <span class="built_in">bytes</span></span><br><span class="line">ETag: <span class="string">&quot;2edebc2929fce1:0&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2><span id="漏洞修复建议">漏洞修复建议：</span></h2><blockquote>
+<p>升级安全补丁</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+</section>
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

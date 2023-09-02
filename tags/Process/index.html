@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Tag: Process | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Open your eyes to see the light in life">
+<meta property="og:type" content="website">
+<meta property="og:title" content="氕氘氚">
+<meta property="og:url" content="http://example.com/tags/Process/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Open your eyes to see the light in life">
+<meta property="og:locale">
+<meta property="article:author" content="Szczecin">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        
+  <section class="page-header tag">
+    <h1>- <span>Process</span> -</h1>
+  </section>
+
+
+
+
+
+
+<section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/02/Process-Hide/">
+                Linux当中如何隐藏和查看进程
+            </a>
+        </h2>
+    
+    <time>
+        Sep 2, 2023
+    </time>
+    <section class="content">
+        <h1><span id="linux当中如何隐藏和查看进程">Linux当中如何隐藏和查看进程</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/zfw_666666/article/details/126658093">CN-FuWei</a> 并作补充</p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>进程是执行程序的过程，类似于按照图纸，真正去盖房子的过程。</p>
+<p>同一个程序可以执行多次，每次都可以在内存中开辟独立的空间来装载，从而产生多个进程。不同的进程还可以拥有各自独立的IO接口。操作系统的一个重要功能就是为进程提供方便，比如说为进程分配内存空间，管理进程的相关信息等等，就好像是为我们准备好了一个精美的地址。</p>
+<p>进程信息是proc目录下动态生成，每个动态创建的进程ID号下面详细的记录了关于该进程的fd,mem,io,cpuset等进程信息。</p>
+<p>Linux 内核提供了一种通过 &#x2F;proc 文件系统，在运行时访问内核内部数据结构、改变内核设置的机制。proc文件系统是一个伪文件系统，它只存在内存当中，而不占用外存空间。</p>
+<p><strong>通过它可以访问系统内核数据。</strong>用户和应用程序可以通过proc得到系统的信息，并可以改变内核的某些参数。</p>
+<p>由于系统的信息，如进程，是动态改变的，所以用户或应用程序读取proc文件时，proc文件系统动态的。在&#x2F;proc下还有三个很重要的目录：net，scsi和sys。sys目录是可写的，可以通过它来访问或修改内核的参数，而net和scsi则依赖于内核配置。例如，如果系统不支持scsi，则scsi 目录不存在。</p>
+<p>除了以上介绍的这些，还有的是一些以数字命名的目录，它们是进程目录。系统中当前运行的每一个进程都有对应的一个目录在&#x2F;proc下，以进程的 PID号为目录名，它们是读取进程信息的接口。而self目录则是读取进程本身的信息接口。</p>
+<p>读取&#x2F;proc&#x2F;self&#x2F;maps可以得到当前进程的内存映射关系，通过读该文件的内容可以得到内存代码段基址。</p>
+</blockquote>
+<h2><span id="一-隐藏进程">一、隐藏进程</span></h2><blockquote>
+<p>利用mount —bind 将另外一个目录挂载覆盖至&#x2F;proc&#x2F;目录下指定进程ID的目录，我们知道ps、top等工具会读取&#x2F;proc目录下获取进程信息，如果将进程ID的目录信息覆盖，则原来的进程信息将从ps的输出结果中隐匿。</p>
+<p>比如当前有一个minio进程（pid：1945）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@docker]-[~]-ps -ef|grep minio</span><br><span class="line">root       1945   1924  0 08:06 ?        00:00:10 minio server /data --console-address 0.0.0.0:9999</span><br></pre></td></tr></table></figure>
+
+<p>现在我们将该进程隐藏：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#首先，创建一个空目录（无任何挂载）</span></span><br><span class="line"><span class="built_in">mkdir</span> -p /empty/dir</span><br><span class="line"><span class="comment">#将空目录进行挂载</span></span><br><span class="line">mount -o <span class="built_in">bind</span> /empty/dir/ /proc/1945</span><br></pre></td></tr></table></figure>
+
+<p>然后，我们再来查询看看进程是否隐藏：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@docker]-[~]-<span class="comment">#ps -ef|grep minio</span></span><br><span class="line">root      46358  32804  0 10:54 pts/0    00:00:00 grep --color=auto minio</span><br></pre></td></tr></table></figure>
+
+<p>发现，进程已经被我们隐藏掉了。</p>
+</blockquote>
+<h2><span id="二-隐藏进程侦查">二、隐藏进程侦查</span></h2><h3><span id="21-方式一mounts">2.1 方式一（mounts）</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@docker]-[/proc]-<span class="comment">#cat /proc/mounts </span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/09/02/Process-Hide/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="22-方式二sysdig">2.2 方式二（sysdig）</span></h3><blockquote>
+<p>下载安装：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -s https://s3.amazonaws.com/download.draios.com/stable/install-sysdig | sudo bash</span><br><span class="line"></span><br><span class="line">[root@docker]-[~]-<span class="comment">#sysdig -c topprocs_cpu</span></span><br></pre></td></tr></table></figure>
+<p><img src="/2023/09/02/Process-Hide/2.png" alt="image"></p>
+</blockquote>
+<h3><span id="23-方式三unhide">2.3 方式三（unhide）</span></h3><blockquote>
+<p>下载安装：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum -y install unhide</span><br></pre></td></tr></table></figure>
+
+<p>暴力扫描隐藏进程：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">unhide checkbrute</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/09/02/Process-Hide/3.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Process/" rel="tag">Process</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+</section>
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>
