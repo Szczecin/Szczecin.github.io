@@ -86,6 +86,74 @@
 
     
         <h2 class="title">
+            <a href="/2023/09/03/Plaintext-VIEWSTATE/">
+                未加密的__VIEWSTATE参数
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="未加密的__viewstate参数">未加密的__VIEWSTATE参数</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_36292543/article/details/121357450">默默提升实验室</a> 并作补充</p>
+</blockquote>
+<h2><span id="0-知识补充">0. 知识补充</span></h2><blockquote>
+<p>表单提交在遇到服务器返回错误时候，再次填写表单时，上次填写的值不会被清空。</p>
+<p>维持ViewState是ASP.NET Web Forms的默认设置。如果你想不维持ViewState，需在.aspx页面顶部包含提示&lt;%@Page EnableViewState&#x3D;“false” %&gt;，或者或者向任意控件添加属性EnableViewState&#x3D;“false” 。</p>
+<p>没有设置维持ViewState，当点击按钮提交，表单值将消失。</p>
+</blockquote>
+<h3><span id="viewstate是如何使用的">ViewState是如何使用的</span></h3><blockquote>
+<p>ViewState 基本上由服务器生成，并以隐藏的表单字段 “_VIEWSTATE” 的形式发送给客户端，用于“POST”请求。当Web应用程序进行 POST 请求时，客户端将其发送到服务器。</p>
+<p>ViewState 以序列化数据的形式出现，当客户端再次进行请求（ViewState）被发送到服务器时，将进行反序列化。</p>
+<p>为了使 ViewState 不受篡改，存在一个启用 ViewState MAC 的选项，通过设置一个值并在反序列化期间对 ViewState 的值进行完整性检查。</p>
+</blockquote>
+<h2><span id="1-漏洞描述">1. 漏洞描述</span></h2><blockquote>
+<p>__VIEWSTATE 参数未加密，存在有人拦截存储在 ViewState 中的信息的机会。</p>
+</blockquote>
+<h2><span id="2-漏洞危害">2. 漏洞危害</span></h2><blockquote>
+<p>可能导致敏感信息泄露。</p>
+</blockquote>
+<h2><span id="3-漏洞验证">3. 漏洞验证</span></h2><blockquote>
+<p>使用工具：Burp Suit，需要安装插件ViewState Editor，如下图所示：</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/1.png" alt="image"></p>
+<p>POC：{EXTRACTED_STRINGS}:string&#x3D; -2140192582</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/2.png" alt="image"></p>
+<p>查看存在该问题的页面源码，搜索__VIEWSTATE，可以看到对应的value值，对该段值进行base64解码。可以得到对应的信息，在Burp Suit中使用 ViewState Decoder插件可以进行解码。</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/3.png" alt="image"><br><img src="/2023/09/03/Plaintext-VIEWSTATE/4.png" alt="image"></p>
+</blockquote>
+<h3><span id="其他解码工具">其他解码工具</span></h3><blockquote>
+<p>网页：<a target="_blank" rel="noopener" href="https://www.httpdebugger.com/tools/ViewstateDecoder.aspx">https://www.httpdebugger.com/tools/ViewstateDecoder.aspx</a></p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/5.png" alt="image"></p>
+<p>软件：ViewStateDecoder2.0.exe</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/6.png" alt="image"></p>
+</blockquote>
+<h2><span id="4-漏洞建议">4. 漏洞建议</span></h2><blockquote>
+<p>请将machineKey验证类型设置为AES。这将使得 ASP.NET 使用AES算法加密ViewState 值。</p>
+<p>​打开 Web.Config 并在 &lt;system.web&gt; 元素下添加以下行：<machinekey validation="“AES”/">如下：</machinekey></p>
+<p><code>&lt;system.web&gt; &lt;machinekey validation=&quot;3DES&quot;&gt;&lt;/machinekey&gt;&lt;/system.web&gt;</code></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/previous-versions/dotnet/netframework-3.0/w8h3skw9%28v=vs.85%29">machineKey 元素（ASP.NET 设置架构）</a></p>
+</blockquote>
+<blockquote>
+<p>关于ViewState的相关demo案例：<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/RlY5HL_ak4G8EdcXyevWDg">ViewState 反序列化及其利用</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Plaintext/" rel="tag">Plaintext</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/08/15/Plaintext-Transmisson/">
                 Plaintext Transmission
             </a>

