@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Tag: CORS | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Open your eyes to see the light in life">
+<meta property="og:type" content="website">
+<meta property="og:title" content="氕氘氚">
+<meta property="og:url" content="http://example.com/tags/CORS/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Open your eyes to see the light in life">
+<meta property="og:locale">
+<meta property="article:author" content="Szczecin">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        
+  <section class="page-header tag">
+    <h1>- <span>CORS</span> -</h1>
+  </section>
+
+
+
+
+
+
+<section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/06/CORS/">
+                跨域资源共享漏洞分析总结（含实战）
+            </a>
+        </h2>
+    
+    <time>
+        Oct 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="跨源资源共享cors">跨源资源共享(CORS)</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_43571759/article/details/105838128">humble嘻</a> 并作补充</p>
+</blockquote>
+<h2><span id="浏览器的同源策略">浏览器的同源策略</span></h2><h3><span id="概念">概念</span></h3><blockquote>
+<p>根据字面意思就可以理解，同源策略是浏览器实施的一种关键机制，主要防止不同来源的干扰。所谓同源是指域名，协议，端口相同。<br>与其说同源策略的作用，不如说如果没有同源策略会产生什么后果，比如当你浏览网站A的同时也浏览了网站B，在该网站上运行的脚本代码将能访问你同时访问的网站B的数据和功能，此时如果网站A是恶意网站，如果网站B是网上银行，那么此时恶意站点就可以以你的名义进行转账。</p>
+</blockquote>
+<h3><span id="特点">特点</span></h3><blockquote>
+<p>位于一个域的页面可以向另一个域提出请求<br>位于一个域的页面可以加载来自其他域的脚本并在自己的域中执行这个脚本（在授权的情况下）<br>位于一个域的页面无法读取或修改属于另一个域的cookie 或者其他DOM数据</p>
+</blockquote>
+<h3><span id="主要功能">主要功能</span></h3><blockquote>
+<p>同源策略可以防止在一个域中运行的代码访问由其他域提供的内容<br>ps:但是很多功能是不受同源策略限制的：超链接、重定向、提交表单、嵌入到页面的图片等</p>
+</blockquote>
+<h2><span id="跨域">跨域</span></h2><h3><span id="主要跨域请求方法">主要跨域请求方法</span></h3><blockquote>
+<p>JSONP<br>CORS</p>
+</blockquote>
+<h3><span id="jsonp跨域">JSONP跨域</span></h3><blockquote>
+<p>加载远程js,可以把远程js中数据带进来，一笔带过，这里并不是主要学习这个的。</p>
+</blockquote>
+<h3><span id="cors跨域">CORS跨域</span></h3><blockquote>
+<p>为了实现某些功能，允许浏览器向跨域服务器发出xmlhttprequest请求，克服SOP的限制实现跨域获取数据。</p>
+</blockquote>
+<h3><span id="说明">说明</span></h3><blockquote>
+<p>最初XMLHttpRequest仅允许向与调用页面的来源相同的来源提出请求。随着HTML5的出现，这一技术得以修改，从而可以与其他域进行交互。</p>
+</blockquote>
+<h3><span id="举例说明">举例说明</span></h3><blockquote>
+<p>首先看个实例说明一下，刚好我在逛b站，就随手抓了一个包—-如图<br><img src="/2023/10/06/CORS/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>请求头中的Origin字段<br>其中红色框框的origin字段表明该请求来源于<a target="_blank" rel="noopener" href="https://message.bilibili.com/">https://message.bilibili.com</a><br>需要跨域请求时，浏览器会添加origin消息头，用于指示尝试提出跨域请求的域，对服务端来说，这个字段即是跨域标志。<br>当浏览器收到请求并收到这个字段，首先就会判断这个源是否在允许范围之内，如果是，也就出现了下面介绍的这些字段。</p>
+</blockquote>
+<blockquote>
+<p>响应包中的4个响应字段<br>Access-Control-Allow-Origin字段在这里表示接受该域名的请求，有些情况会是 * 此时也就存在了安全风险。<br>Access-Control-Allow-Credentials：该字段可选。它的值是一个布尔值，表示是否允许发送Cookie。当设置为true时，即表示服务器明确许可，Cookie可以包含在请求中，一起发给服务器。默认是false。<br>Access-Control-Expose-Headers：该字段可选。CORS请求时，XMLHttpRequest对象的getResponseHeader()方法只能拿到6个基本字段：Cache-Control、Content-Language、Content-Type、Expires、Last-Modified、Pragma。如果想拿到其他字段，就必须在Access-Control-Expose-Headers里面指定。<br>Access-Control-Allow-Methods: 允许使用的请求方法</p>
+</blockquote>
+<h2><span id="cors的安全问题">CORS的安全问题</span></h2><blockquote>
+<p>造成安全原因同样也是不安去的配置导致的，唉，不安全的配置会导致各种各样的漏洞，这也是这种缺陷一直位于owaspTop10的原因。<br>简单易懂的举个例子就是foo.com向bar.com发出请求时，如果响应头中包含了foo.com的CORS头，这样foo.com就可以携带cookie去调用bar.com了。</p>
+</blockquote>
+<h2><span id="三种不安全的配置引起的安全问题">三种不安全的配置引起的安全问题</span></h2><blockquote>
+<p>CORS服务端的 Access-Control-Allow-Origin 设置为了 * ,也就是说允许任何网站访问本服务器的资源。毫无疑问这是存在安全风险的<br>这里做一个实验，是一个在线实验室，就是针对这一类漏洞，如图<br><img src="/2023/10/06/CORS/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>出现一个登入界面，使用提供给你的用户密码登入进去，点击我的账户，会发现会提供给你一个api key,并且这个服务器对跨域请求进行了不安全的配置，也就是上文提到的，这里只需要在请求头中添加Origin字段–如图<br><img src="/2023/10/06/CORS/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>响应消息头中当然是不合法的，这个实验室同时也提供了可以利用的服务器，通过这个服务器获得本服务器的API<br>进入可利用服务器，向受害者服务器提出跨域请求，如图<br><img src="/2023/10/06/CORS/4.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>完成攻击后，查看访问日志发现已经完成攻击。<br><img src="/2023/10/06/CORS/5.png" alt="image"><br>还有一种漏洞是由于白名单的空原始值，请求消息头为Origin: null，某些应用程序可能会将null来源列入白名单，以支持应用程序的本地开发，这个实验内容和本实验类似。</p>
+</blockquote>
+<blockquote>
+<p>返回报文头部Access-Control-Allow-Origin由请求报文Origin生成的（客户端可控数据），并且返回报文Access-Control-Allow-Credentials&#x3D;true时，表明cookie可以包含在请求头中，一起发给服务器<br>配置了不严谨的正则表达式规则，也就是说对origin校验功能不完善，比如一种情况是只检查以a.com结尾的网站域名</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">origin:http:<span class="comment">//a.com</span></span><br><span class="line">Access-Control-Allow-Origin:http:<span class="comment">//a.com</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>可以构造一个类似<a target="_blank" rel="noopener" href="http://b.a.com/">http://b.a.com</a> 就能绕过其验证机制导致信息泄露，有些情况也会导致HTTP拆分注入攻击。</p>
+</blockquote>
+<h3><span id="通过cors信任关系-利用xss">通过CORS信任关系 利用XSS</span></h3><blockquote>
+<p>甚至“正确”配置的CORS也会在两个来源之间建立信任关系。如果网站信任易受跨站点脚本（XSS）攻击的来源，则攻击者可能利用XSS注入一些JavaScript，这些JavaScript使用CORS从信任易受攻击的应用程序的站点检索敏感信息。<br>开发人员用于对抗CORS利用的一种防御机制，是将频繁请求访问信息的域列入白名单。但这并不完全安全，因为只要白名单域中的一个子域易受到其他攻击（如XSS），那么也可以进行CORS利用。<br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/linuxsec/articles/10584677.html">这篇文章有几个实例和漏洞分析可以看看</a></p>
+</blockquote>
+<h3><span id="使用错误的cors破坏tls">使用错误的CORS破坏TLS</span></h3><blockquote>
+<p>假设严格使用HTTPS的应用程序还将使用纯HTTP的受信任子域列入白名单。例如，当应用程序收到以下请求时：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/api/requestApiKey</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>vulnerable-website.com</span><br><span class="line"><span class="attribute">Origin</span><span class="punctuation">: </span>http://trusted-subdomain.vulnerable-website.com</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>sessionid=...</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>该应用程序响应：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">HTTP/1.1</span> <span class="number">200</span> OK</span><br><span class="line"><span class="attribute">Access-Control-Allow-Origin</span><span class="punctuation">: </span>http://trusted-subdomain.vulnerable-website.com</span><br><span class="line"><span class="attribute">Access-Control-Allow-Credentials</span><span class="punctuation">: </span>true</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在这种情况下，能够拦截受害者用户流量的攻击者可以利用CORS配置破坏受害者与应用程序的交互。该攻击包括以下步骤：<br>受害用户发出任何普通的HTTP请求。<br>攻击者将重定向注入到： <a target="_blank" rel="noopener" href="http://trusted-subdomain.vulnerable-website.com/">http://trusted-subdomain.vulnerable-website.com</a><br>受害者的浏览器遵循重定向。<br>攻击者拦截原始的HTTP请求，然后将包含CORS请求的欺骗响应返回给： <a target="_blank" rel="noopener" href="https://vulnerable-website.com/">https://vulnerable-website.com</a><br>受害者的浏览器发出CORS请求，包括来源： <a target="_blank" rel="noopener" href="http://trusted-subdomain.vulnerable-website.com/">http://trusted-subdomain.vulnerable-website.com</a><br>该应用程序允许该请求，因为这是白名单来源。请求的敏感数据将在响应中返回。<br>攻击者的欺骗页面可以读取敏感数据，并将其传输到攻击者控制下的任何域。<br>即使易受攻击的网站对HTTPS的使用具有鲁棒性，没有HTTP终结点并且所有cookie被标记为安全，此攻击也有效。</p>
+</blockquote>
+<h2><span id="防御cors">防御CORS</span></h2><h3><span id="如何预防基于cors的攻击">如何预防基于CORS的攻击</span></h3><blockquote>
+<p>CORS漏洞主要是由于配置错误而引起的。因此，预防是一个配置问题。以下各节介绍了一些针对CORS攻击的有效防御措施。</p>
+</blockquote>
+<h3><span id="正确配置跨域请求">正确配置跨域请求</span></h3><blockquote>
+<p>如果Web资源包含敏感信息，则应在Access-Control-Allow-Origin标头中正确指定来源。</p>
+</blockquote>
+<h3><span id="只允许信任的网站">只允许信任的网站</span></h3><blockquote>
+<p>看起来似乎很明显，但是Access-Control-Allow-Origin标头中指定的来源只能是受信任的站点。特别是，无需验证就可以动态反映跨域请求的来源而无需验证，因此应避免使用。</p>
+</blockquote>
+<h3><span id="避免将null列入白名单">避免将null列入白名单</span></h3><blockquote>
+<p>避免使用标题Access-Control-Allow-Origin: null。来自内部文档和沙盒请求的跨域资源调用可以指定null来源。应针对私有和公共服务器的可信来源正确定义CORS标头。</p>
+</blockquote>
+<h3><span id="避免在内部网络中使用通配符">避免在内部网络中使用通配符</span></h3><blockquote>
+<p>避免在内部网络中使用通配符。当内部浏览器可以访问不受信任的外部域时，仅靠信任网络配置来保护内部资源是不够的。</p>
+</blockquote>
+<h3><span id="cors不能替代服务器端安全策略">CORS不能替代服务器端安全策略</span></h3><blockquote>
+<p>CORS定义了浏览器的行为，绝不能替代服务器端对敏感数据的保护-攻击者可以直接从任何可信来源伪造请求。因此，除了正确配置的CORS之外，Web服务器还应继续对敏感数据应用保护，例如身份验证和会话管理。</p>
+</blockquote>
+<h2><span id="实验室和参考">实验室和参考</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/cors">https://portswigger.net/web-security/cors</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/CORS/" rel="tag">CORS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+</section>
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

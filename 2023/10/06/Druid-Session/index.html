@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Druid未授权访问利用 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Druid未授权访问利用 本文转自春日野穹 并作补充  引言 最近挖SRC经常遇到Druid未授权访问漏洞，觉得过程比较有趣，所以简单记录一下  Druid简介 druid是阿里研发的一款数据库连接池，其开发语言为java，druid集合了c3p0、dbcp、proxool等连接池的优点，还加入了日志监控、session监控等数据监控功能，使用Druid能有效的监控DB池连接和SQL的执行情况。更">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Druid未授权访问利用">
+<meta property="og:url" content="http://example.com/2023/10/06/Druid-Session/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Druid未授权访问利用 本文转自春日野穹 并作补充  引言 最近挖SRC经常遇到Druid未授权访问漏洞，觉得过程比较有趣，所以简单记录一下  Druid简介 druid是阿里研发的一款数据库连接池，其开发语言为java，druid集合了c3p0、dbcp、proxool等连接池的优点，还加入了日志监控、session监控等数据监控功能，使用Druid能有效的监控DB池连接和SQL的执行情况。更">
+<meta property="og:locale">
+<meta property="og:image" content="http://example.com/2023/10/06/Druid-Session/1.png">
+<meta property="og:image" content="http://example.com/2023/10/06/Druid-Session/2.png">
+<meta property="og:image" content="http://example.com/2023/10/06/Druid-Session/3.png">
+<meta property="og:image" content="http://example.com/2023/10/06/Druid-Session/4.png">
+<meta property="og:image" content="http://example.com/2023/10/06/Druid-Session/5.png">
+<meta property="og:image" content="http://example.com/2023/10/06/Druid-Session/6.png">
+<meta property="og:image" content="http://example.com/2023/10/06/Druid-Session/7.png">
+<meta property="og:image" content="http://example.com/2023/10/06/Druid-Session/8.png">
+<meta property="article:published_time" content="2023-10-07T01:08:25.000Z">
+<meta property="article:modified_time" content="2023-10-06T14:21:26.937Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Reprint">
+<meta property="article:tag" content="Exploit">
+<meta property="article:tag" content="Druid">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2023/10/06/Druid-Session/1.png">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-Druid-Session"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2023/10/06/Druid-Session/">
+            Druid未授权访问利用
+        </a>
+    </h2>
+    <time>
+        Oct 6, 2023
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="druid未授权访问利用">Druid未授权访问利用</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/chest_/article/details/109695524">春日野穹</a> 并作补充</p>
+</blockquote>
+<h2><span id="引言">引言</span></h2><blockquote>
+<p>最近挖SRC经常遇到Druid未授权访问漏洞，觉得过程比较有趣，所以简单记录一下</p>
+</blockquote>
+<h2><span id="druid简介">Druid简介</span></h2><blockquote>
+<p>druid是阿里研发的一款数据库连接池，其开发语言为java，druid集合了c3p0、dbcp、proxool等连接池的优点，还加入了日志监控、session监控等数据监控功能，使用Druid能有效的监控DB池连接和SQL的执行情况。<br>更多信息可参考官方GitHub项目：<a target="_blank" rel="noopener" href="https://github.com/alibaba/druid">https://github.com/alibaba/druid</a><br>druid虽高效好用，但当开发者配置不当时就可能造成未授权访问，攻击者可利用泄露的Session登录后台</p>
+</blockquote>
+<h2><span id="druid未授权访问路径">Druid未授权访问路径</span></h2><blockquote>
+<p>怎么探寻Druid未授权访问呢？可以直接拼接以下路径进行访问，如果页面存在，即为Druid未授权访问</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">html:</span><br><span class="line">ip/druid/index.html 		 	##Druid Index</span><br><span class="line">ip/druid/sql.html				##Druid sql监控页面</span><br><span class="line">ip/druid/weburi.html			##Druid Web URI监控页面</span><br><span class="line">ip/druid/websession.html		##Druid Web Session监控页面</span><br><span class="line"></span><br><span class="line">json:</span><br><span class="line">ip/druid/weburi.json			##Druid Web URI json</span><br><span class="line">ip/druid/websession.json		##Druid Web Session json</span><br><span class="line"></span><br><span class="line">Druid 登录接口：</span><br><span class="line">ip/druid/login.html				##Druid登录认证页面</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>当一级目录不存在时，可尝试拼接二级目录进行访问<br>也可利用谷歌语法或目录扫描工具进行探测：<br><img src="/2023/10/06/Druid-Session/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="提取session">提取session</span></h2><blockquote>
+<p>访问ip&#x2F;druid&#x2F;weburi.html看到以下页面则证明漏洞可被利用，如果url和session页面都为空，则说明这两项druid并不管理<br><img src="/2023/10/06/Druid-Session/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>当&#x2F;druid&#x2F;websession.html页面存在数据时，我们可利用该页面的session伪造登录，点击最后访问时间，然后复制一条离现在时间最为接近的session进行伪造登录；之所以要点击最后访问时间排序session，是因为此处记录的Session并非全部都是用户在线时的session，当用户退出系统时，session虽然还存在，但已失效，无法再利用。<br>也可利用py提取session然后结合burp的Intruder模块批量遍历高权限用户，session地址可参考上面给出的链接<br><img src="/2023/10/06/Druid-Session/3.png" alt="image"></p>
+<p>如果我们并不清楚后台的位置，我们可再把脚本改一下，利用url监控处为我们提供清晰的站点目录架构<br><img src="/2023/10/06/Druid-Session/4.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>ok，得到后台地址，接下来我们访问一下<br><img src="/2023/10/06/Druid-Session/5.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>重新刷新一下页面，然后开启burp进行抓包，抓包过程中发现站点cookie值存在session字段，点击最后访问时间排序一下session，随后复制session过来访问一下<br><img src="/2023/10/06/Druid-Session/6.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>毫无意外，成功进去，但是权限不高，看来还是得开启神奇的Intruder模块，爆破结果如下<br><img src="/2023/10/06/Druid-Session/7.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>根据返回包信息看哪条session权限高就用它伪造登录<br>注：除session伪造外，url监控和sql监控也能为我们开拓攻击的思路，当我们遇到一个注入且不清楚其语法结构时，查看sql监控处有可能会得到，此外，url监控处也为我们提供了较为清晰的站点目录架构</p>
+</blockquote>
+<h2><span id="session伪造进后台">session伪造进后台</span></h2><blockquote>
+<p>之后就是替换cookie值伪造登录了，f12改一下session值即可<br><img src="/2023/10/06/Druid-Session/8.png" alt="image"></p>
+</blockquote>
+<h2><span id="结语">结语</span></h2><blockquote>
+<p>druid作为数据源的一名后起之秀，凭借其出色的性能，渐渐被大家使用。当然还有他的监控页面也有这非常大的作用。但是监控页面往往包含了很多隐私的数据信息，所以需要将其保密，可以为监控页面添加一个用户名和密码，确保其安全性</p>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/Druid/" rel="tag">Druid</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

