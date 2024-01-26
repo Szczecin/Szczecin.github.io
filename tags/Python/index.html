@@ -86,6 +86,119 @@
 
     
         <h2 class="title">
+            <a href="/2024/01/25/ChatGPT-Python-LangChain/">
+                使用 ChatGPT 与 Python 中的第三方应用程序进行交互
+            </a>
+        </h2>
+    
+    <time>
+        Jan 25, 2024
+    </time>
+    <section class="content">
+        <h1><span id="使用-chatgpt-与-python-中的第三方应用程序进行交互">使用 ChatGPT 与 Python 中的第三方应用程序进行交互</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/2332320">Miloce</a> 并作补充</p>
+<p>将语言模型（如ChatGPT）集成到第三方应用程序中已经变得越来越流行，因为它们能够理解和生成类似人类的文本。然而，需要认识到ChatGPT的一些限制，比如它的知识截止日期是在2021年9月，以及它无法直接访问维基百科或 Python 等外部资源。</p>
+<p>鉴于这一挑战，LangChain的联合创始人兼首席执行官Harrison Chase提出了一个创新的解决方案。他开发了Python LangChain模块，该模块使开发人员能够轻松地将第三方应用程序与大型语言模型集成在一起。这一突破开启了无限的可能性，允许开发人员充分利用语言模型的强大功能，同时有效地处理来自外部来源的信息。</p>
+<p>在本文中，我们将探讨使用Python LangChain模块与ChatGPT交互以与第三方应用程序交互的有趣概念。到文章末尾，您将更深入地了解如何利用这种集成，创建更复杂和高效的应用程序。</p>
+</blockquote>
+<h2><span id="导入chatgpt模块">导入ChatGPT模块</span></h2><blockquote>
+<p>第一步是安装Python LangChain模块，您可以使用以下pip命令完成此操作。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install langchain</span><br></pre></td></tr></table></figure>
+
+<p>接下来，您需要从<code>langchain.chat_models</code>模块导入<code>ChatOpenAI</code>类。<code>ChatOpenAI</code>类允许您创建ChatGPT的实例。为此，请将<code>model_name</code>属性传递给<code>ChatOpenAI</code>类，将模型设置为”gpt-3.5-turbo”。OpenAI的”gpt-3.5-turbo”模型为ChatGPT提供动力。您还需要将您的OpenAI API密钥传递给<code>open_api_key</code>属性。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> langchain.chat_models <span class="keyword">import</span> ChatOpenAI</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"></span><br><span class="line">api_key = os.getenv(<span class="string">&#x27;OPENAI_KEY2&#x27;</span>)</span><br><span class="line">chatgpt = ChatOpenAI(model_name=<span class="string">&quot;gpt-3.5-turbo&quot;</span>,</span><br><span class="line">                    openai_api_key=api_key)</span><br></pre></td></tr></table></figure>
+
+<p>现在，我们已准备好在Python中将第三方应用程序与ChatGPT集成。</p>
+</blockquote>
+<h2><span id="使用chatgpt从维基百科提取信息">使用ChatGPT从维基百科提取信息</span></h2><blockquote>
+<p>如前所述，ChatGPT的知识截止日期为2021年9月，无法回答那之后的查询。例如，如果您要求ChatGPT返回2022年温布尔登锦标赛的维基百科文章摘要，您将获得以下答案：</p>
+<p><img src="/2024/01/25/ChatGPT-Python-LangChain/1.png" alt="image"></p>
+<p><a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://docs.langchain.com/docs/components/agents/&source=article&objectId=2332320">LangChain代理</a>允许您与第三方应用程序交互。有关更多信息，请查看所有<a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://python.langchain.com/docs/integrations&source=article&objectId=2332320">LangChain代理集成</a>的列表。</p>
+<p>让我们看看如何使用示例代码将ChatGPT与维基百科等第三方应用程序集成。</p>
+<p>您需要从<code>langchain.agents</code>模块导入<code>load_tools</code>、<code>initialize_agent</code>和<code>AgentType</code>实体。</p>
+<p>接下来，您应该将代理类型作为输入提供给<code>load_tools</code>类。在下面的示例脚本中，指定的代理类型是<code>wikipedia</code>。随后的步骤涉及使用<code>initialize_agent()</code>方法创建代理对象。在调用<code>initialize_agent()</code>方法时，您需要传递工具类型、ChatGPT实例和代理类型作为参数。如果将<code>verbose</code>参数设置为<code>True</code>，它将显示代理任务执行的思考过程。</p>
+<p>在下面的脚本中，我们要求维基百科代理返回2022年温布尔登锦标赛的维基百科文章摘要。</p>
+<p>在输出中，您可以看到代理的思考过程以及包含文章摘要的最终结果。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> langchain.agents <span class="keyword">import</span> load_tools, initialize_agent, AgentType</span><br><span class="line"></span><br><span class="line">tools = load_tools(</span><br><span class="line">    [<span class="string">&#x27;wikipedia&#x27;</span>], </span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent_chain = initialize_agent(</span><br><span class="line">    tools,</span><br><span class="line">    chatgpt,</span><br><span class="line">    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,</span><br><span class="line">    verbose=<span class="literal">True</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent_chain.run(</span><br><span class="line">    <span class="string">&quot;返回2022年温布尔登锦标赛的维基百科文章摘要。&quot;</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/ChatGPT-Python-LangChain/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="从arxiv提取信息">从ArXiv提取信息</span></h2><blockquote>
+<p>让我们看看另一个示例。我们将从<a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://arxiv.org/&source=article&objectId=2332320">ArXiv</a>获取一篇文章的标题和作者姓名，ArXiv是一个流行的开放获取科研论文、预印本和其他学术文章的存储库。</p>
+<p>脚本保持不变，只需将<code>arxiv</code>作为参数值传递给<code>load_tools()</code>方法。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">tools = load_tools(</span><br><span class="line">    [<span class="string">&quot;arxiv&quot;</span>], </span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent_chain = initialize_agent(</span><br><span class="line">    tools,</span><br><span class="line">    chatgpt,</span><br><span class="line">    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,</span><br><span class="line">    verbose=<span class="literal">True</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent_chain.run(</span><br><span class="line">    <span class="string">&quot;给我提供文章1301.3781的标题和作者姓名。&quot;</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/ChatGPT-Python-LangChain/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="从csv文件提取信息">从CSV文件提取信息</span></h2><blockquote>
+<p>LangChain提供了直接创建特定任务代理实例的方法。例如，<code>langchain.agents</code>模块的<code>create_csv_agent()</code>方法允许您创建与CSV文件交互的CSV代理。</p>
+<p>让我们看一个示例。以下脚本导入包含公司员工流失信息的数据集。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line">dataset = pd</span><br><span class="line"></span><br><span class="line">.read_csv(<span class="string">r&#x27;D:\Datasets\employee_attrition_dataset.csv&#x27;</span>)</span><br><span class="line">dataset.head()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/ChatGPT-Python-LangChain/4.png" alt="image"></p>
+<p>让我们使用CSV代理从此文件获取信息。我们要求ChatGPT返回销售部门的员工总数。</p>
+<p>在输出中，您可以看到ChatGPT返回输出的过程。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> langchain.agents <span class="keyword">import</span> create_csv_agent</span><br><span class="line"></span><br><span class="line">agent = create_csv_agent(</span><br><span class="line">    chatgpt,</span><br><span class="line">    <span class="string">r&#x27;D:\Datasets\employee_attrition_dataset.csv&#x27;</span>,</span><br><span class="line">    verbose=<span class="literal">True</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent.run(<span class="string">&quot;返回销售部门的员工总数。&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/ChatGPT-Python-LangChain/5.png" alt="image"></p>
+</blockquote>
+<h2><span id="从pandas-dataframe提取信息">从Pandas DataFrame提取信息</span></h2><blockquote>
+<p>同样，您可以使用<code>create_pandas_dataframe_agent()</code>方法从Pandas dataframe中提取信息。在下面的脚本中，我们要求ChatGPT返回销售部门中教育领域为医学的员工总数。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line">dataset = pd.read_csv(<span class="string">r&#x27;D:\Datasets\employee_attrition_dataset.csv&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> langchain.agents <span class="keyword">import</span> create_pandas_dataframe_agent</span><br><span class="line"></span><br><span class="line">agent = create_pandas_dataframe_agent(</span><br><span class="line">    chatgpt,</span><br><span class="line">    dataset,</span><br><span class="line">    verbose=<span class="literal">True</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent.run(<span class="string">&quot;返回销售部门中教育领域为医学的员工总数。&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/ChatGPT-Python-LangChain/6.png" alt="image"></p>
+<p>至此，教程结束。希望您会喜欢它！</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/ChatGPT/" rel="tag">ChatGPT</a><a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/11/08/urllib-HTTPResponse/">
+                urllib库进行网络请求后返回的HTTPResponse对象的用法总结
+            </a>
+        </h2>
+    
+    <time>
+        Nov 8, 2023
+    </time>
+    <section class="content">
+        <h1><span id="urllib库进行网络请求后返回的httpresponse对象的用法总结">urllib库进行网络请求后返回的HTTPResponse对象的用法总结</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/topleeyap/article/details/78845946">「已注销」</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>不管是使用urllib.request.urlopen()方法，还是使用opener.open()方法，都返回同样类型的HTTPResponse对象，用法总结如下:</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># !/usr/bin/env python</span></span><br><span class="line"><span class="comment"># -*- coding:utf-8 -*-</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">from</span> urllib <span class="keyword">import</span> request</span><br><span class="line"><span class="keyword">from</span> urllib <span class="keyword">import</span> response</span><br><span class="line"> </span><br><span class="line">URL=<span class="string">&quot;http://www.baidu.com/&quot;</span></span><br><span class="line"> </span><br><span class="line"><span class="comment"># 构造请求头信息</span></span><br><span class="line"><span class="comment"># 反反爬虫:设置User-Agent</span></span><br><span class="line">request_headers=&#123;</span><br><span class="line">    <span class="string">&quot;User-Agent&quot;</span>:<span class="string">&quot;Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.108 Safari/537.36&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 构造请求对象,并添加请求头</span></span><br><span class="line">req=request.Request(URL,headers=request_headers)</span><br><span class="line"><span class="comment"># 发起请求</span></span><br><span class="line">resp=request.urlopen(req)</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">type</span>(resp))   <span class="comment"># &lt;class &#x27;http.client.HTTPResponse&#x27;&gt;</span></span><br><span class="line"><span class="comment"># 获取HTTP协议版本号(10 for HTTP/1.0, 11 for HTTP/1.1)</span></span><br><span class="line"><span class="built_in">print</span>(resp.version)</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取响应码</span></span><br><span class="line"><span class="built_in">print</span>(resp.status)</span><br><span class="line"><span class="built_in">print</span>(resp.getcode())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取响应描述字符串</span></span><br><span class="line"><span class="built_in">print</span>(resp.reason)</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取实际请求的页面url(防止重定向用)</span></span><br><span class="line"><span class="built_in">print</span>(resp.geturl())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取特定响应头信息</span></span><br><span class="line"><span class="built_in">print</span>(resp.getheader(name=<span class="string">&quot;Content-Type&quot;</span>))</span><br><span class="line"><span class="comment"># 获取响应头信息,返回二元元组列表</span></span><br><span class="line"><span class="built_in">print</span>(resp.getheaders())</span><br><span class="line"><span class="comment"># 获取响应头信息,返回字符串</span></span><br><span class="line"><span class="built_in">print</span>(resp.info())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 读取响应体</span></span><br><span class="line"><span class="built_in">print</span>(resp.readline().decode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line"><span class="built_in">print</span>(resp.read().decode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line"> </span><br></pre></td></tr></table></figure>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/07/24/Python-Telnet/">
                 Python telnet模块说明
             </a>
@@ -140,7 +253,7 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Telnetlib/" rel="tag">Telnetlib</a>
+                <a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

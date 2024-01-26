@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Tag: jQuery | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Open your eyes to see the light in life">
+<meta property="og:type" content="website">
+<meta property="og:title" content="氕氘氚">
+<meta property="og:url" content="http://example.com/tags/jQuery/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Open your eyes to see the light in life">
+<meta property="og:locale">
+<meta property="article:author" content="Szczecin">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        
+  <section class="page-header tag">
+    <h1>- <span>jQuery</span> -</h1>
+  </section>
+
+
+
+
+
+
+<section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/22/CVE-2020-11022:11023-jQuery/">
+                jQuery最新xss漏洞分析——CVE-2020-11022/11023
+            </a>
+        </h2>
+    
+    <time>
+        Jan 22, 2024
+    </time>
+    <section class="content">
+        <h1><span id="jquery最新xss漏洞分析cve-2020-11022x2f11023">jQuery最新xss漏洞分析——CVE-2020-11022&#x2F;11023</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1638163">Jayway</a> 并作补充</p>
+</blockquote>
+<h2><span id="背景">背景</span></h2><blockquote>
+<p>jQuery官方上周发布了最新版本3.5.0，主要修复了两个安全问题，官方博客为：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://blog.jquery.com/2020/04/10/jquery-3-5-0-released/</span><br></pre></td></tr></table></figure>
+
+<p>据NVD描述：在大于或等于1.2且在3.5.0之前的jQuery版本中，即使执行了消毒（sanitize）处理，也仍会执行将来自不受信任来源的HTML传递给jQuery的DOM操作方法（即html()、.append()等），从而导致xss漏洞。</p>
+<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="二-前置知识">二、前置知识</span></h2><blockquote>
+<p>在讲解漏洞之前，需要了解jQuery的基本用法和历史漏洞，具体可参考：jQuery框架漏洞全总结及开发建议：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://mp.weixin.qq.com/s/M1BYj6VbeoNV4C5M7cR_hA</span><br></pre></td></tr></table></figure>
+
+<p>而与此次jQuery漏洞联系比较紧密的是html()等方法，此方法返回或设置被选元素的内容 (inner HTML)，可用于设置所有选定元素的内容，看一个简单的使用案例：</p>
+<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/2.png" alt="image"></p>
+<p>此处定义一个点击事件，会对所有的p元素进行匹配，并修改为相同的内容。</p>
+</blockquote>
+<h2><span id="三-漏洞复现">三、漏洞复现</span></h2><blockquote>
+<p>对于此漏洞原作者搭建了在线环境，内置了三个xss poc，点击Append via .html()按钮即可触发xss：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://vulnerabledoma.in/jquery_htmlPrefilter_xss.html</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/3.png" alt="image"></p>
+<p>审查源码，逻辑很简单：</p>
+<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/4.png" alt="image"></p>
+<p>首先使用如下代码模拟了一个开发场景，即将页面的所有div元素替换为根据ID取到的sanitizedHTML：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript"><span class="keyword">function</span> <span class="title function_">test</span>(<span class="params">n,jq</span>)&#123;</span></span><br><span class="line"><span class="language-javascript">   sanitizedHTML = <span class="variable language_">document</span>.<span class="title function_">getElementById</span>(<span class="string">&#x27;poc&#x27;</span>+n).<span class="property">innerHTML</span>;</span></span><br><span class="line"><span class="language-javascript">   <span class="keyword">if</span>(jq)&#123;</span></span><br><span class="line"><span class="language-javascript">       $(<span class="string">&#x27;#div&#x27;</span>).<span class="title function_">html</span>(sanitizedHTML);</span></span><br><span class="line"><span class="language-javascript">   &#125;<span class="keyword">else</span>&#123;</span></span><br><span class="line"><span class="language-javascript">       div.<span class="property">innerHTML</span>=sanitizedHTML;</span></span><br><span class="line"><span class="language-javascript">    &#125;</span></span><br><span class="line"><span class="language-javascript">&#125;</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>虽然三个poc都使用了包含onerror事件的img标签，但其实它们是放在属性或style元素内部，因此会绕过HTML清理器。</p>
+<p>以poc1为例，根据此id取到的值如下：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-xml"><span class="tag">&lt;<span class="name">style</span> /&gt;</span><span class="language-xml"><span class="tag">&lt;<span class="name">img</span> <span class="attr">src</span>=<span class="string">xonerror</span>=<span class="string">alert(1)</span>&gt;</span></span></span></span><br></pre></td></tr></table></figure>
+
+<p>点击之后，执行xss，此时审查div元素：</p>
+<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/5.png" alt="image"></p>
+<p>发现我们提交的poc多了一个闭合标签，变成了:</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-xml"><span class="tag">&lt;<span class="name">style</span> /&gt;</span></span><span class="tag">&lt;/<span class="name">style</span>&gt;</span>&lt;imgsrc=x onerror=alert(1)&gt;</span><br></pre></td></tr></table></figure>
+
+<p> 闭合了<style>标签，成功执行后面的<img>脚本，导致xss。</p>
+</blockquote>
+<h2 id="四、漏洞原理"><a href="#四、漏洞原理" class="headerlink" title="四、漏洞原理"></a>四、漏洞原理</h2><h3 id="1、CVE-2020-11022"><a href="#1、CVE-2020-11022" class="headerlink" title="1、CVE-2020-11022"></a>1、CVE-2020-11022</h3><blockquote>
+<p>导致上述问题的关键是，在html()方法中，作为参数传递的HTML字符串将传递到  $ .htmlPrefilter（）方法：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://api.jquery.com/jQuery.htmlPrefilter/</span><br></pre></td></tr></table></figure>
+
+<p>这个方法用于替换自闭合标签，如将<tagname /> 替换为 <tagname ></tagname>，3.x版本之前使用的正则为：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">rxhtmlTag =<span class="regexp">/&lt;(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:-]+)[^&gt;]*)\/&gt;/gi</span></span><br><span class="line">[...]</span><br><span class="line"><span class="attr">htmlPrefilter</span>: <span class="keyword">function</span>(<span class="params"> html </span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> html.<span class="title function_">replace</span>(rxhtmlTag, <span class="string">&quot;&lt;$1&gt;&lt;/$2&gt;&quot;</span> );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>3.x之后使用的正则为：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rxhtmlTag =<span class="regexp">/&lt;(?!area|br|col|embed|hr|img|input|link|meta|param)(([a-z][^\/\0&gt;\x20\t\r\n\f]*)[^&gt;]*)\/&gt;/gi</span></span><br></pre></td></tr></table></figure>
+
+<p>这就使用到环境里的poc2（仅适用于jQuery3.x），注意这里的xss payload是作为属性出现，所以可以<strong>绕过消毒器规则</strong>：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">img</span> <span class="attr">alt</span>=<span class="string">&quot;&lt;x&quot;</span> <span class="attr">title</span>=<span class="string">&quot;/&gt;&lt;img src=xonerror=alert(1)&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>该poc使用html()方法执行后发现变为：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">img</span> <span class="attr">alt</span>=<span class="string">&quot;&lt;x&quot;</span> <span class="attr">title</span>=<span class="string">&quot;/&gt;&lt;/x”&gt;&lt;imgsrc=x onerror=alert(1)&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>该正则会将x”识别为标签并新增&lt;&#x2F;x”&gt;闭合标签，从而达到xss的效果：</p>
+<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/6.png" alt="image"></p>
+</blockquote>
+<h3 id="2、CVE-2020-11023"><a href="#2、CVE-2020-11023" class="headerlink" title="2、CVE-2020-11023"></a>2、CVE-2020-11023</h3><blockquote>
+<p>针对上述漏洞原理，jQuery Team进行了修复，修复手段为将$.htmlPrefilter()方法替换为标识函数，因此传递的HTML字符串现在不再经过htmlPrefilter函数处理，从而成功修复了漏洞。但仍有一些手段可以绕过，CVE-2020-11023就是针对CVE-2020-11022的绕过：</p>
+<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/7.png" alt="image"></p>
+<p>绕过使用的是另一个特性，某些特殊的标签在经过html()方法处理时，会由于HTML的特性或浏览器的bug而使得这些标签被移除。</p>
+<p>option就是这些特殊标签之一，我们知道option 元素通过位于 select 元素内部来构造一个选择列表，但如果没有select元素，option会被移除。为了解决这个bug，如果传入参数的第一个元素为option，jQuery会新增&lt;select multiple&#x3D;’multiple’&gt;和</select>。</p>
+<p>所以我们提交poc3：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">option</span>&gt;</span><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-xml"><span class="tag">&lt;/<span class="name">option</span>&gt;</span><span class="tag">&lt;/<span class="name">select</span>&gt;</span>&lt;imgsrc=x onerror=alert(123456)&gt;</span><span class="tag">&lt;/<span class="name">style</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>经过处理会变为：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">select</span> <span class="attr">multiple</span>=<span class="string">&#x27;multiple&#x27;</span>&gt;</span><span class="tag">&lt;<span class="name">option</span>&gt;</span><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-xml"><span class="tag">&lt;/<span class="name">option</span>&gt;</span><span class="tag">&lt;/<span class="name">select</span>&gt;</span>&lt;imgsrc=x onerror=alert(123456)&gt;</span><span class="tag">&lt;/<span class="name">style</span>&gt;</span><span class="tag">&lt;/<span class="name">select</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>根据HTML从前往后解析的顺序，会先解析一个<select>标签，且<select>不允许将大部分HTML标签包裹其中，导致<style>被忽略，而后识别<img>标签从而xss。</p>
+<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/8.png" alt="image"></p>
+<p> 此漏洞在最新的3.5.0中也被修复，对于特殊的标签进行了处理。</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/jquery/jquery/commit/966a70909019aa09632c87c0002c522fa4a1e30e#diff-51ec14165275b403bb33f28ce761cdedR25</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2 id="五、总结"><a href="#五、总结" class="headerlink" title="五、总结"></a>五、总结</h2><h3 id="1、漏洞利用"><a href="#1、漏洞利用" class="headerlink" title="1、漏洞利用"></a>1、漏洞利用</h3><blockquote>
+<p>1）系统使用jQuery的html()、append()或$(‘<tag>‘)等方法处理用户输入；</p>
+<p>2）用户输入已经过“消毒”（sanitize）处理。</p>
+</blockquote>
+<h3 id="2、修复方案"><a href="#2、修复方案" class="headerlink" title="2、修复方案"></a>2、修复方案</h3><blockquote>
+<p>1）更新jQuery到3.5.0或更高版本</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://code.jquery.com/jquery-3.5.0.js</span><br></pre></td></tr></table></figure>
+
+<p>复制</p>
+<p>2）使用XSS清理工具清理用户输入的HTML，官方推荐：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/cure53/DOMPurify</span><br></pre></td></tr></table></figure>
+</blockquote>
+</style></p></blockquote>
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XSS/" rel="tag">XSS</a><a class="tag-none-link" href="/tags/jQuery/" rel="tag">jQuery</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+</section>
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

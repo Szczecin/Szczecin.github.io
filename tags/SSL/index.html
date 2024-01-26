@@ -86,6 +86,88 @@
 
     
         <h2 class="title">
+            <a href="/2024/01/22/LSPosed-SSL/">
+                APP 测试 - LSPosed 绕过 SSL 证书抓包
+            </a>
+        </h2>
+    
+    <time>
+        Jan 22, 2024
+    </time>
+    <section class="content">
+        <h1><span id="app-测试-lsposed-绕过-ssl-证书抓包">APP 测试 - LSPosed 绕过 SSL 证书抓包</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="http://www.luckysec.cn/posts/279f59b.html">LuckySec</a> 并作补充</p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>前面介绍了通过<a target="_blank" rel="noopener" href="http://www.luckysec.cn/posts/98df6d1a.html">《VirtualXposed 绕过 SSL 证书抓包》</a>，这个方法有些局限性，比如不能在电脑上的《夜神模拟器》、《雷电模拟器》运行，需要一部测试手机等因素，对于部分人来说可能不太方便，还是更喜欢都在电脑上完成这系列操作，可以尝试用 LSPosed 绕过 SSL 证书抓包。</p>
+</blockquote>
+<h2><span id="0x01-工具简介">0x01 工具简介</span></h2><blockquote>
+<p>LSPosed 是一个基于 Riru&#x2F;Zygisk 的 ART Hook 框架，该框架利用 LSPlant 挂钩框架提供与 OG Xposed 一致的 API, 支持 Android 8.1 ~ 13。</p>
+<p>Xposed 是一个模块框架，可以在不接触任何 APK 的情况下改变系统和应用程序的行为。利用 Xposed 的 TrustMeAlready 模块插件，可以防止软件检测抓包，绕过大部分 ssl-pinning，保证 APP 抓包的可续性能。</p>
+</blockquote>
+<h2><span id="0x02-下载安装">0x02 下载安装</span></h2><blockquote>
+<p>特别提示：在安装之前需要注意以下几点：</p>
+<ul>
+<li>LSPosed 项目地址：<a target="_blank" rel="noopener" href="https://github.com/LSPosed/LSPosed/releases">https://github.com/LSPosed/LSPosed/releases</a></li>
+<li>TrustMeAlready 项目地址：<a target="_blank" rel="noopener" href="https://github.com/ViRb3/TrustMeAlready/releases">https://github.com/ViRb3/TrustMeAlready/releases</a></li>
+<li>系统： Android 8.1 ~ 13</li>
+<li>安装 Magisk v23+ (Riru) &#x2F; v24+ (Zygisk)</li>
+<li>（针对 Riru 风格）从 Magisk 库安装Riru v25+</li>
+<li>在 Magisk 应用程序中下载并安装LSPosed</li>
+<li>重启</li>
+</ul>
+</blockquote>
+<h2><span id="0x03-抓包教程">0x03 抓包教程</span></h2><blockquote>
+<p>注意：如果用雷电模拟器请使用 9.0.19 或之前的版本，避免不必要的问题发生。</p>
+<p>以夜神模拟器为例，添加并运行一个 Android 9 的虚拟机。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/1.png" alt="image"></p>
+<p>在模拟器设置里将虚拟机设置为网络桥接模式、开启 ROOT（默认开启），设置好后重启虚拟机。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/2.png" alt="image"></p>
+<p>在夜神模拟器虚拟机里安装 <code>Magisk.apk</code>、<code>Magisk Terminal Emulato.apk</code>、<code>app-debug.apk</code>（安装成功不显示在主界面）、<code>LSPosed-manager.apk</code>。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/3.png" alt="image"></p>
+<p>打开 <code>Magisk Terminal Emulator.apk</code>，按照如下步骤操作：输入 m 按回车 &gt; 再输入 y 按回车 &gt; 超级用户授权允许 &gt; 再输入 1 按回车 &gt; 输入 a 按回车 &gt; 再输入 1 按回车 &gt; 完毕。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/4.png" alt="image"></p>
+<p>上述步骤完成后，重启模拟器，打开 <code>Magisk.apk</code> 可以发现 Magisk 安装成功。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/5.png" alt="image"></p>
+<p>打开 <code>Magisk.apk</code> &gt; 点击右上角齿轮按钮 &gt; 界面往下滑动，找到 Zygisk 选项打开并重启模拟器虚拟机。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/6.png" alt="image"></p>
+<p>接着将 <code>LSPosed-v1.8.6-6712-zygisk-release.zip</code> 复制到模拟器文件夹里面。打开 <code>Magisk.apk</code> &gt; 底部模块选项 &gt; 从本地安装 &gt; 选择模拟器文件夹内的 <code>LSPosed-v1.8.6-6712-zygisk-release.zip</code> 卡刷包。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/7.png" alt="image"></p>
+<p>重启模拟器虚拟机后，打开 <code>LSPosed-manager.apk</code>，可以发现 LSPosed 安装成功了。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/8.png" alt="image"></p>
+<p>然后在夜神模拟器虚拟机里安装 <code>TrustMeAlready-v1.11.apk</code>，安装这个 apk 主界面图标可能会卡在安装的动画，不必在意，忽略即可。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/9.png" alt="image"></p>
+<p>接着打开 <code>LSPosed-manager.apk</code> 的底部模块选项，点击 TrustMeAlready，启动模块，选择要测试的 APP。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/10.png" alt="image"></p>
+<p>使用 BurpSuite 工具开启代理抓包，设置监听地址为同一局域网 IP 地址，端口自定义，不与电脑其他端口冲突使用即可。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/11.png" alt="image"></p>
+<p>在夜神模拟器手机系统设置中将 WiFi 的代理设置为 BurpSuite 监听器的地址。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/12.png" alt="image"></p>
+<p>最后，打开要测试的 APP，刷新功能页面，在 BurpSuite 中即可看到抓取的 HTTP&#x2F;HTTPS 网络数据包。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/13.png" alt="image"></p>
+</blockquote>
+<h2><span id="参考文章">参考文章</span></h2><blockquote>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://www.52pojie.cn/forum.php?mod=viewthread&amp;tid=1688786">https://www.52pojie.cn/forum.php?mod=viewthread&amp;tid=1688786</a></li>
+</ul>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Bypass/" rel="tag">Bypass</a><a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/LSPosed/" rel="tag">LSPosed</a><a class="tag-none-link" href="/tags/Magisk/" rel="tag">Magisk</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSL/" rel="tag">SSL</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/09/03/Xposed-HTTPS/">
                 夜神模拟器+Xposed框架+JustTrustMe（用来禁用、绕过 SSL 证书检查）来突破SSL Pinning
             </a>
