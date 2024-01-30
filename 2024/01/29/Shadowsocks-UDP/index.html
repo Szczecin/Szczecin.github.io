@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Shadowsocks协议解析 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Shadowsocks协议解析 本文转自喂草 并作补充  Shadowsocks过程 Shadowsocks是一个代理协议，以下简称SS。当然基于SS协议催生出了许多的代理软件，例如Shadowsocks-NG（MacOS平台）、Shadowrocket（iOS平台）等。不过总归来说SS的流程是一致的：  上图简述了SS在整个数据传输中的位置，包含了SS客户端和SS服务端两个部分，一般来说SS客户">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Shadowsocks协议解析">
+<meta property="og:url" content="http://example.com/2024/01/29/Shadowsocks-UDP/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Shadowsocks协议解析 本文转自喂草 并作补充  Shadowsocks过程 Shadowsocks是一个代理协议，以下简称SS。当然基于SS协议催生出了许多的代理软件，例如Shadowsocks-NG（MacOS平台）、Shadowrocket（iOS平台）等。不过总归来说SS的流程是一致的：  上图简述了SS在整个数据传输中的位置，包含了SS客户端和SS服务端两个部分，一般来说SS客户">
+<meta property="og:locale">
+<meta property="og:image" content="http://example.com/2024/01/29/Shadowsocks-UDP/1.png">
+<meta property="og:image" content="http://example.com/2024/01/29/Shadowsocks-UDP/2.png">
+<meta property="og:image" content="http://example.com/2024/01/29/Shadowsocks-UDP/3.png">
+<meta property="og:image" content="http://example.com/2024/01/29/Shadowsocks-UDP/4.png">
+<meta property="og:image" content="http://example.com/2024/01/29/Shadowsocks-UDP/5.png">
+<meta property="og:image" content="http://example.com/2024/01/29/Shadowsocks-UDP/6.png">
+<meta property="og:image" content="http://example.com/2024/01/29/Shadowsocks-UDP/7.png">
+<meta property="article:published_time" content="2024-01-29T07:51:25.000Z">
+<meta property="article:modified_time" content="2024-01-30T07:02:00.070Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Reprint">
+<meta property="article:tag" content="Proxy">
+<meta property="article:tag" content="Shadowsocks">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2024/01/29/Shadowsocks-UDP/1.png">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-Shadowsocks-UDP"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2024/01/29/Shadowsocks-UDP/">
+            Shadowsocks协议解析
+        </a>
+    </h2>
+    <time>
+        Jan 29, 2024
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="shadowsocks协议解析">Shadowsocks协议解析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.ichenxiaoyu.com/ss/">喂草</a> 并作补充</p>
+</blockquote>
+<h2><span id="shadowsocks过程">Shadowsocks过程</span></h2><blockquote>
+<p>Shadowsocks是一个代理协议，以下简称SS。当然基于SS协议催生出了许多的代理软件，例如Shadowsocks-NG（MacOS平台）、Shadowrocket（iOS平台）等。不过总归来说SS的流程是一致的：</p>
+<p><img src="/2024/01/29/Shadowsocks-UDP/1.png" alt="image"></p>
+<p>上图简述了SS在整个数据传输中的位置，包含了SS客户端和SS服务端两个部分，一般来说SS客户端是安装在本地的软件，而SS服务端则是运行在VPS上的软件。如果没有SS的话，上图就成了没有代理的用户与目标服务器（例如Google.com）的直接通信。下面一SS代理下的HTTP请求介绍上述过程：</p>
+<ol>
+<li>浏览器要访问Google.com，便生成HTTP请求。由于设置了代理，所以不会直接发送到Google服务器，而是发送到SS客户端（例如127.0.0.1:1086）。</li>
+<li>SS客户端把HTTP请求封装成<strong>SS请求</strong>（后面详细介绍），包含协议封装和加密过程，发送给SS服务器。</li>
+<li>SS服务器收到SS请求并解析，包含解密和协议解析过程，获得原始HTTP请求。</li>
+<li>SS服务器连接Google服务器，发送用户的原始HTTP请求，并获取Google返回的HTTP响应。</li>
+<li>SS服务器对HTTP请求进行加密，并发送到SS客户端。此处没有协议封装。</li>
+<li>SS客户端收到SS服务器的响应，进行数据解密得到HTTP响应，发送到浏览器以完成HTTP请求。</li>
+</ol>
+</blockquote>
+<h2><span id="shadowsocks协议">Shadowsocks协议</span></h2><blockquote>
+<p>接下来会在<strong>字节层面</strong>对上述过程进行详细介绍。由于SS在处理TCP连接和UDP报文所使用的协议有所差异，因此也会分开介绍。</p>
+</blockquote>
+<h3><span id="tcp连接">TCP连接</span></h3><blockquote>
+<p>TCP连接模式主要包括HTTP、HTTPS和Socket等应用层协议，这些协议有所差异比如说有的协议有握手，有的协议却只有一来一回的数据交互，有的协议可能会保持长时间的连接和数据传输。。但这些对于SS来说都是一样的，因为它们都不过是<strong>数据</strong>（payload），而SS要做的无非是<strong>创建两个通道，一个用于把客户端数据传输到服务端，一个用于把服务端的数据传输到客户端</strong>。</p>
+</blockquote>
+<h4><span id="ss请求">SS请求</span></h4><blockquote>
+<p>TCP握手很熟悉了，握手的目的是建立数据链路。SS也有握手过程，目的就是建立上述的数据链路，不过这个过程只有<strong>半次握手</strong>，即SS请求。SS请求的主要功能是建立代理链路，因此需要告诉SS服务器要代理访问的远程服务器地址（如果不知道IP地址的话，给域名也可以），然后可以顺便携带一部分传输数据。根据地址类型的不同，SS请求会有3种形式：</p>
+<ol>
+<li>通过SS请求传输目标服务器的IPv4地址：</li>
+</ol>
+<p><img src="/2024/01/29/Shadowsocks-UDP/2.png" alt="image"></p>
+<ol start="2">
+<li>通过SS请求传输目标服务器的IPv6地址：</li>
+</ol>
+<p><img src="/2024/01/29/Shadowsocks-UDP/3.png" alt="image"></p>
+<ol start="3">
+<li>在不知道目标服务器IP地址的时候（比如DNS被劫持），直接传输目标服务器的域名：</li>
+</ol>
+<p><img src="/2024/01/29/Shadowsocks-UDP/4.png" alt="image"></p>
+</blockquote>
+<h4><span id="客户端加密">客户端加密</span></h4><blockquote>
+<p>SS客户端把SS请求组装好了，在向SS服务器传输之前还需要进行加密，否则用户的数据就在网络上明文传输了，这个是很不安全的。下面举例使用SS中最常用的加密方案AES-256-cfb方式进行数据加密，大致步骤如下：</p>
+<ol>
+<li><strong>密钥生成</strong>：AES-256意味着其密钥长度是256bit，但用户密码有长有短，而且都是可见的ASCII，把密码作为密钥来用显然安全性是不够的，所以需要<strong>根据密码生成安全性达标的256bit长度密钥</strong>。SS中使用MD5对密码生成16byte长度的消息摘要，即可作为密钥使用。</li>
+<li><strong>IV生成</strong>：原始AES加密下，对于相同的明文会生成相同的密文，这也是安全性的一种缺陷。AES-cfb通过引入随机数IV的方式解决该问题，即在随机数IV的加持之下可以实现相同的明文生成不同的密文。在AES-256-cfb中，IV是一个16bit的随机数。</li>
+<li><strong>加密</strong>：有了密钥、加密算法、IV，就可以生成加密器，并对数据进行加密了。在此数据就是上述所组装的SS请求，得到密文cypher。为了让SS服务端可以解密，还需要把IV也一同发送，所以最终生成的数据如下：</li>
+</ol>
+<p><img src="/2024/01/29/Shadowsocks-UDP/5.png" alt="image"></p>
+</blockquote>
+<h4><span id="服务端解析">服务端解析</span></h4><blockquote>
+<p>SS服务器和SS客户端所共享的信息有密码和加密方式，这是配置过SS服务器的人都知道的，在收到SS客户端发送的SS请求后，SS客户端进行解析的过程如下：</p>
+<ol>
+<li><strong>密钥生成</strong>：根据密码生成密钥，由于和客户端拥有相同的密码和密钥生成算法，所以生成的AES-256-cfb密钥也是一样的。</li>
+<li><strong>获取IV</strong>：从SS客户端接收到的数据前16bit提取出来就得到了AES-256-cfb的IV。</li>
+<li><strong>解密</strong>：根据密钥、加密算法和IV生成解密器，对收到的数据进行解密，就得到了SS请求明文。</li>
+<li><strong>地址解析</strong>：根据SS请求的第1个Byte得知目标服务器地址的类型（IPv4，IPv6或域名），并根据相应的规则进行解析得到其地址与端口。</li>
+<li><strong>代理请求</strong>：说到底SS就是一个代理协议，代理的意思就是<strong>代替客户端对目标服务器发起请求</strong>。通过地址与端口连接目标服务器，并发送解密后的数据，完成请求。</li>
+</ol>
+</blockquote>
+<h4><span id="服务端响应">服务端响应</span></h4><blockquote>
+<p>SS服务器收到目标服务器的数据，把数据传输给SS客户端，也需要进行加密，不同的是<strong>不需要组装协议了</strong>。所以该过程就比较简单：</p>
+<ol>
+<li><strong>生成IV</strong>：虽然也是随机数，但该IV与SS客户端发送请求时生成的IV不相等，需要再生成一个。</li>
+<li><strong>加密</strong>：根据新生成的IV、密钥和加密算法生成加密器，对目标服务器响应的数据进行加密。同样为了SS客户端可以解密，也需要把IV连同密文一起发送给客户端。</li>
+</ol>
+</blockquote>
+<h4><span id="客户端解析">客户端解析</span></h4><blockquote>
+<p>SS客户端收到服务端的数据，通过提取IV就可以生成响应的解密器，对数据进行解密，从而完成用户与目标服务器的通信。<br>上述的加密器和解密器都是和连接绑定的，即一次TCP连接代理通信只需要互相发送一次IV用于双方创建解密器，而后续的通信内容都只有包括密文部分，使用解密器进行解密即可。<br>所以其实SS协议的过程是非常简单的，以至于在画下图的时候都不知道有什么可以加上的东西。</p>
+<p><img src="/2024/01/29/Shadowsocks-UDP/6.png" alt="image"></p>
+</blockquote>
+<h3><span id="udp连接">UDP连接</span></h3><blockquote>
+<p>UDP模式在SS中通过<strong>UDP转发</strong>选项开启，用于代理UDP流量如DNS查询、即时语音通信等。</p>
+</blockquote>
+<h4><span id="udp模式和tcp模式差异">UDP模式和TCP模式差异</span></h4><blockquote>
+<p>SS中TCP和UDP大同小异，但由于UDP之于TCP是<strong>无连接协议</strong>，因此简单探讨一下UDP模式无连接下的一些区别：</p>
+<ol>
+<li><strong>TCP连接作为基本单位</strong>：在TCP模式中，从握手到挥手的过程就是一次连接，因此一次连接是SS中的基本单位，所以一次连接对应上下行的2个加密通道、2个IV。所以一次TCP连接中无论有多少次数据交互，<strong>只需要一次握手</strong>。</li>
+<li><strong>UDP数据分组作为基本单位</strong>：在UDP模式中没有连接的概念，其基本单位是每个数据包，所以<strong>每个数据包对应1个IV和加密解密器</strong>。可以说在UDP模式下有多少个数据包，就会发生多少次SS握手。</li>
+<li><strong>连接方式差异</strong>：因为UDP是无连接，所以在socket编程时通常不会像UDP连接一样，先connect然后才数据读写，而是直接进行数据包的收发。</li>
+<li><strong>方向性</strong>：TCP模式种中总是SS客户端向SS服务器发起握手，但在UDP模式中由于没有连接的概念，所以每个数据包都是平等的自带握手信息，即使SS服务器向SS客户端发送的数据也是。</li>
+</ol>
+</blockquote>
+<h4><span id="udp下的握手协议">UDP下的握手协议</span></h4><blockquote>
+<p>UDP模式中<strong>每一个数据包都具有相同格式</strong>，无论是从SS客户端发往SS服务器，还是从SS服务器发往SS客户端，其格式与上述<strong>SS请求</strong>相同：</p>
+<p><img src="/2024/01/29/Shadowsocks-UDP/7.png" alt="image"></p>
+<p>所以不仅SS客户端会把需要代理访问的目标服务器的地址信息告诉SS服务器，SS服务器也会把目标服务器返回的数据连同其地址信息一同返回SS客户端。这主要是因为UDP模式下是没有连接的概念，所以每条数据需要自带一些额外信息，就像每次进商场都要戴口罩测体温一样。</p>
+</blockquote>
+<h2><span id="后记">后记</span></h2><blockquote>
+<p> 学术交流而已。</p>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Shadowsocks/" rel="tag">Shadowsocks</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/artchen" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

