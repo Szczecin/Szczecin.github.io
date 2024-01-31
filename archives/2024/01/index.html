@@ -14,7 +14,7 @@
     <meta name="description" content="Open your eyes to see the light in life">
 <meta property="og:type" content="website">
 <meta property="og:title" content="氕氘氚">
-<meta property="og:url" content="http://example.com/archives/2024/01/index.html">
+<meta property="og:url" content="https://szczecin.github.io/archives/2024/01/index.html">
 <meta property="og:site_name" content="氕氘氚">
 <meta property="og:description" content="Open your eyes to see the light in life">
 <meta property="og:locale">
@@ -82,6 +82,136 @@
 
 
 <section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/31/Firebase-API-Key-Hard-Coding/">
+                Firebase Installations API 密钥硬编码
+            </a>
+        </h2>
+    
+    <time>
+        Jan 31, 2024
+    </time>
+    <section class="content">
+        <h1><span id="firebase-installations-api-密钥硬编码">Firebase Installations API 密钥硬编码</span></h1><p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/1.png" alt="image"></p>
+<h2><span id="起因">起因</span></h2><blockquote>
+<p>新公司让我对应用移动端产品也渗透一下，自然地想到移动端APK相关的自动化检测工具，于是Docker起了一个MobSF跑了下检测，算是做个铺垫。</p>
+<p>当然还不如自己手动测来的漏洞直接，自动化扫描得出的结果不一定都具有直接性和威胁性，但MobSF还支持动态检测，实测下来确实能自动化访问activity事件，但每次调用Frida去执行注入测试的时候就会出大大小小的问题：</p>
+<ol>
+<li>目前Mac M1&#x2F;M2芯片由于ARM架构的问题，还无法完全解决Genymotion跑不了ARM包的问题（Genymotion给的MAC客户端实现用的是X86架构，完全不是官方说的因为是ARM芯片就可以直接支持ARM包了，实践出真知），M1&#x2F;M2可使用的系统目前只有Android11，<a target="_blank" rel="noopener" href="https://docs.genymotion.com/desktop/041_Deploying_an_app/#applications-for-arm">无法打translation包</a></li>
+<li>很多移动应用做了SSL-Pinning等方式防抓包，需要用<a target="_blank" rel="noopener" href="https://support.genymotion.com/hc/en-us/articles/360010853198-How-to-install-Xposed-EdXposed-LSPosed-Magisk-with-Genymotion-Desktop-">各种Posed去解</a>，这些操作可能会与MobSF动态检测的模块冲突与覆盖（如MobSF动态检测会自动植入证书）</li>
+</ol>
+<p>虽然对个人的工作不会带来太大的影响（又不是没有扫描器就不会渗透了），但我还是想流畅地使用一回动态检测啊，看看能达到什么层度，有这个执念在，我萌生了一个想法：</p>
+<p><strong>互联网上有没有别人搭建好的完整检测平台呢？</strong></p>
+<p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="资产发现">资产发现</span></h2><blockquote>
+<p>还真被我找到一个，而且像是官方搭建的站点，此处相关域名隐去，不予展开。</p>
+<p>作为一个安全人员，自然会考虑提交检测的包会上传存储在哪及检测内容是否会暴露的问题，于是我先下意识地访问了recent scans：</p>
+<p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/3.png" alt="image"></p>
+<p>这是啥？！为什么我能看到今天所有提交检测的应用，并且可以看到完整的检测报告？！而且更哈人的是，举例应用竟然是未对外发布的内部研发版本（官网版本2.0.011 &lt; 研发版本2.0.015），且没有做加固之类的！</p>
+<p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/4.png" alt="image"></p>
+<p>这不禁让我想到了两个问题：</p>
+<ol>
+<li>MobSF这个线上检测平台肯定是没做好权限划分的，或者从设计来说MobSF可能就没实现这点，因为一般都是在本地部署的检测平台；纵使在后台做了定期清理数据的策略，在短期内这些检测内容还是会留存下来</li>
+<li>所有被检测的应用可以被任意的人员查看，如果有安全问题很有可能线上版本也存在类似问题，而且数据泄漏就是泄漏了，在一段时间内一个访问凭证都将是有效的，即使你知道它已经泄露，会因为你不知道多少功能调用用到了这个凭证而不敢直接替换</li>
+</ol>
+<p>那么这个应用里有什么呢？</p>
+<p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/5.png" alt="image"></p>
+</blockquote>
+<h2><span id="api-key泄露">API Key泄露</span></h2><blockquote>
+<p>直接上图，这些码应该够了吧：</p>
+<p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/6.png" alt="image"></p>
+<p>除了显而易见的<code>google_maps_key</code> 外，apk内还硬编码了<code>firebase_database_url</code>、<code>google_api_key</code>、<code>google_app_id</code>、<code>google_storage_bucket</code> 等敏感参数（有些是我直接获取源包找的），<code>firebase_database_url</code> 直接访问果然无权限，但是剩下的几个参数是怎么调用的？能获得什么信息呢？</p>
+<p>首先猜测和存储空间有关，但不对，Google Cloud并不是用这样的参数类型请求访问的；那既然存在<code>firebase_database_url</code>，会不会和Firebase有关？一番文档翻找下，我大致了解了Firebase是啥，还有<a target="_blank" rel="noopener" href="https://firebase.google.com/docs/projects/manage-installations?hl=zh-cn">一部分的API调用</a>，并知道了相关的API Key是<a target="_blank" rel="noopener" href="https://console.cloud.google.com/apis/api/firebaseinstallations.googleapis.com/credentials?project=">在什么位置被生成</a>又用于何处的：</p>
+<p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/7.png" alt="image"></p>
+<p>之后要做的事情就简单了，构造一个请求，就可以获取到与Firebase服务器交互许可的凭证了：</p>
+<p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/8.png" alt="image"></p>
+<p>之后的操作就不做了，扩大影响面应该很容易，所以为什么要演奏春日……啊不对，为什么要把应用程序的报告暴露在公开检测平台！</p>
+<p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/9.png" alt="image"></p>
+</blockquote>
+<h2><span id="参考引用">参考引用</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://docs.genymotion.com/desktop/041_Deploying_an_app/#applications-for-arm">Deploy an application - Desktop User Guide</a></p>
+<p><a target="_blank" rel="noopener" href="https://support.genymotion.com/hc/en-us/articles/360010853198-How-to-install-Xposed-EdXposed-LSPosed-Magisk-with-Genymotion-Desktop-">How to install Xposed&#x2F;EdXposed&#x2F;LSPosed + Magisk with Genymotion Desktop?</a></p>
+<p><a target="_blank" rel="noopener" href="https://firebase.google.com/docs/projects/manage-installations?hl=zh-cn">管理 Firebase 安装</a></p>
+<p><a target="_blank" rel="noopener" href="https://firebase.google.com/support/privacy/init-options?hl=zh-cn">排查初始化选项问题</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Hard-Coding/" rel="tag">Hard Coding</a><a class="tag-none-link" href="/tags/SRC/" rel="tag">SRC</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/31/GroupName-QQ/">
+                QQ群名称改动的一些小问题
+            </a>
+        </h2>
+    
+    <time>
+        Jan 31, 2024
+    </time>
+    <section class="content">
+        <h1><span id="qq群名称改动的一些小问题">QQ群名称改动的一些小问题</span></h1><p><img src="/2024/01/31/GroupName-QQ/1.png" alt="image"></p>
+<h2><span id="写在前面">写在前面</span></h2><blockquote>
+<p>别问我为啥最近更博客更这么勤，首先我得承认，确实新公司在我试用期的时候没有安排很多复杂的活给我干，虽然这样，但也不代表我每天能产出或者转载这么多文章，毕竟都是技术文章，都要自己看过理解再push上来的，每天有这么多时间吗？</p>
+<p>前段时间没有，这段时间有了&#x3D; &#x3D;</p>
+<p>因为临近年关，加上推进DLP和其他安全服务都阻塞在了钱上，导致最近我甚至能在Copy之于，写几篇这样的原创文章，分享下杂七杂八的技术来了。</p>
+<p>但说实话，不论是转载来的文章还是自己原创的文章，都是比较久前接触到的知识了，也就是即使我是现在写出来的，接触我所描述的技术也是在大半年前甚至一年多前了（比如下文），每次写博客就是这样把旧东西重新捡拾的过程，有点像中学时期的错题本，常看常新，再看再新……</p>
+<p>所以这不算是在工位上摸鱼哦，是增长技术积累，嗯，一定是这样。</p>
+<p><img src="/2024/01/31/GroupName-QQ/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="问题二则">问题二则</span></h2><h3><span id="其一讨论组的实现与群聊不同">其一：讨论组的实现与群聊不同</span></h3><blockquote>
+<p>读者要说了：你这是废话</p>
+<p>之前在QQ创建讨论组和创建群的方式就不一样，实现上不一致是很自然的事情，但是在作者写这篇文章的时候，QQ已经把“创建讨论组”这一功能下线了，所有的讨论组理论上也都自动转群了。</p>
+<p><img src="/2024/01/31/GroupName-QQ/3.png" alt="image"></p>
+<p>那么这个时候，讨论组转成的群和直接创建的群有什么差异吗？毕竟现在看起来一摸一样，转换后的群是重构了实现还是直接被套了个群外壳？</p>
+</blockquote>
+<h4><span id="任意群成员可修改群名">任意群成员可修改群名</span></h4><blockquote>
+<p>在讨论组内，大家的权限划分是较为统一的，或者可以理解为没有做好权限划分，在转群后群成员仍被赋予了较高的权限，如：在只有一个群主的讨论组转群里，即便其他群成员不是管理员也可以随意修改群名（甚至可以扩展到其他信息）：</p>
+<p><img src="/2024/01/31/GroupName-QQ/4.png" alt="image"></p>
+<p><img src="/2024/01/31/GroupName-QQ/5.png" alt="image"></p>
+<p><img src="/2024/01/31/GroupName-QQ/6.png" alt="image"></p>
+<p><img src="/2024/01/31/GroupName-QQ/7.png" alt="image"></p>
+<p>而对于直接创建的群来说，群名称是无法被任意群成员提交修改的：</p>
+<p><img src="/2024/01/31/GroupName-QQ/8.png" alt="image"></p>
+<p><img src="/2024/01/31/GroupName-QQ/9.png" alt="image"></p>
+</blockquote>
+<h3><span id="其二qq客户端群名称修改注入">其二：QQ客户端群名称修改注入</span></h3><blockquote>
+<p>对于第一个问题，大家肯定会说这有啥，连个越权都算不上，利用不起来，顶多整蛊无辜群主，钓鱼诈骗都难利用起来，无意义，忽略了！（很像是SRC漏洞审核员会脱口而出的话呢）</p>
+<p><img src="/2024/01/31/GroupName-QQ/10.png" alt="image"></p>
+<p>那么，如果我顺着这个思路，触发一下客户端的注入，阁下又该如何应对？</p>
+<p><img src="/2024/01/31/GroupName-QQ/11.png" alt="image"></p>
+<p><img src="/2024/01/31/GroupName-QQ/12.png" alt="image"></p>
+<p>首先可以看出QQ的客户端（包括TIM）在PC和移动端对群名称修改的实现不同：对于同一个POC，移动端将闭合字符后续的代码段全部解析，PC端收到POC的影响进行了三次群名称修改且名称不同，第一次修改可能也将闭合字符后续的代码段解析。</p>
+<p>具体实现和步骤无，只是记录下自己发现的小问题，这个点能触发什么利用也在此不做讨论。</p>
+<p><img src="/2024/01/31/GroupName-QQ/13.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/SRC/" rel="tag">SRC</a>
+            </div>
+        
+
+    </section>
+</article>
   
     <article class="post ">
 
@@ -913,187 +1043,6 @@
     </section>
 </article>
   
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/25/ChatGPT-Python-LangChain/">
-                使用 ChatGPT 与 Python 中的第三方应用程序进行交互
-            </a>
-        </h2>
-    
-    <time>
-        Jan 25, 2024
-    </time>
-    <section class="content">
-        <h1><span id="使用-chatgpt-与-python-中的第三方应用程序进行交互">使用 ChatGPT 与 Python 中的第三方应用程序进行交互</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/2332320">Miloce</a> 并作补充</p>
-<p>将语言模型（如ChatGPT）集成到第三方应用程序中已经变得越来越流行，因为它们能够理解和生成类似人类的文本。然而，需要认识到ChatGPT的一些限制，比如它的知识截止日期是在2021年9月，以及它无法直接访问维基百科或 Python 等外部资源。</p>
-<p>鉴于这一挑战，LangChain的联合创始人兼首席执行官Harrison Chase提出了一个创新的解决方案。他开发了Python LangChain模块，该模块使开发人员能够轻松地将第三方应用程序与大型语言模型集成在一起。这一突破开启了无限的可能性，允许开发人员充分利用语言模型的强大功能，同时有效地处理来自外部来源的信息。</p>
-<p>在本文中，我们将探讨使用Python LangChain模块与ChatGPT交互以与第三方应用程序交互的有趣概念。到文章末尾，您将更深入地了解如何利用这种集成，创建更复杂和高效的应用程序。</p>
-</blockquote>
-<h2><span id="导入chatgpt模块">导入ChatGPT模块</span></h2><blockquote>
-<p>第一步是安装Python LangChain模块，您可以使用以下pip命令完成此操作。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install langchain</span><br></pre></td></tr></table></figure>
-
-<p>接下来，您需要从<code>langchain.chat_models</code>模块导入<code>ChatOpenAI</code>类。<code>ChatOpenAI</code>类允许您创建ChatGPT的实例。为此，请将<code>model_name</code>属性传递给<code>ChatOpenAI</code>类，将模型设置为”gpt-3.5-turbo”。OpenAI的”gpt-3.5-turbo”模型为ChatGPT提供动力。您还需要将您的OpenAI API密钥传递给<code>open_api_key</code>属性。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> langchain.chat_models <span class="keyword">import</span> ChatOpenAI</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"></span><br><span class="line">api_key = os.getenv(<span class="string">&#x27;OPENAI_KEY2&#x27;</span>)</span><br><span class="line">chatgpt = ChatOpenAI(model_name=<span class="string">&quot;gpt-3.5-turbo&quot;</span>,</span><br><span class="line">                    openai_api_key=api_key)</span><br></pre></td></tr></table></figure>
-
-<p>现在，我们已准备好在Python中将第三方应用程序与ChatGPT集成。</p>
-</blockquote>
-<h2><span id="使用chatgpt从维基百科提取信息">使用ChatGPT从维基百科提取信息</span></h2><blockquote>
-<p>如前所述，ChatGPT的知识截止日期为2021年9月，无法回答那之后的查询。例如，如果您要求ChatGPT返回2022年温布尔登锦标赛的维基百科文章摘要，您将获得以下答案：</p>
-<p><img src="/2024/01/25/ChatGPT-Python-LangChain/1.png" alt="image"></p>
-<p><a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://docs.langchain.com/docs/components/agents/&source=article&objectId=2332320">LangChain代理</a>允许您与第三方应用程序交互。有关更多信息，请查看所有<a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://python.langchain.com/docs/integrations&source=article&objectId=2332320">LangChain代理集成</a>的列表。</p>
-<p>让我们看看如何使用示例代码将ChatGPT与维基百科等第三方应用程序集成。</p>
-<p>您需要从<code>langchain.agents</code>模块导入<code>load_tools</code>、<code>initialize_agent</code>和<code>AgentType</code>实体。</p>
-<p>接下来，您应该将代理类型作为输入提供给<code>load_tools</code>类。在下面的示例脚本中，指定的代理类型是<code>wikipedia</code>。随后的步骤涉及使用<code>initialize_agent()</code>方法创建代理对象。在调用<code>initialize_agent()</code>方法时，您需要传递工具类型、ChatGPT实例和代理类型作为参数。如果将<code>verbose</code>参数设置为<code>True</code>，它将显示代理任务执行的思考过程。</p>
-<p>在下面的脚本中，我们要求维基百科代理返回2022年温布尔登锦标赛的维基百科文章摘要。</p>
-<p>在输出中，您可以看到代理的思考过程以及包含文章摘要的最终结果。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> langchain.agents <span class="keyword">import</span> load_tools, initialize_agent, AgentType</span><br><span class="line"></span><br><span class="line">tools = load_tools(</span><br><span class="line">    [<span class="string">&#x27;wikipedia&#x27;</span>], </span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent_chain = initialize_agent(</span><br><span class="line">    tools,</span><br><span class="line">    chatgpt,</span><br><span class="line">    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,</span><br><span class="line">    verbose=<span class="literal">True</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent_chain.run(</span><br><span class="line">    <span class="string">&quot;返回2022年温布尔登锦标赛的维基百科文章摘要。&quot;</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/ChatGPT-Python-LangChain/2.png" alt="image"></p>
-</blockquote>
-<h2><span id="从arxiv提取信息">从ArXiv提取信息</span></h2><blockquote>
-<p>让我们看看另一个示例。我们将从<a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://arxiv.org/&source=article&objectId=2332320">ArXiv</a>获取一篇文章的标题和作者姓名，ArXiv是一个流行的开放获取科研论文、预印本和其他学术文章的存储库。</p>
-<p>脚本保持不变，只需将<code>arxiv</code>作为参数值传递给<code>load_tools()</code>方法。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">tools = load_tools(</span><br><span class="line">    [<span class="string">&quot;arxiv&quot;</span>], </span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent_chain = initialize_agent(</span><br><span class="line">    tools,</span><br><span class="line">    chatgpt,</span><br><span class="line">    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,</span><br><span class="line">    verbose=<span class="literal">True</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent_chain.run(</span><br><span class="line">    <span class="string">&quot;给我提供文章1301.3781的标题和作者姓名。&quot;</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/ChatGPT-Python-LangChain/3.png" alt="image"></p>
-</blockquote>
-<h2><span id="从csv文件提取信息">从CSV文件提取信息</span></h2><blockquote>
-<p>LangChain提供了直接创建特定任务代理实例的方法。例如，<code>langchain.agents</code>模块的<code>create_csv_agent()</code>方法允许您创建与CSV文件交互的CSV代理。</p>
-<p>让我们看一个示例。以下脚本导入包含公司员工流失信息的数据集。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line">dataset = pd</span><br><span class="line"></span><br><span class="line">.read_csv(<span class="string">r&#x27;D:\Datasets\employee_attrition_dataset.csv&#x27;</span>)</span><br><span class="line">dataset.head()</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/ChatGPT-Python-LangChain/4.png" alt="image"></p>
-<p>让我们使用CSV代理从此文件获取信息。我们要求ChatGPT返回销售部门的员工总数。</p>
-<p>在输出中，您可以看到ChatGPT返回输出的过程。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> langchain.agents <span class="keyword">import</span> create_csv_agent</span><br><span class="line"></span><br><span class="line">agent = create_csv_agent(</span><br><span class="line">    chatgpt,</span><br><span class="line">    <span class="string">r&#x27;D:\Datasets\employee_attrition_dataset.csv&#x27;</span>,</span><br><span class="line">    verbose=<span class="literal">True</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent.run(<span class="string">&quot;返回销售部门的员工总数。&quot;</span>)</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/ChatGPT-Python-LangChain/5.png" alt="image"></p>
-</blockquote>
-<h2><span id="从pandas-dataframe提取信息">从Pandas DataFrame提取信息</span></h2><blockquote>
-<p>同样，您可以使用<code>create_pandas_dataframe_agent()</code>方法从Pandas dataframe中提取信息。在下面的脚本中，我们要求ChatGPT返回销售部门中教育领域为医学的员工总数。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line">dataset = pd.read_csv(<span class="string">r&#x27;D:\Datasets\employee_attrition_dataset.csv&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> langchain.agents <span class="keyword">import</span> create_pandas_dataframe_agent</span><br><span class="line"></span><br><span class="line">agent = create_pandas_dataframe_agent(</span><br><span class="line">    chatgpt,</span><br><span class="line">    dataset,</span><br><span class="line">    verbose=<span class="literal">True</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent.run(<span class="string">&quot;返回销售部门中教育领域为医学的员工总数。&quot;</span>)</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/ChatGPT-Python-LangChain/6.png" alt="image"></p>
-<p>至此，教程结束。希望您会喜欢它！</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/ChatGPT/" rel="tag">ChatGPT</a><a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/25/Android-Signature/">
-                Android逆向-获取APP签名
-            </a>
-        </h2>
-    
-    <time>
-        Jan 25, 2024
-    </time>
-    <section class="content">
-        <h1><span id="android逆向-获取app签名">Android逆向-获取APP签名</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://taardisaa.github.io/2023/09/08/Android%E9%80%86%E5%90%91-APP%E7%AD%BE%E5%90%8D/">Taardisaa</a> 并作补充</p>
-<p>很久以前开的blog，关于如何获取APP签名。不知道为啥要写这个了。</p>
-</blockquote>
-<h1><span id="android逆向-app签名">Android逆向-APP签名</span></h1><h2><span id="生成jks签名">生成JKS签名</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/b28a5be05029">Android studio 如何生成jks签名文件 - 简书 (jianshu.com)</a></p>
-<p>打开AndroidStudio</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Build--&gt;Generate Signed APK--&gt;APK</span><br></pre></td></tr></table></figure>
-
-<p>然后<code>Key store path</code>选择<code>Create New</code></p>
-<p>然后设置好存储路径，密码也设置一下（偷懒写个123456）</p>
-<p><code>Key</code>的别名就叫<code>key</code>，密码一样简单。</p>
-<p>然后剩下的<code>Certificate</code>全填<code>taardis</code>，<code>Country Code</code>填11451。</p>
-<p>反正创建成功后，就在选定路径下出现了<code>jks</code>密钥文件。</p>
-</blockquote>
-<h2><span id="apk签名">APK签名</span></h2><blockquote>
-<p>将APK魔改，重新打包后，需要重新签名。</p>
-<p>参考：<a target="_blank" rel="noopener" href="https://blog.csdn.net/q610098308/article/details/105138228">Android之通过 apksigner 对 apk 进行 手动签名_恋恋西风的博客-CSDN博客</a></p>
-<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apksigner.bat sign --verbose --ks D:\Android\Keystore\taardis.jks --v1-signing-enabled false --v2-signing-enabled true --ks-key-alias key --ks-pass pass:<span class="number">123456</span> --key-pass pass:<span class="number">123456</span> --out D:\Android\Frida\gadget\bs.apk D:\Android\Frida\gadget\b.apk</span><br></pre></td></tr></table></figure>
-
-<p>成功后提示：</p>
-<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Signed</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="获取apk签名">获取APK签名</span></h2><blockquote>
-<p>首先APK解包：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apktool d &lt;apk&gt;</span><br></pre></td></tr></table></figure>
-
-<p>然后在 <code>META-INF</code> 文件夹拿到 <code>CERT.RSA</code> 文件。之后：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">keytool -printcert -file CERT.RSA</span><br></pre></td></tr></table></figure>
-
-<p>不过Keytool似乎是Java的工具，不管了现在用不上。</p>
-</blockquote>
-<h2><span id="jebx2fjadx">JEB&#x2F;JADX</span></h2><blockquote>
-<p>这种反编译器也能直接看到APK的签名信息。</p>
-</blockquote>
-<h2><span id="mt-app签名检查及绕过">MT APP签名检查及绕过</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://github.com/L-JINBIN/ApkSignatureKillerEx">L-JINBIN&#x2F;ApkSignatureKillerEx: 新版MT去签及对抗 (github.com)</a></p>
-<p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/news/429352">从“去除签名验证”说起 - 腾讯云开发者社区-腾讯云 (tencent.com)</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.52pojie.cn/thread-1733548-1-1.html">过签名校验(2) – MT 的 IO 重定向实践 - 『移动安全区』 - 吾爱破解 - LCG - LSG |安卓破解|病毒分析|www.52pojie.cn</a></p>
-<p>MT提供的签名绕过方式能够实现对API和APK方式的绕过。但是对于SVC的则无能为力。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">String</span> <span class="variable">signatureExpected</span> <span class="operator">=</span> <span class="string">&quot;3bf8931788824c6a1f2c6f6ff80f6b21&quot;</span>;</span><br><span class="line"><span class="type">String</span> <span class="variable">signatureFromAPI</span> <span class="operator">=</span> md5(signatureFromAPI());</span><br><span class="line"><span class="type">String</span> <span class="variable">signatureFromAPK</span> <span class="operator">=</span> md5(signatureFromAPK());</span><br><span class="line"><span class="type">String</span> <span class="variable">signatureFromSVC</span> <span class="operator">=</span> md5(signatureFromSVC());</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="api检测">API检测</span></h3><blockquote>
-<p>用<code>PackageManager</code>直接获得签名。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="type">byte</span>[] signatureFromAPI() &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="meta">@SuppressLint(&quot;PackageManagerGetSignatures&quot;)</span></span><br><span class="line">        <span class="type">PackageInfo</span> <span class="variable">info</span> <span class="operator">=</span> getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNATURES);</span><br><span class="line">        <span class="keyword">return</span> info.signatures[<span class="number">0</span>].toByteArray();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (PackageManager.NameNotFoundException e) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(e);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="apk检测">APK检测</span></h3><blockquote>
-<p>找到APP私有文件夹下的<code>base.apk</code>，然后得到签名</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="type">byte</span>[] signatureFromAPK() &#123;</span><br><span class="line">    <span class="keyword">try</span> (<span class="type">ZipFile</span> <span class="variable">zipFile</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ZipFile</span>(getPackageResourcePath())) &#123;</span><br><span class="line">        Enumeration&lt;? <span class="keyword">extends</span> <span class="title class_">ZipEntry</span>&gt; entries = zipFile.entries();</span><br><span class="line">        <span class="keyword">while</span> (entries.hasMoreElements()) &#123;</span><br><span class="line">            <span class="type">ZipEntry</span> <span class="variable">entry</span> <span class="operator">=</span> entries.nextElement();</span><br><span class="line">            <span class="keyword">if</span> (entry.getName().matches(<span class="string">&quot;(META-INF/.*)\\.(RSA|DSA|EC)&quot;</span>)) &#123;</span><br><span class="line">                <span class="type">InputStream</span> <span class="variable">is</span> <span class="operator">=</span> zipFile.getInputStream(entry);</span><br><span class="line">                <span class="type">CertificateFactory</span> <span class="variable">certFactory</span> <span class="operator">=</span> CertificateFactory.getInstance(<span class="string">&quot;X509&quot;</span>);</span><br><span class="line">                <span class="type">X509Certificate</span> <span class="variable">x509Cert</span> <span class="operator">=</span> (X509Certificate) certFactory.generateCertificate(is);</span><br><span class="line">                <span class="keyword">return</span> x509Cert.getEncoded();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="svc检测">SVC检测</span></h3><blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="type">byte</span>[] signatureFromSVC() &#123;</span><br><span class="line">    <span class="keyword">try</span> (<span class="type">ParcelFileDescriptor</span> <span class="variable">fd</span> <span class="operator">=</span> ParcelFileDescriptor.adoptFd(openAt(getPackageResourcePath()));</span><br><span class="line">         <span class="type">ZipInputStream</span> <span class="variable">zis</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ZipInputStream</span>(<span class="keyword">new</span> <span class="title class_">FileInputStream</span>(fd.getFileDescriptor()))) &#123;</span><br><span class="line">        ZipEntry entry;</span><br><span class="line">        <span class="keyword">while</span> ((entry = zis.getNextEntry()) != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (entry.getName().matches(<span class="string">&quot;(META-INF/.*)\\.(RSA|DSA|EC)&quot;</span>)) &#123;</span><br><span class="line">                <span class="type">CertificateFactory</span> <span class="variable">certFactory</span> <span class="operator">=</span> CertificateFactory.getInstance(<span class="string">&quot;X509&quot;</span>);</span><br><span class="line">                <span class="type">X509Certificate</span> <span class="variable">x509Cert</span> <span class="operator">=</span> (X509Certificate) certFactory.generateCertificate(zis);</span><br><span class="line">                <span class="keyword">return</span> x509Cert.getEncoded();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="绕过">绕过</span></h3><blockquote>
-<p>Java层的东西不多</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">killOpen</span><span class="params">(String packageName)</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// Native层Hook</span></span><br><span class="line">        System.loadLibrary(<span class="string">&quot;SignatureKiller&quot;</span>);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">        System.err.println(<span class="string">&quot;Load SignatureKiller library failed&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 读取/proc/self/maps读取APP路径</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">apkPath</span> <span class="operator">=</span> getApkPath(packageName);</span><br><span class="line">    <span class="keyword">if</span> (apkPath == <span class="literal">null</span>) &#123;</span><br><span class="line">        System.err.println(<span class="string">&quot;Get apk path failed&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 读取自身APK文件（私有目录下的base.apk）</span></span><br><span class="line">    <span class="type">File</span> <span class="variable">apkFile</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">File</span>(apkPath);</span><br><span class="line">    <span class="comment">// 在APP私有目录下创建origin.apk文件</span></span><br><span class="line">    <span class="type">File</span> <span class="variable">repFile</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">File</span>(getDataFile(packageName), <span class="string">&quot;origin.apk&quot;</span>);</span><br><span class="line">    <span class="keyword">try</span> (<span class="type">ZipFile</span> <span class="variable">zipFile</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ZipFile</span>(apkFile)) &#123;</span><br><span class="line">        <span class="comment">// 将APK中的origin.apk给提取出来（origin.apk是MT去签是生成的，是初始没有被去签的APK）</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;assets/SignatureKiller/origin.apk&quot;</span>;</span><br><span class="line">        <span class="type">ZipEntry</span> <span class="variable">entry</span> <span class="operator">=</span> zipFile.getEntry(name);</span><br><span class="line">        <span class="keyword">if</span> (entry == <span class="literal">null</span>) &#123;</span><br><span class="line">            System.err.println(<span class="string">&quot;Entry not found: &quot;</span> + name);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 读取出来</span></span><br><span class="line">        <span class="keyword">if</span> (!repFile.exists() || repFile.length() != entry.getSize()) &#123;</span><br><span class="line">            <span class="keyword">try</span> (<span class="type">InputStream</span> <span class="variable">is</span> <span class="operator">=</span> zipFile.getInputStream(entry); <span class="type">OutputStream</span> <span class="variable">os</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileOutputStream</span>(repFile)) &#123;</span><br><span class="line">                <span class="type">byte</span>[] buf = <span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">102400</span>];</span><br><span class="line">                <span class="type">int</span> len;</span><br><span class="line">                <span class="keyword">while</span> ((len = is.read(buf)) != -<span class="number">1</span>) &#123;</span><br><span class="line">                    os.write(buf, <span class="number">0</span>, len);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(e);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 传入底层so Hook</span></span><br><span class="line">    hookApkPath(apkFile.getAbsolutePath(), repFile.getAbsolutePath());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>然后看Native层，实际上是XHook，用于替换libc函数。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mt_jni.c</span><br></pre></td></tr></table></figure>
-
-<p>实际上就做了个字符串替换，有意将原本要打开的APK替换成<code>origin.apk</code>。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">const</span> <span class="type">char</span> *apkPath__;</span><br><span class="line"><span class="type">const</span> <span class="type">char</span> *repPath__;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> (*old_open)(<span class="type">const</span> <span class="type">char</span> *, <span class="type">int</span>, <span class="type">mode_t</span>);</span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">openImpl</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *pathname, <span class="type">int</span> flags, <span class="type">mode_t</span> mode)</span> &#123;</span><br><span class="line">    <span class="comment">//XH_LOG_ERROR(&quot;open: %s&quot;, pathname);</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">strcmp</span>(pathname, apkPath__) == <span class="number">0</span>)&#123;</span><br><span class="line">        <span class="comment">//XH_LOG_ERROR(&quot;replace -&gt; %s&quot;, repPath__);</span></span><br><span class="line">        <span class="keyword">return</span> old_open(repPath__, flags, mode);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> old_open(pathname, flags, mode);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">JNIEXPORT <span class="type">void</span> JNICALL</span><br><span class="line"><span class="title function_">Java_bin_mt_signature_KillerApplication_hookApkPath</span><span class="params">(JNIEnv *env, __attribute__((unused)) jclass clazz, jstring apkPath, jstring repPath)</span> &#123;</span><br><span class="line">    apkPath__ = (*env)-&gt;GetStringUTFChars(env, apkPath, <span class="number">0</span>);</span><br><span class="line">    repPath__ = (*env)-&gt;GetStringUTFChars(env, repPath, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">    xhook_register(<span class="string">&quot;.*\\.so$&quot;</span>, <span class="string">&quot;openat64&quot;</span>, openat64Impl, (<span class="type">void</span> **) &amp;old_openat64);</span><br><span class="line">    xhook_register(<span class="string">&quot;.*\\.so$&quot;</span>, <span class="string">&quot;openat&quot;</span>, openatImpl, (<span class="type">void</span> **) &amp;old_openat);</span><br><span class="line">    xhook_register(<span class="string">&quot;.*\\.so$&quot;</span>, <span class="string">&quot;open64&quot;</span>, open64Impl, (<span class="type">void</span> **) &amp;old_open64);</span><br><span class="line">    xhook_register(<span class="string">&quot;.*\\.so$&quot;</span>, <span class="string">&quot;open&quot;</span>, openImpl, (<span class="type">void</span> **) &amp;old_open);</span><br><span class="line"></span><br><span class="line">    xhook_refresh(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>通过Hook open函数，可以把基于APK读取的签名方式给绕过。</p>
-<p>下面提供一个绕过基于PackageManager的：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">killPM</span><span class="params">(String packageName, String signatureData)</span> &#123;</span><br><span class="line">    <span class="comment">// 构造一个假的签名</span></span><br><span class="line">    <span class="type">Signature</span> <span class="variable">fakeSignature</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Signature</span>(Base64.decode(signatureData, Base64.DEFAULT));</span><br><span class="line">    Parcelable.Creator&lt;PackageInfo&gt; originalCreator = PackageInfo.CREATOR;</span><br><span class="line">    Parcelable.Creator&lt;PackageInfo&gt; creator = <span class="keyword">new</span> <span class="title class_">Parcelable</span>.Creator&lt;PackageInfo&gt;() &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> PackageInfo <span class="title function_">createFromParcel</span><span class="params">(Parcel source)</span> &#123;</span><br><span class="line">            <span class="type">PackageInfo</span> <span class="variable">packageInfo</span> <span class="operator">=</span> originalCreator.createFromParcel(source);</span><br><span class="line">            <span class="keyword">if</span> (packageInfo.packageName.equals(packageName)) &#123; <span class="comment">//</span></span><br><span class="line">                <span class="keyword">if</span> (packageInfo.signatures != <span class="literal">null</span> &amp;&amp; packageInfo.signatures.length &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                    packageInfo.signatures[<span class="number">0</span>] = fakeSignature; <span class="comment">// 将虚假的签名放入packageInfo，取代原来的</span></span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.P) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (packageInfo.signingInfo != <span class="literal">null</span>) &#123;</span><br><span class="line">                        Signature[] signaturesArray = packageInfo.signingInfo.getApkContentsSigners();</span><br><span class="line">                        <span class="keyword">if</span> (signaturesArray != <span class="literal">null</span> &amp;&amp; signaturesArray.length &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                            signaturesArray[<span class="number">0</span>] = fakeSignature;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> packageInfo;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> PackageInfo[] newArray(<span class="type">int</span> size) &#123;</span><br><span class="line">            <span class="keyword">return</span> originalCreator.newArray(size);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 用假的creator替换原来的PackageInfo.CREATOR</span></span><br><span class="line">        findField(PackageInfo.class, <span class="string">&quot;CREATOR&quot;</span>).set(<span class="literal">null</span>, creator);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(e);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.P) &#123;</span><br><span class="line">        <span class="comment">// 解除某些Android系统API的使用限制？</span></span><br><span class="line">        HiddenApiBypass.addHiddenApiExemptions(<span class="string">&quot;Landroid/os/Parcel;&quot;</span>, <span class="string">&quot;Landroid/content/pm&quot;</span>, <span class="string">&quot;Landroid/app&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 清空签名缓存</span></span><br><span class="line">        <span class="type">Object</span> <span class="variable">cache</span> <span class="operator">=</span> findField(PackageManager.class, <span class="string">&quot;sPackageInfoCache&quot;</span>).get(<span class="literal">null</span>);</span><br><span class="line">        <span class="comment">// noinspection ConstantConditions</span></span><br><span class="line">        cache.getClass().getMethod(<span class="string">&quot;clear&quot;</span>).invoke(cache);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable ignored) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 清空签名缓存</span></span><br><span class="line">        Map&lt;?, ?&gt; mCreators = (Map&lt;?, ?&gt;) findField(Parcel.class, <span class="string">&quot;mCreators&quot;</span>).get(<span class="literal">null</span>);</span><br><span class="line">        <span class="comment">// noinspection ConstantConditions</span></span><br><span class="line">        mCreators.clear();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable ignored) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 清空签名缓存</span></span><br><span class="line">        Map&lt;?, ?&gt; sPairedCreators = (Map&lt;?, ?&gt;) findField(Parcel.class, <span class="string">&quot;sPairedCreators&quot;</span>).get(<span class="literal">null</span>);</span><br><span class="line">        <span class="comment">// noinspection ConstantConditions</span></span><br><span class="line">        sPairedCreators.clear();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable ignored) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="参考">参考</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/wuyongyin/archive/2023/01/15/17005314.html">Java Keytool 介绍 - 且行且码 - 博客园 (cnblogs.com)</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/d00e9754df43">获取Android应用签名的几种方式 - 简书 (jianshu.com)</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/b28a5be05029">Android studio 如何生成jks签名文件 - 简书 (jianshu.com)</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_36270253/article/details/114007681">apktool重新打包时报错_apktool 忽略错误信息__y4nnl2的博客-CSDN博客</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/q610098308/article/details/105138228">Android之通过 apksigner 对 apk 进行 手动签名_恋恋西风的博客-CSDN博客</a></p>
-<p><a target="_blank" rel="noopener" href="https://developer.android.google.cn/studio/command-line/apksigner?hl=zh-cn">apksigner | Android 开发者 | Android Developers (google.cn)</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Bypass/" rel="tag">Bypass</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Signature/" rel="tag">Signature</a>
-            </div>
-        
-
-    </section>
-</article>
-  
 </section>
 
 
@@ -1118,7 +1067,7 @@
     <div class="social-wrapper">
         
             
-                <a href="https://github.com/artchen" class="social github"
+                <a href="https://github.com/szczecin" class="social github"
                    target="_blank" rel="external">
                     <span class="icon icon-github"></span>
                 </a>
@@ -1237,7 +1186,7 @@
                     </li>
                 
                     <li class="left">
-                        <a href="/SRC"
+                        <a href="/tags/SRC"
                            onfocus="this.blur();"
                            class="nav-SRC dark-btn block">
                             SRC

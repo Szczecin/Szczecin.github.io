@@ -14,7 +14,7 @@
     <meta name="description" content="Open your eyes to see the light in life">
 <meta property="og:type" content="website">
 <meta property="og:title" content="氕氘氚">
-<meta property="og:url" content="http://example.com/tags/SRC/index.html">
+<meta property="og:url" content="https://szczecin.github.io/tags/SRC/index.html">
 <meta property="og:site_name" content="氕氘氚">
 <meta property="og:description" content="Open your eyes to see the light in life">
 <meta property="og:locale">
@@ -81,6 +81,136 @@
 
 
 <section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/31/Firebase-API-Key-Hard-Coding/">
+                Firebase Installations API 密钥硬编码
+            </a>
+        </h2>
+    
+    <time>
+        Jan 31, 2024
+    </time>
+    <section class="content">
+        <h1><span id="firebase-installations-api-密钥硬编码">Firebase Installations API 密钥硬编码</span></h1><p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/1.png" alt="image"></p>
+<h2><span id="起因">起因</span></h2><blockquote>
+<p>新公司让我对应用移动端产品也渗透一下，自然地想到移动端APK相关的自动化检测工具，于是Docker起了一个MobSF跑了下检测，算是做个铺垫。</p>
+<p>当然还不如自己手动测来的漏洞直接，自动化扫描得出的结果不一定都具有直接性和威胁性，但MobSF还支持动态检测，实测下来确实能自动化访问activity事件，但每次调用Frida去执行注入测试的时候就会出大大小小的问题：</p>
+<ol>
+<li>目前Mac M1&#x2F;M2芯片由于ARM架构的问题，还无法完全解决Genymotion跑不了ARM包的问题（Genymotion给的MAC客户端实现用的是X86架构，完全不是官方说的因为是ARM芯片就可以直接支持ARM包了，实践出真知），M1&#x2F;M2可使用的系统目前只有Android11，<a target="_blank" rel="noopener" href="https://docs.genymotion.com/desktop/041_Deploying_an_app/#applications-for-arm">无法打translation包</a></li>
+<li>很多移动应用做了SSL-Pinning等方式防抓包，需要用<a target="_blank" rel="noopener" href="https://support.genymotion.com/hc/en-us/articles/360010853198-How-to-install-Xposed-EdXposed-LSPosed-Magisk-with-Genymotion-Desktop-">各种Posed去解</a>，这些操作可能会与MobSF动态检测的模块冲突与覆盖（如MobSF动态检测会自动植入证书）</li>
+</ol>
+<p>虽然对个人的工作不会带来太大的影响（又不是没有扫描器就不会渗透了），但我还是想流畅地使用一回动态检测啊，看看能达到什么层度，有这个执念在，我萌生了一个想法：</p>
+<p><strong>互联网上有没有别人搭建好的完整检测平台呢？</strong></p>
+<p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="资产发现">资产发现</span></h2><blockquote>
+<p>还真被我找到一个，而且像是官方搭建的站点，此处相关域名隐去，不予展开。</p>
+<p>作为一个安全人员，自然会考虑提交检测的包会上传存储在哪及检测内容是否会暴露的问题，于是我先下意识地访问了recent scans：</p>
+<p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/3.png" alt="image"></p>
+<p>这是啥？！为什么我能看到今天所有提交检测的应用，并且可以看到完整的检测报告？！而且更哈人的是，举例应用竟然是未对外发布的内部研发版本（官网版本2.0.011 &lt; 研发版本2.0.015），且没有做加固之类的！</p>
+<p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/4.png" alt="image"></p>
+<p>这不禁让我想到了两个问题：</p>
+<ol>
+<li>MobSF这个线上检测平台肯定是没做好权限划分的，或者从设计来说MobSF可能就没实现这点，因为一般都是在本地部署的检测平台；纵使在后台做了定期清理数据的策略，在短期内这些检测内容还是会留存下来</li>
+<li>所有被检测的应用可以被任意的人员查看，如果有安全问题很有可能线上版本也存在类似问题，而且数据泄漏就是泄漏了，在一段时间内一个访问凭证都将是有效的，即使你知道它已经泄露，会因为你不知道多少功能调用用到了这个凭证而不敢直接替换</li>
+</ol>
+<p>那么这个应用里有什么呢？</p>
+<p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/5.png" alt="image"></p>
+</blockquote>
+<h2><span id="api-key泄露">API Key泄露</span></h2><blockquote>
+<p>直接上图，这些码应该够了吧：</p>
+<p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/6.png" alt="image"></p>
+<p>除了显而易见的<code>google_maps_key</code> 外，apk内还硬编码了<code>firebase_database_url</code>、<code>google_api_key</code>、<code>google_app_id</code>、<code>google_storage_bucket</code> 等敏感参数（有些是我直接获取源包找的），<code>firebase_database_url</code> 直接访问果然无权限，但是剩下的几个参数是怎么调用的？能获得什么信息呢？</p>
+<p>首先猜测和存储空间有关，但不对，Google Cloud并不是用这样的参数类型请求访问的；那既然存在<code>firebase_database_url</code>，会不会和Firebase有关？一番文档翻找下，我大致了解了Firebase是啥，还有<a target="_blank" rel="noopener" href="https://firebase.google.com/docs/projects/manage-installations?hl=zh-cn">一部分的API调用</a>，并知道了相关的API Key是<a target="_blank" rel="noopener" href="https://console.cloud.google.com/apis/api/firebaseinstallations.googleapis.com/credentials?project=">在什么位置被生成</a>又用于何处的：</p>
+<p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/7.png" alt="image"></p>
+<p>之后要做的事情就简单了，构造一个请求，就可以获取到与Firebase服务器交互许可的凭证了：</p>
+<p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/8.png" alt="image"></p>
+<p>之后的操作就不做了，扩大影响面应该很容易，所以为什么要演奏春日……啊不对，为什么要把应用程序的报告暴露在公开检测平台！</p>
+<p><img src="/2024/01/31/Firebase-API-Key-Hard-Coding/9.png" alt="image"></p>
+</blockquote>
+<h2><span id="参考引用">参考引用</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://docs.genymotion.com/desktop/041_Deploying_an_app/#applications-for-arm">Deploy an application - Desktop User Guide</a></p>
+<p><a target="_blank" rel="noopener" href="https://support.genymotion.com/hc/en-us/articles/360010853198-How-to-install-Xposed-EdXposed-LSPosed-Magisk-with-Genymotion-Desktop-">How to install Xposed&#x2F;EdXposed&#x2F;LSPosed + Magisk with Genymotion Desktop?</a></p>
+<p><a target="_blank" rel="noopener" href="https://firebase.google.com/docs/projects/manage-installations?hl=zh-cn">管理 Firebase 安装</a></p>
+<p><a target="_blank" rel="noopener" href="https://firebase.google.com/support/privacy/init-options?hl=zh-cn">排查初始化选项问题</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Hard-Coding/" rel="tag">Hard Coding</a><a class="tag-none-link" href="/tags/SRC/" rel="tag">SRC</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/31/GroupName-QQ/">
+                QQ群名称改动的一些小问题
+            </a>
+        </h2>
+    
+    <time>
+        Jan 31, 2024
+    </time>
+    <section class="content">
+        <h1><span id="qq群名称改动的一些小问题">QQ群名称改动的一些小问题</span></h1><p><img src="/2024/01/31/GroupName-QQ/1.png" alt="image"></p>
+<h2><span id="写在前面">写在前面</span></h2><blockquote>
+<p>别问我为啥最近更博客更这么勤，首先我得承认，确实新公司在我试用期的时候没有安排很多复杂的活给我干，虽然这样，但也不代表我每天能产出或者转载这么多文章，毕竟都是技术文章，都要自己看过理解再push上来的，每天有这么多时间吗？</p>
+<p>前段时间没有，这段时间有了&#x3D; &#x3D;</p>
+<p>因为临近年关，加上推进DLP和其他安全服务都阻塞在了钱上，导致最近我甚至能在Copy之于，写几篇这样的原创文章，分享下杂七杂八的技术来了。</p>
+<p>但说实话，不论是转载来的文章还是自己原创的文章，都是比较久前接触到的知识了，也就是即使我是现在写出来的，接触我所描述的技术也是在大半年前甚至一年多前了（比如下文），每次写博客就是这样把旧东西重新捡拾的过程，有点像中学时期的错题本，常看常新，再看再新……</p>
+<p>所以这不算是在工位上摸鱼哦，是增长技术积累，嗯，一定是这样。</p>
+<p><img src="/2024/01/31/GroupName-QQ/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="问题二则">问题二则</span></h2><h3><span id="其一讨论组的实现与群聊不同">其一：讨论组的实现与群聊不同</span></h3><blockquote>
+<p>读者要说了：你这是废话</p>
+<p>之前在QQ创建讨论组和创建群的方式就不一样，实现上不一致是很自然的事情，但是在作者写这篇文章的时候，QQ已经把“创建讨论组”这一功能下线了，所有的讨论组理论上也都自动转群了。</p>
+<p><img src="/2024/01/31/GroupName-QQ/3.png" alt="image"></p>
+<p>那么这个时候，讨论组转成的群和直接创建的群有什么差异吗？毕竟现在看起来一摸一样，转换后的群是重构了实现还是直接被套了个群外壳？</p>
+</blockquote>
+<h4><span id="任意群成员可修改群名">任意群成员可修改群名</span></h4><blockquote>
+<p>在讨论组内，大家的权限划分是较为统一的，或者可以理解为没有做好权限划分，在转群后群成员仍被赋予了较高的权限，如：在只有一个群主的讨论组转群里，即便其他群成员不是管理员也可以随意修改群名（甚至可以扩展到其他信息）：</p>
+<p><img src="/2024/01/31/GroupName-QQ/4.png" alt="image"></p>
+<p><img src="/2024/01/31/GroupName-QQ/5.png" alt="image"></p>
+<p><img src="/2024/01/31/GroupName-QQ/6.png" alt="image"></p>
+<p><img src="/2024/01/31/GroupName-QQ/7.png" alt="image"></p>
+<p>而对于直接创建的群来说，群名称是无法被任意群成员提交修改的：</p>
+<p><img src="/2024/01/31/GroupName-QQ/8.png" alt="image"></p>
+<p><img src="/2024/01/31/GroupName-QQ/9.png" alt="image"></p>
+</blockquote>
+<h3><span id="其二qq客户端群名称修改注入">其二：QQ客户端群名称修改注入</span></h3><blockquote>
+<p>对于第一个问题，大家肯定会说这有啥，连个越权都算不上，利用不起来，顶多整蛊无辜群主，钓鱼诈骗都难利用起来，无意义，忽略了！（很像是SRC漏洞审核员会脱口而出的话呢）</p>
+<p><img src="/2024/01/31/GroupName-QQ/10.png" alt="image"></p>
+<p>那么，如果我顺着这个思路，触发一下客户端的注入，阁下又该如何应对？</p>
+<p><img src="/2024/01/31/GroupName-QQ/11.png" alt="image"></p>
+<p><img src="/2024/01/31/GroupName-QQ/12.png" alt="image"></p>
+<p>首先可以看出QQ的客户端（包括TIM）在PC和移动端对群名称修改的实现不同：对于同一个POC，移动端将闭合字符后续的代码段全部解析，PC端收到POC的影响进行了三次群名称修改且名称不同，第一次修改可能也将闭合字符后续的代码段解析。</p>
+<p>具体实现和步骤无，只是记录下自己发现的小问题，这个点能触发什么利用也在此不做讨论。</p>
+<p><img src="/2024/01/31/GroupName-QQ/13.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/SRC/" rel="tag">SRC</a>
+            </div>
+        
+
+    </section>
+</article>
   
     <article class="post ">
 
@@ -849,9 +979,7 @@
 
 <blockquote>
 <p>IDOR - 自动测试方式：<br><a target="_blank" rel="noopener" href="https://threat.tevora.com/finding-broken-access-controls/">Finding Broken Access Controls</a><br><a target="_blank" rel="noopener" href="https://blog.yeswehack.com/yeswerhackers/pimpmyburp-pwnfox-autorize-find-idor/">PimpMyBurp #1 - PwnFox + Autorize: The perfect combo to find IDOR - Global Bug Bounty Platform</a><br><a target="_blank" rel="noopener" href="https://medium.com/cyberverse/automating-burp-to-find-idors-2b3dbe9fa0b8">Automating BURP to find IDORs</a></p>
-<ul>
-<li>参考<br><a target="_blank" rel="noopener" href="https://medium.com/@aysebilgegunduz/everything-you-need-to-know-about-idor-insecure-direct-object-references-375f83e03a87">Everything You Need to Know About IDOR (Insecure Direct Object References)</a><br><a target="_blank" rel="noopener" href="https://www.aon.com/cyber-solutions/aon_cyber_labs/finding-more-idors-tips-and-tricks/">Finding more IDORs - Tips and Tricks | Aon</a><br><a target="_blank" rel="noopener" href="https://github.com/KathanP19/HowToHunt/blob/master/IDOR/IDOR-Old.md">KathanP19&#x2F;HowToHunt</a><br><a target="_blank" rel="noopener" href="https://www.bugbountyhunter.com/vulnerability/?type=idor">Learn about Insecure Object Reference (IDOR) | BugBountyHunter.com</a><br><a target="_blank" rel="noopener" href="https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/05-Authorization_Testing/04-Testing_for_Insecure_Direct_Object_References.html">WSTG - v4.2</a><br><a target="_blank" rel="noopener" href="https://notes.mufaddal.info/web/idor">IDOR (Insecure Direct Object Reference)</a><br><a target="_blank" rel="noopener" href="https://medium.com/@Sm9l/what-i-learnt-from-reading-220-idor-bug-reports-6efbea44db7">What I learnt from reading 220* IDOR bug reports.</a></li>
-</ul>
+<p>参考<br><a target="_blank" rel="noopener" href="https://medium.com/@aysebilgegunduz/everything-you-need-to-know-about-idor-insecure-direct-object-references-375f83e03a87">Everything You Need to Know About IDOR (Insecure Direct Object References)</a><br><a target="_blank" rel="noopener" href="https://www.aon.com/cyber-solutions/aon_cyber_labs/finding-more-idors-tips-and-tricks/">Finding more IDORs - Tips and Tricks | Aon</a><br><a target="_blank" rel="noopener" href="https://github.com/KathanP19/HowToHunt/blob/master/IDOR/IDOR-Old.md">KathanP19&#x2F;HowToHunt</a><br><a target="_blank" rel="noopener" href="https://www.bugbountyhunter.com/vulnerability/?type=idor">Learn about Insecure Object Reference (IDOR) | BugBountyHunter.com</a><br><a target="_blank" rel="noopener" href="https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/05-Authorization_Testing/04-Testing_for_Insecure_Direct_Object_References.html">WSTG - v4.2</a><br><a target="_blank" rel="noopener" href="https://notes.mufaddal.info/web/idor">IDOR (Insecure Direct Object Reference)</a><br><a target="_blank" rel="noopener" href="https://medium.com/@Sm9l/what-i-learnt-from-reading-220-idor-bug-reports-6efbea44db7">What I learnt from reading 220* IDOR bug reports.</a></p>
 <p>Medium 报告：<br><a target="_blank" rel="noopener" href="https://mokhansec.medium.com/full-account-takeover-worth-1000-think-out-of-the-box-808f0bdd8ac7">Full account takeover worth $1000 Think out of the box</a><br><a target="_blank" rel="noopener" href="https://infosecwriteups.com/all-about-getting-first-bounty-with-idor-849db2828c8">All About Getting First Bounty with IDOR</a><br><a target="_blank" rel="noopener" href="https://vedanttekale20.medium.com/idor-that-allowed-me-to-takeover-any-users-account-129e55871d8">IDOR that allowed me to takeover any users account.</a><br><a target="_blank" rel="noopener" href="https://betterprogramming.pub/all-about-idor-attacks-64c4203b518e">All About IDOR Attacks</a><br><a target="_blank" rel="noopener" href="https://amineaboud.medium.com/access-developer-tasks-list-of-any-of-facebook-application-graphql-idor-62307c5e5b34">Access developer tasks list of any of Facebook Application (GraphQL IDOR)</a></p>
 <p>Tips</p>
 </blockquote>
@@ -891,7 +1019,7 @@
     <div class="social-wrapper">
         
             
-                <a href="https://github.com/artchen" class="social github"
+                <a href="https://github.com/szczecin" class="social github"
                    target="_blank" rel="external">
                     <span class="icon icon-github"></span>
                 </a>
@@ -1010,7 +1138,7 @@
                     </li>
                 
                     <li class="left">
-                        <a href="/SRC"
+                        <a href="/tags/SRC"
                            onfocus="this.blur();"
                            class="nav-SRC dark-btn block">
                             SRC

