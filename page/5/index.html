@@ -82,6 +82,111 @@
 
     
         <h2 class="title">
+            <a href="/2023/12/07/RPCBind-DDOS/">
+                111端口rpcbind漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Dec 7, 2023
+    </time>
+    <section class="content">
+        <h1><span id="111端口rpcbind漏洞">111端口rpcbind漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44110913/article/details/108852581">Mamba start</a> 并作补充</p>
+</blockquote>
+<h2><span id="简介">简介</span></h2><blockquote>
+<p>rpcbind是NFS中用来进行消息通知的服务</p>
+</blockquote>
+<h2><span id="实验环境">实验环境</span></h2><blockquote>
+<p>攻击机：<a target="_blank" rel="noopener" href="https://so.csdn.net/so/search?q=kali&spm=1001.2101.3001.7020">kali</a> linux<br>ip:192.168.172.134<br>目标机：Metasploittable2<br>ip:192.168.172.129</p>
+</blockquote>
+<h2><span id="攻击过程">攻击过程</span></h2><h3><span id="step1使用nmap探测">step1:使用nmap探测</span></h3><blockquote>
+<p>命令：<code>nmap 192.168.172.129</code></p>
+<p>命令：<code>nmap -sV -p 111 192.168.172.129</code></p>
+<p>命令：<code>nmap -p 111 --script=rpcinfo 192.168.172.129</code></p>
+</blockquote>
+<h3><span id="step2metasploit模块探测">step2:metasploit模块探测</span></h3><blockquote>
+<p>启动msf</p>
+<p>命令：<code>use auxiliary/scanner/misc/sunrpc_portmapper</code></p>
+<p>命令：<code>show options</code></p>
+<p>本文讲的是只需60字节就可通过rpcbind让服务器崩溃，全世界的人都知道这玩意儿的用处，人们就这么任由它一直开着，无语。所以，要么补上，要么关闭吧。</p>
+</blockquote>
+<h2><span id="写在后面">写在后面</span></h2><blockquote>
+<p>向rpcbind服务的UDP套接字发送60字节载荷，便可填充目标内存，搞崩主机系统。<br>圭多·乌兰肯，该漏洞发现者兼“Rpcbomb”漏洞利用程序开发者，抱怨称该软件包维护者毫无反应，他不得不自己写了补丁。</p>
+<p>漏洞利用&amp;补丁：<a target="_blank" rel="noopener" href="https://github.com/guidovranken/rpcbomb">https://github.com/guidovranken/rpcbomb</a></p>
+<p>他写道，Shodan搜索发现，互联网上开放 rpcbind 111 端口的主机有180万台。其中大多数都运行在AWS之类大规模托管上，用户总是直接沿用Linux发行版的默认配置(111端口开放)。</p>
+<p>如果你真的需要使用rpcbind服务(将远程过程调用RPC与地址绑定)，就把它置于防火墙后，限制111端口对外开放吧。最好就是直接关了。</p>
+<p>GitHub上的补丁足够小，开发者们应该可以验证这些补丁的短小精悍：rpcbind只需要两行代码就能修复，不像libtirpc要256行。</p>
+<p>乌兰肯称，该漏洞可使攻击者在远程rpcbind绑定主机上分配任意大小的内存(每次攻击最高可达4GB)，除非进程崩溃，或者管理员挂起&#x2F;重启rpcbind服务，否则该内存不会被释放。</p>
+<p>当然，除了不断占用目标系统的内存，攻击者还可以干别的事，因为有些软件在内存分配失败的时候，是会发生不可预知的错误的。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/DOS/" rel="tag">DOS</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RPCBind/" rel="tag">RPCBind</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/07/XDebug-RCE/">
+                XDebug 远程调试漏洞（代码执行）
+            </a>
+        </h2>
+    
+    <time>
+        Dec 7, 2023
+    </time>
+    <section class="content">
+        <h1><span id="xdebug-远程调试漏洞代码执行">XDebug 远程调试漏洞（代码执行）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://joker-vip.github.io/2021/12/06/XDebug%20%E8%BF%9C%E7%A8%8B%E8%B0%83%E8%AF%95%E6%BC%8F%E6%B4%9E%EF%BC%88%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C%EF%BC%89/">joker0xxx3</a> 并作补充</p>
+</blockquote>
+<h2><span id="简介">简介</span></h2><blockquote>
+<p>XDebug是PHP的一个扩展，用于调试PHP代码。如果目标开启了远程调试模式，并设置<code>remote_connect_back = 1</code>：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">xdebug.remote_connect_back = <span class="number">1</span></span><br><span class="line">xdebug.remote_enable = <span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+<p>这个配置下，我们访问<code>http://target/index.php?XDEBUG_SESSION_START=phpstorm</code>，目标服务器的XDebug将会连接访问者的IP（或<code>X-Forwarded-For</code>头指定的地址）并通过dbgp协议与其通信，我们通过dbgp中提供的eval方法即可在目标服务器上执行任意PHP代码。</p>
+<p>更多说明可参考：</p>
+<ul>
+<li>[[<a target="_blank" rel="noopener" href="https://ricterz.me/posts/Xdebug%3A%20A%20Tiny%20Attack%20Surface/]]">https://ricterz.me/posts/Xdebug%3A%20A%20Tiny%20Attack%20Surface\]]</a>(<a target="_blank" rel="noopener" href="https://ricterz.me/posts/Xdebug%3A">https://ricterz.me/posts/Xdebug%3A</a> A Tiny Attack Surface])(<a target="_blank" rel="noopener" href="https://ricterz.me/posts/Xdebug%3A">https://ricterz.me/posts/Xdebug%3A</a> A Tiny Attack Surface)</li>
+<li><a target="_blank" rel="noopener" href="https://xdebug.org/">https://xdebug.org</a></li>
+</ul>
+</blockquote>
+<h2><span id="漏洞利用">漏洞利用</span></h2><blockquote>
+<p>启动完成后，访问<code>http://192.168.44.132:8080/</code>即可发现主页是一个简单的phpinfo，在其中可以找到xdebug的配置，可见开启了远程调试。</p>
+<p><img src="/2023/12/07/XDebug-RCE/1.png" alt="image"></p>
+<p>因为需要使用dbgp协议与目标服务器通信，所以无法用http协议复现漏洞。</p>
+<p>我编写了一个<a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub/blob/master/php/xdebug-rce/exp.py">漏洞复现脚本</a>，指定目标web地址、待执行的php代码即可：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 要求用python3并安装requests库</span></span><br><span class="line">python3 exp.py -t http://192.168.44.132:8080/index.php -c <span class="string">&#x27;shell_exec(&#x27;</span><span class="built_in">id</span><span class="string">&#x27;);&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/07/XDebug-RCE/2.png" alt="image"></p>
+<p><strong>重要说明：因为该通信是一个反向连接的过程，exp.py启动后其实是会监听本地的9000端口（可通过-l参数指定）并等待XDebug前来连接，所以执行该脚本的服务器必须有外网IP（或者与目标服务器处于同一内网）。</strong></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XDebug/" rel="tag">XDebug</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/12/07/OS-Command-Injection/">
                 PortSwigger Academy | OS command injection 操作系统命令注入
             </a>
@@ -967,83 +1072,6 @@ Newline (0x0a or \n)
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/11/08/urllib-HTTPResponse/">
-                urllib库进行网络请求后返回的HTTPResponse对象的用法总结
-            </a>
-        </h2>
-    
-    <time>
-        Nov 8, 2023
-    </time>
-    <section class="content">
-        <h1><span id="urllib库进行网络请求后返回的httpresponse对象的用法总结">urllib库进行网络请求后返回的HTTPResponse对象的用法总结</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/topleeyap/article/details/78845946">「已注销」</a> 并作补充</p>
-</blockquote>
-<blockquote>
-<p>不管是使用urllib.request.urlopen()方法，还是使用opener.open()方法，都返回同样类型的HTTPResponse对象，用法总结如下:</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># !/usr/bin/env python</span></span><br><span class="line"><span class="comment"># -*- coding:utf-8 -*-</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">from</span> urllib <span class="keyword">import</span> request</span><br><span class="line"><span class="keyword">from</span> urllib <span class="keyword">import</span> response</span><br><span class="line"> </span><br><span class="line">URL=<span class="string">&quot;http://www.baidu.com/&quot;</span></span><br><span class="line"> </span><br><span class="line"><span class="comment"># 构造请求头信息</span></span><br><span class="line"><span class="comment"># 反反爬虫:设置User-Agent</span></span><br><span class="line">request_headers=&#123;</span><br><span class="line">    <span class="string">&quot;User-Agent&quot;</span>:<span class="string">&quot;Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.108 Safari/537.36&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 构造请求对象,并添加请求头</span></span><br><span class="line">req=request.Request(URL,headers=request_headers)</span><br><span class="line"><span class="comment"># 发起请求</span></span><br><span class="line">resp=request.urlopen(req)</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">type</span>(resp))   <span class="comment"># &lt;class &#x27;http.client.HTTPResponse&#x27;&gt;</span></span><br><span class="line"><span class="comment"># 获取HTTP协议版本号(10 for HTTP/1.0, 11 for HTTP/1.1)</span></span><br><span class="line"><span class="built_in">print</span>(resp.version)</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取响应码</span></span><br><span class="line"><span class="built_in">print</span>(resp.status)</span><br><span class="line"><span class="built_in">print</span>(resp.getcode())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取响应描述字符串</span></span><br><span class="line"><span class="built_in">print</span>(resp.reason)</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取实际请求的页面url(防止重定向用)</span></span><br><span class="line"><span class="built_in">print</span>(resp.geturl())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取特定响应头信息</span></span><br><span class="line"><span class="built_in">print</span>(resp.getheader(name=<span class="string">&quot;Content-Type&quot;</span>))</span><br><span class="line"><span class="comment"># 获取响应头信息,返回二元元组列表</span></span><br><span class="line"><span class="built_in">print</span>(resp.getheaders())</span><br><span class="line"><span class="comment"># 获取响应头信息,返回字符串</span></span><br><span class="line"><span class="built_in">print</span>(resp.info())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 读取响应体</span></span><br><span class="line"><span class="built_in">print</span>(resp.readline().decode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line"><span class="built_in">print</span>(resp.read().decode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line"> </span><br></pre></td></tr></table></figure>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/11/08/Apktool-URL/">
-                提取APK中的URL地址
-            </a>
-        </h2>
-    
-    <time>
-        Nov 8, 2023
-    </time>
-    <section class="content">
-        <h1><span id="提取apk中的url地址">提取APK中的URL地址</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/Aaron_Miller/article/details/108759583">風月长情</a> 并作补充</p>
-</blockquote>
-<h2><span id="一-目的">一、目的</span></h2><blockquote>
-<p>客户端渗透测试前期信息收集过程中可以在APK中检索开发过程中没有删掉的URL地址，在这些地址中可能会发现后台、搜索引擎、子域名查找不到的一些资源。</p>
-</blockquote>
-<h2><span id="二-操作">二、操作</span></h2><blockquote>
-<p>反编译APK文件<br><code>apktool d &lt;xxx.apk&gt;</code><br>将反编译的文件zip打包发送到linux系统中<br><img src="/2023/11/08/Apktool-URL/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>使用grep命令进行URL正则匹配<br>通过grep正则匹配包下边所有文件的uri地址，然后排序，删除重复行，最后重定向到文件中<br><code>grep -ohr -E &quot;https?://[a-zA-Z0-9\.\/_&amp;=@$%?~#-]*&quot; /Kevin/com.sogou.map.android.maps/ |sort|uniq &gt;&gt; test.txt</code><br><img src="/2023/11/08/Apktool-URL/2.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>然后在搜索出来的地址中查看是否有敏感地址：<br>比如这个地址就不在我搜索的上千个子域中：<br><img src="/2023/11/08/Apktool-URL/3.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>随便一试直接进入后台，到此文件上传拿shell一个高危漏洞又到手了，香吧~<br><img src="/2023/11/08/Apktool-URL/4.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apktool/" rel="tag">Apktool</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

