@@ -86,6 +86,86 @@
 
     
         <h2 class="title">
+            <a href="/2024/01/25/ChatGPT-Python-LangChain/">
+                使用 ChatGPT 与 Python 中的第三方应用程序进行交互
+            </a>
+        </h2>
+    
+    <time>
+        Jan 25, 2024
+    </time>
+    <section class="content">
+        <h1><span id="使用-chatgpt-与-python-中的第三方应用程序进行交互">使用 ChatGPT 与 Python 中的第三方应用程序进行交互</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/2332320">Miloce</a> 并作补充</p>
+<p>将语言模型（如ChatGPT）集成到第三方应用程序中已经变得越来越流行，因为它们能够理解和生成类似人类的文本。然而，需要认识到ChatGPT的一些限制，比如它的知识截止日期是在2021年9月，以及它无法直接访问维基百科或 Python 等外部资源。</p>
+<p>鉴于这一挑战，LangChain的联合创始人兼首席执行官Harrison Chase提出了一个创新的解决方案。他开发了Python LangChain模块，该模块使开发人员能够轻松地将第三方应用程序与大型语言模型集成在一起。这一突破开启了无限的可能性，允许开发人员充分利用语言模型的强大功能，同时有效地处理来自外部来源的信息。</p>
+<p>在本文中，我们将探讨使用Python LangChain模块与ChatGPT交互以与第三方应用程序交互的有趣概念。到文章末尾，您将更深入地了解如何利用这种集成，创建更复杂和高效的应用程序。</p>
+</blockquote>
+<h2><span id="导入chatgpt模块">导入ChatGPT模块</span></h2><blockquote>
+<p>第一步是安装Python LangChain模块，您可以使用以下pip命令完成此操作。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install langchain</span><br></pre></td></tr></table></figure>
+
+<p>接下来，您需要从<code>langchain.chat_models</code>模块导入<code>ChatOpenAI</code>类。<code>ChatOpenAI</code>类允许您创建ChatGPT的实例。为此，请将<code>model_name</code>属性传递给<code>ChatOpenAI</code>类，将模型设置为”gpt-3.5-turbo”。OpenAI的”gpt-3.5-turbo”模型为ChatGPT提供动力。您还需要将您的OpenAI API密钥传递给<code>open_api_key</code>属性。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> langchain.chat_models <span class="keyword">import</span> ChatOpenAI</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"></span><br><span class="line">api_key = os.getenv(<span class="string">&#x27;OPENAI_KEY2&#x27;</span>)</span><br><span class="line">chatgpt = ChatOpenAI(model_name=<span class="string">&quot;gpt-3.5-turbo&quot;</span>,</span><br><span class="line">                    openai_api_key=api_key)</span><br></pre></td></tr></table></figure>
+
+<p>现在，我们已准备好在Python中将第三方应用程序与ChatGPT集成。</p>
+</blockquote>
+<h2><span id="使用chatgpt从维基百科提取信息">使用ChatGPT从维基百科提取信息</span></h2><blockquote>
+<p>如前所述，ChatGPT的知识截止日期为2021年9月，无法回答那之后的查询。例如，如果您要求ChatGPT返回2022年温布尔登锦标赛的维基百科文章摘要，您将获得以下答案：</p>
+<p><img src="/2024/01/25/ChatGPT-Python-LangChain/1.png" alt="image"></p>
+<p><a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://docs.langchain.com/docs/components/agents/&source=article&objectId=2332320">LangChain代理</a>允许您与第三方应用程序交互。有关更多信息，请查看所有<a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://python.langchain.com/docs/integrations&source=article&objectId=2332320">LangChain代理集成</a>的列表。</p>
+<p>让我们看看如何使用示例代码将ChatGPT与维基百科等第三方应用程序集成。</p>
+<p>您需要从<code>langchain.agents</code>模块导入<code>load_tools</code>、<code>initialize_agent</code>和<code>AgentType</code>实体。</p>
+<p>接下来，您应该将代理类型作为输入提供给<code>load_tools</code>类。在下面的示例脚本中，指定的代理类型是<code>wikipedia</code>。随后的步骤涉及使用<code>initialize_agent()</code>方法创建代理对象。在调用<code>initialize_agent()</code>方法时，您需要传递工具类型、ChatGPT实例和代理类型作为参数。如果将<code>verbose</code>参数设置为<code>True</code>，它将显示代理任务执行的思考过程。</p>
+<p>在下面的脚本中，我们要求维基百科代理返回2022年温布尔登锦标赛的维基百科文章摘要。</p>
+<p>在输出中，您可以看到代理的思考过程以及包含文章摘要的最终结果。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> langchain.agents <span class="keyword">import</span> load_tools, initialize_agent, AgentType</span><br><span class="line"></span><br><span class="line">tools = load_tools(</span><br><span class="line">    [<span class="string">&#x27;wikipedia&#x27;</span>], </span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent_chain = initialize_agent(</span><br><span class="line">    tools,</span><br><span class="line">    chatgpt,</span><br><span class="line">    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,</span><br><span class="line">    verbose=<span class="literal">True</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent_chain.run(</span><br><span class="line">    <span class="string">&quot;返回2022年温布尔登锦标赛的维基百科文章摘要。&quot;</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/ChatGPT-Python-LangChain/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="从arxiv提取信息">从ArXiv提取信息</span></h2><blockquote>
+<p>让我们看看另一个示例。我们将从<a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://arxiv.org/&source=article&objectId=2332320">ArXiv</a>获取一篇文章的标题和作者姓名，ArXiv是一个流行的开放获取科研论文、预印本和其他学术文章的存储库。</p>
+<p>脚本保持不变，只需将<code>arxiv</code>作为参数值传递给<code>load_tools()</code>方法。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">tools = load_tools(</span><br><span class="line">    [<span class="string">&quot;arxiv&quot;</span>], </span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent_chain = initialize_agent(</span><br><span class="line">    tools,</span><br><span class="line">    chatgpt,</span><br><span class="line">    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,</span><br><span class="line">    verbose=<span class="literal">True</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent_chain.run(</span><br><span class="line">    <span class="string">&quot;给我提供文章1301.3781的标题和作者姓名。&quot;</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/ChatGPT-Python-LangChain/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="从csv文件提取信息">从CSV文件提取信息</span></h2><blockquote>
+<p>LangChain提供了直接创建特定任务代理实例的方法。例如，<code>langchain.agents</code>模块的<code>create_csv_agent()</code>方法允许您创建与CSV文件交互的CSV代理。</p>
+<p>让我们看一个示例。以下脚本导入包含公司员工流失信息的数据集。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line">dataset = pd</span><br><span class="line"></span><br><span class="line">.read_csv(<span class="string">r&#x27;D:\Datasets\employee_attrition_dataset.csv&#x27;</span>)</span><br><span class="line">dataset.head()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/ChatGPT-Python-LangChain/4.png" alt="image"></p>
+<p>让我们使用CSV代理从此文件获取信息。我们要求ChatGPT返回销售部门的员工总数。</p>
+<p>在输出中，您可以看到ChatGPT返回输出的过程。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> langchain.agents <span class="keyword">import</span> create_csv_agent</span><br><span class="line"></span><br><span class="line">agent = create_csv_agent(</span><br><span class="line">    chatgpt,</span><br><span class="line">    <span class="string">r&#x27;D:\Datasets\employee_attrition_dataset.csv&#x27;</span>,</span><br><span class="line">    verbose=<span class="literal">True</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent.run(<span class="string">&quot;返回销售部门的员工总数。&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/ChatGPT-Python-LangChain/5.png" alt="image"></p>
+</blockquote>
+<h2><span id="从pandas-dataframe提取信息">从Pandas DataFrame提取信息</span></h2><blockquote>
+<p>同样，您可以使用<code>create_pandas_dataframe_agent()</code>方法从Pandas dataframe中提取信息。在下面的脚本中，我们要求ChatGPT返回销售部门中教育领域为医学的员工总数。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line">dataset = pd.read_csv(<span class="string">r&#x27;D:\Datasets\employee_attrition_dataset.csv&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> langchain.agents <span class="keyword">import</span> create_pandas_dataframe_agent</span><br><span class="line"></span><br><span class="line">agent = create_pandas_dataframe_agent(</span><br><span class="line">    chatgpt,</span><br><span class="line">    dataset,</span><br><span class="line">    verbose=<span class="literal">True</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent.run(<span class="string">&quot;返回销售部门中教育领域为医学的员工总数。&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/ChatGPT-Python-LangChain/6.png" alt="image"></p>
+<p>至此，教程结束。希望您会喜欢它！</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/ChatGPT/" rel="tag">ChatGPT</a><a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/01/25/Android-Signature/">
                 Android逆向-获取APP签名
             </a>
@@ -1148,118 +1228,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Bypass/" rel="tag">Bypass</a><a class="tag-none-link" href="/tags/EdXposed/" rel="tag">EdXposed</a><a class="tag-none-link" href="/tags/Genymotion/" rel="tag">Genymotion</a><a class="tag-none-link" href="/tags/LSPosed/" rel="tag">LSPosed</a><a class="tag-none-link" href="/tags/Magisk/" rel="tag">Magisk</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Xposed/" rel="tag">Xposed</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/22/CVE-2020-11022:11023-jQuery/">
-                jQuery最新xss漏洞分析——CVE-2020-11022/11023
-            </a>
-        </h2>
-    
-    <time>
-        Jan 22, 2024
-    </time>
-    <section class="content">
-        <h1><span id="jquery最新xss漏洞分析cve-2020-11022x2f11023">jQuery最新xss漏洞分析——CVE-2020-11022&#x2F;11023</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1638163">Jayway</a> 并作补充</p>
-</blockquote>
-<h2><span id="背景">背景</span></h2><blockquote>
-<p>jQuery官方上周发布了最新版本3.5.0，主要修复了两个安全问题，官方博客为：</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://blog.jquery.com/2020/04/10/jquery-3-5-0-released/</span><br></pre></td></tr></table></figure>
-
-<p>据NVD描述：在大于或等于1.2且在3.5.0之前的jQuery版本中，即使执行了消毒（sanitize）处理，也仍会执行将来自不受信任来源的HTML传递给jQuery的DOM操作方法（即html()、.append()等），从而导致xss漏洞。</p>
-<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/1.png" alt="image"></p>
-</blockquote>
-<h2><span id="二-前置知识">二、前置知识</span></h2><blockquote>
-<p>在讲解漏洞之前，需要了解jQuery的基本用法和历史漏洞，具体可参考：jQuery框架漏洞全总结及开发建议：</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://mp.weixin.qq.com/s/M1BYj6VbeoNV4C5M7cR_hA</span><br></pre></td></tr></table></figure>
-
-<p>而与此次jQuery漏洞联系比较紧密的是html()等方法，此方法返回或设置被选元素的内容 (inner HTML)，可用于设置所有选定元素的内容，看一个简单的使用案例：</p>
-<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/2.png" alt="image"></p>
-<p>此处定义一个点击事件，会对所有的p元素进行匹配，并修改为相同的内容。</p>
-</blockquote>
-<h2><span id="三-漏洞复现">三、漏洞复现</span></h2><blockquote>
-<p>对于此漏洞原作者搭建了在线环境，内置了三个xss poc，点击Append via .html()按钮即可触发xss：</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://vulnerabledoma.in/jquery_htmlPrefilter_xss.html</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/3.png" alt="image"></p>
-<p>审查源码，逻辑很简单：</p>
-<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/4.png" alt="image"></p>
-<p>首先使用如下代码模拟了一个开发场景，即将页面的所有div元素替换为根据ID取到的sanitizedHTML：</p>
-<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript"><span class="keyword">function</span> <span class="title function_">test</span>(<span class="params">n,jq</span>)&#123;</span></span><br><span class="line"><span class="language-javascript">   sanitizedHTML = <span class="variable language_">document</span>.<span class="title function_">getElementById</span>(<span class="string">&#x27;poc&#x27;</span>+n).<span class="property">innerHTML</span>;</span></span><br><span class="line"><span class="language-javascript">   <span class="keyword">if</span>(jq)&#123;</span></span><br><span class="line"><span class="language-javascript">       $(<span class="string">&#x27;#div&#x27;</span>).<span class="title function_">html</span>(sanitizedHTML);</span></span><br><span class="line"><span class="language-javascript">   &#125;<span class="keyword">else</span>&#123;</span></span><br><span class="line"><span class="language-javascript">       div.<span class="property">innerHTML</span>=sanitizedHTML;</span></span><br><span class="line"><span class="language-javascript">    &#125;</span></span><br><span class="line"><span class="language-javascript">&#125;</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>虽然三个poc都使用了包含onerror事件的img标签，但其实它们是放在属性或style元素内部，因此会绕过HTML清理器。</p>
-<p>以poc1为例，根据此id取到的值如下：</p>
-<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-xml"><span class="tag">&lt;<span class="name">style</span> /&gt;</span><span class="language-xml"><span class="tag">&lt;<span class="name">img</span> <span class="attr">src</span>=<span class="string">xonerror</span>=<span class="string">alert(1)</span>&gt;</span></span></span></span><br></pre></td></tr></table></figure>
-
-<p>点击之后，执行xss，此时审查div元素：</p>
-<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/5.png" alt="image"></p>
-<p>发现我们提交的poc多了一个闭合标签，变成了:</p>
-<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-xml"><span class="tag">&lt;<span class="name">style</span> /&gt;</span></span><span class="tag">&lt;/<span class="name">style</span>&gt;</span>&lt;imgsrc=x onerror=alert(1)&gt;</span><br></pre></td></tr></table></figure>
-
-<p> 闭合了<style>标签，成功执行后面的<img>脚本，导致xss。</p>
-</blockquote>
-<h2 id="四、漏洞原理"><a href="#四、漏洞原理" class="headerlink" title="四、漏洞原理"></a>四、漏洞原理</h2><h3 id="1、CVE-2020-11022"><a href="#1、CVE-2020-11022" class="headerlink" title="1、CVE-2020-11022"></a>1、CVE-2020-11022</h3><blockquote>
-<p>导致上述问题的关键是，在html()方法中，作为参数传递的HTML字符串将传递到  $ .htmlPrefilter（）方法：</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://api.jquery.com/jQuery.htmlPrefilter/</span><br></pre></td></tr></table></figure>
-
-<p>这个方法用于替换自闭合标签，如将<tagname /> 替换为 <tagname ></tagname>，3.x版本之前使用的正则为：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">rxhtmlTag =<span class="regexp">/&lt;(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:-]+)[^&gt;]*)\/&gt;/gi</span></span><br><span class="line">[...]</span><br><span class="line"><span class="attr">htmlPrefilter</span>: <span class="keyword">function</span>(<span class="params"> html </span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> html.<span class="title function_">replace</span>(rxhtmlTag, <span class="string">&quot;&lt;$1&gt;&lt;/$2&gt;&quot;</span> );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>3.x之后使用的正则为：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rxhtmlTag =<span class="regexp">/&lt;(?!area|br|col|embed|hr|img|input|link|meta|param)(([a-z][^\/\0&gt;\x20\t\r\n\f]*)[^&gt;]*)\/&gt;/gi</span></span><br></pre></td></tr></table></figure>
-
-<p>这就使用到环境里的poc2（仅适用于jQuery3.x），注意这里的xss payload是作为属性出现，所以可以<strong>绕过消毒器规则</strong>：</p>
-<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">img</span> <span class="attr">alt</span>=<span class="string">&quot;&lt;x&quot;</span> <span class="attr">title</span>=<span class="string">&quot;/&gt;&lt;img src=xonerror=alert(1)&gt;</span></span></span><br></pre></td></tr></table></figure>
-
-<p>该poc使用html()方法执行后发现变为：</p>
-<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">img</span> <span class="attr">alt</span>=<span class="string">&quot;&lt;x&quot;</span> <span class="attr">title</span>=<span class="string">&quot;/&gt;&lt;/x”&gt;&lt;imgsrc=x onerror=alert(1)&gt;</span></span></span><br></pre></td></tr></table></figure>
-
-<p>该正则会将x”识别为标签并新增&lt;&#x2F;x”&gt;闭合标签，从而达到xss的效果：</p>
-<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/6.png" alt="image"></p>
-</blockquote>
-<h3 id="2、CVE-2020-11023"><a href="#2、CVE-2020-11023" class="headerlink" title="2、CVE-2020-11023"></a>2、CVE-2020-11023</h3><blockquote>
-<p>针对上述漏洞原理，jQuery Team进行了修复，修复手段为将$.htmlPrefilter()方法替换为标识函数，因此传递的HTML字符串现在不再经过htmlPrefilter函数处理，从而成功修复了漏洞。但仍有一些手段可以绕过，CVE-2020-11023就是针对CVE-2020-11022的绕过：</p>
-<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/7.png" alt="image"></p>
-<p>绕过使用的是另一个特性，某些特殊的标签在经过html()方法处理时，会由于HTML的特性或浏览器的bug而使得这些标签被移除。</p>
-<p>option就是这些特殊标签之一，我们知道option 元素通过位于 select 元素内部来构造一个选择列表，但如果没有select元素，option会被移除。为了解决这个bug，如果传入参数的第一个元素为option，jQuery会新增&lt;select multiple&#x3D;’multiple’&gt;和</select>。</p>
-<p>所以我们提交poc3：</p>
-<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">option</span>&gt;</span><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-xml"><span class="tag">&lt;/<span class="name">option</span>&gt;</span><span class="tag">&lt;/<span class="name">select</span>&gt;</span>&lt;imgsrc=x onerror=alert(123456)&gt;</span><span class="tag">&lt;/<span class="name">style</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>经过处理会变为：</p>
-<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">select</span> <span class="attr">multiple</span>=<span class="string">&#x27;multiple&#x27;</span>&gt;</span><span class="tag">&lt;<span class="name">option</span>&gt;</span><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-xml"><span class="tag">&lt;/<span class="name">option</span>&gt;</span><span class="tag">&lt;/<span class="name">select</span>&gt;</span>&lt;imgsrc=x onerror=alert(123456)&gt;</span><span class="tag">&lt;/<span class="name">style</span>&gt;</span><span class="tag">&lt;/<span class="name">select</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>根据HTML从前往后解析的顺序，会先解析一个<select>标签，且<select>不允许将大部分HTML标签包裹其中，导致<style>被忽略，而后识别<img>标签从而xss。</p>
-<p><img src="/2024/01/22/CVE-2020-11022:11023-jQuery/8.png" alt="image"></p>
-<p> 此漏洞在最新的3.5.0中也被修复，对于特殊的标签进行了处理。</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/jquery/jquery/commit/966a70909019aa09632c87c0002c522fa4a1e30e#diff-51ec14165275b403bb33f28ce761cdedR25</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2 id="五、总结"><a href="#五、总结" class="headerlink" title="五、总结"></a>五、总结</h2><h3 id="1、漏洞利用"><a href="#1、漏洞利用" class="headerlink" title="1、漏洞利用"></a>1、漏洞利用</h3><blockquote>
-<p>1）系统使用jQuery的html()、append()或$(‘<tag>‘)等方法处理用户输入；</p>
-<p>2）用户输入已经过“消毒”（sanitize）处理。</p>
-</blockquote>
-<h3 id="2、修复方案"><a href="#2、修复方案" class="headerlink" title="2、修复方案"></a>2、修复方案</h3><blockquote>
-<p>1）更新jQuery到3.5.0或更高版本</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://code.jquery.com/jquery-3.5.0.js</span><br></pre></td></tr></table></figure>
-
-<p>复制</p>
-<p>2）使用XSS清理工具清理用户输入的HTML，官方推荐：</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/cure53/DOMPurify</span><br></pre></td></tr></table></figure>
-</blockquote>
-</style></p></blockquote>
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XSS/" rel="tag">XSS</a><a class="tag-none-link" href="/tags/jQuery/" rel="tag">jQuery</a>
             </div>
         
 

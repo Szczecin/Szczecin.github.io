@@ -86,6 +86,102 @@
 
     
         <h2 class="title">
+            <a href="/2024/05/14/JS-Signature/">
+                JS逆向-数据包解签名实战案例
+            </a>
+        </h2>
+    
+    <time>
+        May 14, 2024
+    </time>
+    <section class="content">
+        <h1><span id="js逆向-数据包解签名实战案例">JS逆向-数据包解签名实战案例</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/373757.html">ichi9o</a> 并作补充</p>
+</blockquote>
+<h2><span id="0x00-前言">0x00 前言</span></h2><blockquote>
+<p>通常情况下，数据包中的签名字段会包含<strong>sign</strong>字符串，如<strong>sign</strong>、<strong>appsign</strong>等等，然后根据字段在JS代码中寻找签名的过程，并进行分析。<br>以下内容为一个真实案例，撒，哈气灭路！</p>
+</blockquote>
+<h2><span id="0x01-获取被签名数据">0x01 获取被签名数据</span></h2><blockquote>
+<p>通过数据包可知该网站的签名字段是 <strong>sign</strong></p>
+<p><img src="/2024/05/14/JS-Signature/1.png" alt="image"></p>
+<p>在浏览器中的源代码搜索字段<strong>sign</strong>，找到签名代码<br>首当其冲的就是<strong>app.*.js</strong>样式的文件，在<strong>app.72b81572.js</strong>文件中发现了可疑点</p>
+<p><img src="/2024/05/14/JS-Signature/2.png" alt="image"></p>
+<p>分析 function k(e) 可知，是要对 r 参数进行签名的，r 又跟e、t、a、n 这几个参数相关，因此要搞清楚这几个参数的值是怎么来的，所有就在函数开始的第一行就下断点来跟进。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">k</span>(<span class="params">e</span>) &#123;</span><br><span class="line">    <span class="keyword">const</span> t = <span class="title function_">g</span>()</span><br><span class="line">      , n = <span class="title function_">m</span>();</span><br><span class="line">    <span class="keyword">let</span> a;</span><br><span class="line">    a = e ? <span class="title function_">b</span>(e) : &#123;&#125;;</span><br><span class="line">    <span class="keyword">const</span> r = e ? <span class="string">`<span class="subst">$&#123;c.a.stringify(a.hasParams)&#125;</span>&amp;<span class="subst">$&#123;t&#125;</span>&amp;time=<span class="subst">$&#123;n&#125;</span>`</span> : <span class="string">`&amp;<span class="subst">$&#123;t&#125;</span>&amp;time=<span class="subst">$&#123;n&#125;</span>`</span>;</span><br><span class="line">    <span class="keyword">return</span> e = <span class="title class_">Object</span>.<span class="title function_">assign</span>(&#123;&#125;, a.<span class="property">params</span>, &#123;</span><br><span class="line">        <span class="attr">sign</span>: <span class="title function_">h</span>()(<span class="built_in">decodeURIComponent</span>(r)),</span><br><span class="line">        <span class="attr">time</span>: n</span><br><span class="line">    &#125;),</span><br><span class="line">    e</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先是 t，跟进 g 函数，执行到 return 就可以发现 t &#x3D; 年 + “5616” + 月 + 日</p>
+<p><img src="/2024/05/14/JS-Signature/3.png" alt="image"></p>
+<p>然后就是 n，这个 e 的值呢，根据跟进可知是 cookie 里面的，不过这个 e 在本案例的作用不大，最后通过 return 就可以知道返回的值就是：当前时间戳- e</p>
+<p><img src="/2024/05/14/JS-Signature/4.png" alt="image"></p>
+<p>接下来就是 a，根据返回的结果可知 a 的值和 e 相同，通过分析数据包可知，e的内容即请求参数（GET）或请求体（POST）</p>
+<p><img src="/2024/05/14/JS-Signature/5.png" alt="image"></p>
+<p>然后 r 的值就出来了，也就是签名的明文</p>
+<p><img src="/2024/05/14/JS-Signature/6.png" alt="image"></p>
+<p>综上所述<br><strong>r &#x3D; 请求内容 + &amp; + t + &amp; + n</strong>（这里的请求内容需要注意的是，POST Data是Json格式的要转换为：key1&#x3D;value1&amp;key1&#x3D;value1…）<br>其中<br><strong>t &#x3D; 年 + “5616” + 月 + 日</strong><br><strong>n &#x3D; 当前时间戳</strong>（本案例可不减e也可成功）</p>
+</blockquote>
+<h2><span id="0x02-分析加密算法">0x02 分析加密算法</span></h2><blockquote>
+<p>将断点打在签名代码行，跟进代码的执行，发现加密的类名是 Md5，所有可以计算 r 的 md5 值，与代码执行的 sign 结果进行比较。</p>
+<p><img src="/2024/05/14/JS-Signature/7.png" alt="image"></p>
+<p>可以看到，该网站使用的是 md5 计算的 sign</p>
+<p><img src="/2024/05/14/JS-Signature/8.png" alt="image"></p>
+</blockquote>
+<h2><span id="0x03-编写-mitmproxy-脚本">0x03 编写 mitmproxy 脚本</span></h2><blockquote>
+<p>mitmproxy 脚本是实时加载的，因此 mitmproxy 只要带着脚本运行，就可以边调试了。<br>mitmproxy 使用命令</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mitmdump -p 777 -s .\mitmscript.py --flow-detail 0</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/05/14/JS-Signature/9.png" alt="image"></p>
+<p>关于脚本的编写这里给出以下 mitmproxy 的一些常用的属性和方法<strong>ctx：</strong></p>
+<ul>
+<li>ctx.log.info(): 用于在 mitmproxy 的日志中输出信息。</li>
+<li>ctx.options: 用于访问 mitmproxy 的配置选项，您可以在配置文件中定义这些选项。</li>
+<li>ctx.master: mitmproxy 的 Master 对象，提供了一些控制代理行为的方法。</li>
+<li>ctx.proxy: mitmproxy 的 ProxyConfig 对象，提供了有关代理配置的信息。</li>
+<li>ctx.client: mitmproxy 的 ClientConnection 对象，表示客户端连接的相关信息。</li>
+<li>ctx.server: mitmproxy 的 ServerConnection 对象，表示服务器连接的相关信息。</li>
+<li>ctx.protocol: mitmproxy 的 ProtocolHandler 对象，表示处理请求和响应的协议处理器。</li>
+</ul>
+<p>在 mitmproxy 脚本中，可以使用以下一些回调函数来处理不同阶段的 flow 对象：</p>
+<ul>
+<li>def request(flow: mitmproxy.http.HTTPFlow) -&gt; None: 当 mitmproxy 拦截到请求时调用此回调函数，可以获取和处理请求的各种信息。</li>
+<li>def response(flow: mitmproxy.http.HTTPFlow) -&gt; None: 当 mitmproxy 拦截到响应时调用此回调函数，可以获取和处理响应的各种信息。</li>
+<li>def error(flow: mitmproxy.http.HTTPFlow) -&gt; None: 当请求或响应出现错误时调用此回调函数，可以获取和处理错误信息。</li>
+<li>def clientconnect(flow: mitmproxy.tcp.TCPFlow) -&gt; None: 当客户端连接到 mitmproxy 时调用此回调函数，可以获取和处理客户端连接的相关信息。</li>
+<li>def serverconnect(flow: mitmproxy.tcp.TCPFlow) -&gt; None: 当 mitmproxy 连接到服务器时调用此回调函数，可以获取和处理服务器连接的相关信息。</li>
+<li>flow.request.method: 获取请求的方法（GET、POST等）。</li>
+<li>flow.request.scheme: 获取请求的协议（http 或 https）。</li>
+<li>flow.request.host: 获取请求的主机名。</li>
+<li>flow.request.port: 获取请求的端口号。</li>
+<li>flow.request.path: 获取请求的路径部分。</li>
+<li>flow.request.url: 获取完整的请求URL。</li>
+<li>flow.request.headers: 获取请求的头部信息，是一个字典对象，可以通过键来访问特定的头部字段。</li>
+<li>flow.request.cookies: 获取请求中的Cookie信息，是一个字典对象，可以通过键来访问特定的Cookie。</li>
+<li>flow.request.query: 获取请求的查询参数，是一个字典对象，可以通过键来访问特定的查询参数。</li>
+<li>flow.request.content: 获取请求的内容，如果请求是POST请求且带有内容，则可以通过该属性来访问请求的内容。</li>
+<li>flow.request.text: 获取请求的内容，并以文本形式返回。</li>
+<li>flow.request.urlencoded_form: 获取请求的URL编码表单数据，是一个字典对象，可以通过键来访问特定的表单字段。</li>
+<li>flow.request.multipart_form: 获取请求的多部分表单数据，是一个列表对象，列表中的每个元素都是一个字典，表示一个表单字段。</li>
+<li>flow.request.content: 获取请求的原始内容，以字节形式返回。</li>
+</ul>
+<p>附上本案例的代码供参考</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> datetime <span class="keyword">import</span> datetime</span><br><span class="line"><span class="keyword">from</span> mitmproxy <span class="keyword">import</span> ctx</span><br><span class="line"><span class="keyword">import</span> hashlib</span><br><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">import</span> json</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Modify</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        self.plaintext = <span class="string">&#x27;&#x27;</span></span><br><span class="line">        self.new_sign = <span class="string">&#x27;&#x27;</span></span><br><span class="line">        current_datetime = datetime.now()</span><br><span class="line">        self.today = <span class="string">f&quot;<span class="subst">&#123;current_datetime.year&#125;</span>5616<span class="subst">&#123;current_datetime.month:02d&#125;</span><span class="subst">&#123;current_datetime.day:02d&#125;</span>&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">md5</span>(<span class="params">self</span>):</span><br><span class="line">        md5_hash = hashlib.md5()</span><br><span class="line">        md5_hash.update(self.plaintext.encode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line">        self.new_sign = md5_hash.hexdigest()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">request</span>(<span class="params">self, flow</span>):</span><br><span class="line">        <span class="keyword">if</span> flow.request.method == <span class="string">&quot;POST&quot;</span>:</span><br><span class="line">            ctx.log.info(<span class="string">f&#x27;\n原POST请求体：<span class="subst">&#123;flow.request.text&#125;</span>&#x27;</span>)</span><br><span class="line">            data = json.loads(flow.request.get_text())</span><br><span class="line">            <span class="keyword">if</span> data != <span class="string">&#x27;&#123;&#125;&#x27;</span> <span class="keyword">and</span> <span class="string">&#x27;sign&#x27;</span> <span class="keyword">in</span> data:</span><br><span class="line">                <span class="keyword">del</span> data[<span class="string">&#x27;sign&#x27;</span>]</span><br><span class="line">                <span class="keyword">del</span> data[<span class="string">&#x27;time&#x27;</span>]</span><br><span class="line">                <span class="keyword">for</span> k <span class="keyword">in</span> data:</span><br><span class="line">                    self.plaintext += <span class="string">f&quot;<span class="subst">&#123;k&#125;</span>=<span class="subst">&#123;<span class="built_in">str</span>(data[k])&#125;</span>&amp;&quot;</span></span><br><span class="line">                timestamp = <span class="built_in">int</span>(time.time() * <span class="number">1000</span>)</span><br><span class="line">                self.plaintext += <span class="string">f&quot;<span class="subst">&#123;self.today&#125;</span>&amp;time=<span class="subst">&#123;timestamp&#125;</span>&quot;</span></span><br><span class="line">                self.md5()</span><br><span class="line"></span><br><span class="line">                data[<span class="string">&quot;sign&quot;</span>] = self.new_sign</span><br><span class="line">                data[<span class="string">&quot;time&quot;</span>] = timestamp</span><br><span class="line">                flow.request.set_text(json.dumps(data).replace(<span class="string">&#x27; &#x27;</span>, <span class="string">&#x27;&#x27;</span>))</span><br><span class="line">                ctx.log.info(<span class="string">f&#x27;\n新POST请求体：<span class="subst">&#123;flow.request.text&#125;</span>&#x27;</span>)</span><br><span class="line">                self.plaintext = <span class="string">&#x27;&#x27;</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                ctx.log.info(<span class="string">&#x27;无参数，无需改签&#x27;</span>)</span><br><span class="line">        <span class="keyword">elif</span> flow.request.method == <span class="string">&quot;GET&quot;</span>:</span><br><span class="line">            ctx.log.info(<span class="string">f&#x27;\n原GET请求体：<span class="subst">&#123;flow.request.query&#125;</span>&#x27;</span>)</span><br><span class="line">            query = flow.request.query</span><br><span class="line">            <span class="keyword">if</span> query != <span class="string">&#x27;&#123;&#125;&#x27;</span> <span class="keyword">and</span> <span class="string">&#x27;sign&#x27;</span> <span class="keyword">in</span> query:</span><br><span class="line">                <span class="keyword">del</span> query[<span class="string">&#x27;sign&#x27;</span>]</span><br><span class="line">                <span class="keyword">del</span> query[<span class="string">&#x27;time&#x27;</span>]</span><br><span class="line">                <span class="keyword">if</span> query:</span><br><span class="line">                    <span class="keyword">for</span> k <span class="keyword">in</span> query:</span><br><span class="line">                        self.plaintext += <span class="string">f&quot;<span class="subst">&#123;k&#125;</span>=<span class="subst">&#123;<span class="built_in">str</span>(query[k])&#125;</span>&amp;&quot;</span></span><br><span class="line">                <span class="keyword">else</span>:</span><br><span class="line">                    self.plaintext = <span class="string">&quot;&amp;&quot;</span></span><br><span class="line">                timestamp = <span class="built_in">int</span>(time.time()) * <span class="number">1000</span></span><br><span class="line">                self.plaintext += <span class="string">f&quot;<span class="subst">&#123;self.today&#125;</span>&amp;time=<span class="subst">&#123;timestamp&#125;</span>&quot;</span></span><br><span class="line">                self.md5()</span><br><span class="line"></span><br><span class="line">                query[<span class="string">&quot;sign&quot;</span>] = self.new_sign</span><br><span class="line">                query[<span class="string">&quot;time&quot;</span>] = timestamp</span><br><span class="line">                ctx.log.info(<span class="string">f&#x27;\n新GET请求体：<span class="subst">&#123;flow.request.query&#125;</span>&#x27;</span>)</span><br><span class="line">                self.plaintext = <span class="string">&#x27;&#x27;</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                ctx.log.info(<span class="string">&#x27;无参数，无需改签&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">response</span>(<span class="params">flow</span>):</span><br><span class="line">        <span class="keyword">if</span> <span class="string">&#x27;签名校验失败!&#x27;</span> <span class="keyword">in</span> flow.response.text:</span><br><span class="line">            ctx.log.error(<span class="string">f&#x27;\n签名异常：\nurl =&gt; <span class="subst">&#123;flow.request.path&#125;</span>\n异常信息 =&gt; <span class="subst">&#123;flow.response.text&#125;</span>&#x27;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">addons = [</span><br><span class="line">    Modify()</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Signature/" rel="tag">Signature</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/03/06/nRF-Connect-Replay/">
                 【nRF Connect】事件记录及录播和重演
             </a>
@@ -1002,140 +1098,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Shadowsocks/" rel="tag">Shadowsocks</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/29/V2ray-Vulnerability/">
-                V2ray协议爆发了重大安全漏洞
-            </a>
-        </h2>
-    
-    <time>
-        Jan 29, 2024
-    </time>
-    <section class="content">
-        <h1><span id="v2ray协议爆发了重大安全漏洞">V2ray协议爆发了重大安全漏洞</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://dolorhunter.com/v2ray-protocol-security-vulnerability/">DolorHunter</a> 并作补充</p>
-</blockquote>
-<p><strong>服务器端的 V2ray 更新到 v4.23.4 以及之后的版本可以解决这一问题, 请大家尽快更新.</strong></p>
-<blockquote>
-<p>这可能是 V2ray 自 15 年发布 v1.0.0 以来面临的最大危机.</p>
-<p>六一前后, 有大量网友反应自己的裸 V2ray 配置(Vmess+TCP 的默认配置)失效了, 我本来也没太当回事, 毕竟过几天就是 535 了, 断一断网是老传统, 并没有什么好说的. 不过有一点与以往不同, 这次被阻断的用户都是使用默认配置.</p>
-<p>V2ray 的默认配置是 Vmess+TCP. 虽然中庸普通, 但它并不是一个容易被阻断的配置. 之前被阻断的 V2ray 配置通常都是些 KCP&#x2F;mKCP 或是 QUIC 这类的基于 UDP 协议的配置. UDP 通信数据特征明显, 因此容易被 GFW 逮个正着. 而 TCP 是可靠协议, 而且目前大量的网络数据也是基于 TCP 协议, 因此 TCP 协议一直都还算安全.</p>
-<p>我的认知里Vmess协议有个安全性排名: Vmess+TCP&#x2F;WS&#x2F;HTTP2+TLS &gt; Vmess+TCP&#x2F;WS&#x2F;HTTP2 &gt; Vmess+KCP&#x2F;mKCP&#x2F;QUIC. 如果用白话来解释就是带TLS的配置是最高一档90分优秀, 中间配置60分及格凑合, 最后一档是不及格. 我一直认为, 只要不用 KCP&#x2F;mKCP&#x2F;QUIC 爆炸三兄弟, 还是能舒心上网的. 然而我的预判出了大错误.</p>
-</blockquote>
-<h2><span id="发现重大安全漏洞">发现重大安全漏洞</span></h2><blockquote>
-<p>QV2ray-dev 社区首先发声. 六一当天, QV2ray-dev 警告用户不要使用 Vmess+TCP, 部分 Vmess+WS 及部分 Vmess+ws+TLS(insecure) 的配置组合. 他解释到 GFW 正在进行主动探测, 在 30s 内就可以接近 100% 的探测出你是否使用 Vmess+TCP 的配置, 其他配置亦可以受到波及. 并且此问题并无解决方案, 解决该问题可能需要重新设计 Vmess 协议.</p>
-<p>看到了这条消息后, 当下到 V2ray 社区逛了一圈, 发现事态比想象中的严重许多. p4gefau1t 发了一个名为 <a target="_blank" rel="noopener" href="https://github.com/v2ray/discussion/issues/704">v2ray的TLS流量可被简单特征码匹配精准识别（附PoC)</a> 的帖子. 过后十几小时又发了个名为 <a target="_blank" rel="noopener" href="https://github.com/v2ray/v2ray-core/issues/2523">vmess协议设计和实现缺陷可导致服务器遭到主动探测特征识别(附PoC)</a> 的帖子. 这两个帖子在短短几小时内已经获得了数十个回复, 并且多为负责此项目的大牛.</p>
-<p>p4gefau1t 首先发现仅凭tls client hello的cipher suite字段，就可以非常准确地将v2ray流量和正常浏览器流量区分开来。</p>
-<p>他通过 <a target="_blank" rel="noopener" href="https://fr33land.net/2020/03/12/can-enable-tls-in-v2ray-help/">这篇文章</a> 中提到了使用机器学习训练的模型可对v2ray的tls+ws流量进行识别，准确率高达0.9999. 后来, 经过本地测试，可以复现。并且不限于tls+ws，对tls+vmess等组合也同样有效。其他tls流量如浏览器流量等，全程没有出现误报情况。因此初步怀疑是v2ray使用的utls进行client hello伪造出现的问题。</p>
-<p>通过抓包对比真实的chrome与utls的client hello，发现两者基本一致，但与v2ray的存在较大差别，其中包括suite和extension的差别。此后，我们将utls的chrome的cipher suite patch到v2ray中后，此模型无法识别v2ray的tls流量。所以我们可以初步认为，模型很可能是学习了tls client hello的特征，导致流量被识别。</p>
-<p>他发现识别tls client hello并不需要使用机器学习的方法，简单的DPI即可实现，因此在gfw部署的成本很低。并且，由于这组cipher suites太过特殊，我们可以仅凭cipher suites进行准确识别。</p>
-<p>Cipher Suite 的特征有多特殊呢? 帖子下的网友随手撸一个从 0x90 偏移量开始的 memcmp 都能精准高效识别“特征码”：<code>cca8cca9c02fc02bc030c02cc027c013c023c009c014c00a130113031302</code> 甚至可以利用 iptables 进行明文匹配…… 帖内多个网友用其他配置也多次复现成功, 都得到了相同的特征码.</p>
-<p>这个漏洞可以说是十分棘手. 几乎可以说只要 GFW 想, 随时可以全国断网, 并且不分配置(不管有没有 TLS 都是死路一条).</p>
-<p>p4gefau1t 在十几个小时后又发了一个帖子. 这次他构造出了更具杀伤性的PoC, 仅需16次探测即可准确判定vmess服务，误报可能性几乎为0，校验的缓解措施均无效。唯一的解决方案是禁用vmess或者重新设计协议。</p>
-<table>
-<thead>
-<tr>
-<th>16 字节</th>
-<th>X 字节</th>
-<th>余下部分</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>认证信息</td>
-<td>指令部分</td>
-<td>数据部分</td>
-</tr>
-</tbody></table>
-<p>Vmess 协议前16字节为认证信息，内容为和时间、用户ID相关的散列值。根据协议设计，每个16字节的认证信息auth的有效期只有30秒。而问题出在指令部分。指令部分使用了没有认证能力的aes-cfb方式，因此攻击者可以篡改其中内容，而仍然能被服务器接受。</p>
-<table>
-<thead>
-<tr>
-<th>1 字节</th>
-<th>16 字节</th>
-<th>16 字节</th>
-<th>1 字节</th>
-<th>1 字节</th>
-<th>4 位</th>
-<th>4 位</th>
-<th>1 字节</th>
-<th>1 字节</th>
-<th>2 字节</th>
-<th>1 字节</th>
-<th>N 字节</th>
-<th>P 字节</th>
-<th>4 字节</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>版本号 Ver</td>
-<td>数据加密 IV</td>
-<td>数据加密 Key</td>
-<td>响应认证 V</td>
-<td>选项 Opt</td>
-<td>余量 P</td>
-<td>加密方式 Sec</td>
-<td>保留</td>
-<td>指令 Cmd</td>
-<td>端口 Port</td>
-<td>地址类型 T</td>
-<td>地址 A</td>
-<td>随机值</td>
-<td>校验 F</td>
-</tr>
-</tbody></table>
-<p>前16字节的认证信息可以被重复使用，并且只要通过认证，执行流即可进行到140行，初始化aes密钥流。接着在144行处，服务端在没有经过任何认证的情况下，读入38字节的密文，并使用aes-cfb进行解密，在没有进行任何校验的情况下，将其中版本号，余量P，加密方式等信息，直接填入结构体中。</p>
-<p>这里问题已经很明显了，攻击者只需要得知16字节的认证信息，就可以在30秒内反复修改这38字节的信息进行反复的重放攻击&#x2F;密文填充攻击。</p>
-<p>aes本身可以抵抗已知明文攻击，因此安全性方面基本没有问题。出现问题的是余量P。我猜想设计者应该是为了避免包的长度特征而引入这个字段，但是读入余量的方式出现了问题：在没有校验余量P、加密方式Sec、版本号Ver、指令 Cmd、地址类型T、地址A的情况下，将P直接代入ReadFullFrom中读取P字节（182行）。注意，这里P的范围是2^4&#x3D;16字节以内。读取P+4字节后，v2ray才会对前面读入的内容进行校验，判断命令部分是否合法。如果不合法，断开连接。</p>
-</blockquote>
-<h2><span id="临时性纾困方案">临时性纾困方案</span></h2><blockquote>
-<p>V2ray 社区针对这一漏洞在一周内接连推出了两个小的版本更新, 4.23.3 和 4.23.4.</p>
-<ul>
-<li>v4.23.3 修复了 <a target="_blank" rel="noopener" href="https://github.com/v2ray/v2ray-core/issues/2523">vmess协议设计和实现缺陷可导致服务器遭到主动探测特征识别(附PoC)</a> 中的严重漏洞.</li>
-<li>v4.23.4 进一步的修复了 Vmess 和 伪HTTP头的漏洞.</li>
-</ul>
-<p>V2Ray 项目在最近的几天内收到了数个隐匿性能方面的漏洞报告。这些漏洞都在被提出的数个小时内被解决（除 mKCP 修复暂缓）并发布相关更新。您可以升级到最新版本 v4.23.4 来获取最大程度的保护。我们支持和鼓励寻找并提出 V2Ray 各个方面漏洞的人。我们希望 V2Ray 的用户不要指责或者攻击为我们提供安全审计的人士。</p>
-</blockquote>
-<h3><span id="可以使用">可以使用</span></h3><blockquote>
-<p>如果你已经升级到 V2Ray v4.23.4，并且没有开启 TLS 的 AllowInsecure 选项，以下配置组合不会泄露识别信息：</p>
-<p>VMess over Websocket with TLS</p>
-<p>VMess over TLS</p>
-<p>VMess over HTTP&#x2F;2 （使用 TLS 的 HTTP&#x2F;2，并非 h2c）</p>
-<p>Shadowsocks(AEAD) over Websocket with TLS</p>
-</blockquote>
-<h3><span id="谨慎使用">谨慎使用</span></h3><blockquote>
-<p>以下配置组合可能会在攻击者位于网络路径上时可能会使攻击者获得的协议数据的一些统计学属性，但是这些信息不足以用于确定服务器上部署了这些协议</p>
-<p><del>VMess over TCP （还在继续改进中）</del> 已修复, 可以正常使用</p>
-</blockquote>
-<h3><span id="并不建议">并不建议</span></h3><blockquote>
-<p>以下配置组合不建议用于穿越被攻击者控制的网络：</p>
-<p>任何协议 + SOCKS5</p>
-<p>任何协议 + HTTP 代理</p>
-<p>任何协议 + HTTP 伪装</p>
-<p>任何协议 + mKCP + 任何伪装</p>
-<p>-xiaokangwang 于 <a target="_blank" rel="noopener" href="https://github.com/v2ray/v2ray-core/issues/2542">关于在近期收到的数个漏洞的项目组公告</a></p>
-</blockquote>
-<h2><span id="协议的长期解决方案">协议的长期解决方案</span></h2><blockquote>
-<p>重写 Vmess 协议可能是在较长时间内解决这一问题的唯一出路.</p>
-<p>Vmess 协议已经诞生了很长一段时间. 那时候互联网上tls并不普及，tls1.3也还没出来。因此协议过时出现问题可以说是必然. 依照此趋势, 我倾向于认为下一代的 Vmess 默认协议可能会是类似 Vmess+TCP&#x2F;WS&#x2F;HTTP2+TLS 的设计. HTTP3 短期看来不太可能有具体应用, 毕竟 QUIC 作为 HTTP3的雏形, 翻车翻成什么样大家心里都有数.</p>
-<p>这次可能可以说是 V2ray 面世五年来遇到的最大一次危机. 不过, 目前的两个紧急补丁已经缓解了燃眉之急, 并且就 V2ray 社区的效率(两天内连续两个补丁), 我基本上已经消解了我之前的随时可能断网的担忧了.</p>
-<p>当前社区内对于新协议的讨论如火如荼, 每天都能看到新的点子冒出来. 过不了多久可能就会见到新的用于替换当前的 Vmess 的协议, 或者是目睹 V2ray 终于要进入 v5.0.0时代. 不论是目睹了其中的任何一件, 都是在见证历史, 见证开源社区的协作, 见证又一次与 GFW 的缠斗.</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/V2ray/" rel="tag">V2ray</a>
             </div>
         
 

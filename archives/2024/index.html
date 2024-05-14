@@ -87,6 +87,102 @@
 
     
         <h2 class="title">
+            <a href="/2024/05/14/JS-Signature/">
+                JS逆向-数据包解签名实战案例
+            </a>
+        </h2>
+    
+    <time>
+        May 14, 2024
+    </time>
+    <section class="content">
+        <h1><span id="js逆向-数据包解签名实战案例">JS逆向-数据包解签名实战案例</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/373757.html">ichi9o</a> 并作补充</p>
+</blockquote>
+<h2><span id="0x00-前言">0x00 前言</span></h2><blockquote>
+<p>通常情况下，数据包中的签名字段会包含<strong>sign</strong>字符串，如<strong>sign</strong>、<strong>appsign</strong>等等，然后根据字段在JS代码中寻找签名的过程，并进行分析。<br>以下内容为一个真实案例，撒，哈气灭路！</p>
+</blockquote>
+<h2><span id="0x01-获取被签名数据">0x01 获取被签名数据</span></h2><blockquote>
+<p>通过数据包可知该网站的签名字段是 <strong>sign</strong></p>
+<p><img src="/2024/05/14/JS-Signature/1.png" alt="image"></p>
+<p>在浏览器中的源代码搜索字段<strong>sign</strong>，找到签名代码<br>首当其冲的就是<strong>app.*.js</strong>样式的文件，在<strong>app.72b81572.js</strong>文件中发现了可疑点</p>
+<p><img src="/2024/05/14/JS-Signature/2.png" alt="image"></p>
+<p>分析 function k(e) 可知，是要对 r 参数进行签名的，r 又跟e、t、a、n 这几个参数相关，因此要搞清楚这几个参数的值是怎么来的，所有就在函数开始的第一行就下断点来跟进。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">k</span>(<span class="params">e</span>) &#123;</span><br><span class="line">    <span class="keyword">const</span> t = <span class="title function_">g</span>()</span><br><span class="line">      , n = <span class="title function_">m</span>();</span><br><span class="line">    <span class="keyword">let</span> a;</span><br><span class="line">    a = e ? <span class="title function_">b</span>(e) : &#123;&#125;;</span><br><span class="line">    <span class="keyword">const</span> r = e ? <span class="string">`<span class="subst">$&#123;c.a.stringify(a.hasParams)&#125;</span>&amp;<span class="subst">$&#123;t&#125;</span>&amp;time=<span class="subst">$&#123;n&#125;</span>`</span> : <span class="string">`&amp;<span class="subst">$&#123;t&#125;</span>&amp;time=<span class="subst">$&#123;n&#125;</span>`</span>;</span><br><span class="line">    <span class="keyword">return</span> e = <span class="title class_">Object</span>.<span class="title function_">assign</span>(&#123;&#125;, a.<span class="property">params</span>, &#123;</span><br><span class="line">        <span class="attr">sign</span>: <span class="title function_">h</span>()(<span class="built_in">decodeURIComponent</span>(r)),</span><br><span class="line">        <span class="attr">time</span>: n</span><br><span class="line">    &#125;),</span><br><span class="line">    e</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先是 t，跟进 g 函数，执行到 return 就可以发现 t &#x3D; 年 + “5616” + 月 + 日</p>
+<p><img src="/2024/05/14/JS-Signature/3.png" alt="image"></p>
+<p>然后就是 n，这个 e 的值呢，根据跟进可知是 cookie 里面的，不过这个 e 在本案例的作用不大，最后通过 return 就可以知道返回的值就是：当前时间戳- e</p>
+<p><img src="/2024/05/14/JS-Signature/4.png" alt="image"></p>
+<p>接下来就是 a，根据返回的结果可知 a 的值和 e 相同，通过分析数据包可知，e的内容即请求参数（GET）或请求体（POST）</p>
+<p><img src="/2024/05/14/JS-Signature/5.png" alt="image"></p>
+<p>然后 r 的值就出来了，也就是签名的明文</p>
+<p><img src="/2024/05/14/JS-Signature/6.png" alt="image"></p>
+<p>综上所述<br><strong>r &#x3D; 请求内容 + &amp; + t + &amp; + n</strong>（这里的请求内容需要注意的是，POST Data是Json格式的要转换为：key1&#x3D;value1&amp;key1&#x3D;value1…）<br>其中<br><strong>t &#x3D; 年 + “5616” + 月 + 日</strong><br><strong>n &#x3D; 当前时间戳</strong>（本案例可不减e也可成功）</p>
+</blockquote>
+<h2><span id="0x02-分析加密算法">0x02 分析加密算法</span></h2><blockquote>
+<p>将断点打在签名代码行，跟进代码的执行，发现加密的类名是 Md5，所有可以计算 r 的 md5 值，与代码执行的 sign 结果进行比较。</p>
+<p><img src="/2024/05/14/JS-Signature/7.png" alt="image"></p>
+<p>可以看到，该网站使用的是 md5 计算的 sign</p>
+<p><img src="/2024/05/14/JS-Signature/8.png" alt="image"></p>
+</blockquote>
+<h2><span id="0x03-编写-mitmproxy-脚本">0x03 编写 mitmproxy 脚本</span></h2><blockquote>
+<p>mitmproxy 脚本是实时加载的，因此 mitmproxy 只要带着脚本运行，就可以边调试了。<br>mitmproxy 使用命令</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mitmdump -p 777 -s .\mitmscript.py --flow-detail 0</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/05/14/JS-Signature/9.png" alt="image"></p>
+<p>关于脚本的编写这里给出以下 mitmproxy 的一些常用的属性和方法<strong>ctx：</strong></p>
+<ul>
+<li>ctx.log.info(): 用于在 mitmproxy 的日志中输出信息。</li>
+<li>ctx.options: 用于访问 mitmproxy 的配置选项，您可以在配置文件中定义这些选项。</li>
+<li>ctx.master: mitmproxy 的 Master 对象，提供了一些控制代理行为的方法。</li>
+<li>ctx.proxy: mitmproxy 的 ProxyConfig 对象，提供了有关代理配置的信息。</li>
+<li>ctx.client: mitmproxy 的 ClientConnection 对象，表示客户端连接的相关信息。</li>
+<li>ctx.server: mitmproxy 的 ServerConnection 对象，表示服务器连接的相关信息。</li>
+<li>ctx.protocol: mitmproxy 的 ProtocolHandler 对象，表示处理请求和响应的协议处理器。</li>
+</ul>
+<p>在 mitmproxy 脚本中，可以使用以下一些回调函数来处理不同阶段的 flow 对象：</p>
+<ul>
+<li>def request(flow: mitmproxy.http.HTTPFlow) -&gt; None: 当 mitmproxy 拦截到请求时调用此回调函数，可以获取和处理请求的各种信息。</li>
+<li>def response(flow: mitmproxy.http.HTTPFlow) -&gt; None: 当 mitmproxy 拦截到响应时调用此回调函数，可以获取和处理响应的各种信息。</li>
+<li>def error(flow: mitmproxy.http.HTTPFlow) -&gt; None: 当请求或响应出现错误时调用此回调函数，可以获取和处理错误信息。</li>
+<li>def clientconnect(flow: mitmproxy.tcp.TCPFlow) -&gt; None: 当客户端连接到 mitmproxy 时调用此回调函数，可以获取和处理客户端连接的相关信息。</li>
+<li>def serverconnect(flow: mitmproxy.tcp.TCPFlow) -&gt; None: 当 mitmproxy 连接到服务器时调用此回调函数，可以获取和处理服务器连接的相关信息。</li>
+<li>flow.request.method: 获取请求的方法（GET、POST等）。</li>
+<li>flow.request.scheme: 获取请求的协议（http 或 https）。</li>
+<li>flow.request.host: 获取请求的主机名。</li>
+<li>flow.request.port: 获取请求的端口号。</li>
+<li>flow.request.path: 获取请求的路径部分。</li>
+<li>flow.request.url: 获取完整的请求URL。</li>
+<li>flow.request.headers: 获取请求的头部信息，是一个字典对象，可以通过键来访问特定的头部字段。</li>
+<li>flow.request.cookies: 获取请求中的Cookie信息，是一个字典对象，可以通过键来访问特定的Cookie。</li>
+<li>flow.request.query: 获取请求的查询参数，是一个字典对象，可以通过键来访问特定的查询参数。</li>
+<li>flow.request.content: 获取请求的内容，如果请求是POST请求且带有内容，则可以通过该属性来访问请求的内容。</li>
+<li>flow.request.text: 获取请求的内容，并以文本形式返回。</li>
+<li>flow.request.urlencoded_form: 获取请求的URL编码表单数据，是一个字典对象，可以通过键来访问特定的表单字段。</li>
+<li>flow.request.multipart_form: 获取请求的多部分表单数据，是一个列表对象，列表中的每个元素都是一个字典，表示一个表单字段。</li>
+<li>flow.request.content: 获取请求的原始内容，以字节形式返回。</li>
+</ul>
+<p>附上本案例的代码供参考</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> datetime <span class="keyword">import</span> datetime</span><br><span class="line"><span class="keyword">from</span> mitmproxy <span class="keyword">import</span> ctx</span><br><span class="line"><span class="keyword">import</span> hashlib</span><br><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">import</span> json</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Modify</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        self.plaintext = <span class="string">&#x27;&#x27;</span></span><br><span class="line">        self.new_sign = <span class="string">&#x27;&#x27;</span></span><br><span class="line">        current_datetime = datetime.now()</span><br><span class="line">        self.today = <span class="string">f&quot;<span class="subst">&#123;current_datetime.year&#125;</span>5616<span class="subst">&#123;current_datetime.month:02d&#125;</span><span class="subst">&#123;current_datetime.day:02d&#125;</span>&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">md5</span>(<span class="params">self</span>):</span><br><span class="line">        md5_hash = hashlib.md5()</span><br><span class="line">        md5_hash.update(self.plaintext.encode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line">        self.new_sign = md5_hash.hexdigest()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">request</span>(<span class="params">self, flow</span>):</span><br><span class="line">        <span class="keyword">if</span> flow.request.method == <span class="string">&quot;POST&quot;</span>:</span><br><span class="line">            ctx.log.info(<span class="string">f&#x27;\n原POST请求体：<span class="subst">&#123;flow.request.text&#125;</span>&#x27;</span>)</span><br><span class="line">            data = json.loads(flow.request.get_text())</span><br><span class="line">            <span class="keyword">if</span> data != <span class="string">&#x27;&#123;&#125;&#x27;</span> <span class="keyword">and</span> <span class="string">&#x27;sign&#x27;</span> <span class="keyword">in</span> data:</span><br><span class="line">                <span class="keyword">del</span> data[<span class="string">&#x27;sign&#x27;</span>]</span><br><span class="line">                <span class="keyword">del</span> data[<span class="string">&#x27;time&#x27;</span>]</span><br><span class="line">                <span class="keyword">for</span> k <span class="keyword">in</span> data:</span><br><span class="line">                    self.plaintext += <span class="string">f&quot;<span class="subst">&#123;k&#125;</span>=<span class="subst">&#123;<span class="built_in">str</span>(data[k])&#125;</span>&amp;&quot;</span></span><br><span class="line">                timestamp = <span class="built_in">int</span>(time.time() * <span class="number">1000</span>)</span><br><span class="line">                self.plaintext += <span class="string">f&quot;<span class="subst">&#123;self.today&#125;</span>&amp;time=<span class="subst">&#123;timestamp&#125;</span>&quot;</span></span><br><span class="line">                self.md5()</span><br><span class="line"></span><br><span class="line">                data[<span class="string">&quot;sign&quot;</span>] = self.new_sign</span><br><span class="line">                data[<span class="string">&quot;time&quot;</span>] = timestamp</span><br><span class="line">                flow.request.set_text(json.dumps(data).replace(<span class="string">&#x27; &#x27;</span>, <span class="string">&#x27;&#x27;</span>))</span><br><span class="line">                ctx.log.info(<span class="string">f&#x27;\n新POST请求体：<span class="subst">&#123;flow.request.text&#125;</span>&#x27;</span>)</span><br><span class="line">                self.plaintext = <span class="string">&#x27;&#x27;</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                ctx.log.info(<span class="string">&#x27;无参数，无需改签&#x27;</span>)</span><br><span class="line">        <span class="keyword">elif</span> flow.request.method == <span class="string">&quot;GET&quot;</span>:</span><br><span class="line">            ctx.log.info(<span class="string">f&#x27;\n原GET请求体：<span class="subst">&#123;flow.request.query&#125;</span>&#x27;</span>)</span><br><span class="line">            query = flow.request.query</span><br><span class="line">            <span class="keyword">if</span> query != <span class="string">&#x27;&#123;&#125;&#x27;</span> <span class="keyword">and</span> <span class="string">&#x27;sign&#x27;</span> <span class="keyword">in</span> query:</span><br><span class="line">                <span class="keyword">del</span> query[<span class="string">&#x27;sign&#x27;</span>]</span><br><span class="line">                <span class="keyword">del</span> query[<span class="string">&#x27;time&#x27;</span>]</span><br><span class="line">                <span class="keyword">if</span> query:</span><br><span class="line">                    <span class="keyword">for</span> k <span class="keyword">in</span> query:</span><br><span class="line">                        self.plaintext += <span class="string">f&quot;<span class="subst">&#123;k&#125;</span>=<span class="subst">&#123;<span class="built_in">str</span>(query[k])&#125;</span>&amp;&quot;</span></span><br><span class="line">                <span class="keyword">else</span>:</span><br><span class="line">                    self.plaintext = <span class="string">&quot;&amp;&quot;</span></span><br><span class="line">                timestamp = <span class="built_in">int</span>(time.time()) * <span class="number">1000</span></span><br><span class="line">                self.plaintext += <span class="string">f&quot;<span class="subst">&#123;self.today&#125;</span>&amp;time=<span class="subst">&#123;timestamp&#125;</span>&quot;</span></span><br><span class="line">                self.md5()</span><br><span class="line"></span><br><span class="line">                query[<span class="string">&quot;sign&quot;</span>] = self.new_sign</span><br><span class="line">                query[<span class="string">&quot;time&quot;</span>] = timestamp</span><br><span class="line">                ctx.log.info(<span class="string">f&#x27;\n新GET请求体：<span class="subst">&#123;flow.request.query&#125;</span>&#x27;</span>)</span><br><span class="line">                self.plaintext = <span class="string">&#x27;&#x27;</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                ctx.log.info(<span class="string">&#x27;无参数，无需改签&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">response</span>(<span class="params">flow</span>):</span><br><span class="line">        <span class="keyword">if</span> <span class="string">&#x27;签名校验失败!&#x27;</span> <span class="keyword">in</span> flow.response.text:</span><br><span class="line">            ctx.log.error(<span class="string">f&#x27;\n签名异常：\nurl =&gt; <span class="subst">&#123;flow.request.path&#125;</span>\n异常信息 =&gt; <span class="subst">&#123;flow.response.text&#125;</span>&#x27;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">addons = [</span><br><span class="line">    Modify()</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Signature/" rel="tag">Signature</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/03/06/nRF-Connect-Replay/">
                 【nRF Connect】事件记录及录播和重演
             </a>
@@ -843,114 +939,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Shadowsocks/" rel="tag">Shadowsocks</a><a class="tag-none-link" href="/tags/V2ray/" rel="tag">V2ray</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/29/Shadowsocks-GFW-Defend/">
-                防御GFW主动探测的实用指南
-            </a>
-        </h2>
-    
-    <time>
-        Jan 29, 2024
-    </time>
-    <section class="content">
-        <h1><span id="防御gfw主动探测的实用指南">防御GFW主动探测的实用指南</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://gfw.report/blog/ss_advise/zh/">Great Firewall Report</a> 并作补充</p>
-<p>在近期的IMC’20的工作中(<a target="_blank" rel="noopener" href="https://gfw.report/publications/imc20/data/paper/shadowsocks.pdf">论文</a>, <a target="_blank" rel="noopener" href="https://gfw.report/talks/imc20/zh/">演讲</a>)，我们揭示了中国的防火长城采用<em>流量分析</em>与<em>主动探测</em>相结合的手段来检测和封锁Shadowsocks服务器。</p>
-<p>在这篇短文中，我们将分别向技术小白和翻墙软件开发者提供防御GFW主动探测的实用建议。 我们还将介绍Len et al.展示的<a target="_blank" rel="noopener" href="https://www.usenix.org/system/files/sec21summer_len.pdf#page=13">partitioning oracle攻击</a>的缓解办法。 如果在遵循了本文的建议后，你的Shadowsocks服务器仍被封锁，请将封锁情况<a target="_blank" rel="noopener" href="https://gfw.report/">汇报给GFW Report</a>以及相应的开发者。</p>
-</blockquote>
-<h2><span id="给用户的建议">给用户的建议</span></h2><blockquote>
-<p>根据我们的测试和来自开发者的报告，在采用了适当的配置后，以下两个Shadowsocks实现的最新版本已经可以抵御来自GFW的主动探测：<em>Shadowsocks-libev</em>和<em>OutlineVPN</em>。</p>
-</blockquote>
-<h3><span id="针对shadowsocks-libev的使用建议">针对Shadowsocks-libev的使用建议</span></h3><blockquote>
-<p>如果你决定使用Shadowsocks-libev，我们强烈建议你根据这篇教程来<a target="_blank" rel="noopener" href="https://gfw.report/blog/ss_tutorial/zh/">部署一台抗封锁的Shadowsocks-libev服务器</a>。我们会时刻更新那篇教程的，以应对之后新出现的针对Shadowsocks的识别和攻击。</p>
-<p>如果你已经拥有了一台Shadowsocks-libev服务器，你可以根据以下规则来确认你的服务器是否配置得可以对抗GFW的主动检测和封锁。</p>
-<p>截止2021年1月，你需要做到以下几点来防止你的<em>Shadowsocks-libev</em>服务器被封锁：</p>
-<ol>
-<li>确保你的服务器版本为<code>v3.3.1</code>及以上。你可以通过以下命令查看服务器的版本<code>ss-server -h</code>。</li>
-<li>使用<a target="_blank" rel="noopener" href="https://shadowsocks.org/en/spec/AEAD-Ciphers.html"><em>AEAD ciphers</em></a>， 而<strong>不用</strong> <em>stream ciphers</em>。换句话说，仅在以下几种加密方式中进行选择：<code>chacha20-ietf-poly1305</code> (推荐), <code>aes-256-gcm</code>, <code>aes-192-gcm</code>或者<code>aes-128-gcm</code>。</li>
-</ol>
-<p>为了缓解针对Shadowsocks的<a target="_blank" rel="noopener" href="https://www.usenix.org/system/files/sec21summer_len.pdf#page=13">partitioning oracle攻击</a>，你需要:</p>
-<ol>
-<li>使用一个长的随机密码。这样的密码可以用以下命令在终端生成： <code>openssl rand -base64 16</code>;</li>
-<li>禁用UDP模式。</li>
-</ol>
-<p>注意：针对客户端没有特殊的要求，任何与Shadowsocks-libev服务器兼容的客户端均可。</p>
-</blockquote>
-<h3><span id="针对outlinevpn的使用建议">针对OutlineVPN的使用建议</span></h3><blockquote>
-<p>为了防止你的<a target="_blank" rel="noopener" href="https://getoutline.org/">OutlineVPN</a>服务器被GFW封锁，你需要做到以下几点：</p>
-<ol>
-<li>使用最新版的从<a target="_blank" rel="noopener" href="https://getoutline.org/">官网</a>下载的服务端。</li>
-<li>使用最新版的从<a target="_blank" rel="noopener" href="https://getoutline.org/">官网</a>下载的客户端。</li>
-</ol>
-<p>注意：</p>
-<ol>
-<li>Outline会自动生成一个长的，随机的密码，因此你不必像为Shadowsocks-libev那样手动配置密码。</li>
-<li>Outline服务端会自动更新，因此你不必手动升级服务端。</li>
-<li>Outline只采用<code>chacha20-ietf-poly1305</code>这一种AEAD cipher作为加密方式，因此你不必手动选择加密方式。</li>
-</ol>
-</blockquote>
-<h2><span id="给翻墙软件开发者的建议">给翻墙软件开发者的建议</span></h2><blockquote>
-<p>下面我们介绍我们发现的GFW的最新审查能力，并附上我们给翻墙软件开发者的相应建议。这些建议不仅对Shadowsocks，而且对其他许多翻墙软件都有用。 我们欢迎你加入我们的讨论，分享你的想法，评论，疑惑和关切。</p>
-</blockquote>
-<h3><span id="正确的校验">正确的校验</span></h3><blockquote>
-<p>首先，我们强烈建议翻墙软件的开发者们<strong>彻底</strong>废除不具备校验的加密构造。仅仅有保密性是不够的。</p>
-<ul>
-<li>对于新开发的翻墙软件来说，这意味着根本不应考虑支持不具备校验的加密构造。</li>
-<li>对于现存的翻墙软件来说，这意味着开发者应该勇敢地<strong>移除</strong>所有与不具备教研的加密构造相关的代码，即使以不向下兼容为代价。</li>
-</ul>
-<p>我们这看似大胆的建议实际上出于合理的原因。如我们在<a target="_blank" rel="noopener" href="https://gfw.report/publications/imc20/data/paper/shadowsocks.pdf#page=7">论文</a>中所介绍的， 一些类型的GFW主动探测会利用Shadowsocks的stream ciphers的malleability。这已经不是第一次不具备校验的加密结构造成漏洞了。事实上，不具备校验的加密结构是许多Shadowsocks和其他翻墙软漏洞的根本来源。</p>
-<p>早在2015年8月，BreakWa11<a target="_blank" rel="noopener" href="https://web.archive.org/web/20160829052958/https://github.com/breakwa11/shadowsocks-rss/issues/38">发现了</a>一个关于Shadowsocks的stream ciphers的漏洞。这个漏洞是由于缺乏数据完整性保护而造成的（<a target="_blank" rel="noopener" href="https://groups.google.com/d/msg/traffic-obf/CWO0peBJLGc/Py-clLSTBwAJ">英文总结</a>）。 在2020年，类似的漏洞又被<a target="_blank" rel="noopener" href="https://github.com/v2ray/v2ray-core/issues/2523">发现</a>存在于V2Ray中（<a target="_blank" rel="noopener" href="https://gfw.report/blog/v2ray_weaknesses/zh/">总结</a>）。</p>
-<p>当Shadowsocks开发者试图引入<code>one time auth</code>模式来缓解2015年的那个漏洞时，另一个因数据长度缺乏完整性保护的主动探测又被<a target="_blank" rel="noopener" href="https://web.archive.org/web/20191002190325/https://printempw.github.io/why-do-shadowsocks-deprecate-ota/">引入了</a>（<a target="_blank" rel="noopener" href="https://groups.google.com/d/msg/traffic-obf/CWO0peBJLGc/Py-clLSTBwAJ">英文总计</a>）。</p>
-<p>2020年2月，Zhejiang Peng<a target="_blank" rel="noopener" href="https://github.com/edwardz246003/shadowsocks">发现了</a>一个关于Shadowsocks stream ciphers的灾难性的漏洞，(<a target="_blank" rel="noopener" href="https://github.com/net4people/bbs/issues/24">英文总结</a>）。 利用使用了stream cipher的Shadowsocks服务器作为decryption oracle，攻击者可以在不需要密码的情况下，完全解密Shadowsocks会话。</p>
-<p>其实早在2017年2月，AEAD ciphers就已经成为了Shadowsocks协议的一部分。而校验问题也理应在那时就被解决了。但实际情况是，截止2021年，大量的服务器仍然因为使用被废弃的stream ciphers而存在着安全隐私漏洞，以及被准确识别的风险。</p>
-<p>这样的现象表明，在实际操作中，许多的用户不能够正确的选择加密方式。这可能与使用过时的教程或一键脚本有关。 我们因此鼓励开发者从Shadowsocks各实现中彻底移除stream ciphers，帮助用户做出正确的选择。</p>
-</blockquote>
-<h3><span id="使用同时基于nonces和时间的重放过滤器">使用同时基于nonces和时间的重放过滤器</span></h3><blockquote>
-<p>我们建议翻墙软件的开发者们采用同时基于nonces和时间的重放过滤器。 因为采用基于时间的重放过滤器需要对Shadowsocks协议进行根本性地变动，我们建议开发者至少要此采用基于nonces的过滤器，并且做到：</p>
-<ol>
-<li>要么建议用户在每次过滤器重置后修改密码；</li>
-<li>要么开发一个机制，可以让重放过滤器在软件重启后依然记得之前的nonces。</li>
-</ol>
-<p>这些建议是基于以下的研究发现和推论。 如<a target="_blank" rel="noopener" href="https://gfw.report/publications/imc20/data/paper/shadowsocks.pdf#page=5">论文的section 3.5</a>所介绍的， GFW既可以在观察到一个合法连接的瞬间对其进行重放；也可以等待三周甚至更长时间后才重放。 因此，一个更加合理的主动探测模型应该允许审查者在任意时长后对合法连接进行重放。</p>
-<p>这样的一个主动探测模型揭示了纯粹基于nonces的重放过滤所须要面对的不对称性。GFW仅用少量资源就可以记录<strong>一些</strong>合法的连接，并且在经过任意的时长后再重放它们；但与此同时，Shadowsocks需要大量的资源和相对复杂的实现来永久性地记住<strong>所有的</strong>合法链接，直至密码被更换。 注意，Shadowsocks服务器必须在重启后还记住这些nonces；否则重放过滤器不会过滤基于重启前的合法连接的重放。</p>
-<p>幸运的是，这个不公平的局面可以通过同时引入基于时间的重放过滤机制来扭转：服务器只需要处理并验证时间戳未过期的连接，<a target="_blank" rel="noopener" href="https://gfw.report/blog/v2ray_weaknesses/en/">就像VMess服务器那样</a>。 如此一来服务器就不需要永久性地记住所有合法连接中的nonces。</p>
-<p>我们还想强调，对于那些仅仅短暂暴露变化的监听端口的翻墙服务器，重放过滤仍是必要的。因为GFW可以瞬时重放合法连接中的第一个数据包，而这时暴露的监听端口因为未完成数据传输，依然是开启的。</p>
-</blockquote>
-<h3><span id="让服务器的反应保持一致">让服务器的反应保持一致</span></h3><blockquote>
-<p>我们建议开发者们确保翻墙服务器在正常运行时，和遇到不合法的连接时都反应一致。理想情况下，可以按照<a target="_blank" rel="noopener" href="https://censorbib.nymity.ch/pdf/Frolov2020a.pdf#page=12">Frolov et al.</a>的建议，让服务器遇到错误连接时“read forever”。 这是因为，审查者会故意触发协议的边边角角等特殊情况，来识别服务器指纹。</p>
-<p>除了我们在Shadowsocks-libev和OutlineVPN中发现的服务器反应指纹，<a target="_blank" rel="noopener" href="https://censorbib.nymity.ch/pdf/Frolov2020a.pdf#page=11">Frolov et al.</a>还展示了包括Shadowsocks-python和OutlineVPN在内的多种翻墙软件可以通过关闭连接时的TCP flags和连接时长来识别。studentmain<a target="_blank" rel="noopener" href="https://github.com/net4people/bbs/issues/22#issuecomment-744704701">报告</a>，直至2020年12月， 许多的Shadowsocks实现仍存在着我们在Shadowsocks-libev和Outline中发现的问题。</p>
-<p>Frolov et al.建议代理服务器在遇到错误连接时不要立即关闭连接，而是“read forever”。这样做不但避免泄漏超时值，而且使得服务器发送与正常连接关闭时相同的TCP flags来关闭错误连接。</p>
-<p>进一步说，“reading forever”本身不会带来更加独特的指纹。因为Frolov et al.发现<a target="_blank" rel="noopener" href="https://censorbib.nymity.ch/pdf/Frolov2020a.pdf#page=12">互联网上大量的服务器都会有无限超时值（“infinite timeout”）的特征</a>。David Fifield<a target="_blank" rel="noopener" href="https://github.com/net4people/bbs/issues/26#issuecomment-599712288">调查</a>显示，许多流行的翻墙软件已经采取了“read forever”策略。这些软件包括OSSH，obfs4，Outline和Lampshade。</p>
-</blockquote>
-<h3><span id="强制采用强密码">强制采用强密码</span></h3><blockquote>
-<p>Len et al. 于2020年展示了针对Shadowsocks服务器的<a target="_blank" rel="noopener" href="https://www.usenix.org/system/files/sec21summer_len.pdf#page=13">partitioning oracle攻击</a>。利用在Shadowsocks中使用的non-committing AEAD，攻击者可以更高效地猜出密码。我们因此建议开发者强制采用强密码。一种可能的实现方式是要求用户密码的熵高于一定值。</p>
-</blockquote>
-<h3><span id="主动探测你的实现">主动探测你的实现</span></h3><blockquote>
-<p>如果你是一个不同于Shadowsocks-libev和Outline的翻墙软件开发者或贡献者，我们鼓励你检查同样的漏洞是否也存在于你的Shadowsocks实现中。我们开源了我们在<a target="_blank" rel="noopener" href="https://gfw.report/publications/imc20/data/paper/shadowsocks.pdf#page=8">论文Section 5.1</a>中用到的<a target="_blank" rel="noopener" href="https://gfw.report/publications/imc20/data/code/prober_simulator/">prober 模拟器</a>。</p>
-</blockquote>
-<h2><span id="鸣谢">鸣谢</span></h2><blockquote>
-<p>我们想要感谢来自Jigsaw的Vinicius Fortuna，来自APNIC的Robert Mitchell和Dan Fidler，以及来自Qv2ray的DuckSoft和Student Main对本文提供的反馈。</p>
-</blockquote>
-<h2><span id="联系">联系</span></h2><blockquote>
-<p>这篇报告首发于<a target="_blank" rel="noopener" href="https://gfw.report/blog/ss_advise/zh/">GFW Report</a>。我们还在APNIC blog，<a target="_blank" rel="noopener" href="https://github.com/net4people/bbs/issues/58">net4people</a>以及<a target="_blank" rel="noopener" href="https://ntc.party/t/a-practical-guide-to-defend-against-the-gfws-latest-active-probing/847">ntc.party</a>同步更新了博文。</p>
-<p>我们鼓励您或公开地或私下地分享您的评论或疑问。我们私下的联系方式可见<a target="_blank" rel="noopener" href="https://gfw.report/">GFW Report</a>的页脚。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Bypass/" rel="tag">Bypass</a><a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Shadowsocks/" rel="tag">Shadowsocks</a>
             </div>
         
 

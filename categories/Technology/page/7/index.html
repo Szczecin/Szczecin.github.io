@@ -86,6 +86,62 @@
 
     
         <h2 class="title">
+            <a href="/2023/10/25/Catch-AppLog/">
+                app日志抓取
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="app日志抓取">app日志抓取</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_42610167/article/details/104838634">测试之道.</a> 并作补充</p>
+</blockquote>
+<h2><span id="日志抓取">日志抓取</span></h2><blockquote>
+<p>1.首先通过adb devices查看设备是否连接成功<br>2.通过adb logcat命令抓取日志，保存到D盘下的1文件夹下面的log.txt文件中:<br><code>adb logcat -v time (-v time 为了获取日志时间)</code><br><img src="/2023/10/25/Catch-AppLog/1.png" alt="image"> </p>
+<p>3.将程序运行在前台，通过命令查看应用包名称：adb shell dumpsys | findstr “mFocusedActivity”<br><img src="/2023/10/25/Catch-AppLog/2.png" alt="image"> </p>
+<p>4.在导出的 log.txt 文件中搜索应用包名字，查看日志问题</p>
+</blockquote>
+<h3><span id="发生-crash-问题搜索关键字-force-finishing">发生 crash 问题，搜索关键字 force finishing</span></h3><blockquote>
+<p><img src="/2023/10/25/Catch-AppLog/3.png" alt="image"> </p>
+</blockquote>
+<h3><span id="发生-anr-问题">发生 anr 问题</span></h3><blockquote>
+<p>1.搜索关键字 anr in<br>2.treces.txt (adb shell–cd data – cd anr– traces.txt) （获取一次无响应）<br>3.dropbox.txt （adb shell – cd data – cd system – cd dropbox）（获取多次）</p>
+</blockquote>
+<h2><span id="一-mac-x2f-windows-电脑抓取android手机app-日志的方法">一、Mac &#x2F; Windows 电脑抓取Android手机APP 日志的方法</span></h2><h3><span id="电若脑只连接一个android设备">电若脑只连接一个Android设备</span></h3><blockquote>
+<p>1、电脑安装adb工具<br>2、手机打开usb调试：开发者选项开启–&gt;usb调试开启–&gt;允许usb调试<br>3、查询手机上第三方apk包的包名：<br>打开控制台：cmd<br>查询包名：adb shell pm list packages -3；（如：adb -s 11870469 shell pm list packages -3）<br>若琪app包名为 com.rokid.mobile<br>4、查询若琪app的进程号：adb shell ps | grep com.rokid.mobile （查出两个进程号）<br>5、电脑的当前路径创建文件存放日志：touch log<br>6、给文件操作权限：chmod 777 log<br>7、查询若琪APP的日志并导入到log文件：adb shell logcat |grep -e “进程号1” -e “进程号2” &gt;&gt; log<br>（如：adb -s 11870469 shell logcat |grep -e “6998” -e “7081” &gt;&gt; log ）</p>
+</blockquote>
+<h3><span id="电脑连接多个android设备">电脑连接多个Android设备：</span></h3><blockquote>
+<p>1、电脑安装adb工具<br>2、手机打开usb调试：开发者选项开启–&gt;usb调试开启<br>3、cmd 打开控制台<br>4、adb devices查询设备号<br>5、查询第三方apk包的包名：adb -s 设备号 shell pm list packages -3；（如：adb -s 11870469 shell pm list packages -3）<br>若琪app包名为com.rokid.mobile<br>6、查询第三方apk进程号：adb -s 设备号 shell ps | grep com.rokid.mobile<br>7、电脑的当前路径创建文件存放日志：touch log<br>8、给文件操作权限：chmod 777 log<br>9、查询若琪APP的日志并导入到log文件：adb -s 设备号 shell logcat |grep -e “进程号1” -e “进程号2” &gt;&gt; log<br>（如：adb -s 11870469 shell logcat |grep -e “6998” -e “7081” &gt;&gt; log ）</p>
+</blockquote>
+<h2><span id="二-mac电脑上抓取ios手机app日志的方法使用mac电脑自带的控制台">二、Mac电脑上抓取IOS手机APP日志的方法：使用Mac电脑自带的“控制台”</span></h2><blockquote>
+<p>Mac电脑对iOS手机的兼容性非常好，抓日志也很简单，ios手机连上电脑，打开控制台就开始抓取日志了，抓取的是全部的系统日志，用“RokidApp”过滤出若琪APP的日志<br><img src="/2023/10/25/Catch-AppLog/4.png" alt="image"> </p>
+<p><img src="/2023/10/25/Catch-AppLog/5.png" alt="image"> </p>
+</blockquote>
+<h2><span id="三-windows电脑上抓取ios-手机app日志的方法可以用itools工具">三、Windows电脑上抓取ios 手机APP日志的方法：可以用iTools工具</span></h2><blockquote>
+<p>1、下载安装itools工具：<a target="_blank" rel="noopener" href="http://www.mydown.com/soft/59/11963059.shtml">http://www.mydown.com/soft/59/11963059.shtml</a><br>2、插上ios手机之后要先安装驱动，驱动安装成功才能连上ios手机<br>3、如下图为连接手机成功<br><img src="/2023/10/25/Catch-AppLog/6.png" alt="image"> </p>
+<p>4、点击“工具箱”，点击“实时日志”，ios上所有APP的日志都能打印出来<br><img src="/2023/10/25/Catch-AppLog/7.png" alt="image"> </p>
+<p>5、保存系统日志,文件名为AppLog<br><img src="/2023/10/25/Catch-AppLog/8.png" alt="image"> </p>
+<p>6、cmd 打开控制台，过滤出若琪APP的日志并查看日志<br>cat AppLog | grep -e “RokidApp”<br>7、将若琪APP日志导出<br>创建文件：touch RokidAppLog<br>给文件赋权限：chmod 777 RokidAppLog<br>导出日志： cat AppLog | grep -e “RokidApp” &gt;&gt; RokidAppLog</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/AppLog/" rel="tag">AppLog</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/10/25/CVE-2022-22947-Spring-Cloud/">
                 Spring Cloud Gateway rce（CVE-2022-22947）
             </a>
@@ -775,66 +831,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSL/" rel="tag">SSL</a><a class="tag-none-link" href="/tags/Xposed/" rel="tag">Xposed</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/09/03/Github-Find-Email/">
-                如何通过 Github 找到一个人？
-            </a>
-        </h2>
-    
-    <time>
-        Sep 3, 2023
-    </time>
-    <section class="content">
-        <h1><span id="如何通过-github-找到一个人">如何通过 Github 找到一个人？</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.ixiqin.com/2020/01/08/how-to-find-a-person-through-making/#:~:text=%E6%83%B3%E8%A6%81%E9%80%9A%E8%BF%87%20Git%20%E6%89%BE%E5%88%B0%E4%B8%80%E4%B8%AA%E4%BA%BA%E7%9A%84%E9%82%AE%E7%AE%B1%EF%BC%8C%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84%E6%96%B9%E6%B3%95%E5%B0%B1%E6%98%AF%E4%BD%BF%E7%94%A8%20Github%20%E6%8F%90%E4%BE%9B%E7%9A%84%20GraphQL%20%E6%9D%A5%E8%BF%9B%E8%A1%8C%E6%9F%A5%E8%AF%A2%EF%BC%8C%E7%AE%80%E5%8D%95%E6%96%B9%E4%BE%BF%E3%80%82%20%E8%AE%BF%E9%97%AE,in%20%EF%BC%8C%E4%BD%BF%E7%94%A8%E4%BD%A0%E7%9A%84%20Github%20%E8%B4%A6%E5%8F%B7%E7%99%BB%E9%99%86%EF%BC%8C%E8%BF%99%E6%A0%B7%E5%B0%B1%E5%8F%AF%E4%BB%A5%E8%B0%83%E7%94%A8%20Github%20%E7%9A%84%20API%20%E4%BA%86%E3%80%82">白宦成</a> 并作补充</p>
-</blockquote>
-<blockquote>
-<p>很多时候，我们都需要找到一个人的联系方式。但是，并不是每一次我们都可以很好的拿到他的联系方式，这个时候，我们就需要借助一些奇技淫巧来找到一个人的联系方式。</p>
-</blockquote>
-<h2><span id="requirements">Requirements</span></h2><blockquote>
-<p>Github 账号</p>
-<p>你要找的人的 GitHub 账号（需要其账号下有仓库）</p>
-</blockquote>
-<h2><span id="原理">原理</span></h2><blockquote>
-<p>在我们使用 Git 进行版本控制时，一开始，我们会被要求设置一个 Git 的用户名和邮箱，就像下面这样。</p>
-<p><img src="/2023/09/03/Github-Find-Email/1.png" alt="image"></p>
-<p>后续，我们的每一个 Commit 都会基于我们填写的用户名和邮箱来进行存储。我们只需要查询一个人在 Github 的提交记录，就可以找到他填写在 Git 中的邮箱和名字，从而方便我们更进一步找到这个人。</p>
-</blockquote>
-<h2><span id="实践">实践</span></h2><blockquote>
-<p>想要通过 Git 找到一个人的邮箱，最简单的方法就是使用 Github 提供的 GraphQL 来进行查询，简单方便。</p>
-<p>访问Github 的 GraphQL API Explorer，点击右侧的 Sign in ，使用你的 Github 账号登陆，这样就可以调用 Github 的 API 了。</p>
-<p><img src="/2023/09/03/Github-Find-Email/2.png" alt="image"></p>
-<p>登陆后，你下方的 GraphQL 输入框就可以输入内容了。在其中输入如下代码</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  repository(name: <span class="string">&quot;grank&quot;</span>, owner: <span class="string">&quot;lctt&quot;</span>) &#123;</span><br><span class="line">    ref(qualifiedName: <span class="string">&quot;master&quot;</span>) &#123;</span><br><span class="line">      target &#123;</span><br><span class="line">        ... on Commit &#123;</span><br><span class="line">          id</span><br><span class="line">          <span class="title function_">history</span><span class="params">(first: <span class="number">5</span>)</span> &#123;</span><br><span class="line">            edges &#123;</span><br><span class="line">              node &#123;</span><br><span class="line">                author &#123;</span><br><span class="line">                  name</span><br><span class="line">                  email</span><br><span class="line">                &#125;</span><br><span class="line">              &#125;</span><br><span class="line">            &#125;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>并将 name 替换为你要查询的人的 repo 名，owner 改为你需要查询的人的名字，然后点击执行按钮。</p>
-<p><img src="/2023/09/03/Github-Find-Email/3.png" alt="image"></p>
-<p>右侧会出现你的执行结果，你会发现，其中出现我们想要的“邮箱”地址。</p>
-<p><img src="/2023/09/03/Github-Find-Email/4.png" alt="image"></p>
-<p>你会发现，这里其实有两种类型的邮箱，一种是我们常见的，自己用的各种免费邮箱，比如 @qq.com、@gmail.com、@foxmail.com 之类的；另一种是形如 27856297+dependabot-preview[bot]@users.noreply.github.com 这样的邮箱。</p>
-<p>这两种邮箱的区别是，前者是我们自己通过 git 设置的邮箱，而后者则是我们通过 Github 网页、 API 操作产生的 commit 。你在查询的时候，要记得去找第一类邮箱来作为参考。</p>
-<p>当然，不排除有开发者在看了本篇文章后，去用 private 邮箱修改自己本地的 Git ，那就没办法了。</p>
-<p>找到这个邮箱以后怎么办呢？</p>
-<p>直接发邮件联系<br>如果是 QQ 邮箱、 Foxmail ，可以试着直接用邮箱，或者邮箱里的 QQ 号加好友。<br>通过 Google 搜索这个邮箱，查找其他的关联信息。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Github/" rel="tag">Github</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

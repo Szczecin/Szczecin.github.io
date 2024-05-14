@@ -86,6 +86,56 @@
 
     
         <h2 class="title">
+            <a href="/2023/12/07/XDebug-RCE/">
+                XDebug 远程调试漏洞（代码执行）
+            </a>
+        </h2>
+    
+    <time>
+        Dec 7, 2023
+    </time>
+    <section class="content">
+        <h1><span id="xdebug-远程调试漏洞代码执行">XDebug 远程调试漏洞（代码执行）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://joker-vip.github.io/2021/12/06/XDebug%20%E8%BF%9C%E7%A8%8B%E8%B0%83%E8%AF%95%E6%BC%8F%E6%B4%9E%EF%BC%88%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C%EF%BC%89/">joker0xxx3</a> 并作补充</p>
+</blockquote>
+<h2><span id="简介">简介</span></h2><blockquote>
+<p>XDebug是PHP的一个扩展，用于调试PHP代码。如果目标开启了远程调试模式，并设置<code>remote_connect_back = 1</code>：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">xdebug.remote_connect_back = <span class="number">1</span></span><br><span class="line">xdebug.remote_enable = <span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+<p>这个配置下，我们访问<code>http://target/index.php?XDEBUG_SESSION_START=phpstorm</code>，目标服务器的XDebug将会连接访问者的IP（或<code>X-Forwarded-For</code>头指定的地址）并通过dbgp协议与其通信，我们通过dbgp中提供的eval方法即可在目标服务器上执行任意PHP代码。</p>
+<p>更多说明可参考：</p>
+<ul>
+<li>[[<a target="_blank" rel="noopener" href="https://ricterz.me/posts/Xdebug%3A%20A%20Tiny%20Attack%20Surface/]]">https://ricterz.me/posts/Xdebug%3A%20A%20Tiny%20Attack%20Surface\]]</a>(<a target="_blank" rel="noopener" href="https://ricterz.me/posts/Xdebug%3A">https://ricterz.me/posts/Xdebug%3A</a> A Tiny Attack Surface])(<a target="_blank" rel="noopener" href="https://ricterz.me/posts/Xdebug%3A">https://ricterz.me/posts/Xdebug%3A</a> A Tiny Attack Surface)</li>
+<li><a target="_blank" rel="noopener" href="https://xdebug.org/">https://xdebug.org</a></li>
+</ul>
+</blockquote>
+<h2><span id="漏洞利用">漏洞利用</span></h2><blockquote>
+<p>启动完成后，访问<code>http://192.168.44.132:8080/</code>即可发现主页是一个简单的phpinfo，在其中可以找到xdebug的配置，可见开启了远程调试。</p>
+<p><img src="/2023/12/07/XDebug-RCE/1.png" alt="image"></p>
+<p>因为需要使用dbgp协议与目标服务器通信，所以无法用http协议复现漏洞。</p>
+<p>我编写了一个<a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub/blob/master/php/xdebug-rce/exp.py">漏洞复现脚本</a>，指定目标web地址、待执行的php代码即可：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 要求用python3并安装requests库</span></span><br><span class="line">python3 exp.py -t http://192.168.44.132:8080/index.php -c <span class="string">&#x27;shell_exec(&#x27;</span><span class="built_in">id</span><span class="string">&#x27;);&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/07/XDebug-RCE/2.png" alt="image"></p>
+<p><strong>重要说明：因为该通信是一个反向连接的过程，exp.py启动后其实是会监听本地的9000端口（可通过-l参数指定）并等待XDebug前来连接，所以执行该脚本的服务器必须有外网IP（或者与目标服务器处于同一内网）。</strong></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XDebug/" rel="tag">XDebug</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/12/07/OS-Command-Injection/">
                 PortSwigger Academy | OS command injection 操作系统命令注入
             </a>
@@ -1004,50 +1054,6 @@ Newline (0x0a or \n)
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/11/08/Apktool-URL/">
-                提取APK中的URL地址
-            </a>
-        </h2>
-    
-    <time>
-        Nov 8, 2023
-    </time>
-    <section class="content">
-        <h1><span id="提取apk中的url地址">提取APK中的URL地址</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/Aaron_Miller/article/details/108759583">風月长情</a> 并作补充</p>
-</blockquote>
-<h2><span id="一-目的">一、目的</span></h2><blockquote>
-<p>客户端渗透测试前期信息收集过程中可以在APK中检索开发过程中没有删掉的URL地址，在这些地址中可能会发现后台、搜索引擎、子域名查找不到的一些资源。</p>
-</blockquote>
-<h2><span id="二-操作">二、操作</span></h2><blockquote>
-<p>反编译APK文件<br><code>apktool d &lt;xxx.apk&gt;</code><br>将反编译的文件zip打包发送到linux系统中<br><img src="/2023/11/08/Apktool-URL/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>使用grep命令进行URL正则匹配<br>通过grep正则匹配包下边所有文件的uri地址，然后排序，删除重复行，最后重定向到文件中<br><code>grep -ohr -E &quot;https?://[a-zA-Z0-9\.\/_&amp;=@$%?~#-]*&quot; /Kevin/com.sogou.map.android.maps/ |sort|uniq &gt;&gt; test.txt</code><br><img src="/2023/11/08/Apktool-URL/2.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>然后在搜索出来的地址中查看是否有敏感地址：<br>比如这个地址就不在我搜索的上千个子域中：<br><img src="/2023/11/08/Apktool-URL/3.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>随便一试直接进入后台，到此文件上传拿shell一个高危漏洞又到手了，香吧~<br><img src="/2023/11/08/Apktool-URL/4.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apktool/" rel="tag">Apktool</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

