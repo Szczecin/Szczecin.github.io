@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
     
-    <title>Tag: Burpsuite | 氕氘氚</title>
+    <title>Tag: BurpSuite | 氕氘氚</title>
     <meta name="keywords" content="hexo,theme,otakism,otaku"/>
     <meta name="HandheldFriendly" content="True"/>
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,7 +14,7 @@
     <meta name="description" content="Open your eyes to see the light in life">
 <meta property="og:type" content="website">
 <meta property="og:title" content="氕氘氚">
-<meta property="og:url" content="https://szczecin.github.io/tags/Burpsuite/index.html">
+<meta property="og:url" content="https://szczecin.github.io/tags/BurpSuite/index.html">
 <meta property="og:site_name" content="氕氘氚">
 <meta property="og:description" content="Open your eyes to see the light in life">
 <meta property="og:locale">
@@ -72,7 +72,7 @@
     <main id="main" role="main">
         
   <section class="page-header tag">
-    <h1>- <span>Burpsuite</span> -</h1>
+    <h1>- <span>BurpSuite</span> -</h1>
   </section>
 
 
@@ -86,71 +86,75 @@
 
     
         <h2 class="title">
-            <a href="/2023/12/06/Burpsuite-Turbo-Intruder/">
-                记一次使用Burpsuite下的插件Turbo intruder进行实战
+            <a href="/2024/05/21/JSFlash-BurpSuite/">
+                BurpSuite作为代理，复用目标站点的js代码处理指定的内容
             </a>
         </h2>
     
     <time>
-        Dec 6, 2023
+        May 21, 2024
     </time>
     <section class="content">
-        <h1><span id="记一次使用burpsuite下的插件turbo-intruder进行实战">记一次使用Burpsuite下的插件Turbo intruder进行实战</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/243953.html">酷酷的繁星</a> 并作补充</p>
-<p>相信很多师傅在进行渗透测试或者漏洞挖掘的时候都会用到burpsuite这款神器，但是不知道师傅们用过burpsuite里面一款叫turbo intruder的插件么</p>
-<p>不管这些，今天看了这篇文章的师傅我相信也会对这款插件有兴趣</p>
-<p>安装教程等等的文章在各大论坛一找一大堆，但是实战的又有几个呢，对吧？</p>
-<p>今天繁星就给大家带来turbo intruder实战教程</p>
-<p>目标站点是某科技大学的站点</p>
-<p>首先我们打开这个站点的首页看看</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/1.png" alt="image"></p>
-<p>可以看到有注册按钮</p>
-<p>我们点进去看看</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/2.png" alt="image"></p>
-<p>然后在这里推荐师傅们一个很便利的短信接收平台</p>
-<p><a target="_blank" rel="noopener" href="https://www.bfkdim.com/">https://www.bfkdim.com/</a></p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/3.png" alt="image"></p>
-<p>好的，继续</p>
-<p>手机号那里我们就填这个平台里面的一个手机号</p>
-<p>开启我们的burpsuite，点“立即注册”抓个包</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/4.png" alt="image"></p>
-<p>选择验证码右键</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/5.png" alt="image"></p>
-<p>发送到turbo intruder</p>
-<p>我们这边不同官方的代码</p>
-<p>爆破验证码只需生成数字的所有排列组合就可以了，可以通过以下代码来生成</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">from itertools import product</span><br><span class="line"></span><br><span class="line">def brute_veify_code(target, engine, length):</span><br><span class="line">   pattern = &#x27;1234567890&#x27;</span><br><span class="line">   for i in list(product(pattern, repeat=length)):</span><br><span class="line">        code =  &#x27;&#x27;.join(i)</span><br><span class="line">        engine.queue(target.req, code)</span><br><span class="line"></span><br><span class="line">def queueRequests(target, wordlists):</span><br><span class="line">   engine = RequestEngine(endpoint=target.endpoint,</span><br><span class="line">           concurrentConnections=30,</span><br><span class="line">           requestsPerConnection=100,</span><br><span class="line">           pipeline=True</span><br><span class="line">           )</span><br><span class="line">   brute_veify_code(target, engine, 6)</span><br><span class="line"></span><br><span class="line">def handleResponse(req, interesting):</span><br><span class="line"># currently available attributes are req.status, req.wordcount, req.length and req.response</span><br><span class="line"> if &#x27;error&#x27; not in req.response:</span><br><span class="line">      table.add(req)</span><br></pre></td></tr></table></figure>
-
-
-
-<p>复制这段代码替换掉默认的</p>
-<p>然后点击最下方攻击</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/6.png" alt="image"></p>
-<p>我们可以看到各种数据，这速度反正我是爱了，师傅们还没爱吗</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/7.png" alt="image"></p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/8.png" alt="image"></p>
-<p>我们可以看到响应包，没有什么限制，所以我们可以继续进行枚举</p>
-<p>PS：拿turbo intruder枚举有时候会崩，不用慌，关掉再来一遍就行了</p>
-<p>由于本人电脑配置太水加上网络慢，所以还没枚举完验证码就过期了，跟我一样的师傅可以尝试多几次</p>
-<p>经过两个小时的奋战后，终于…….</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/9.png" alt="image"></p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/10.png" alt="image"></p>
-<p>被ban了</p>
-<p><img src="/11.png" alt="image"></p>
-<p>没有办法只能换个手机号继续搞</p>
-<p>重复做了一遍之后</p>
-<p>当我再点击获取验证码，提示该手机号已经注册，这意味着什么？意味着刚刚的枚举成功了，我们回到turbo intruder找下响应包</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/12.png" alt="image"></p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/13.png" alt="image"></p>
-<p>响应包的字节是55，与其它的包不一样所以就是这个了</p>
-<p>可以看到响应包，提示success</p>
-<p>再看看其它的响应包</p>
-<p>这个字节76的是验证码错误</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/14.png" alt="image"></p>
-<p>字节88的是该手机已被注册</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/15.png" alt="image"></p>
-<p>我们会发现前面的全是字节76后面的全88那我们要在76和88的交界部分找成功的包</p>
-<p>另外，再声明一下，这篇文章是介绍turbo intruder的实战，重点在turbo intruder，有的师傅可能会觉得注册处爆破验证码并没什么用，但是大家想想，注册处爆破验证码的原理和找回密码处爆破验证码的原理有什么区别？再大胆点想象一下，要是管理员登录处有找回密码这一功能呢？对吧？</p>
+        <h1><span id="burpsuite作为代理复用目标站点的js代码处理指定的内容">BurpSuite作为代理，复用目标站点的js代码处理指定的内容</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/247374.html">thinkoaa</a> 并作补充</p>
+</blockquote>
+<h2><span id="0x01-前言">0x01 前言</span></h2><blockquote>
+<p>之前写了一个burp插件，直接使用目标站点的加密js来解决用intruder模块爆破时的payload加密问题</p>
+<p>地址：<a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/242363.html">https://www.freebuf.com/sectool/242363.html</a></p>
+<p>除了上面的情况外，有时还会遇到把burp当作代理，调用网站的js代码处理来自浏览器、sqlmap等工具的内容情况。</p>
+<p>比如目标网站的参数调用了js加密算法，不管是手动访问也好，还是sqlmap注入也好，需要调用指定算法处理参数，用python或java重写算法的话呢，时间成本太高，有些算法还挺复杂……但，如果能够直接复用目标网站的js代码的话就太方便了。</p>
+<p>因此，简单写了一个burp suite插件，专门解决上述问题：下载地址：<a target="_blank" rel="noopener" href="https://github.com/thinkoaa/JSFlash/">JSFlash</a></p>
+<p>使用步骤是  可以参考我之前另一个插件的文章 <a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/242363.html">参考地址</a>：</p>
+<ol>
+<li>1.把目标站点的相关js代码放到本地js文件中，调试可用；</li>
+<li>2.把JSFlash插件导入到Burp Suite中，在插件中加载指定的js文件并填写对应的参数；</li>
+<li>3.抓包发repeater做测试，如果效果符合预期，则该插件会根据指定的规则，调用js代码，处理指定的内容。</li>
+</ol>
+<p>效果图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="0x02-使用方法">0x02 使用方法</span></h2><h3><span id="1从目标站点复制修改或者手动写好js代码调试正确">1.从目标站点复制修改或者手动写好js代码，调试正确</span></h3><blockquote>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/2.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/3.png" alt="image"></p>
+<p>因为插件是通过java调用js，因此window、document等对象及方法，还有一些很新的js特性可能在浏览器中执行正确，但插件调用时会报错，因此插件会把可能产生的错误信息弹出显示，方便根据实际逻辑修改，根据我的经历来看，不管多复杂，只要耐心点，没有改不了的情况，如图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/4.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/5.png" alt="image"></p>
+<p>再举一个例：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/6.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/7.png" alt="image"></p>
+</blockquote>
+<h3><span id="2导入插件设置参数">2.导入插件，设置参数</span></h3><blockquote>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/8.png" alt="image"></p>
+<p>2.1 设置url，一定要用burp的Copy URL菜单复制，不要手动填写，以免出错：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/9.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/10.png" alt="image"></p>
+<p>2.2 设置处理指定内容的规则</p>
+<p>GET方式:</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/11.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/12.png" alt="image"></p>
+<p>php代码如图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/13.png" alt="image"></p>
+<p>处理结果：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/14.png" alt="image"></p>
+<p>POST方式：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/15.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/16.png" alt="image"></p>
+<p>php代码如图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/17.png" alt="image"></p>
+<p>结果如图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/18.png" alt="image"></p>
+<p>一次调用多个方法，处理多个指定内容：</p>
+<p>数据包：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/19.png" alt="image"></p>
+<p>规则：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/20.png" alt="image"></p>
+<p>php代码：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/21.png" alt="image"></p>
+<p>结果：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/22.png" alt="image"></p>
+</blockquote>
+<h2><span id="0x03-总结">0x03 总结</span></h2><blockquote>
+<p>这个插件用到的时候，需要具体情况具体分析，不过思路是这么个思路，目的就是复用js代码，提高工作效率。</p>
 </blockquote>
 
 
@@ -158,7 +162,7 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/Burpsuite/" rel="tag">Burpsuite</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+                <a class="tag-none-link" href="/tags/BurpSuite/" rel="tag">BurpSuite</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

