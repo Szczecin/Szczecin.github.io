@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>安卓逆向 - Frida Hook（抓包实践） | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="安卓逆向 - 基础入门教程 本文转自小馒头yy 并作补充  一、引言 上篇文章：安卓逆向 - 基础入门教程_小馒头yy的博客-CSDN博客 介绍了Frida的安装、基本使用，今天我们来看看Frida常用Hook和基于Frida抓包实践。  二、Frida常用 Hook脚本 1、hook java.net.URL 12345678function hook1() &amp;#123;    var URL">
+<meta property="og:type" content="article">
+<meta property="og:title" content="安卓逆向 - Frida Hook（抓包实践）">
+<meta property="og:url" content="https://szczecin.github.io/2024/05/27/Android-Reverse-Frida-Hook/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="安卓逆向 - 基础入门教程 本文转自小馒头yy 并作补充  一、引言 上篇文章：安卓逆向 - 基础入门教程_小馒头yy的博客-CSDN博客 介绍了Frida的安装、基本使用，今天我们来看看Frida常用Hook和基于Frida抓包实践。  二、Frida常用 Hook脚本 1、hook java.net.URL 12345678function hook1() &amp;#123;    var URL">
+<meta property="og:locale">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/27/Android-Reverse-Frida-Hook/1.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/27/Android-Reverse-Frida-Hook/2.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/27/Android-Reverse-Frida-Hook/3.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/27/Android-Reverse-Frida-Hook/4.png">
+<meta property="article:published_time" content="2024-05-27T07:32:25.000Z">
+<meta property="article:modified_time" content="2024-05-27T07:44:48.970Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Reprint">
+<meta property="article:tag" content="Android">
+<meta property="article:tag" content="Frida">
+<meta property="article:tag" content="Hook">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://szczecin.github.io/2024/05/27/Android-Reverse-Frida-Hook/1.png">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-Android-Reverse-Frida-Hook"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2024/05/27/Android-Reverse-Frida-Hook/">
+            安卓逆向 - Frida Hook（抓包实践）
+        </a>
+    </h2>
+    <time>
+        May 27, 2024
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="安卓逆向-基础入门教程">安卓逆向 - 基础入门教程</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_42840266/article/details/132279975">小馒头yy</a> 并作补充</p>
+</blockquote>
+<h2><span id="一-引言">一、引言</span></h2><blockquote>
+<p>上篇文章：<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_42840266/article/details/132080000">安卓逆向 - 基础入门教程_小馒头yy的博客-CSDN博客</a> 介绍了Frida的安装、基本使用，今天我们来看看Frida常用Hook和基于Frida抓包实践。</p>
+</blockquote>
+<h2><span id="二-frida常用-hook脚本">二、Frida常用 Hook脚本</span></h2><blockquote>
+<p>1、hook java.net.URL</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">hook1</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="keyword">var</span> <span class="variable constant_">URL</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&#x27;java.net.URL&#x27;</span>);</span><br><span class="line">    <span class="variable constant_">URL</span>.<span class="property">$init</span>.<span class="title function_">overload</span>(<span class="string">&#x27;java.lang.String&#x27;</span>).<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params">a</span>) &#123;</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">&#x27;加密前：&#x27;</span> + a)</span><br><span class="line">        <span class="title function_">showStacks</span>()</span><br><span class="line">        <span class="variable language_">this</span>.$init(a)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>2、hook okhttp3 HttpUrl</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">hookOkhttp3</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="keyword">var</span> <span class="title class_">Builder</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&#x27;okhttp3.Request$Builder&#x27;</span>);</span><br><span class="line">    <span class="title class_">Builder</span>.<span class="property">url</span>.<span class="title function_">overload</span>(<span class="string">&#x27;okhttp3.HttpUrl&#x27;</span>).<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params">a</span>) &#123;</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">&#x27;a: &#x27;</span> + a)</span><br><span class="line">        <span class="keyword">var</span> res = <span class="variable language_">this</span>.<span class="title function_">url</span>(a);</span><br><span class="line">        <span class="title function_">showStacks</span>()</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">&quot;res: &quot;</span> + res)</span><br><span class="line">        <span class="keyword">return</span> res;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>3、hook okhttp3 addHeader</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">hook</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="keyword">var</span> <span class="title class_">Builder</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&quot;okhttp3.Request$Builder&quot;</span>);</span><br><span class="line">    <span class="title class_">Builder</span>[<span class="string">&quot;addHeader&quot;</span>].<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params">str, str2</span>) &#123;</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">&quot;key: &quot;</span> + str)</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">&quot;val: &quot;</span> + str2)</span><br><span class="line">        <span class="title function_">showStacks</span>()</span><br><span class="line">        <span class="keyword">var</span> result = <span class="variable language_">this</span>[<span class="string">&quot;addHeader&quot;</span>](str, str2);</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">&quot;result: &quot;</span> + result);</span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>4、打印堆栈</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">showStacks</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="title class_">Java</span>.<span class="title function_">perform</span>(<span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&quot;android.util.Log&quot;</span>).<span class="title function_">getStackTraceString</span>(<span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&quot;java.lang.Exception&quot;</span>).$new()));</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>5、hook Base64</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">hookBase</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="comment">// Base64</span></span><br><span class="line">    <span class="keyword">var</span> <span class="title class_">Base64Class</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&quot;android.util.Base64&quot;</span>);</span><br><span class="line">    <span class="title class_">Base64Class</span>.<span class="property">encodeToString</span>.<span class="title function_">overload</span>(<span class="string">&quot;[B&quot;</span>, <span class="string">&quot;int&quot;</span>).<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params">a, b</span>) &#123;</span><br><span class="line">        <span class="keyword">var</span> rc = <span class="variable language_">this</span>.<span class="title function_">encodeToString</span>(a, b);</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">&quot;&gt;&gt;&gt; Base64 &quot;</span> + rc);</span><br><span class="line">        <span class="keyword">return</span> rc;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>6、hook HashMap</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">hookMap</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="keyword">var</span> <span class="title class_">Build</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&quot;java.util.HashMap&quot;</span>);</span><br><span class="line">    <span class="title class_">Build</span>[<span class="string">&quot;put&quot;</span>].<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params">key, val</span>) &#123;</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">&quot;key : &quot;</span> + key)</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">&quot;val : &quot;</span> + val)</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">this</span>.<span class="title function_">put</span>(key, val)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="三-某麦网抓包实践">三、某麦网抓包实践</span></h2><blockquote>
+<p>本篇以某麦网帖子详情接口，演示如何基于Frida hook抓包</p>
+<p>1、安装某麦网8.<em>.</em>.apk</p>
+<p>2、搭建Frida hook 环境，注入 hook java.net.URL脚本</p>
+<p>3、点进帖子详情打印出如下堆栈，我们可以根据打印出的信息，跟栈分析该接口的请求头。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">https:<span class="comment">//acs.m.taobao.com/gw/mtop.damai.wireless.discovery.detail.get/1.4/?source=10101&amp;version=6000168&amp;type=originaljson&amp;data=%7B%22contentId%22%3A%2211088650%22%2C%22appType%22%3A%221%22%2C%22source%22%3A%2210101%22%2C%22osType%22%3A%222%22%2C%22pageSize%22%3A%2230%22%2C%22pageIndex%22%3A%221%22%2C%22version%22%3A%226000168%22%2C%22channel_from%22%3A%22damai_market%22%7D&amp;appType=1&amp;osType=2&amp;channel_from=damai_market</span></span><br><span class="line">java.lang.Exception</span><br><span class="line">        at java.net.URL.&lt;init&gt;(Native Method)</span><br><span class="line">        at tb.yy0.m(Taobao:<span class="number">1</span>)</span><br><span class="line">        at anet.channel.request.a.p(Taobao:<span class="number">2</span>)</span><br><span class="line">        at anet.channel.session.TnetSpdySession.w(Taobao:<span class="number">18</span>)</span><br><span class="line">        at anetwork.channel.unified.NetworkTask.sendRequest(Taobao:<span class="number">6</span>)</span><br><span class="line">        at anetwork.channel.unified.NetworkTask.run(Taobao:<span class="number">44</span>)</span><br><span class="line">        at anetwork.channel.unified.UnifiedRequestTask$a.proceed(Taobao:<span class="number">15</span>)</span><br><span class="line">        at com.taobao.orange.sync.NetworkInterceptor.intercept(Taobao:<span class="number">30</span>)</span><br><span class="line">        at anetwork.channel.unified.UnifiedRequestTask$a.proceed(Taobao:<span class="number">7</span>)</span><br><span class="line">        at anetwork.channel.unified.UnifiedRequestTask$<span class="number">3.</span>run(Taobao:<span class="number">2</span>)</span><br><span class="line">        at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:<span class="number">428</span>)</span><br><span class="line">        at java.util.concurrent.FutureTask.run(FutureTask.java:<span class="number">237</span>)</span><br><span class="line">        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:<span class="number">1133</span>)</span><br><span class="line">        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:<span class="number">607</span>)</span><br><span class="line">        at java.lang.Thread.run(Thread.java:<span class="number">761</span>)</span><br></pre></td></tr></table></figure>
+
+<p>4、使用Jadx打开某麦网apk</p>
+<p>从at tb.yy0.m(Taobao:1)跟栈分析</p>
+<p><img src="/2024/05/27/Android-Reverse-Frida-Hook/1.png" alt="image"></p>
+<p> 根据调用栈往上走，定位到如下位置，注意这行代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ALog.f(<span class="string">&quot;awcn.TnetSpdySession&quot;</span>, <span class="string">&quot;&quot;</span>, aVar.n(), <span class="string">&quot;request headers&quot;</span>, aVar.g());</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/05/27/Android-Reverse-Frida-Hook/2.png" alt="image"></p>
+<p>代码注释很清楚了 request headers，我们跟进 hook aVar.g() 这个方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> Map&lt;String, String&gt; <span class="title function_">g</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> Collections.unmodifiableMap(<span class="built_in">this</span>.f);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>hook之，对象输出可以使用 JSONObject转一下</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">var</span> <span class="variable">JSONObject</span> <span class="operator">=</span> Java.use(<span class="string">&quot;com.alibaba.fastjson.JSONObject&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">hook6</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="keyword">var</span> <span class="title class_">JSON</span><span class="built_in">Object</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&quot;com.alibaba.fastjson.JSONObject&quot;</span>);</span><br><span class="line">    <span class="keyword">var</span> a = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&quot;anet.channel.request.a&quot;</span>);</span><br><span class="line">    a[<span class="string">&quot;g&quot;</span>].<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">var</span> result = <span class="variable language_">this</span>[<span class="string">&quot;g&quot;</span>]();</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">&quot;result : &quot;</span> + <span class="title class_">JSON</span><span class="built_in">Object</span>.<span class="title function_">toJSON</span>(result).<span class="title function_">toString</span>());</span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>打印出如下内容：</p>
+<p><img src="/2024/05/27/Android-Reverse-Frida-Hook/3.png" alt="image"></p>
+<p>请求 URL、 请求方法这边都写得很清楚啦。</p>
+<p><img src="/2024/05/27/Android-Reverse-Frida-Hook/4.png" alt="image"></p>
+<p>收工！</p>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Frida/" rel="tag">Frida</a><a class="tag-none-link" href="/tags/Hook/" rel="tag">Hook</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/szczecin" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/tags/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>
