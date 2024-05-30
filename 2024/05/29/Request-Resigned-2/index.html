@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>灰产-如何破解请求验签（下） | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="灰产-如何破解请求验签（下） 写在前面 再来个前情提要：灰产-如何破解请求验签（上） 以下都是情节模拟，并非具体情况，请细加甄别 阿哈！Showmak……啊不，是新的 Sign 替换后不久就，两周左右就又被破解了呢—— “我们新的加签，可是从多个随机数池取值生成的 sign1，然后把sign1和多个参数混合在一起按时间戳不同取模排列生成的sign2，怎么可能……” 啊，虽然很想吐槽这反派一般被反击">
+<meta property="og:type" content="article">
+<meta property="og:title" content="灰产-如何破解请求验签（下）">
+<meta property="og:url" content="https://szczecin.github.io/2024/05/29/Request-Resigned-2/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="灰产-如何破解请求验签（下） 写在前面 再来个前情提要：灰产-如何破解请求验签（上） 以下都是情节模拟，并非具体情况，请细加甄别 阿哈！Showmak……啊不，是新的 Sign 替换后不久就，两周左右就又被破解了呢—— “我们新的加签，可是从多个随机数池取值生成的 sign1，然后把sign1和多个参数混合在一起按时间戳不同取模排列生成的sign2，怎么可能……” 啊，虽然很想吐槽这反派一般被反击">
+<meta property="og:locale">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/29/Request-Resigned-2/1.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/29/Request-Resigned-2/2.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/29/Request-Resigned-2/3.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/29/Request-Resigned-2/4.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/29/Request-Resigned-2/5.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/29/Request-Resigned-2/6.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/29/Request-Resigned-2/7.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/29/Request-Resigned-2/8.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/29/Request-Resigned-2/9.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/29/Request-Resigned-2/10.gif">
+<meta property="article:published_time" content="2024-05-29T02:40:25.000Z">
+<meta property="article:modified_time" content="2024-05-30T02:44:08.760Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Android">
+<meta property="article:tag" content="Frida">
+<meta property="article:tag" content="Hook">
+<meta property="article:tag" content="Signature">
+<meta property="article:tag" content="Chaos">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://szczecin.github.io/2024/05/29/Request-Resigned-2/1.png">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-Request-Resigned-2"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2024/05/29/Request-Resigned-2/">
+            灰产-如何破解请求验签（下）
+        </a>
+    </h2>
+    <time>
+        May 29, 2024
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="灰产-如何破解请求验签下">灰产-如何破解请求验签（下）</span></h1><p><img src="/2024/05/29/Request-Resigned-2/1.png" alt="image"></p>
+<h2><span id="写在前面">写在前面</span></h2><blockquote>
+<p>再来个前情提要：<a href="https://szczecin.github.io/2024/05/27/Request-Resigned-1/">灰产-如何破解请求验签（上）</a></p>
+<p><strong>以下都是情节模拟，并非具体情况，请细加甄别</strong></p>
+<p>阿哈！Showmak……啊不，是新的 Sign 替换后不久就，两周左右就又被破解了呢——</p>
+<p>“我们新的加签，可是从多个随机数池取值生成的 sign1，然后把sign1和多个参数混合在一起按时间戳不同取模排列生成的sign2，怎么可能……”</p>
+<p>啊，虽然很想吐槽这反派一般被反击了感叹自己部署被打乱了的感觉，但是来不及为已经逝去的 sign2 感到悲伤了，接下来赶到战场的是……</p>
+<p>是我这个苦力！</p>
+<p>我打灰产？真的假的？要上吗？</p>
+<p><img src="/2024/05/29/Request-Resigned-2/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="总而言之">总而言之</span></h2><blockquote>
+<p>总而言之，在解释了旧 Sign 是怎么泄露的后，调查新 Sign 是怎么泄露的这个任务又又又落到我这里了&#x3D; &#x3D;，已经不想吐槽了</p>
+</blockquote>
+<h2><span id="实现漏洞">实现漏洞</span></h2><blockquote>
+<p>“怎么实现的……额，实际上我们等于是接了一个生成库，你可以理解为类似SDK，里面有各种 Sign1 和 Sign2 的实现方式，什么移位啊取模啊都多久前的了，我都快忘了，你想看的话文档给你你可以看一下”</p>
+<p>“有没有可能是这个实现的模块泄露了或者可以被调用啥的？”</p>
+<p>“我觉得没有吧，感觉也有可能是 Hook 了，但就不知道是怎么弄的”</p>
+<p>然后直到最后我除了在研发显示屏上看到了一眼实现文档，我再也没看到那实现方式一眼了</p>
+<p><img src="/2024/05/29/Request-Resigned-2/3.png" alt="image"></p>
+<p>摸索开始了——</p>
+<p>首先通过请求日志我发现，灰产用到的 sign1 有一批量重复的（说好的随机池随机取呢），但是生成的 sign2 是不重复的（sign1 只作为一个参数参与生成 sign2 的计算），我们并没有对 sign1 进行校验，所以导致这个 sign1 可以在请求中被替换，重复利用。</p>
+<p><del>顺带一提的是，在其他应用里很早就出现这个情况了，不是我的话都还没发现……</del></p>
+<p><img src="/2024/05/29/Request-Resigned-2/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="定向hook">定向Hook</span></h2><blockquote>
+<p>sign1 的问题因为没有校验可以重复利用解决了，那 sign2 呢？</p>
+<p>前端没有找到泄露 sign2 计算点，因为前端都可能没用新的 Sign；</p>
+<p>应用端源码没看到 sign2 的计算方式，因为做了较好的混淆；</p>
+<p>……</p>
+<p>那选择就只有一个了！<del>（折断拐杖）</del></p>
+<p>对它使用 Hook 吧！</p>
+<p><img src="/2024/05/29/Request-Resigned-2/5.png" alt="image"></p>
+<p>早在 <a href="https://szczecin.github.io/2024/01/19/MobSF/">MobSF移动安全测试框架|自动化静动态app分析框架</a> 的使用中，我就接触了 Frida，why？因为一开始装不上，并且因为种种原因（MobSF 自带证书冲突等）执行动态分析的效果很差，虽然后来还是能试出来。</p>
+<p>扯远了，回到现在，利用 Frida 对应用进行 Hook，我是在 Genymotion 上做的，当然，由于应用配置的关系，你可能需要先：</p>
+<ul>
+<li>进行 ARM - X86 的转换才能跑起来应用，低版本 Android 不可运行要换成高版本转译：<a target="_blank" rel="noopener" href="https://github.com/niizam/Genymotion_A11_libhoudini">Genymotion_A11_libhoudini</a></li>
+<li>高版本 Android 可以开启 SSL pinning 等，需要 Magisk + TrustMeAlready ：<a href="https://szczecin.github.io/2024/01/22/Genymotion-Install-Xposed:EdXposed:LSPosed:Magisk/">How to install Xposed&#x2F;EdXposed&#x2F;LSPosed + Magisk with Genymotion Desktop?</a></li>
+<li>安装 Frida：<a href="https://szczecin.github.io/2024/05/27/Brida-Starting-From-Beginning/">brida从0配置</a></li>
+</ul>
+<p>这里就要说了，为什么涉及到 Brida？</p>
+<p>因为一开始是想用 Brida 直接 Hook 调用函数，传到 BurpSuite 直接修改请求，但是后来发现你根本不知道是哪个函数计算 sign2 ，别说改了，Hook 都不知道 Hook 谁，怎么办？</p>
+<p><img src="/2024/05/29/Request-Resigned-2/6.png" alt="image"></p>
+</blockquote>
+<h2><span id="javasecuritymessagedigest">java.security.MessageDigest</span></h2><blockquote>
+<p>还记得旧 Sign 最后的加密算法吗？SHA1-Hash</p>
+<p>再看看新 Sign，尤其是 sign2 的样式，分明也是 SHA1！</p>
+<p>嘛，灵光一现：不如利用 js 跟踪“java.security.MessageDigest”的调用，并输出加密入参与之后的值，js 参考：</p>
+<ul>
+<li><a href="https://szczecin.github.io/2024/05/27/Android-Reverse-Frida-Hook/">安卓逆向 - Frida Hook（抓包实践）</a></li>
+<li><a href="https://szczecin.github.io/2024/05/24/Frida-Hook-Signature/">Frida java层自吐加密算法</a></li>
+</ul>
+<p><img src="/2024/05/29/Request-Resigned-2/7.png" alt="image"></p>
+<p>入参值反解出来是一堆字节码，需要用 java 重新转一下回去：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">exchange</span> &#123;</span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">       <span class="type">byte</span>[] b = &#123; <span class="number">108</span>, ……, <span class="number">102</span>,</span><br><span class="line">               <span class="number">105</span>, ……, <span class="number">105</span>,</span><br><span class="line">               <span class="number">111</span>, ……, <span class="number">107</span>,</span><br><span class="line">               <span class="number">45</span>, ……, <span class="number">61</span>,</span><br><span class="line">               <span class="number">50</span>, ……, <span class="number">52</span>,</span><br><span class="line">               <span class="number">32</span>, ……, <span class="number">117</span>,</span><br><span class="line">               <span class="number">115</span>, ……, <span class="number">118</span>,</span><br><span class="line">               <span class="number">105</span>, ……, <span class="number">110</span>,</span><br><span class="line">               <span class="number">118</span>, ……, <span class="number">73</span>,</span><br><span class="line">               <span class="number">70</span>, ……, <span class="number">78</span>,</span><br><span class="line">               <span class="number">74</span>, ……, <span class="number">85</span>,</span><br><span class="line">               <span class="number">85</span>, ……, <span class="number">108</span>,</span><br><span class="line">               <span class="number">107</span>, ……, <span class="number">107</span>,</span><br><span class="line">               <span class="number">45</span>, ……, <span class="number">110</span>,</span><br><span class="line">               <span class="number">61</span>, ……, <span class="number">48</span>,</span><br><span class="line">               <span class="number">67</span>, ……, <span class="number">45</span>,</span><br><span class="line">               <span class="number">116</span>, ……, <span class="number">112</span>,</span><br><span class="line">               <span class="number">61</span>, ……, <span class="number">104</span>,</span><br><span class="line">               <span class="number">73</span>, ……, <span class="number">57</span> &#125;;</span><br><span class="line">       <span class="type">String</span> <span class="variable">s</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">String</span>(b);</span><br><span class="line">       System.out.println(s);</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">Output:</span><br><span class="line">……data=&#123;<span class="string">&quot;userId&quot;</span>:<span class="string">&quot;……&quot;</span>&#125;……sign1=GORNJPBOGXJXZQRRKYKYZNGZXZSYOUUSCMCM……timestamp=<span class="number">1714030269543</span>……</span><br></pre></td></tr></table></figure>
+
+<h2><span id="sign1amptimestamp">sign1&amp;timestamp</span></h2><blockquote>
+<p>ok，入参也出来了，现在只剩一个问题：sign1 在入参中的位置。</p>
+<p>其实到这里直接去遍历都可以，但是我还是采集了几份 sign1 在 sign2 生成位置与 timestamp 的关系进行比对，然后发现比对了个寂寞——差一位数的时间戳里 sign1 的插入位置可以相同的 &#x3D; &#x3D;：</p>
+<p><img src="/2024/05/29/Request-Resigned-2/8.png" alt="image"></p>
+<p>所以不整了，收工！</p>
+<p><img src="/2024/05/29/Request-Resigned-2/9.png" alt="image"></p>
+</blockquote>
+<h2><span id="写在后面">写在后面</span></h2><blockquote>
+<p>下篇也写完了，感觉好像也就这样，后续把加固啥的弄上议程吧，不然好像还有些硬编码问题也是头疼，但还要验证一下效果。</p>
+<p>沉默，然后……事已至此，先吃（pao）饭（lu）吧</p>
+<p><img src="/2024/05/29/Request-Resigned-2/10.gif" alt="image"></p>
+</blockquote>
+<h2><span id="参考引用">参考引用</span></h2><blockquote>
+<p><a href="https://szczecin.github.io/2024/05/27/Request-Resigned-1/">灰产-如何破解请求验签（上）</a></p>
+<p><a href="https://szczecin.github.io/2024/01/19/MobSF/">MobSF移动安全测试框架|自动化静动态app分析框架</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/niizam/Genymotion_A11_libhoudini">Genymotion_A11_libhoudini</a></p>
+<p><a href="https://szczecin.github.io/2024/01/22/Genymotion-Install-Xposed:EdXposed:LSPosed:Magisk/">How to install Xposed&#x2F;EdXposed&#x2F;LSPosed + Magisk with Genymotion Desktop?</a></p>
+<p><a href="https://szczecin.github.io/2024/05/27/Brida-Starting-From-Beginning/">brida从0配置</a></p>
+<p><a href="https://szczecin.github.io/2024/05/27/Android-Reverse-Frida-Hook/">安卓逆向 - Frida Hook（抓包实践）</a></p>
+<p><a href="https://szczecin.github.io/2024/05/24/Frida-Hook-Signature/">Frida java层自吐加密算法</a></p>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Frida/" rel="tag">Frida</a><a class="tag-none-link" href="/tags/Hook/" rel="tag">Hook</a><a class="tag-none-link" href="/tags/Signature/" rel="tag">Signature</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/szczecin" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/tags/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>
