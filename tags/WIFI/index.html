@@ -351,3 +351,317 @@
 
 </body>
 </html>
+/pre></td></tr></table></figure>
+
+<p>永久ip转发</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/sysctl.conf</span><br><span class="line">net.ipv4.ip_forward = 1        //修改值</span><br><span class="line">sysctl -p /etc/sysctl.conf    //使修改生效</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="把流量导入到-sslstrip-程序">把流量导入到 sslstrip 程序</span></h4><blockquote>
+<p>设置iptables以将HTTP通信重定向到sslstrip。<br>输入命令： <code>iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j REDIRECT --to-port 10000</code><br>其中最后面的端口号（比如上面的 10000）就是 sslstrip 程序监听的端口号</p>
+<p>如果攻击完成后要删除这条记录可以输入命令 <code>iptables -t nat -D PREROUTING 1</code></p>
+<p>查看 ip 转发表： <code>iptables -t nat -L</code></p>
+</blockquote>
+<h4><span id="运行arpspoof以说服网络他们应该将流量发送给你">运行arpspoof以说服网络他们应该将流量发送给你</span></h4><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">arpspoof -i eth0 -t 192.168.40.130 192.168.40.2</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="启动sslstrip">启动sslstrip</span></h4><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">sslstrip -l 10000</span><br><span class="line"></span><br><span class="line">-w &lt;文件名&gt;，–write = &lt;文件名&gt;指定要登录的文件（可选）。</span><br><span class="line">-p，–post仅记录SSL POST。（默认）</span><br><span class="line">-s，–ssl记录往返服务器的所有SSL流量。</span><br><span class="line">-a，–all记录往返服务器的所有SSL和HTTP通信。</span><br><span class="line">-l &lt;端口&gt;，–listen = &lt;端口&gt;用于侦听的端口（默认为10000）。</span><br><span class="line">-f，–favicon根据安全请求替换锁图标。</span><br><span class="line">-k，–killsessions终止正在进行的会话。</span><br><span class="line">-h 打印此帮助消息。</span><br><span class="line"></span><br><span class="line">查看端口占用lsof -i tcp:10000</span><br><span class="line"></span><br><span class="line">sslstrip -a -k -f -l 10000</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/ARP-SSLStrip/2.png" alt="image"></p>
+<p>可以看到，网页上没有任何不安全的警告或是提示，只是原先的HTTPS连接已经被HTTP连接所替换，并且为增加迷惑性，网页的图标被修改成了一个银色的锁图案。但是，假的毕竟是假的，一方面无法查看到任何证书的信息，另外如果在网址前输入https:&#x2F;&#x2F;，则网页无法发开。因此，sslstrip并不是万能的攻击方法。</p>
+</blockquote>
+<h3><span id="使用ettercap对目标主机进行arp攻击并且开始嗅探密码">使用ettercap对目标主机进行arp攻击，并且开始嗅探密码</span></h3><blockquote>
+<p>终端界面嗅探密码<code>ettercap -Tq -i eth0</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-P  使用插件</span><br><span class="line">-T  使用基于文本界面</span><br><span class="line">-q  启动安静模式（不回显）</span><br><span class="line">-M  启动ARP欺骗攻击</span><br></pre></td></tr></table></figure>
+
+
+
+<p>我们使用ettercap的GTK+ GUI图像界面<code>ettercap -G</code></p>
+<p><img src="/2023/12/06/ARP-SSLStrip/3.png" alt="image"></p>
+<p>选择Sniff—-Unified-sniffing，然后选择网卡：eth0(我这里是eth0，大家根据情况选择)。</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/4.png" alt="image"></p>
+<p>然后Hosts——Scan for hosts——Hosts list</p>
+<p>我们的目标主机ip(192.168.40.130)选定目标主机，然后点add to target 1，将目标主机添加到目标；选定路由，点add to target 2，将路由添加到目标2</p>
+<p>添加成功后，点击Mitm——ARP posoning ，勾选sniff remote connections。</p>
+<p>之后start——start sniffing开始监听。</p>
+<p>点击view——connections查看被攻击机访问的IP，端口，协议，发送和接收的数据包大小。</p>
+<p>点击view——profiles查看被攻击机访问的链接。在下方可以查看更清晰的链接访问情况。</p>
+<p>当然你也可以通过双击链接来查看profiles details，即访问网站的具体情况。</p>
+<p>在这里，如果被攻击机输入密码登陆某一网站，我们可以检测到登陆的用户名及其密码。</p>
+<p>这是刚刚检测到的一个用户名和登陆密码。这个网站完全没有对密码进行加密操作，出来的结果也是明文显示的。</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/5.png" alt="image"></p>
+<p>这是另外一个站检测出来的，对密码进行了加密。</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/6.png" alt="image"></p>
+<p>Tips：其实一个网站如果使用的都是https协议，那么安全性一般做的比较好，数据进行了加密的，也就是说你即使已经把https降低为http，即使捕获到了密码，你也不可能轻易解密的出来。</p>
+</blockquote>
+<h4><span id="测试网址">测试网址</span></h4><blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">http://www.freemojo.com</span><br><span class="line">//http密码明文未加密</span><br><span class="line">http://bbs.ylnet.com.cn/forum.php</span><br><span class="line">//http密码加密了</span><br><span class="line">http://www.discuz.net/forum.php</span><br><span class="line">//https密码未加密</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="dns欺骗">DNS欺骗</span></h3><blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">leafpad /etc/ettercap/etter.dns</span><br></pre></td></tr></table></figure>
+
+<p>在微软处添加：</p>
+<p>&#96;<a target="_blank" rel="noopener" href="http://www.baidu.com/">www.baidu.com</a> A 192.168.40.132</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/7.png" alt="image"></p>
+<p>ettercap -G（进入图形界面）</p>
+<p>重复之前的步骤ARP欺骗的步骤，在start sniffing之前添加一个插件</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/8.png" alt="image"></p>
+<p>双击启动dns_spoof</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/9.png" alt="image"></p>
+<p>开始嗅探后，我们在目标机中ping一下百度</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/10.png" alt="image"></p>
+<p>欺骗成功，如果将192.168.40.132改为钓鱼页面，就可以欺骗到用户账号密码</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/11.png" alt="image"></p>
+<p>最后提醒大家，连接公共wifi时一定要小心！</p>
+</blockquote>
+<h2><span id="参考资料">参考资料</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/983d43b4ba1e">如何进行一次完整的 SSLStrip</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/paperpen/p/10810690.html">ARP欺骗之ettercap图形化界面</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/bbf50dace855">APR攻击（Arpspoof）</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/li_101357/article/details/78416813">linux ip 转发设置 ip_forward、ip_forward与路由转发</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/kuiguowei/article/details/79070945">HTTP&amp;HTTPS账号密码获取与ettercap局域网内DNS欺骗</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.bingyublog.com/2018/02/23/%E4%BD%BF%E7%94%A8ssltrip%E7%AA%81%E7%A0%B4ssl%E5%8A%A0%E5%AF%86%E6%88%AA%E8%8E%B7%E5%AF%86%E7%A0%81/">使用ssltrip突破ssl加密截获密码</a></p>
+<p><a target="_blank" rel="noopener" href="https://moxie.org/software/sslstrip/">sslstrip</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/5929.html">利用sslstrip和ettercap突破ssl嗅探密码</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.linuxde.net/2011/11/2522.html">针对SSL的中间人攻击演示和防范</a></p>
+<p><a target="_blank" rel="noopener" href="https://tools.kali.org/information-gathering/sslstrip">sslstrip Package Description</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/ARP/" rel="tag">ARP</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSLStrip/" rel="tag">SSLStrip</a><a class="tag-none-link" href="/tags/WiFi/" rel="tag">WiFi</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+</section>
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/szczecin" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/tags/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

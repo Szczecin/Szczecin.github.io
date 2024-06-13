@@ -86,6 +86,328 @@
 
     
         <h2 class="title">
+            <a href="/2024/05/14/JS-Signature/">
+                JS逆向-数据包解签名实战案例
+            </a>
+        </h2>
+    
+    <time>
+        May 14, 2024
+    </time>
+    <section class="content">
+        <h1><span id="js逆向-数据包解签名实战案例">JS逆向-数据包解签名实战案例</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/373757.html">ichi9o</a> 并作补充</p>
+</blockquote>
+<h2><span id="0x00-前言">0x00 前言</span></h2><blockquote>
+<p>通常情况下，数据包中的签名字段会包含<strong>sign</strong>字符串，如<strong>sign</strong>、<strong>appsign</strong>等等，然后根据字段在JS代码中寻找签名的过程，并进行分析。<br>以下内容为一个真实案例，撒，哈气灭路！</p>
+</blockquote>
+<h2><span id="0x01-获取被签名数据">0x01 获取被签名数据</span></h2><blockquote>
+<p>通过数据包可知该网站的签名字段是 <strong>sign</strong></p>
+<p><img src="/2024/05/14/JS-Signature/1.png" alt="image"></p>
+<p>在浏览器中的源代码搜索字段<strong>sign</strong>，找到签名代码<br>首当其冲的就是<strong>app.*.js</strong>样式的文件，在<strong>app.72b81572.js</strong>文件中发现了可疑点</p>
+<p><img src="/2024/05/14/JS-Signature/2.png" alt="image"></p>
+<p>分析 function k(e) 可知，是要对 r 参数进行签名的，r 又跟e、t、a、n 这几个参数相关，因此要搞清楚这几个参数的值是怎么来的，所有就在函数开始的第一行就下断点来跟进。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">k</span>(<span class="params">e</span>) &#123;</span><br><span class="line">    <span class="keyword">const</span> t = <span class="title function_">g</span>()</span><br><span class="line">      , n = <span class="title function_">m</span>();</span><br><span class="line">    <span class="keyword">let</span> a;</span><br><span class="line">    a = e ? <span class="title function_">b</span>(e) : &#123;&#125;;</span><br><span class="line">    <span class="keyword">const</span> r = e ? <span class="string">`<span class="subst">$&#123;c.a.stringify(a.hasParams)&#125;</span>&amp;<span class="subst">$&#123;t&#125;</span>&amp;time=<span class="subst">$&#123;n&#125;</span>`</span> : <span class="string">`&amp;<span class="subst">$&#123;t&#125;</span>&amp;time=<span class="subst">$&#123;n&#125;</span>`</span>;</span><br><span class="line">    <span class="keyword">return</span> e = <span class="title class_">Object</span>.<span class="title function_">assign</span>(&#123;&#125;, a.<span class="property">params</span>, &#123;</span><br><span class="line">        <span class="attr">sign</span>: <span class="title function_">h</span>()(<span class="built_in">decodeURIComponent</span>(r)),</span><br><span class="line">        <span class="attr">time</span>: n</span><br><span class="line">    &#125;),</span><br><span class="line">    e</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先是 t，跟进 g 函数，执行到 return 就可以发现 t &#x3D; 年 + “5616” + 月 + 日</p>
+<p><img src="/2024/05/14/JS-Signature/3.png" alt="image"></p>
+<p>然后就是 n，这个 e 的值呢，根据跟进可知是 cookie 里面的，不过这个 e 在本案例的作用不大，最后通过 return 就可以知道返回的值就是：当前时间戳- e</p>
+<p><img src="/2024/05/14/JS-Signature/4.png" alt="image"></p>
+<p>接下来就是 a，根据返回的结果可知 a 的值和 e 相同，通过分析数据包可知，e的内容即请求参数（GET）或请求体（POST）</p>
+<p><img src="/2024/05/14/JS-Signature/5.png" alt="image"></p>
+<p>然后 r 的值就出来了，也就是签名的明文</p>
+<p><img src="/2024/05/14/JS-Signature/6.png" alt="image"></p>
+<p>综上所述<br><strong>r &#x3D; 请求内容 + &amp; + t + &amp; + n</strong>（这里的请求内容需要注意的是，POST Data是Json格式的要转换为：key1&#x3D;value1&amp;key1&#x3D;value1…）<br>其中<br><strong>t &#x3D; 年 + “5616” + 月 + 日</strong><br><strong>n &#x3D; 当前时间戳</strong>（本案例可不减e也可成功）</p>
+</blockquote>
+<h2><span id="0x02-分析加密算法">0x02 分析加密算法</span></h2><blockquote>
+<p>将断点打在签名代码行，跟进代码的执行，发现加密的类名是 Md5，所有可以计算 r 的 md5 值，与代码执行的 sign 结果进行比较。</p>
+<p><img src="/2024/05/14/JS-Signature/7.png" alt="image"></p>
+<p>可以看到，该网站使用的是 md5 计算的 sign</p>
+<p><img src="/2024/05/14/JS-Signature/8.png" alt="image"></p>
+</blockquote>
+<h2><span id="0x03-编写-mitmproxy-脚本">0x03 编写 mitmproxy 脚本</span></h2><blockquote>
+<p>mitmproxy 脚本是实时加载的，因此 mitmproxy 只要带着脚本运行，就可以边调试了。<br>mitmproxy 使用命令</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mitmdump -p 777 -s .\mitmscript.py --flow-detail 0</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/05/14/JS-Signature/9.png" alt="image"></p>
+<p>关于脚本的编写这里给出以下 mitmproxy 的一些常用的属性和方法<strong>ctx：</strong></p>
+<ul>
+<li>ctx.log.info(): 用于在 mitmproxy 的日志中输出信息。</li>
+<li>ctx.options: 用于访问 mitmproxy 的配置选项，您可以在配置文件中定义这些选项。</li>
+<li>ctx.master: mitmproxy 的 Master 对象，提供了一些控制代理行为的方法。</li>
+<li>ctx.proxy: mitmproxy 的 ProxyConfig 对象，提供了有关代理配置的信息。</li>
+<li>ctx.client: mitmproxy 的 ClientConnection 对象，表示客户端连接的相关信息。</li>
+<li>ctx.server: mitmproxy 的 ServerConnection 对象，表示服务器连接的相关信息。</li>
+<li>ctx.protocol: mitmproxy 的 ProtocolHandler 对象，表示处理请求和响应的协议处理器。</li>
+</ul>
+<p>在 mitmproxy 脚本中，可以使用以下一些回调函数来处理不同阶段的 flow 对象：</p>
+<ul>
+<li>def request(flow: mitmproxy.http.HTTPFlow) -&gt; None: 当 mitmproxy 拦截到请求时调用此回调函数，可以获取和处理请求的各种信息。</li>
+<li>def response(flow: mitmproxy.http.HTTPFlow) -&gt; None: 当 mitmproxy 拦截到响应时调用此回调函数，可以获取和处理响应的各种信息。</li>
+<li>def error(flow: mitmproxy.http.HTTPFlow) -&gt; None: 当请求或响应出现错误时调用此回调函数，可以获取和处理错误信息。</li>
+<li>def clientconnect(flow: mitmproxy.tcp.TCPFlow) -&gt; None: 当客户端连接到 mitmproxy 时调用此回调函数，可以获取和处理客户端连接的相关信息。</li>
+<li>def serverconnect(flow: mitmproxy.tcp.TCPFlow) -&gt; None: 当 mitmproxy 连接到服务器时调用此回调函数，可以获取和处理服务器连接的相关信息。</li>
+<li>flow.request.method: 获取请求的方法（GET、POST等）。</li>
+<li>flow.request.scheme: 获取请求的协议（http 或 https）。</li>
+<li>flow.request.host: 获取请求的主机名。</li>
+<li>flow.request.port: 获取请求的端口号。</li>
+<li>flow.request.path: 获取请求的路径部分。</li>
+<li>flow.request.url: 获取完整的请求URL。</li>
+<li>flow.request.headers: 获取请求的头部信息，是一个字典对象，可以通过键来访问特定的头部字段。</li>
+<li>flow.request.cookies: 获取请求中的Cookie信息，是一个字典对象，可以通过键来访问特定的Cookie。</li>
+<li>flow.request.query: 获取请求的查询参数，是一个字典对象，可以通过键来访问特定的查询参数。</li>
+<li>flow.request.content: 获取请求的内容，如果请求是POST请求且带有内容，则可以通过该属性来访问请求的内容。</li>
+<li>flow.request.text: 获取请求的内容，并以文本形式返回。</li>
+<li>flow.request.urlencoded_form: 获取请求的URL编码表单数据，是一个字典对象，可以通过键来访问特定的表单字段。</li>
+<li>flow.request.multipart_form: 获取请求的多部分表单数据，是一个列表对象，列表中的每个元素都是一个字典，表示一个表单字段。</li>
+<li>flow.request.content: 获取请求的原始内容，以字节形式返回。</li>
+</ul>
+<p>附上本案例的代码供参考</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> datetime <span class="keyword">import</span> datetime</span><br><span class="line"><span class="keyword">from</span> mitmproxy <span class="keyword">import</span> ctx</span><br><span class="line"><span class="keyword">import</span> hashlib</span><br><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">import</span> json</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Modify</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        self.plaintext = <span class="string">&#x27;&#x27;</span></span><br><span class="line">        self.new_sign = <span class="string">&#x27;&#x27;</span></span><br><span class="line">        current_datetime = datetime.now()</span><br><span class="line">        self.today = <span class="string">f&quot;<span class="subst">&#123;current_datetime.year&#125;</span>5616<span class="subst">&#123;current_datetime.month:02d&#125;</span><span class="subst">&#123;current_datetime.day:02d&#125;</span>&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">md5</span>(<span class="params">self</span>):</span><br><span class="line">        md5_hash = hashlib.md5()</span><br><span class="line">        md5_hash.update(self.plaintext.encode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line">        self.new_sign = md5_hash.hexdigest()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">request</span>(<span class="params">self, flow</span>):</span><br><span class="line">        <span class="keyword">if</span> flow.request.method == <span class="string">&quot;POST&quot;</span>:</span><br><span class="line">            ctx.log.info(<span class="string">f&#x27;\n原POST请求体：<span class="subst">&#123;flow.request.text&#125;</span>&#x27;</span>)</span><br><span class="line">            data = json.loads(flow.request.get_text())</span><br><span class="line">            <span class="keyword">if</span> data != <span class="string">&#x27;&#123;&#125;&#x27;</span> <span class="keyword">and</span> <span class="string">&#x27;sign&#x27;</span> <span class="keyword">in</span> data:</span><br><span class="line">                <span class="keyword">del</span> data[<span class="string">&#x27;sign&#x27;</span>]</span><br><span class="line">                <span class="keyword">del</span> data[<span class="string">&#x27;time&#x27;</span>]</span><br><span class="line">                <span class="keyword">for</span> k <span class="keyword">in</span> data:</span><br><span class="line">                    self.plaintext += <span class="string">f&quot;<span class="subst">&#123;k&#125;</span>=<span class="subst">&#123;<span class="built_in">str</span>(data[k])&#125;</span>&amp;&quot;</span></span><br><span class="line">                timestamp = <span class="built_in">int</span>(time.time() * <span class="number">1000</span>)</span><br><span class="line">                self.plaintext += <span class="string">f&quot;<span class="subst">&#123;self.today&#125;</span>&amp;time=<span class="subst">&#123;timestamp&#125;</span>&quot;</span></span><br><span class="line">                self.md5()</span><br><span class="line"></span><br><span class="line">                data[<span class="string">&quot;sign&quot;</span>] = self.new_sign</span><br><span class="line">                data[<span class="string">&quot;time&quot;</span>] = timestamp</span><br><span class="line">                flow.request.set_text(json.dumps(data).replace(<span class="string">&#x27; &#x27;</span>, <span class="string">&#x27;&#x27;</span>))</span><br><span class="line">                ctx.log.info(<span class="string">f&#x27;\n新POST请求体：<span class="subst">&#123;flow.request.text&#125;</span>&#x27;</span>)</span><br><span class="line">                self.plaintext = <span class="string">&#x27;&#x27;</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                ctx.log.info(<span class="string">&#x27;无参数，无需改签&#x27;</span>)</span><br><span class="line">        <span class="keyword">elif</span> flow.request.method == <span class="string">&quot;GET&quot;</span>:</span><br><span class="line">            ctx.log.info(<span class="string">f&#x27;\n原GET请求体：<span class="subst">&#123;flow.request.query&#125;</span>&#x27;</span>)</span><br><span class="line">            query = flow.request.query</span><br><span class="line">            <span class="keyword">if</span> query != <span class="string">&#x27;&#123;&#125;&#x27;</span> <span class="keyword">and</span> <span class="string">&#x27;sign&#x27;</span> <span class="keyword">in</span> query:</span><br><span class="line">                <span class="keyword">del</span> query[<span class="string">&#x27;sign&#x27;</span>]</span><br><span class="line">                <span class="keyword">del</span> query[<span class="string">&#x27;time&#x27;</span>]</span><br><span class="line">                <span class="keyword">if</span> query:</span><br><span class="line">                    <span class="keyword">for</span> k <span class="keyword">in</span> query:</span><br><span class="line">                        self.plaintext += <span class="string">f&quot;<span class="subst">&#123;k&#125;</span>=<span class="subst">&#123;<span class="built_in">str</span>(query[k])&#125;</span>&amp;&quot;</span></span><br><span class="line">                <span class="keyword">else</span>:</span><br><span class="line">                    self.plaintext = <span class="string">&quot;&amp;&quot;</span></span><br><span class="line">                timestamp = <span class="built_in">int</span>(time.time()) * <span class="number">1000</span></span><br><span class="line">                self.plaintext += <span class="string">f&quot;<span class="subst">&#123;self.today&#125;</span>&amp;time=<span class="subst">&#123;timestamp&#125;</span>&quot;</span></span><br><span class="line">                self.md5()</span><br><span class="line"></span><br><span class="line">                query[<span class="string">&quot;sign&quot;</span>] = self.new_sign</span><br><span class="line">                query[<span class="string">&quot;time&quot;</span>] = timestamp</span><br><span class="line">                ctx.log.info(<span class="string">f&#x27;\n新GET请求体：<span class="subst">&#123;flow.request.query&#125;</span>&#x27;</span>)</span><br><span class="line">                self.plaintext = <span class="string">&#x27;&#x27;</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                ctx.log.info(<span class="string">&#x27;无参数，无需改签&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">response</span>(<span class="params">flow</span>):</span><br><span class="line">        <span class="keyword">if</span> <span class="string">&#x27;签名校验失败!&#x27;</span> <span class="keyword">in</span> flow.response.text:</span><br><span class="line">            ctx.log.error(<span class="string">f&#x27;\n签名异常：\nurl =&gt; <span class="subst">&#123;flow.request.path&#125;</span>\n异常信息 =&gt; <span class="subst">&#123;flow.response.text&#125;</span>&#x27;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">addons = [</span><br><span class="line">    Modify()</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Signature/" rel="tag">Signature</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/03/06/nRF-Connect-Replay/">
+                【nRF Connect】事件记录及录播和重演
+            </a>
+        </h2>
+    
+    <time>
+        Mar 6, 2024
+    </time>
+    <section class="content">
+        <h1><span id="nrf-connect事件记录及录播和重演">【nRF Connect】事件记录及录播和重演</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_43352285/article/details/124550750">强人电子</a> 并作补充</p>
+</blockquote>
+<h2><span id="1-前言">1. 前言</span></h2><blockquote>
+<p>nRF Connect支持缓存事件记录以及录播和重演，接下来我们看看这到底是个怎样的功能。</p>
+</blockquote>
+<h2><span id="2-事件记录">2. 事件记录</span></h2><blockquote>
+<p>在连接上设备后，向左滑动可以切换到事件记录页面，同时支持多种LOG格式，如下图中连接上后执行了一次读取电量的操作：</p>
+<p><img src="/2024/03/06/nRF-Connect-Replay/1.png" alt="image"></p>
+<p><img src="/2024/03/06/nRF-Connect-Replay/2.png" alt="image"></p>
+<p>LOG记录支持复制、保存为文件、分享和清除：</p>
+<p><img src="/2024/03/06/nRF-Connect-Replay/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="3-事件录播和重演">3. 事件录播和重演</span></h2><blockquote>
+<p>nRF Connect支持事件的录播和重演，实质上就是在上一节记录的基础上，从某个时间点开始截取然后保存，录播是根据刚刚保存的记录对蓝牙设备进行一模一样的指令及数据操作。</p>
+<p>在已连接界面中，点击右下角的红色部分：</p>
+<p><img src="/2024/03/06/nRF-Connect-Replay/4.png" alt="image"></p>
+<p>会弹出三个图标，分别表示：</p>
+<ol>
+<li>新建文件夹（用于存放后续的录播文件）</li>
+<li>导入录播文件（导入其他地方的录播文件，本机录播的会默认显示在文件列表里，不需要导入）</li>
+<li>开始录播</li>
+</ol>
+<p><img src="/2024/03/06/nRF-Connect-Replay/5.png" alt="image"></p>
+</blockquote>
+<h3><span id="31-事件录播">3.1 事件录播</span></h3><blockquote>
+<ol>
+<li>创建一个“da bai”文件夹</li>
+</ol>
+<p><img src="/2024/03/06/nRF-Connect-Replay/6.png" alt="image"></p>
+<p><img src="/2024/03/06/nRF-Connect-Replay/7.png" alt="image"></p>
+<ol start="2">
+<li>点击第三个图标开始录播</li>
+</ol>
+<p><img src="/2024/03/06/nRF-Connect-Replay/8.png" alt="image"></p>
+<ol start="3">
+<li>开始录播后，可以发起通信事件<br>顺序为：开始录播 &#x3D;&gt; 读取电量 &#x3D;&gt; 读取厂商信息 &#x3D;&gt; 读取硬件版本号 &#x3D;&gt; 读取软件版本号 &#x3D;&gt; 结束录播</li>
+</ol>
+<p>可以看到LOG记录是这样的：</p>
+<p><img src="/2024/03/06/nRF-Connect-Replay/9.png" alt="image"></p>
+<p>命名录播文件为”read info”以及将其移动到”da bai”文件夹下：</p>
+<p><img src="/2024/03/06/nRF-Connect-Replay/10.png" alt="image"></p>
+<p><img src="/2024/03/06/nRF-Connect-Replay/11.png" alt="image"></p>
+</blockquote>
+<h3><span id="32-事件重演">3.2 事件重演</span></h3><blockquote>
+<p>录播文件保存下来后，可以对其进行重演，相当于执行一遍刚刚录播的操作：</p>
+<p><img src="/2024/03/06/nRF-Connect-Replay/12.png" alt="image"></p>
+<p>重演录播后，我们再去看看事件记录，确实再一次操作了录播的内容，时间间隔竟然也是一样的：</p>
+<p><img src="/2024/03/06/nRF-Connect-Replay/13.png" alt="image"></p>
+</blockquote>
+<h3><span id="33-事件录播文件操作">3.3 事件录播文件操作</span></h3><blockquote>
+<p>录播文件支持这些操作：</p>
+<ol>
+<li>Export to XML</li>
+<li>Rename</li>
+<li>Move</li>
+<li>Mirror</li>
+</ol>
+<p><img src="/2024/03/06/nRF-Connect-Replay/14.png" alt="image"></p>
+<p>这里重点聊聊 Export to XML 和 Mirror。</p>
+</blockquote>
+<h4><span id="331-export-to-xml">3.3.1 Export to XML</span></h4><blockquote>
+<p>支持将录播文件导出为XML文件可以分享给他人使用，导出之后是这样的：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">macro</span> <span class="attr">name</span>=<span class="string">&quot;read info&quot;</span> <span class="attr">icon</span>=<span class="string">&quot;PLAY&quot;</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">assert-service</span> <span class="attr">description</span>=<span class="string">&quot;Ensure Battery Service&quot;</span> <span class="attr">uuid</span>=<span class="string">&quot;0000180f-0000-1000-8000-00805f9b34fb&quot;</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">assert-characteristic</span> <span class="attr">description</span>=<span class="string">&quot;Ensure Battery Level&quot;</span> <span class="attr">uuid</span>=<span class="string">&quot;00002a19-0000-1000-8000-00805f9b34fb&quot;</span>&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">property</span> <span class="attr">name</span>=<span class="string">&quot;READ&quot;</span> <span class="attr">requirement</span>=<span class="string">&quot;MANDATORY&quot;</span>/&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">assert-characteristic</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;/<span class="name">assert-service</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">assert-service</span> <span class="attr">description</span>=<span class="string">&quot;Ensure Device Information&quot;</span> <span class="attr">uuid</span>=<span class="string">&quot;0000180a-0000-1000-8000-00805f9b34fb&quot;</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">assert-characteristic</span> <span class="attr">description</span>=<span class="string">&quot;Ensure Manufacturer Name String&quot;</span> <span class="attr">uuid</span>=<span class="string">&quot;00002a29-0000-1000-8000-00805f9b34fb&quot;</span>&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">property</span> <span class="attr">name</span>=<span class="string">&quot;READ&quot;</span> <span class="attr">requirement</span>=<span class="string">&quot;MANDATORY&quot;</span>/&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">assert-characteristic</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">assert-characteristic</span> <span class="attr">description</span>=<span class="string">&quot;Ensure Hardware Revision String&quot;</span> <span class="attr">uuid</span>=<span class="string">&quot;00002a27-0000-1000-8000-00805f9b34fb&quot;</span>&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">property</span> <span class="attr">name</span>=<span class="string">&quot;READ&quot;</span> <span class="attr">requirement</span>=<span class="string">&quot;MANDATORY&quot;</span>/&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">assert-characteristic</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">assert-characteristic</span> <span class="attr">description</span>=<span class="string">&quot;Ensure Software Revision String&quot;</span> <span class="attr">uuid</span>=<span class="string">&quot;00002a28-0000-1000-8000-00805f9b34fb&quot;</span>&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">property</span> <span class="attr">name</span>=<span class="string">&quot;READ&quot;</span> <span class="attr">requirement</span>=<span class="string">&quot;MANDATORY&quot;</span>/&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">assert-characteristic</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;/<span class="name">assert-service</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">read</span> <span class="attr">description</span>=<span class="string">&quot;Read value of Battery Level&quot;</span> <span class="attr">characteristic-uuid</span>=<span class="string">&quot;00002a19-0000-1000-8000-00805f9b34fb&quot;</span> <span class="attr">service-uuid</span>=<span class="string">&quot;0000180f-0000-1000-8000-00805f9b34fb&quot;</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">assert-value</span> <span class="attr">description</span>=<span class="string">&quot;Assert value equals <span class="symbol">&amp;apos;</span>d<span class="symbol">&amp;apos;</span>&quot;</span> <span class="attr">value-string</span>=<span class="string">&quot;d&quot;</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;/<span class="name">read</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">read</span> <span class="attr">description</span>=<span class="string">&quot;Read value of Manufacturer Name String&quot;</span> <span class="attr">characteristic-uuid</span>=<span class="string">&quot;00002a29-0000-1000-8000-00805f9b34fb&quot;</span> <span class="attr">service-uuid</span>=<span class="string">&quot;0000180a-0000-1000-8000-00805f9b34fb&quot;</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">assert-value</span> <span class="attr">description</span>=<span class="string">&quot;Assert value equals <span class="symbol">&amp;apos;</span>YFTech<span class="symbol">&amp;apos;</span>&quot;</span> <span class="attr">value-string</span>=<span class="string">&quot;YFTech&quot;</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;/<span class="name">read</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">read</span> <span class="attr">description</span>=<span class="string">&quot;Read value of Hardware Revision String&quot;</span> <span class="attr">characteristic-uuid</span>=<span class="string">&quot;00002a27-0000-1000-8000-00805f9b34fb&quot;</span> <span class="attr">service-uuid</span>=<span class="string">&quot;0000180a-0000-1000-8000-00805f9b34fb&quot;</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">assert-value</span> <span class="attr">description</span>=<span class="string">&quot;Assert value equals <span class="symbol">&amp;apos;</span>UVWbejJZpqrsPtwuvxy<span class="symbol">&amp;apos;</span>&quot;</span> <span class="attr">value-string</span>=<span class="string">&quot;UVWbejJZpqrsPtwuvxy&quot;</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;/<span class="name">read</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">read</span> <span class="attr">description</span>=<span class="string">&quot;Read value of Software Revision String&quot;</span> <span class="attr">characteristic-uuid</span>=<span class="string">&quot;00002a28-0000-1000-8000-00805f9b34fb&quot;</span> <span class="attr">service-uuid</span>=<span class="string">&quot;0000180a-0000-1000-8000-00805f9b34fb&quot;</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">assert-value</span> <span class="attr">description</span>=<span class="string">&quot;Assert value equals <span class="symbol">&amp;apos;</span>V 2.66.0329<span class="symbol">&amp;apos;</span>&quot;</span> <span class="attr">value-string</span>=<span class="string">&quot;V 2.66.0329&quot;</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;/<span class="name">read</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">macro</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="332-录播文件导入">3.3.2 录播文件导入</span></h4><blockquote>
+<p>导入之后自动重命名为read info 2。</p>
+<p><img src="/2024/03/06/nRF-Connect-Replay/15.png" alt="image"></p>
+</blockquote>
+<h4><span id="333-mirror">3.3.3 Mirror</span></h4><blockquote>
+<p>这里的镜像指的是角色镜像，比如录播文件里面你是中央设备，镜像之后你就变成了外围设备。这里必须注意当你是外围设备的时候，需要将<a target="_blank" rel="noopener" href="https://so.csdn.net/so/search?q=GATT&spm=1001.2101.3001.7020">GATT</a> SERVICE配置成录播文件的一样的配置，具体配置方法可以参考<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_43352285/article/details/124529159">GATT SERVICE配置</a>，建议使用克隆方式。</p>
+</blockquote>
+<h2><span id="4-写在最后">4. 写在最后</span></h2><blockquote>
+<p>在BLE开发中，同样的测试内容通常不止操作一次，此时我们可以用上本章的内容，事半功倍！</p>
+<p>看完本文觉得有帮助点赞鼓励鼓励吧~如果有问题可以在评论区留言，大白会用光的速度回复您。想了解关于nRF Connect的更多用法及使用技巧，可以关注<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_43352285/category_11793765.html">nRF Connect 专栏</a>。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/BlueTooth/" rel="tag">BlueTooth</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/nRF-Connect/" rel="tag">nRF Connect</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/03/06/BtleJuice-BLE-Bulbs/">
+                技术分享 | 如何使用BtleJuice黑入BLE智能电灯泡
+            </a>
+        </h2>
+    
+    <time>
+        Mar 6, 2024
+    </time>
+    <section class="content">
+        <h1><span id="技术分享-如何使用btlejuice黑入ble智能电灯泡">技术分享 | 如何使用BtleJuice黑入BLE智能电灯泡</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/wireless/180716.html">seclst</a> 并作补充</p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p><strong>在这篇文章中，我们将讨论如何使用BtleJuice通过执行中间人（MiTM）攻击来利用一个蓝牙低能耗（BLE）智能灯泡。本文中探讨的技术，也同样适用于其他基于BLE的智能设备。</strong></p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="概述">概述</span></h2><blockquote>
+<p>本文的主要内容包括：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">安装BtleJuice；</span><br><span class="line"></span><br><span class="line">分析在目标设备上运行的所有截获的GATT操作；</span><br><span class="line"></span><br><span class="line">使用GATT操作执行Man-in-the-middle（中间人）攻击；</span><br><span class="line"></span><br><span class="line">将数据导出到文件。</span><br></pre></td></tr></table></figure>
+
+<p><strong>以下是一些必须满足的基本硬软件要求：</strong></p>
+</blockquote>
+<h3><span id="硬件">硬件</span></h3><blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">基于BLE的物联网智能灯泡</span><br><span class="line"></span><br><span class="line">两个蓝牙适配器</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="软件">软件</span></h3><blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Node.js &gt; 4.3.2</span><br><span class="line"></span><br><span class="line">虚拟机（VMware/Virtual Box）</span><br><span class="line"></span><br><span class="line">BtleJuice</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="安装-btlejuice">安装 BtleJuice</span></h2><blockquote>
+<p>BtleJuice是执行蓝牙智能设备的中间人攻击（也被称为蓝牙低能量）的完整框架。BtleJuice由两个组件组成 - 拦截代理和核心。这两个组件需要在两个系统上单独运行，每个系统都连接了蓝牙4.0+适配器。我们将使用一台物理机器和另一台运行在同一主机上的虚拟机（VM）。</p>
+<p><strong>注意：</strong>不是使用两台独立的物理机器。其中一个适配器将连接到主机，另一个适配器连接到VM。下面，我们按照以下步骤在主机和VM上来安装BtleJuice。</p>
+<p><strong>Step 1：</strong>Btlejuice需要一个相当新版本的node(&gt;&#x3D;4.3.2) 和npm。你可以按照<a target="_blank" rel="noopener" href="https://yoember.com/nodejs/the-best-way-to-install-node-js/">本指南</a>使用nvm（Node 版本管理器）来进行安装。</p>
+<p><strong>Step 2：</strong>使用包管理器安装BtleJuice的依赖项：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install bluetooth bluez pbbluetooth-dev pbudev-dev</span><br></pre></td></tr></table></figure>
+
+<p><strong>Step 3：</strong>安装 Btlejuice：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm install -g btlejuice</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="设置btlejuice代理在vm中">设置BtleJuice代理（在VM中）</span></h2><blockquote>
+<p><strong>Step 1：</strong>将蓝牙适配器连接到VM并启动蓝牙：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">service bluetooth start</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/2.png" alt="image"></p>
+<p><strong>Step 2：</strong>通过hciconfig命令查看适配器是否已按预期工作：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/3.png" alt="image"></p>
+<p><strong>Step 3：</strong>在虚拟机中启动btlejuice-proxy：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/4.png" alt="image"></p>
+<p><strong>Step 4：</strong>找到VM的IP地址，以便我们可以从主机连接到它。或在终端中运行ifconfig来获取IP：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/5.png" alt="image"></p>
+</blockquote>
+<h2><span id="设置btlejuice核心在主机上">设置BtleJuice核心（在主机上）</span></h2><blockquote>
+<p><strong>Step 1：</strong>在主机上打开终端并运行hciconfig：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/6.png" alt="image"></p>
+<p><strong>Step 2：</strong>运行sudo service bluetooth stop停止蓝牙服务：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/7.png" alt="image"></p>
+<p><strong>Step 3：</strong>在主机上插入蓝牙适配器：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/8.png" alt="image"></p>
+<p><strong>Step 4：</strong>通过hciconfig命令查看连接到主机的蓝牙适配器是否已按预期工作：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/9.png" alt="image"></p>
+<p><strong>Step 5：</strong>通过运行sudo hciconfig hciX up打开蓝牙适配器，其中的X是上一步中获得的蓝牙适配器号：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/10.png" alt="image"></p>
+<p><strong>Step 6：</strong>现在我们需要运行BtleJuice核心并连接虚拟机：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo btlejuice -u &lt;VM IP address&gt; -w</span><br></pre></td></tr></table></figure>
+
+<p>其中u是运行btlejuice-proxy的VM的IP地址，w表示启动Web界面：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/11.png" alt="image"></p>
+<p>与此同时，在VM中运行的btlejuice-proxy将会显示客户端连接的消息：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/12.png" alt="image"></p>
+<p><strong>Step 7：</strong>一旦主机上运行的BtleJuice核心成功连接到bltjejuice-proxy，我们打开浏览器并导航至<a target="_blank" rel="noopener" href="http://localhost:8080/%EF%BC%9A">http://localhost:8080/：</a></p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/13.png" alt="image"></p>
+<p><strong>Step 8：</strong>单击蓝牙图标的 “Select Target”按钮。此时将会出现一个对话框，并显示核心检测到的所有可用蓝牙设备：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/14.png" alt="image"></p>
+<p><strong>Step 9：</strong>双击目标设备并等待接口准备就绪（蓝牙按钮方面将改变）：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/15.png" alt="image"></p>
+<p><strong>Step 10：</strong>将关联的移动应用程序与刚创建的dummy设备连接：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/16.png" alt="image"></p>
+<p><strong>Step 11：</strong>如果连接成功，则主界面上将显示已连接的事件：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/17.png" alt="image"></p>
+</blockquote>
+<h2><span id="通过重放gatt操作执行中间人攻击">通过重放GATT操作执行中间人攻击</span></h2><blockquote>
+<p>BtleJuice充当移动应用程序和BLE智能灯泡之间的代理，发送到灯泡的任何命令都将被BtleJuice捕获并被转发给灯泡。</p>
+<p>让我们使用移动应用程序与灯泡进行交互，并尝试破译命令的结构方式。</p>
+<p><strong>Step 1：</strong>使用Android应用程序将灯泡颜色更改为蓝色，蓝色的RGB值为：2, 0, 255：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/18.png" alt="image"></p>
+<p>BtleJuice捕获相应的数据包：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/19.png" alt="image"></p>
+<p>现在将灯泡颜色更改为红色，RGB值为： 255, 8, 0：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/20.png" alt="image"></p>
+<p>BtleJuice捕获与命令相对应的数据包，以将颜色更改为红色：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/21.png" alt="image"></p>
+<p>检查数据包，我们可以注意到一个模式。应用程序中显示的颜色的RGB值与捕获中的第二个，第三个和第四个字节匹配。</p>
+<p>因此，如果我们更改这些字节然后重放数据包，应该能够获得不同的颜色。</p>
+<p><strong>Step 2：</strong>从捕获的数据包列表中，右键单击颜色更改命令，然后单击replay：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/22.png" alt="image"></p>
+<p><strong>Step 3：</strong>将数据值中的颜色字节从8c 86 ff更改为任何其他值，例如8c 45 ff，这是一种带有紫色调的颜色：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/23.png" alt="image"></p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/24.png" alt="image"></p>
+<p><strong>Step 4：</strong>单击“ Write”按钮。 我们会注意到灯泡颜色变为了紫色：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/25.png" alt="image"></p>
+</blockquote>
+<h2><span id="导出捕获的数据">导出捕获的数据</span></h2><blockquote>
+<p>BtleJuice可以将捕获的数据导出到文件中，以便以后使用或在其他工具中进行分析。</p>
+<p>单击export按钮并下载捕获数据的JSON（或文本）版本：</p>
+<p><img src="/2024/03/06/BtleJuice-BLE-Bulbs/26.png" alt="image"></p>
+<p>至此，我们已经演示了BtleJuice作为独立工具的使用。</p>
+<p>此外，BtleJuice还提供了NodeJS和Python bindings，我们可以在我们自己的BLE攻击工具中使用它。有关更多信息，请<a target="_blank" rel="noopener" href="https://www.npmjs.com/package/btlejuice-bindings">参阅此处</a>。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/BlueTooth/" rel="tag">BlueTooth</a><a class="tag-none-link" href="/tags/BtleJuice/" rel="tag">BtleJuice</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/01/30/Proxy-FAQ/">
                 关于科学上网的流行说法
             </a>
@@ -791,283 +1113,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Firebase/" rel="tag">Firebase</a><a class="tag-none-link" href="/tags/Hard-Coding/" rel="tag">Hard Coding</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/25/ChatGPT-Python-LangChain/">
-                使用 ChatGPT 与 Python 中的第三方应用程序进行交互
-            </a>
-        </h2>
-    
-    <time>
-        Jan 25, 2024
-    </time>
-    <section class="content">
-        <h1><span id="使用-chatgpt-与-python-中的第三方应用程序进行交互">使用 ChatGPT 与 Python 中的第三方应用程序进行交互</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/2332320">Miloce</a> 并作补充</p>
-<p>将语言模型（如ChatGPT）集成到第三方应用程序中已经变得越来越流行，因为它们能够理解和生成类似人类的文本。然而，需要认识到ChatGPT的一些限制，比如它的知识截止日期是在2021年9月，以及它无法直接访问维基百科或 Python 等外部资源。</p>
-<p>鉴于这一挑战，LangChain的联合创始人兼首席执行官Harrison Chase提出了一个创新的解决方案。他开发了Python LangChain模块，该模块使开发人员能够轻松地将第三方应用程序与大型语言模型集成在一起。这一突破开启了无限的可能性，允许开发人员充分利用语言模型的强大功能，同时有效地处理来自外部来源的信息。</p>
-<p>在本文中，我们将探讨使用Python LangChain模块与ChatGPT交互以与第三方应用程序交互的有趣概念。到文章末尾，您将更深入地了解如何利用这种集成，创建更复杂和高效的应用程序。</p>
-</blockquote>
-<h2><span id="导入chatgpt模块">导入ChatGPT模块</span></h2><blockquote>
-<p>第一步是安装Python LangChain模块，您可以使用以下pip命令完成此操作。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install langchain</span><br></pre></td></tr></table></figure>
-
-<p>接下来，您需要从<code>langchain.chat_models</code>模块导入<code>ChatOpenAI</code>类。<code>ChatOpenAI</code>类允许您创建ChatGPT的实例。为此，请将<code>model_name</code>属性传递给<code>ChatOpenAI</code>类，将模型设置为”gpt-3.5-turbo”。OpenAI的”gpt-3.5-turbo”模型为ChatGPT提供动力。您还需要将您的OpenAI API密钥传递给<code>open_api_key</code>属性。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> langchain.chat_models <span class="keyword">import</span> ChatOpenAI</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"></span><br><span class="line">api_key = os.getenv(<span class="string">&#x27;OPENAI_KEY2&#x27;</span>)</span><br><span class="line">chatgpt = ChatOpenAI(model_name=<span class="string">&quot;gpt-3.5-turbo&quot;</span>,</span><br><span class="line">                    openai_api_key=api_key)</span><br></pre></td></tr></table></figure>
-
-<p>现在，我们已准备好在Python中将第三方应用程序与ChatGPT集成。</p>
-</blockquote>
-<h2><span id="使用chatgpt从维基百科提取信息">使用ChatGPT从维基百科提取信息</span></h2><blockquote>
-<p>如前所述，ChatGPT的知识截止日期为2021年9月，无法回答那之后的查询。例如，如果您要求ChatGPT返回2022年温布尔登锦标赛的维基百科文章摘要，您将获得以下答案：</p>
-<p><img src="/2024/01/25/ChatGPT-Python-LangChain/1.png" alt="image"></p>
-<p><a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://docs.langchain.com/docs/components/agents/&source=article&objectId=2332320">LangChain代理</a>允许您与第三方应用程序交互。有关更多信息，请查看所有<a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://python.langchain.com/docs/integrations&source=article&objectId=2332320">LangChain代理集成</a>的列表。</p>
-<p>让我们看看如何使用示例代码将ChatGPT与维基百科等第三方应用程序集成。</p>
-<p>您需要从<code>langchain.agents</code>模块导入<code>load_tools</code>、<code>initialize_agent</code>和<code>AgentType</code>实体。</p>
-<p>接下来，您应该将代理类型作为输入提供给<code>load_tools</code>类。在下面的示例脚本中，指定的代理类型是<code>wikipedia</code>。随后的步骤涉及使用<code>initialize_agent()</code>方法创建代理对象。在调用<code>initialize_agent()</code>方法时，您需要传递工具类型、ChatGPT实例和代理类型作为参数。如果将<code>verbose</code>参数设置为<code>True</code>，它将显示代理任务执行的思考过程。</p>
-<p>在下面的脚本中，我们要求维基百科代理返回2022年温布尔登锦标赛的维基百科文章摘要。</p>
-<p>在输出中，您可以看到代理的思考过程以及包含文章摘要的最终结果。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> langchain.agents <span class="keyword">import</span> load_tools, initialize_agent, AgentType</span><br><span class="line"></span><br><span class="line">tools = load_tools(</span><br><span class="line">    [<span class="string">&#x27;wikipedia&#x27;</span>], </span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent_chain = initialize_agent(</span><br><span class="line">    tools,</span><br><span class="line">    chatgpt,</span><br><span class="line">    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,</span><br><span class="line">    verbose=<span class="literal">True</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent_chain.run(</span><br><span class="line">    <span class="string">&quot;返回2022年温布尔登锦标赛的维基百科文章摘要。&quot;</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/ChatGPT-Python-LangChain/2.png" alt="image"></p>
-</blockquote>
-<h2><span id="从arxiv提取信息">从ArXiv提取信息</span></h2><blockquote>
-<p>让我们看看另一个示例。我们将从<a href="https://cloud.tencent.com/developer/tools/blog-entry?target=https://arxiv.org/&source=article&objectId=2332320">ArXiv</a>获取一篇文章的标题和作者姓名，ArXiv是一个流行的开放获取科研论文、预印本和其他学术文章的存储库。</p>
-<p>脚本保持不变，只需将<code>arxiv</code>作为参数值传递给<code>load_tools()</code>方法。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">tools = load_tools(</span><br><span class="line">    [<span class="string">&quot;arxiv&quot;</span>], </span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent_chain = initialize_agent(</span><br><span class="line">    tools,</span><br><span class="line">    chatgpt,</span><br><span class="line">    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,</span><br><span class="line">    verbose=<span class="literal">True</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent_chain.run(</span><br><span class="line">    <span class="string">&quot;给我提供文章1301.3781的标题和作者姓名。&quot;</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/ChatGPT-Python-LangChain/3.png" alt="image"></p>
-</blockquote>
-<h2><span id="从csv文件提取信息">从CSV文件提取信息</span></h2><blockquote>
-<p>LangChain提供了直接创建特定任务代理实例的方法。例如，<code>langchain.agents</code>模块的<code>create_csv_agent()</code>方法允许您创建与CSV文件交互的CSV代理。</p>
-<p>让我们看一个示例。以下脚本导入包含公司员工流失信息的数据集。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line">dataset = pd</span><br><span class="line"></span><br><span class="line">.read_csv(<span class="string">r&#x27;D:\Datasets\employee_attrition_dataset.csv&#x27;</span>)</span><br><span class="line">dataset.head()</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/ChatGPT-Python-LangChain/4.png" alt="image"></p>
-<p>让我们使用CSV代理从此文件获取信息。我们要求ChatGPT返回销售部门的员工总数。</p>
-<p>在输出中，您可以看到ChatGPT返回输出的过程。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> langchain.agents <span class="keyword">import</span> create_csv_agent</span><br><span class="line"></span><br><span class="line">agent = create_csv_agent(</span><br><span class="line">    chatgpt,</span><br><span class="line">    <span class="string">r&#x27;D:\Datasets\employee_attrition_dataset.csv&#x27;</span>,</span><br><span class="line">    verbose=<span class="literal">True</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent.run(<span class="string">&quot;返回销售部门的员工总数。&quot;</span>)</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/ChatGPT-Python-LangChain/5.png" alt="image"></p>
-</blockquote>
-<h2><span id="从pandas-dataframe提取信息">从Pandas DataFrame提取信息</span></h2><blockquote>
-<p>同样，您可以使用<code>create_pandas_dataframe_agent()</code>方法从Pandas dataframe中提取信息。在下面的脚本中，我们要求ChatGPT返回销售部门中教育领域为医学的员工总数。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line">dataset = pd.read_csv(<span class="string">r&#x27;D:\Datasets\employee_attrition_dataset.csv&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> langchain.agents <span class="keyword">import</span> create_pandas_dataframe_agent</span><br><span class="line"></span><br><span class="line">agent = create_pandas_dataframe_agent(</span><br><span class="line">    chatgpt,</span><br><span class="line">    dataset,</span><br><span class="line">    verbose=<span class="literal">True</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">agent.run(<span class="string">&quot;返回销售部门中教育领域为医学的员工总数。&quot;</span>)</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/ChatGPT-Python-LangChain/6.png" alt="image"></p>
-<p>至此，教程结束。希望您会喜欢它！</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/ChatGPT/" rel="tag">ChatGPT</a><a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/25/Android-Signature/">
-                Android逆向-获取APP签名
-            </a>
-        </h2>
-    
-    <time>
-        Jan 25, 2024
-    </time>
-    <section class="content">
-        <h1><span id="android逆向-获取app签名">Android逆向-获取APP签名</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://taardisaa.github.io/2023/09/08/Android%E9%80%86%E5%90%91-APP%E7%AD%BE%E5%90%8D/">Taardisaa</a> 并作补充</p>
-<p>很久以前开的blog，关于如何获取APP签名。不知道为啥要写这个了。</p>
-</blockquote>
-<h1><span id="android逆向-app签名">Android逆向-APP签名</span></h1><h2><span id="生成jks签名">生成JKS签名</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/b28a5be05029">Android studio 如何生成jks签名文件 - 简书 (jianshu.com)</a></p>
-<p>打开AndroidStudio</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Build--&gt;Generate Signed APK--&gt;APK</span><br></pre></td></tr></table></figure>
-
-<p>然后<code>Key store path</code>选择<code>Create New</code></p>
-<p>然后设置好存储路径，密码也设置一下（偷懒写个123456）</p>
-<p><code>Key</code>的别名就叫<code>key</code>，密码一样简单。</p>
-<p>然后剩下的<code>Certificate</code>全填<code>taardis</code>，<code>Country Code</code>填11451。</p>
-<p>反正创建成功后，就在选定路径下出现了<code>jks</code>密钥文件。</p>
-</blockquote>
-<h2><span id="apk签名">APK签名</span></h2><blockquote>
-<p>将APK魔改，重新打包后，需要重新签名。</p>
-<p>参考：<a target="_blank" rel="noopener" href="https://blog.csdn.net/q610098308/article/details/105138228">Android之通过 apksigner 对 apk 进行 手动签名_恋恋西风的博客-CSDN博客</a></p>
-<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apksigner.bat sign --verbose --ks D:\Android\Keystore\taardis.jks --v1-signing-enabled false --v2-signing-enabled true --ks-key-alias key --ks-pass pass:<span class="number">123456</span> --key-pass pass:<span class="number">123456</span> --out D:\Android\Frida\gadget\bs.apk D:\Android\Frida\gadget\b.apk</span><br></pre></td></tr></table></figure>
-
-<p>成功后提示：</p>
-<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Signed</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="获取apk签名">获取APK签名</span></h2><blockquote>
-<p>首先APK解包：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apktool d &lt;apk&gt;</span><br></pre></td></tr></table></figure>
-
-<p>然后在 <code>META-INF</code> 文件夹拿到 <code>CERT.RSA</code> 文件。之后：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">keytool -printcert -file CERT.RSA</span><br></pre></td></tr></table></figure>
-
-<p>不过Keytool似乎是Java的工具，不管了现在用不上。</p>
-</blockquote>
-<h2><span id="jebx2fjadx">JEB&#x2F;JADX</span></h2><blockquote>
-<p>这种反编译器也能直接看到APK的签名信息。</p>
-</blockquote>
-<h2><span id="mt-app签名检查及绕过">MT APP签名检查及绕过</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://github.com/L-JINBIN/ApkSignatureKillerEx">L-JINBIN&#x2F;ApkSignatureKillerEx: 新版MT去签及对抗 (github.com)</a></p>
-<p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/news/429352">从“去除签名验证”说起 - 腾讯云开发者社区-腾讯云 (tencent.com)</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.52pojie.cn/thread-1733548-1-1.html">过签名校验(2) – MT 的 IO 重定向实践 - 『移动安全区』 - 吾爱破解 - LCG - LSG |安卓破解|病毒分析|www.52pojie.cn</a></p>
-<p>MT提供的签名绕过方式能够实现对API和APK方式的绕过。但是对于SVC的则无能为力。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">String</span> <span class="variable">signatureExpected</span> <span class="operator">=</span> <span class="string">&quot;3bf8931788824c6a1f2c6f6ff80f6b21&quot;</span>;</span><br><span class="line"><span class="type">String</span> <span class="variable">signatureFromAPI</span> <span class="operator">=</span> md5(signatureFromAPI());</span><br><span class="line"><span class="type">String</span> <span class="variable">signatureFromAPK</span> <span class="operator">=</span> md5(signatureFromAPK());</span><br><span class="line"><span class="type">String</span> <span class="variable">signatureFromSVC</span> <span class="operator">=</span> md5(signatureFromSVC());</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="api检测">API检测</span></h3><blockquote>
-<p>用<code>PackageManager</code>直接获得签名。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="type">byte</span>[] signatureFromAPI() &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="meta">@SuppressLint(&quot;PackageManagerGetSignatures&quot;)</span></span><br><span class="line">        <span class="type">PackageInfo</span> <span class="variable">info</span> <span class="operator">=</span> getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNATURES);</span><br><span class="line">        <span class="keyword">return</span> info.signatures[<span class="number">0</span>].toByteArray();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (PackageManager.NameNotFoundException e) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(e);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="apk检测">APK检测</span></h3><blockquote>
-<p>找到APP私有文件夹下的<code>base.apk</code>，然后得到签名</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="type">byte</span>[] signatureFromAPK() &#123;</span><br><span class="line">    <span class="keyword">try</span> (<span class="type">ZipFile</span> <span class="variable">zipFile</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ZipFile</span>(getPackageResourcePath())) &#123;</span><br><span class="line">        Enumeration&lt;? <span class="keyword">extends</span> <span class="title class_">ZipEntry</span>&gt; entries = zipFile.entries();</span><br><span class="line">        <span class="keyword">while</span> (entries.hasMoreElements()) &#123;</span><br><span class="line">            <span class="type">ZipEntry</span> <span class="variable">entry</span> <span class="operator">=</span> entries.nextElement();</span><br><span class="line">            <span class="keyword">if</span> (entry.getName().matches(<span class="string">&quot;(META-INF/.*)\\.(RSA|DSA|EC)&quot;</span>)) &#123;</span><br><span class="line">                <span class="type">InputStream</span> <span class="variable">is</span> <span class="operator">=</span> zipFile.getInputStream(entry);</span><br><span class="line">                <span class="type">CertificateFactory</span> <span class="variable">certFactory</span> <span class="operator">=</span> CertificateFactory.getInstance(<span class="string">&quot;X509&quot;</span>);</span><br><span class="line">                <span class="type">X509Certificate</span> <span class="variable">x509Cert</span> <span class="operator">=</span> (X509Certificate) certFactory.generateCertificate(is);</span><br><span class="line">                <span class="keyword">return</span> x509Cert.getEncoded();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="svc检测">SVC检测</span></h3><blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="type">byte</span>[] signatureFromSVC() &#123;</span><br><span class="line">    <span class="keyword">try</span> (<span class="type">ParcelFileDescriptor</span> <span class="variable">fd</span> <span class="operator">=</span> ParcelFileDescriptor.adoptFd(openAt(getPackageResourcePath()));</span><br><span class="line">         <span class="type">ZipInputStream</span> <span class="variable">zis</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ZipInputStream</span>(<span class="keyword">new</span> <span class="title class_">FileInputStream</span>(fd.getFileDescriptor()))) &#123;</span><br><span class="line">        ZipEntry entry;</span><br><span class="line">        <span class="keyword">while</span> ((entry = zis.getNextEntry()) != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (entry.getName().matches(<span class="string">&quot;(META-INF/.*)\\.(RSA|DSA|EC)&quot;</span>)) &#123;</span><br><span class="line">                <span class="type">CertificateFactory</span> <span class="variable">certFactory</span> <span class="operator">=</span> CertificateFactory.getInstance(<span class="string">&quot;X509&quot;</span>);</span><br><span class="line">                <span class="type">X509Certificate</span> <span class="variable">x509Cert</span> <span class="operator">=</span> (X509Certificate) certFactory.generateCertificate(zis);</span><br><span class="line">                <span class="keyword">return</span> x509Cert.getEncoded();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="绕过">绕过</span></h3><blockquote>
-<p>Java层的东西不多</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">killOpen</span><span class="params">(String packageName)</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// Native层Hook</span></span><br><span class="line">        System.loadLibrary(<span class="string">&quot;SignatureKiller&quot;</span>);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">        System.err.println(<span class="string">&quot;Load SignatureKiller library failed&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 读取/proc/self/maps读取APP路径</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">apkPath</span> <span class="operator">=</span> getApkPath(packageName);</span><br><span class="line">    <span class="keyword">if</span> (apkPath == <span class="literal">null</span>) &#123;</span><br><span class="line">        System.err.println(<span class="string">&quot;Get apk path failed&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 读取自身APK文件（私有目录下的base.apk）</span></span><br><span class="line">    <span class="type">File</span> <span class="variable">apkFile</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">File</span>(apkPath);</span><br><span class="line">    <span class="comment">// 在APP私有目录下创建origin.apk文件</span></span><br><span class="line">    <span class="type">File</span> <span class="variable">repFile</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">File</span>(getDataFile(packageName), <span class="string">&quot;origin.apk&quot;</span>);</span><br><span class="line">    <span class="keyword">try</span> (<span class="type">ZipFile</span> <span class="variable">zipFile</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ZipFile</span>(apkFile)) &#123;</span><br><span class="line">        <span class="comment">// 将APK中的origin.apk给提取出来（origin.apk是MT去签是生成的，是初始没有被去签的APK）</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">name</span> <span class="operator">=</span> <span class="string">&quot;assets/SignatureKiller/origin.apk&quot;</span>;</span><br><span class="line">        <span class="type">ZipEntry</span> <span class="variable">entry</span> <span class="operator">=</span> zipFile.getEntry(name);</span><br><span class="line">        <span class="keyword">if</span> (entry == <span class="literal">null</span>) &#123;</span><br><span class="line">            System.err.println(<span class="string">&quot;Entry not found: &quot;</span> + name);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 读取出来</span></span><br><span class="line">        <span class="keyword">if</span> (!repFile.exists() || repFile.length() != entry.getSize()) &#123;</span><br><span class="line">            <span class="keyword">try</span> (<span class="type">InputStream</span> <span class="variable">is</span> <span class="operator">=</span> zipFile.getInputStream(entry); <span class="type">OutputStream</span> <span class="variable">os</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileOutputStream</span>(repFile)) &#123;</span><br><span class="line">                <span class="type">byte</span>[] buf = <span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">102400</span>];</span><br><span class="line">                <span class="type">int</span> len;</span><br><span class="line">                <span class="keyword">while</span> ((len = is.read(buf)) != -<span class="number">1</span>) &#123;</span><br><span class="line">                    os.write(buf, <span class="number">0</span>, len);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(e);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 传入底层so Hook</span></span><br><span class="line">    hookApkPath(apkFile.getAbsolutePath(), repFile.getAbsolutePath());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>然后看Native层，实际上是XHook，用于替换libc函数。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mt_jni.c</span><br></pre></td></tr></table></figure>
-
-<p>实际上就做了个字符串替换，有意将原本要打开的APK替换成<code>origin.apk</code>。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">const</span> <span class="type">char</span> *apkPath__;</span><br><span class="line"><span class="type">const</span> <span class="type">char</span> *repPath__;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> (*old_open)(<span class="type">const</span> <span class="type">char</span> *, <span class="type">int</span>, <span class="type">mode_t</span>);</span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">openImpl</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *pathname, <span class="type">int</span> flags, <span class="type">mode_t</span> mode)</span> &#123;</span><br><span class="line">    <span class="comment">//XH_LOG_ERROR(&quot;open: %s&quot;, pathname);</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">strcmp</span>(pathname, apkPath__) == <span class="number">0</span>)&#123;</span><br><span class="line">        <span class="comment">//XH_LOG_ERROR(&quot;replace -&gt; %s&quot;, repPath__);</span></span><br><span class="line">        <span class="keyword">return</span> old_open(repPath__, flags, mode);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> old_open(pathname, flags, mode);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">JNIEXPORT <span class="type">void</span> JNICALL</span><br><span class="line"><span class="title function_">Java_bin_mt_signature_KillerApplication_hookApkPath</span><span class="params">(JNIEnv *env, __attribute__((unused)) jclass clazz, jstring apkPath, jstring repPath)</span> &#123;</span><br><span class="line">    apkPath__ = (*env)-&gt;GetStringUTFChars(env, apkPath, <span class="number">0</span>);</span><br><span class="line">    repPath__ = (*env)-&gt;GetStringUTFChars(env, repPath, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">    xhook_register(<span class="string">&quot;.*\\.so$&quot;</span>, <span class="string">&quot;openat64&quot;</span>, openat64Impl, (<span class="type">void</span> **) &amp;old_openat64);</span><br><span class="line">    xhook_register(<span class="string">&quot;.*\\.so$&quot;</span>, <span class="string">&quot;openat&quot;</span>, openatImpl, (<span class="type">void</span> **) &amp;old_openat);</span><br><span class="line">    xhook_register(<span class="string">&quot;.*\\.so$&quot;</span>, <span class="string">&quot;open64&quot;</span>, open64Impl, (<span class="type">void</span> **) &amp;old_open64);</span><br><span class="line">    xhook_register(<span class="string">&quot;.*\\.so$&quot;</span>, <span class="string">&quot;open&quot;</span>, openImpl, (<span class="type">void</span> **) &amp;old_open);</span><br><span class="line"></span><br><span class="line">    xhook_refresh(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>通过Hook open函数，可以把基于APK读取的签名方式给绕过。</p>
-<p>下面提供一个绕过基于PackageManager的：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">killPM</span><span class="params">(String packageName, String signatureData)</span> &#123;</span><br><span class="line">    <span class="comment">// 构造一个假的签名</span></span><br><span class="line">    <span class="type">Signature</span> <span class="variable">fakeSignature</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Signature</span>(Base64.decode(signatureData, Base64.DEFAULT));</span><br><span class="line">    Parcelable.Creator&lt;PackageInfo&gt; originalCreator = PackageInfo.CREATOR;</span><br><span class="line">    Parcelable.Creator&lt;PackageInfo&gt; creator = <span class="keyword">new</span> <span class="title class_">Parcelable</span>.Creator&lt;PackageInfo&gt;() &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> PackageInfo <span class="title function_">createFromParcel</span><span class="params">(Parcel source)</span> &#123;</span><br><span class="line">            <span class="type">PackageInfo</span> <span class="variable">packageInfo</span> <span class="operator">=</span> originalCreator.createFromParcel(source);</span><br><span class="line">            <span class="keyword">if</span> (packageInfo.packageName.equals(packageName)) &#123; <span class="comment">//</span></span><br><span class="line">                <span class="keyword">if</span> (packageInfo.signatures != <span class="literal">null</span> &amp;&amp; packageInfo.signatures.length &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                    packageInfo.signatures[<span class="number">0</span>] = fakeSignature; <span class="comment">// 将虚假的签名放入packageInfo，取代原来的</span></span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.P) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (packageInfo.signingInfo != <span class="literal">null</span>) &#123;</span><br><span class="line">                        Signature[] signaturesArray = packageInfo.signingInfo.getApkContentsSigners();</span><br><span class="line">                        <span class="keyword">if</span> (signaturesArray != <span class="literal">null</span> &amp;&amp; signaturesArray.length &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                            signaturesArray[<span class="number">0</span>] = fakeSignature;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> packageInfo;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> PackageInfo[] newArray(<span class="type">int</span> size) &#123;</span><br><span class="line">            <span class="keyword">return</span> originalCreator.newArray(size);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 用假的creator替换原来的PackageInfo.CREATOR</span></span><br><span class="line">        findField(PackageInfo.class, <span class="string">&quot;CREATOR&quot;</span>).set(<span class="literal">null</span>, creator);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(e);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.P) &#123;</span><br><span class="line">        <span class="comment">// 解除某些Android系统API的使用限制？</span></span><br><span class="line">        HiddenApiBypass.addHiddenApiExemptions(<span class="string">&quot;Landroid/os/Parcel;&quot;</span>, <span class="string">&quot;Landroid/content/pm&quot;</span>, <span class="string">&quot;Landroid/app&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 清空签名缓存</span></span><br><span class="line">        <span class="type">Object</span> <span class="variable">cache</span> <span class="operator">=</span> findField(PackageManager.class, <span class="string">&quot;sPackageInfoCache&quot;</span>).get(<span class="literal">null</span>);</span><br><span class="line">        <span class="comment">// noinspection ConstantConditions</span></span><br><span class="line">        cache.getClass().getMethod(<span class="string">&quot;clear&quot;</span>).invoke(cache);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable ignored) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 清空签名缓存</span></span><br><span class="line">        Map&lt;?, ?&gt; mCreators = (Map&lt;?, ?&gt;) findField(Parcel.class, <span class="string">&quot;mCreators&quot;</span>).get(<span class="literal">null</span>);</span><br><span class="line">        <span class="comment">// noinspection ConstantConditions</span></span><br><span class="line">        mCreators.clear();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable ignored) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 清空签名缓存</span></span><br><span class="line">        Map&lt;?, ?&gt; sPairedCreators = (Map&lt;?, ?&gt;) findField(Parcel.class, <span class="string">&quot;sPairedCreators&quot;</span>).get(<span class="literal">null</span>);</span><br><span class="line">        <span class="comment">// noinspection ConstantConditions</span></span><br><span class="line">        sPairedCreators.clear();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable ignored) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="参考">参考</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/wuyongyin/archive/2023/01/15/17005314.html">Java Keytool 介绍 - 且行且码 - 博客园 (cnblogs.com)</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/d00e9754df43">获取Android应用签名的几种方式 - 简书 (jianshu.com)</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/b28a5be05029">Android studio 如何生成jks签名文件 - 简书 (jianshu.com)</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_36270253/article/details/114007681">apktool重新打包时报错_apktool 忽略错误信息__y4nnl2的博客-CSDN博客</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/q610098308/article/details/105138228">Android之通过 apksigner 对 apk 进行 手动签名_恋恋西风的博客-CSDN博客</a></p>
-<p><a target="_blank" rel="noopener" href="https://developer.android.google.cn/studio/command-line/apksigner?hl=zh-cn">apksigner | Android 开发者 | Android Developers (google.cn)</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Bypass/" rel="tag">Bypass</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Signature/" rel="tag">Signature</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/25/CVE-2019-11043-Nginx/">
-                CVE-2019-11043漏洞分析与复现
-            </a>
-        </h2>
-    
-    <time>
-        Jan 25, 2024
-    </time>
-    <section class="content">
-        <h1><span id="cve-2019-11043漏洞分析与复现">CVE-2019-11043漏洞分析与复现</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/st66/p/14735800.html">STong66</a> 并作补充</p>
-</blockquote>
-<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
-<p>Nginx 上 fastcgi_split_path_info 在处理带有 %0a 的请求时，会因为遇到换行符 \n 导致 PATH_INFO 为空。而 php-fpm 在处理 PATH_INFO</p>
-<p>为空的情况下，存在逻辑缺陷。攻击者通过精心的构造和利用，可以导致远程代码执行。</p>
-<p>该漏洞需要在nginx.conf中进行特定配置才能触发。具体配置如下：</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">location ~ [^/]\.<span class="title function_ invoke__">php</span>(/|$) &#123;</span><br><span class="line"></span><br><span class="line"> ...</span><br><span class="line"></span><br><span class="line"> fastcgi_split_path_info ^(.+?\.php)(/.*)$;</span><br><span class="line"></span><br><span class="line"> fastcgi_param PATH_INFO <span class="variable">$fastcgi_path_info</span>;</span><br><span class="line"></span><br><span class="line"> fastcgi_pass   php:<span class="number">9000</span>;</span><br><span class="line"></span><br><span class="line"> ...</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>攻击者可以使用换行符（％0a）来破坏<code>fastcgi_split_path_info</code>指令中的Regexp。Regexp被损坏导致PATH_INFO为空，从而触发该漏洞。</p>
-</blockquote>
-<h3><span id="漏洞类型">漏洞类型</span></h3><blockquote>
-<p>远程代码执行漏洞</p>
-</blockquote>
-<h3><span id="危险等级">危险等级</span></h3><blockquote>
-<p>高危</p>
-</blockquote>
-<h3><span id="利用条件">利用条件</span></h3><blockquote>
-<p>nginx配置了fastcgi_split_path_info</p>
-</blockquote>
-<h3><span id="受影响系统">受影响系统</span></h3><blockquote>
-<p>PHP 5.6-7.x，Nginx&gt;&#x3D;0.7.31</p>
-</blockquote>
-<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
-<p>使用某个大佬的 docker 环境进行复现：</p>
-<p>PHP-FPM 远程代码执行漏洞（CVE-2019-11043）</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub/blob/master/php/CVE-2019-11043/README.zh-cn.md">https://github.com/vulhub/vulhub/blob/master/php/CVE-2019-11043/README.zh-cn.md</a></p>
-</blockquote>
-<h3><span id="准备工作安装-docker-golang-环境">准备工作：安装 docker、golang 环境</span></h3><blockquote>
-<p>在kali中使用如下命令安装docker和golang：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install docker docker-compose</span><br><span class="line">sudo apt install golang</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/1.png" alt="image"></p>
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/2.png" alt="image"></p>
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/3.png" alt="image"></p>
-</blockquote>
-<h3><span id="搭建漏洞环境">搭建漏洞环境</span></h3><blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/vulhub/vulhub.git</span><br><span class="line"><span class="built_in">cd</span> vulhub/php/CVE-2019-11043 &amp;&amp; docker-compose up -d</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/4.png" alt="image"></p>
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/5.png" alt="image"></p>
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/6.png" alt="image"></p>
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/7.png" alt="image"></p>
-</blockquote>
-<h3><span id="安装漏洞利用工具">安装漏洞利用工具</span></h3><blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/neex/phuip-fpizdam.git</span><br><span class="line"><span class="built_in">cd</span> phuip-fpizdam</span><br><span class="line">go get -v &amp;&amp; go build</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/8.png" alt="image"></p>
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/9.png" alt="image"></p>
-</blockquote>
-<h3><span id="漏洞利用">漏洞利用</span></h3><blockquote>
-<p><strong>在phuip-fpizdam目录下执行 go run . “<a target="_blank" rel="noopener" href="http://127.0.0.1:8080/index.php&quot;%E5%90%8E%E6%88%90%E5%8A%9F%E6%98%BE%E7%A4%BA%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E6%88%90%E5%8A%9F%E3%80%82">http://127.0.0.1:8080/index.php&quot;后成功显示漏洞利用成功。</a></strong></p>
-<p><strong>在浏览器进行了如下请求，成功复现，可以执行系统命令,id可以替换为其他OS命令。</strong></p>
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/10.png" alt="image"></p>
-</blockquote>
-<h3><span id="漏洞分析">漏洞分析</span></h3><blockquote>
-<p>具体漏洞信息可参考：<a target="_blank" rel="noopener" href="https://github.com/php/php-src/commit/ab061f95ca966731b1c84cf5b7b20155c0a1c06a#diff-624bdd47ab6847d777e15327976a9227">https://github.com/php/php-src/commit/ab061f95ca966731b1c84cf5b7b20155c0a1c06a/#diff-624bdd47ab6847d777e15327976a9227</a></p>
-<p>有漏洞信息可知漏洞是由于path_info 的地址可控导致的，我们可以看到，当path_info 被%0a截断时，path_info 将被置为空，回到代码中我就发现问题所在了。</p>
-<p>如下漏洞代码</p>
-<p><img src="/2024/01/25/CVE-2019-11043-Nginx/11.png" alt="image"></p>
-<p>在代码的1134行我们发现了可控的 path_info 的指针env_path_info</p>
-<p>其中</p>
-<p>env_path_info 就是变量path_info 的地址，path_info 为0则plien 为0。</p>
-<p>slen 变量来自于请求后url的长度 int ptlen &#x3D; strlen(pt); int slen &#x3D; len - ptlen;</p>
-<p>由于<code>apache_was_here</code>这个变量在前面被设为了0，因此path_info的赋值语句实际上就是：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">path_info = env_path_info ? env_path_info + pilen - slen : NULL;</span><br></pre></td></tr></table></figure>
-
-<p>env_path_info是从Fast CGI的PATH_INFO取过来的，而由于代入了<code>%0a</code>，在采取<code>fastcgi_split_path_info ^(.+?\.php)(/.*)$;</code>这样的Nginx配置项的情况下，fastcgi_split_path_info无法正确识别现</p>
-<p>在的url，因此会Path Info置空，所以env_path_info在进行取值时，同样会取到空值，这也正是漏洞原因所在。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

