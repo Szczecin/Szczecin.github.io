@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Frida java层自吐加密算法 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Frida java层自吐加密算法 本文转自愧怍 并作补充  代码 针对 java 层加密算法，能 hook 到 java 自带的加密函数库  12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Frida java层自吐加密算法">
+<meta property="og:url" content="https://szczecin.github.io/2024/05/24/Frida-Hook-Signature/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Frida java层自吐加密算法 本文转自愧怍 并作补充  代码 针对 java 层加密算法，能 hook 到 java 自带的加密函数库  12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686">
+<meta property="og:locale">
+<meta property="article:published_time" content="2024-05-24T07:56:25.000Z">
+<meta property="article:modified_time" content="2024-05-24T08:10:28.410Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Exploit">
+<meta property="article:tag" content="Reprint">
+<meta property="article:tag" content="Frida">
+<meta property="article:tag" content="Hook">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-Frida-Hook-Signature"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2024/05/24/Frida-Hook-Signature/">
+            Frida java层自吐加密算法
+        </a>
+    </h2>
+    <time>
+        May 24, 2024
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="frida-java层自吐加密算法">Frida java层自吐加密算法</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://kuizuo.cn/docs/frida-java-encryption-algorithm/">愧怍</a> 并作补充</p>
+</blockquote>
+<h2><span id="代码">代码</span></h2><blockquote>
+<p>针对 java 层加密算法，能 hook 到 java 自带的加密函数库</p>
+</blockquote>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> config = &#123;</span><br><span class="line">  <span class="attr">showStacks</span>: <span class="literal">false</span>,</span><br><span class="line">  <span class="attr">showDivider</span>: <span class="literal">true</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title class_">Java</span>.<span class="title function_">perform</span>(<span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">  <span class="comment">// console.log(&#x27;frida 已启动&#x27;);</span></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">showStacks</span>(<span class="params">name = <span class="string">&#x27;&#x27;</span></span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (config.<span class="property">showStacks</span>) &#123;</span><br><span class="line">      <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&#x27;android.util.Log&#x27;</span>).<span class="title function_">getStackTraceString</span>(<span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&#x27;java.lang.Throwable&#x27;</span>).$new(name)))</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">showDivider</span>(<span class="params">name = <span class="string">&#x27;&#x27;</span></span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (config.<span class="property">showDivider</span>) &#123;</span><br><span class="line">      <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">`==============================<span class="subst">$&#123;name&#125;</span>==============================`</span>)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">showArguments</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">&#x27;arguments: &#x27;</span>, ...<span class="variable language_">arguments</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">const</span> <span class="title class_">ByteString</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&#x27;com.android.okhttp.okio.ByteString&#x27;</span>)</span><br><span class="line">  <span class="keyword">const</span> <span class="title class_">Encode</span> = &#123;</span><br><span class="line">    <span class="title function_">toBase64</span>(<span class="params">tag, data</span>) &#123;</span><br><span class="line">      <span class="variable language_">console</span>.<span class="title function_">log</span>(tag + <span class="string">&#x27; Base64: &#x27;</span>, <span class="title class_">ByteString</span>.<span class="title function_">of</span>(data).<span class="title function_">base64</span>())</span><br><span class="line">      <span class="comment">// console.log(tag + &#x27; Base64: &#x27;, bytesToBase64(data));</span></span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="title function_">toHex</span>(<span class="params">tag, data</span>) &#123;</span><br><span class="line">      <span class="variable language_">console</span>.<span class="title function_">log</span>(tag + <span class="string">&#x27; Hex: &#x27;</span>, <span class="title class_">ByteString</span>.<span class="title function_">of</span>(data).<span class="title function_">hex</span>())</span><br><span class="line">      <span class="comment">// console.log(tag + &#x27; Hex: &#x27;, bytesToHex(data));</span></span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="title function_">toUtf8</span>(<span class="params">tag, data</span>) &#123;</span><br><span class="line">      <span class="variable language_">console</span>.<span class="title function_">log</span>(tag + <span class="string">&#x27; Utf8: &#x27;</span>, <span class="title class_">ByteString</span>.<span class="title function_">of</span>(data).<span class="title function_">utf8</span>())</span><br><span class="line">      <span class="comment">// console.log(tag + &#x27; Utf8: &#x27;, bytesToString(data));</span></span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="title function_">toAll</span>(<span class="params">tag, data</span>) &#123;</span><br><span class="line">      <span class="title class_">Encode</span>.<span class="title function_">toUtf8</span>(tag, data)</span><br><span class="line">      <span class="title class_">Encode</span>.<span class="title function_">toHex</span>(tag, data)</span><br><span class="line">      <span class="title class_">Encode</span>.<span class="title function_">toBase64</span>(tag, data)</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="title function_">toResult</span>(<span class="params">tag, data</span>) &#123;</span><br><span class="line">      <span class="title class_">Encode</span>.<span class="title function_">toHex</span>(tag, data)</span><br><span class="line">      <span class="title class_">Encode</span>.<span class="title function_">toBase64</span>(tag, data)</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">const</span> <span class="title class_">MessageDigest</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="params"><span class="string">&#x27;java.security.MessageDigest&#x27;</span></span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">let</span> overloads_update = <span class="title class_">MessageDigest</span>.<span class="property">update</span>.<span class="property">overloads</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">const</span> overload <span class="keyword">of</span> overloads_update) &#123;</span><br><span class="line">      overload.<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> algorithm = <span class="variable language_">this</span>.<span class="title function_">getAlgorithm</span>()</span><br><span class="line">        <span class="title function_">showDivider</span>(algorithm)</span><br><span class="line">        <span class="title function_">showStacks</span>(algorithm)</span><br><span class="line">        <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> update data`</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>])</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">this</span>.<span class="title function_">update</span>(...<span class="variable language_">arguments</span>)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> overloads_digest = <span class="title class_">MessageDigest</span>.<span class="property">digest</span>.<span class="property">overloads</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">const</span> overload <span class="keyword">of</span> overloads_digest) &#123;</span><br><span class="line">      overload.<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> algorithm = <span class="variable language_">this</span>.<span class="title function_">getAlgorithm</span>()</span><br><span class="line">        <span class="title function_">showDivider</span>(algorithm)</span><br><span class="line">        <span class="title function_">showStacks</span>(algorithm)</span><br><span class="line">        <span class="keyword">const</span> result = <span class="variable language_">this</span>.<span class="title function_">digest</span>(...<span class="variable language_">arguments</span>)</span><br><span class="line">        <span class="keyword">if</span> (<span class="variable language_">arguments</span>.<span class="property">length</span> === <span class="number">1</span>) &#123;</span><br><span class="line">          <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> update data`</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>])</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="variable language_">arguments</span>.<span class="property">length</span> === <span class="number">3</span>) &#123;</span><br><span class="line">          <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> update data`</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>])</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="title class_">Encode</span>.<span class="title function_">toResult</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> digest result`</span>, result)</span><br><span class="line">        <span class="keyword">return</span> result</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">const</span> <span class="title class_">Mac</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="params"><span class="string">&#x27;javax.crypto.Mac&#x27;</span></span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="title class_">Mac</span>.<span class="property">init</span>.<span class="title function_">overload</span>(<span class="string">&#x27;java.security.Key&#x27;</span>, <span class="string">&#x27;java.security.spec.AlgorithmParameterSpec&#x27;</span>).<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params">key, AlgorithmParameterSpec</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="variable language_">this</span>.<span class="title function_">init</span>(key, <span class="title class_">AlgorithmParameterSpec</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title class_">Mac</span>.<span class="property">init</span>.<span class="title function_">overload</span>(<span class="string">&#x27;java.security.Key&#x27;</span>).<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params">key</span>) &#123;</span><br><span class="line">      <span class="keyword">const</span> algorithm = <span class="variable language_">this</span>.<span class="title function_">getAlgorithm</span>()</span><br><span class="line">      <span class="title function_">showDivider</span>(algorithm)</span><br><span class="line">      <span class="title function_">showStacks</span>(algorithm)</span><br><span class="line">      <span class="keyword">const</span> keyBytes = key.<span class="title function_">getEncoded</span>()</span><br><span class="line">      <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> init Key`</span>, keyBytes)</span><br><span class="line">      <span class="keyword">return</span> <span class="variable language_">this</span>.<span class="title function_">init</span>(...<span class="variable language_">arguments</span>)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// let overloads_update = Mac.update.overloads;</span></span><br><span class="line">    <span class="comment">// for (const overload of overloads_update) &#123;</span></span><br><span class="line">    <span class="comment">//   overload.implementation = function () &#123;</span></span><br><span class="line">    <span class="comment">//     const algorithm = this.getAlgorithm();</span></span><br><span class="line">    <span class="comment">//     showDivider(algorithm);</span></span><br><span class="line">    <span class="comment">//     showStacks(algorithm);</span></span><br><span class="line">    <span class="comment">//     Encode.toAll(`$&#123;algorithm&#125; update data`, arguments[0]);</span></span><br><span class="line">    <span class="comment">//     return this.update(...arguments);</span></span><br><span class="line">    <span class="comment">//   &#125;;</span></span><br><span class="line">    <span class="comment">// &#125;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> overloads_doFinal = <span class="title class_">Mac</span>.<span class="property">doFinal</span>.<span class="property">overloads</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">const</span> overload <span class="keyword">of</span> overloads_doFinal) &#123;</span><br><span class="line">      overload.<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> algorithm = <span class="variable language_">this</span>.<span class="title function_">getAlgorithm</span>()</span><br><span class="line">        <span class="title function_">showDivider</span>(algorithm)</span><br><span class="line">        <span class="title function_">showStacks</span>(algorithm)</span><br><span class="line">        <span class="keyword">const</span> result = <span class="variable language_">this</span>.<span class="title function_">doFinal</span>(...<span class="variable language_">arguments</span>)</span><br><span class="line">        <span class="keyword">if</span> (<span class="variable language_">arguments</span>.<span class="property">length</span> === <span class="number">1</span>) &#123;</span><br><span class="line">          <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> update data`</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>])</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="variable language_">arguments</span>.<span class="property">length</span> === <span class="number">3</span>) &#123;</span><br><span class="line">          <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> update data`</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>])</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="title class_">Encode</span>.<span class="title function_">toResult</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> doFinal result`</span>, result)</span><br><span class="line">        <span class="keyword">return</span> result</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">const</span> <span class="title class_">Cipher</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="params"><span class="string">&#x27;javax.crypto.Cipher&#x27;</span></span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">let</span> overloads_init = <span class="title class_">Cipher</span>.<span class="property">init</span>.<span class="property">overloads</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">const</span> overload <span class="keyword">of</span> overloads_init) &#123;</span><br><span class="line">      overload.<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> algorithm = <span class="variable language_">this</span>.<span class="title function_">getAlgorithm</span>()</span><br><span class="line">        <span class="title function_">showDivider</span>(algorithm)</span><br><span class="line">        <span class="title function_">showStacks</span>(algorithm)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (<span class="variable language_">arguments</span>[<span class="number">0</span>]) &#123;</span><br><span class="line">          <span class="keyword">const</span> mode = <span class="variable language_">arguments</span>[<span class="number">0</span>]</span><br><span class="line">          <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> init mode`</span>, mode)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (<span class="variable language_">arguments</span>[<span class="number">1</span>]) &#123;</span><br><span class="line">          <span class="keyword">const</span> className = <span class="title class_">JSON</span>.<span class="title function_">stringify</span>(<span class="variable language_">arguments</span>[<span class="number">1</span>])</span><br><span class="line">          <span class="comment">// 安卓10以上私钥是有可能输出不了的</span></span><br><span class="line">          <span class="keyword">if</span> (className.<span class="title function_">includes</span>(<span class="string">&#x27;OpenSSLRSAPrivateKey&#x27;</span>)) &#123;</span><br><span class="line">            <span class="comment">// const keyBytes = arguments[1];</span></span><br><span class="line">            <span class="comment">// console.log(`$&#123;algorithm&#125; init key`, keyBytes);</span></span><br><span class="line">          &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">const</span> keyBytes = <span class="variable language_">arguments</span>[<span class="number">1</span>].<span class="title function_">getEncoded</span>()</span><br><span class="line">            <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> init key`</span>, keyBytes)</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (<span class="variable language_">arguments</span>[<span class="number">2</span>]) &#123;</span><br><span class="line">          <span class="keyword">const</span> className = <span class="title class_">JSON</span>.<span class="title function_">stringify</span>(<span class="variable language_">arguments</span>[<span class="number">2</span>])</span><br><span class="line">          <span class="keyword">if</span> (className.<span class="title function_">includes</span>(<span class="string">&#x27;javax.crypto.spec.IvParameterSpec&#x27;</span>)) &#123;</span><br><span class="line">            <span class="keyword">const</span> iv = <span class="title class_">Java</span>.<span class="title function_">cast</span>(<span class="variable language_">arguments</span>[<span class="number">2</span>], <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&#x27;javax.crypto.spec.IvParameterSpec&#x27;</span>))</span><br><span class="line">            <span class="keyword">const</span> ivBytes = iv.<span class="title function_">getIV</span>()</span><br><span class="line">            <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> init iv`</span>, ivBytes)</span><br><span class="line">          &#125; <span class="keyword">else</span> <span class="keyword">if</span> (className.<span class="title function_">includes</span>(<span class="string">&#x27;java.security.SecureRandom&#x27;</span>)) &#123;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">this</span>.<span class="title function_">init</span>(...<span class="variable language_">arguments</span>)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// let overloads_update = Cipher.update.overloads;</span></span><br><span class="line">    <span class="comment">// for (const overload of overloads_update) &#123;</span></span><br><span class="line">    <span class="comment">//   overload.implementation = function () &#123;</span></span><br><span class="line">    <span class="comment">//     const algorithm = this.getAlgorithm();</span></span><br><span class="line">    <span class="comment">//     showDivider(algorithm);</span></span><br><span class="line">    <span class="comment">//     showStacks(algorithm);</span></span><br><span class="line">    <span class="comment">//     Encode.toAll(`$&#123;algorithm&#125; update data`, arguments[0]);</span></span><br><span class="line">    <span class="comment">//     return this.update(...arguments);</span></span><br><span class="line">    <span class="comment">//   &#125;;</span></span><br><span class="line">    <span class="comment">// &#125;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> overloads_doFinal = <span class="title class_">Cipher</span>.<span class="property">doFinal</span>.<span class="property">overloads</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">const</span> overload <span class="keyword">of</span> overloads_doFinal) &#123;</span><br><span class="line">      overload.<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> algorithm = <span class="variable language_">this</span>.<span class="title function_">getAlgorithm</span>()</span><br><span class="line">        <span class="title function_">showDivider</span>(algorithm)</span><br><span class="line">        <span class="title function_">showStacks</span>(algorithm)</span><br><span class="line">        <span class="keyword">const</span> result = <span class="variable language_">this</span>.<span class="title function_">doFinal</span>(...<span class="variable language_">arguments</span>)</span><br><span class="line">        <span class="keyword">if</span> (<span class="variable language_">arguments</span>.<span class="property">length</span> === <span class="number">1</span>) &#123;</span><br><span class="line">          <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> update data`</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>])</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="variable language_">arguments</span>.<span class="property">length</span> === <span class="number">3</span>) &#123;</span><br><span class="line">          <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> update data`</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>])</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="title class_">Encode</span>.<span class="title function_">toResult</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> doFinal result`</span>, result)</span><br><span class="line">        <span class="keyword">return</span> result</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">const</span> <span class="title class_">Signature</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="params"><span class="string">&#x27;java.security.Signature&#x27;</span></span>)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">let</span> overloads_update = <span class="title class_">Signature</span>.<span class="property">update</span>.<span class="property">overloads</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">const</span> overload <span class="keyword">of</span> overloads_update) &#123;</span><br><span class="line">      overload.<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> algorithm = <span class="variable language_">this</span>.<span class="title function_">getAlgorithm</span>()</span><br><span class="line">        <span class="title function_">showDivider</span>(algorithm)</span><br><span class="line">        <span class="title function_">showStacks</span>(algorithm)</span><br><span class="line">        <span class="title class_">Encode</span>.<span class="title function_">toAll</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> update data`</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>])</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">this</span>.<span class="title function_">update</span>(...<span class="variable language_">arguments</span>)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> overloads_sign = <span class="title class_">Signature</span>.<span class="property">sign</span>.<span class="property">overloads</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">const</span> overload <span class="keyword">of</span> overloads_sign) &#123;</span><br><span class="line">      overload.<span class="property">implementation</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> algorithm = <span class="variable language_">this</span>.<span class="title function_">getAlgorithm</span>()</span><br><span class="line">        <span class="title function_">showDivider</span>(algorithm)</span><br><span class="line">        <span class="title function_">showStacks</span>(algorithm)</span><br><span class="line">        <span class="keyword">const</span> result = <span class="variable language_">this</span>.<span class="title function_">sign</span>()</span><br><span class="line">        <span class="title class_">Encode</span>.<span class="title function_">toResult</span>(<span class="string">`<span class="subst">$&#123;algorithm&#125;</span> sign result`</span>, result)</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">this</span>.<span class="title function_">sign</span>(...<span class="variable language_">arguments</span>)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Frida/" rel="tag">Frida</a><a class="tag-none-link" href="/tags/Hook/" rel="tag">Hook</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/szczecin" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/tags/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

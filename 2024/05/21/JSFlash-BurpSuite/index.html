@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>BurpSuite作为代理，复用目标站点的js代码处理指定的内容 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="BurpSuite作为代理，复用目标站点的js代码处理指定的内容 本文转自thinkoaa 并作补充  0x01 前言 之前写了一个burp插件，直接使用目标站点的加密js来解决用intruder模块爆破时的payload加密问题 地址：https:&#x2F;&#x2F;www.freebuf.com&#x2F;sectool&#x2F;242363.html 除了上面的情况外，有时还会遇到把burp当作代理，调用网站的js代码处理来">
+<meta property="og:type" content="article">
+<meta property="og:title" content="BurpSuite作为代理，复用目标站点的js代码处理指定的内容">
+<meta property="og:url" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="BurpSuite作为代理，复用目标站点的js代码处理指定的内容 本文转自thinkoaa 并作补充  0x01 前言 之前写了一个burp插件，直接使用目标站点的加密js来解决用intruder模块爆破时的payload加密问题 地址：https:&#x2F;&#x2F;www.freebuf.com&#x2F;sectool&#x2F;242363.html 除了上面的情况外，有时还会遇到把burp当作代理，调用网站的js代码处理来">
+<meta property="og:locale">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/1.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/2.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/3.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/4.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/5.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/6.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/7.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/8.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/9.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/10.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/11.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/12.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/13.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/14.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/15.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/16.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/17.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/18.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/19.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/20.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/21.png">
+<meta property="og:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/22.png">
+<meta property="article:published_time" content="2024-05-21T08:11:25.000Z">
+<meta property="article:modified_time" content="2024-05-21T08:36:44.870Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Exploit">
+<meta property="article:tag" content="Reprint">
+<meta property="article:tag" content="BurpSuite">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://szczecin.github.io/2024/05/21/JSFlash-BurpSuite/1.png">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-JSFlash-BurpSuite"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2024/05/21/JSFlash-BurpSuite/">
+            BurpSuite作为代理，复用目标站点的js代码处理指定的内容
+        </a>
+    </h2>
+    <time>
+        May 21, 2024
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="burpsuite作为代理复用目标站点的js代码处理指定的内容">BurpSuite作为代理，复用目标站点的js代码处理指定的内容</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/247374.html">thinkoaa</a> 并作补充</p>
+</blockquote>
+<h2><span id="0x01-前言">0x01 前言</span></h2><blockquote>
+<p>之前写了一个burp插件，直接使用目标站点的加密js来解决用intruder模块爆破时的payload加密问题</p>
+<p>地址：<a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/242363.html">https://www.freebuf.com/sectool/242363.html</a></p>
+<p>除了上面的情况外，有时还会遇到把burp当作代理，调用网站的js代码处理来自浏览器、sqlmap等工具的内容情况。</p>
+<p>比如目标网站的参数调用了js加密算法，不管是手动访问也好，还是sqlmap注入也好，需要调用指定算法处理参数，用python或java重写算法的话呢，时间成本太高，有些算法还挺复杂……但，如果能够直接复用目标网站的js代码的话就太方便了。</p>
+<p>因此，简单写了一个burp suite插件，专门解决上述问题：下载地址：<a target="_blank" rel="noopener" href="https://github.com/thinkoaa/JSFlash/">JSFlash</a></p>
+<p>使用步骤是  可以参考我之前另一个插件的文章 <a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/242363.html">参考地址</a>：</p>
+<ol>
+<li>1.把目标站点的相关js代码放到本地js文件中，调试可用；</li>
+<li>2.把JSFlash插件导入到Burp Suite中，在插件中加载指定的js文件并填写对应的参数；</li>
+<li>3.抓包发repeater做测试，如果效果符合预期，则该插件会根据指定的规则，调用js代码，处理指定的内容。</li>
+</ol>
+<p>效果图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="0x02-使用方法">0x02 使用方法</span></h2><h3><span id="1从目标站点复制修改或者手动写好js代码调试正确">1.从目标站点复制修改或者手动写好js代码，调试正确</span></h3><blockquote>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/2.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/3.png" alt="image"></p>
+<p>因为插件是通过java调用js，因此window、document等对象及方法，还有一些很新的js特性可能在浏览器中执行正确，但插件调用时会报错，因此插件会把可能产生的错误信息弹出显示，方便根据实际逻辑修改，根据我的经历来看，不管多复杂，只要耐心点，没有改不了的情况，如图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/4.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/5.png" alt="image"></p>
+<p>再举一个例：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/6.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/7.png" alt="image"></p>
+</blockquote>
+<h3><span id="2导入插件设置参数">2.导入插件，设置参数</span></h3><blockquote>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/8.png" alt="image"></p>
+<p>2.1 设置url，一定要用burp的Copy URL菜单复制，不要手动填写，以免出错：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/9.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/10.png" alt="image"></p>
+<p>2.2 设置处理指定内容的规则</p>
+<p>GET方式:</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/11.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/12.png" alt="image"></p>
+<p>php代码如图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/13.png" alt="image"></p>
+<p>处理结果：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/14.png" alt="image"></p>
+<p>POST方式：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/15.png" alt="image"></p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/16.png" alt="image"></p>
+<p>php代码如图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/17.png" alt="image"></p>
+<p>结果如图：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/18.png" alt="image"></p>
+<p>一次调用多个方法，处理多个指定内容：</p>
+<p>数据包：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/19.png" alt="image"></p>
+<p>规则：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/20.png" alt="image"></p>
+<p>php代码：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/21.png" alt="image"></p>
+<p>结果：</p>
+<p><img src="/2024/05/21/JSFlash-BurpSuite/22.png" alt="image"></p>
+</blockquote>
+<h2><span id="0x03-总结">0x03 总结</span></h2><blockquote>
+<p>这个插件用到的时候，需要具体情况具体分析，不过思路是这么个思路，目的就是复用js代码，提高工作效率。</p>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/BurpSuite/" rel="tag">BurpSuite</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/szczecin" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/tags/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>
