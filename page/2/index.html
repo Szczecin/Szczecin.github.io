@@ -82,6 +82,138 @@
 
     
         <h2 class="title">
+            <a href="/2024/05/27/Brida-How-To-Using/">
+                Burpsuite插件-Brida
+            </a>
+        </h2>
+    
+    <time>
+        May 27, 2024
+    </time>
+    <section class="content">
+        <h1><span id="burpsuite插件-brida">Burpsuite插件-Brida</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/samlirongsheng/article/details/134966158">sam.li</a> 并作补充</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/samlirongsheng/article/details/134950536">通过一道CTF题目来认识一下Frida</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/samlirongsheng/article/details/134952350">objection</a><br>前面两篇通过对<a target="_blank" rel="noopener" href="https://so.csdn.net/so/search?q=Frida&spm=1001.2101.3001.7020">Frida</a>的了解，以及利用objection来分析，这篇来了解一下分析后实际利用，以及通过实现插件自动化的方式来利用。</p>
+</blockquote>
+<h2><span id="brida介绍">Brida介绍</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/federicodotta/Brida">https://github.com/federicodotta/Brida</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/federicodotta/Brida/wiki/Brida-components">Brida components</a></p>
+<p><img src="/2024/05/27/Brida-How-To-Using/1.png" alt="image"></p>
+<h3><span id="官方使用文档翻译">官方使用文档翻译</span></h3><p>时间记录，20230725；</p>
+<p>测试版本：0.5</p>
+<p>虽然说官方文档是最新的，但是使用文档的截图依旧跟新版本的插件不一致，然后能够查到的资料也是比较久的内容，不过大体功能是差不多，但是还是自己操作一遍后记录一下相关问题；</p>
+<p>这里只记录自己测试的环境，其他环境参考官方文档；</p>
+<h4><span id="android">Android</span></h4><ol>
+<li>安装frida和其server，并启动具体可以参考<a target="_blank" rel="noopener" href="https://blog.csdn.net/samlirongsheng/article/details/134950536">通过一道CTF题目来认识一下Frida</a></li>
+<li>配置brida</li>
+</ol>
+<p>在配置之前先简单了解一下brida的UI及其功能；</p>
+<p><img src="/2024/05/27/Brida-How-To-Using/2.png" alt="image"></p>
+<h4><span id="1-主面板">1 主面板</span></h4><p>这里包含所有brida工具和配置</p>
+<ol>
+<li>Configurations</li>
+<li>JS Editor</li>
+<li>Hooks and functions</li>
+<li>Graphical analysis</li>
+<li>Graphical hooks</li>
+<li>Custom plugins</li>
+<li>Generate stubs</li>
+<li>Debug export</li>
+</ol>
+<h4><span id="2-brida按钮面板">2 brida按钮面板</span></h4><p>Brida按钮面板由三个不同的部分组成：</p>
+<ul>
+<li>顶部（前两行）是 Pyro4 服务器的状态（启动&#x2F;停止）和应用程序的状态（hook状态）</li>
+<li>（在两条黄线上方的按钮）在中间有一组固定在Brida所有选项卡上的按钮。这些按钮用于执行常规任务，如启动&#x2F;停止 Pyro4 服务器、生成&#x2F;附加&#x2F;停止&#x2F;分离应用程序（使用 frida-compile 编译）、重新加载 JS 文件、编译重新加载JS、分离所有hook、清除log等。</li>
+<li>（黄线下）底部有一组按钮，取决于特定的Brida子选项卡</li>
+</ul>
+<h4><span id="3-brida控制台">3 brida控制台</span></h4><p>log输出</p>
+</blockquote>
+<h2><span id="brida工具介绍">brida工具介绍</span></h2><blockquote>
+<h3><span id="configurations">Configurations</span></h3><p>配置界面</p>
+<p>从上往下依次是</p>
+<ol>
+<li>Pyro服务状态</li>
+<li>应用状态</li>
+<li>是否使用虚拟的python环境</li>
+<li>python可以执行文件的路径</li>
+<li>Pyro服务地址（默认）</li>
+<li>Pyro端口（默认）</li>
+<li>frida-complile可以执行文件的路径</li>
+<li>是否使用旧版本的frida-complile，尽量使用10以下的版本，一开始用默认版本会出现问题，hook上了，但是总有奇怪的报错</li>
+<li>包含所有Brida JS文件的文件夹，第一次需要先生成一下默认的JS文件</li>
+<li>需要hook的应用名&#x2F;PID，如果为应用名，则在连接的时候是点按钮面板的Spawn application，如果为PID，则Attach；</li>
+<li>Frida连接方式</li>
+<li>如果配置是远程连接frida，需要配置对应的地址和端口；</li>
+</ol>
+<p><img src="/2024/05/27/Brida-How-To-Using/3.png" alt="image"></p>
+<h3><span id="js-editor">JS Editor</span></h3><p><img src="/2024/05/27/Brida-How-To-Using/4.png" alt="image"></p>
+<p>集成到Burp Suite中的JS编辑器，以便能够编辑Brida JS文件并直接从Burp Suite添加自定义hook和导出函数。编辑器具有JS语法突出显示。</p>
+<h3><span id="hooks-and-functions">Hooks and functions</span></h3><p><img src="/2024/05/27/Brida-How-To-Using/5.png" alt="image"></p>
+<p>此选项卡包括许多默认hooks和方法，可以通过按钮启用&#x2F;执行。这些Frida脚本包括最新的Android和iOS平台的hook能力，以绕过和检查安全功能。</p>
+<h3><span id="graphical-analysis">Graphical analysis</span></h3><p><img src="/2024/05/27/Brida-How-To-Using/6.png" alt="image"></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/federicodotta/Brida/wiki/Graphical-analysis">Graphical analysis</a></p>
+<p>这里功能类似于objection的能力集成进来：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">load tree = android hooking list classes //展示所有class </span><br><span class="line"></span><br><span class="line">搜索 = android hooking search methods [search_name] //在内存中所有已加载的方法中搜索包含特定关键词的方法</span><br><span class="line">//但是这里Android的用起来会导致应用闪退，官方提了这个，只有iOS支持；</span><br><span class="line"></span><br><span class="line">双击对应的class = android hooking watch class com.xxx.xxx //hook指定类, 会打印该类下的所以调用</span><br><span class="line">右键Inspect = android hooking watch class_method com.xxx.xxx.methodName --dump-args --dump-backtrace --dump-return //hook指定类, 会打印该类下的所以调用</span><br><span class="line">右键change return vule = android hooking set return_value com.xxx.xxx.methodName false //设置返回值</span><br></pre></td></tr></table></figure>
+
+<h4><span id="实际使用">实际使用</span></h4><p>参考：<a target="_blank" rel="noopener" href="https://blog.csdn.net/samlirongsheng/article/details/134950536">通过一道CTF题目来认识一下Frida</a></p>
+<p>对函数进行打印，然后替换返回值，但是这里官方提供的返回值没有byte</p>
+<p><img src="/2024/05/27/Brida-How-To-Using/7.png" alt="image"></p>
+<h3><span id="graphical-hooks">Graphical hooks</span></h3><p><img src="/2024/05/27/Brida-How-To-Using/8.png" alt="image"></p>
+<p>管理之前hook的所有内容；</p>
+<h3><span id="custom-plugins">Custom plugins</span></h3><p><img src="/2024/05/27/Brida-How-To-Using/9.png" alt="image"></p>
+<p>强大的功能；</p>
+<p>可以理解成自定义生成burpsuite插件，有四种可自定义插件类型；</p>
+<ul>
+<li>IHttpListener：能让所有请求，通过正则匹配去替换&#x2F;修改指定的内容，并让这个匹配到的内容通过frida构造的hook脚本处理（加解密、重新生成sign等）</li>
+<li>IMessageEditorTab：将自定义选项卡添加到Burp Suite请求&#x2F;响应窗格，以便能够使用Frida导出的函数解密&#x2F;解码&#x2F;处理请求&#x2F;响应（或其中的一部分）（然后加密&#x2F;编码&#x2F;处理修改并替换原始请求&#x2F;响应，如果有）</li>
+<li>IContextMenu：将自定义上下文菜单选项添加到Burp Suite的右键菜单中，用于在请求和响应（或其中的一部分）上调用Frida导出的函数</li>
+<li>JButton：添加调用&#x2F;启用 Frida 导出函数的按钮</li>
+</ul>
+<h3><span id="generate-stubs">Generate stubs</span></h3><p><img src="/2024/05/27/Brida-How-To-Using/10.png" alt="image"></p>
+<p>如果内部自定义插件引擎无法解决复杂情况，则可以从外部Burp Suite插件使用Brida引擎。此选项卡生成 Java 和 Python 存根，可以复制并粘贴到外部插件中，以便允许 Burp Suite 和 Frida 使用 Brida 进行通信。</p>
+<h3><span id="debug-export">Debug export</span></h3><p><img src="/2024/05/27/Brida-How-To-Using/11.png" alt="image"></p>
+<p>此选项卡可用于在 Brida 插件中使用 Frida 导出的函数之前对其进行调试。为了使用 Brida 自定义插件（或使用 Brida 的外部插件），有必要将 Frida 代码放入一些由插件调用的 Frida 导出函数中。在此选项卡中，可以直接调用 Frida 导出，以便轻松调试。</p>
+</blockquote>
+<h2><span id="使用问题记录">使用问题记录</span></h2><blockquote>
+<p>Windows环境</p>
+<p><strong>Spawn&#x2F;Attach application时报错：entrypoint must be inside the project root</strong><br><a target="_blank" rel="noopener" href="https://cn-sec.com/archives/1639064.html">【移动安全】Frida + Burp -&gt; Brida | APP加解密 | CN-SEC 中文网</a></p>
+<p>把Frida的js文件放到burpsuite应用的目录下；</p>
+<p><strong>在Debug export中Run export是报错[frida.core.RPCException] unable to find method ‘test’</strong><br>排查了很久，只找到了frida-compile版本过高这种情况，只能测试一下低版本是否会有问题，用npm在burpsuite应用的目录下执行npm install <a href="mailto:&#x66;&#114;&#x69;&#100;&#97;&#x2d;&#99;&#x6f;&#109;&#112;&#x69;&#108;&#101;&#64;&#x39;&#46;&#53;&#x2e;&#x32;">&#x66;&#114;&#x69;&#100;&#97;&#x2d;&#99;&#x6f;&#109;&#112;&#x69;&#108;&#101;&#64;&#x39;&#46;&#53;&#x2e;&#x32;</a>，然后将安装的目录配置到frida-compile path中就能解决；</p>
+<p><strong>使用了低版本的frida-compile后报错java.io.IOException: Cannot run program</strong></p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&quot;C:\AAAA\agent\BurpSuiteCommunity\node_modules\.bin\frida-compile&quot;: </span><br><span class="line">CreateProcess error=<span class="number">193</span>, %<span class="number">1</span> 不是有效的 Win32 应用程序。</span><br></pre></td></tr></table></figure>
+
+<p>一开始配置没有带.cmd</p>
+<p><img src="/2024/05/27/Brida-How-To-Using/12.png" alt="image"></p>
+<p><img src="/2024/05/27/Brida-How-To-Using/13.png" alt="image"></p>
+<p><img src="/2024/05/27/Brida-How-To-Using/14.png" alt="image"></p>
+<p><strong>UnicodeEncodeError: ‘gbk’ codec can’t encode</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">character <span class="string">&#x27;\u03f1&#x27;</span> <span class="keyword">in</span> position 49: illegal multibyte sequence**</span><br></pre></td></tr></table></figure>
+
+<p>刚好遇到一个反编译后用中文混淆的，这里用objection和python执行相关处理的时候就会报编码错误，在对应路径相关代码输出处加上utf-8编码输出就能解决；然后objection需要修改后重新编译；</p>
+<p><img src="/2024/05/27/Brida-How-To-Using/15.png" alt="image"></p>
+</blockquote>
+<h2><span id="源码解析">源码解析</span></h2><blockquote>
+<p>java调用python脚本</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -*- coding: utf-8 -*-</span></span><br><span class="line"><span class="keyword">import</span> frida</span><br><span class="line"><span class="keyword">import</span> codecs</span><br><span class="line"><span class="keyword">import</span> Pyro4</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"></span><br><span class="line"><span class="comment">#reload(sys)   </span></span><br><span class="line"><span class="comment">#sys.setdefaultencoding(&#x27;utf-8&#x27;)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Unbuffered</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line">   <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, stream</span>):</span><br><span class="line">       self.stream = stream</span><br><span class="line">   <span class="keyword">def</span> <span class="title function_">write</span>(<span class="params">self, data</span>):</span><br><span class="line">       self.stream.write(data)</span><br><span class="line">       self.stream.flush()</span><br><span class="line">   <span class="keyword">def</span> <span class="title function_">writelines</span>(<span class="params">self, datas</span>):</span><br><span class="line">       self.stream.writelines(datas)</span><br><span class="line">       self.stream.flush()</span><br><span class="line">   <span class="keyword">def</span> <span class="title function_">__getattr__</span>(<span class="params">self, attr</span>):</span><br><span class="line">       <span class="keyword">return</span> <span class="built_in">getattr</span>(self.stream, attr)</span><br><span class="line"></span><br><span class="line"><span class="meta">@Pyro4.expose</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">BridaServicePyro</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, daemon</span>):</span><br><span class="line">        self.daemon = daemon</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">attach_application</span>(<span class="params">self,pid,frida_script,device,host_port_device_id</span>):</span><br><span class="line"></span><br><span class="line">        self.frida_script = frida_script</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> pid.isnumeric():</span><br><span class="line">            self.pid = <span class="built_in">int</span>(pid)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            self.pid = pid</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> device == <span class="string">&#x27;remote&#x27;</span>:</span><br><span class="line">            self.device = frida.get_remote_device()</span><br><span class="line">        <span class="keyword">elif</span> device == <span class="string">&#x27;usb&#x27;</span>:</span><br><span class="line">            self.device = frida.get_usb_device()</span><br><span class="line">        <span class="keyword">elif</span> device == <span class="string">&#x27;local&#x27;</span>:</span><br><span class="line">            self.device = frida.get_local_device()</span><br><span class="line">        <span class="keyword">elif</span> device == <span class="string">&#x27;device&#x27;</span>:</span><br><span class="line">            self.device = frida.get_device(host_port_device_id)        </span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            self.device = frida.get_device_manager().add_remote_device(host_port_device_id)</span><br><span class="line"></span><br><span class="line">        self.session = self.device.attach(self.pid)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">with</span> codecs.<span class="built_in">open</span>(self.frida_script, <span class="string">&#x27;r&#x27;</span>, <span class="string">&#x27;utf-8&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">            source = f.read()</span><br><span class="line"></span><br><span class="line">        self.script = self.session.create_script(source)</span><br><span class="line">        self.script.load()</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span>    </span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">spawn_application</span>(<span class="params">self,application_id,frida_script,device,host_port_device_id</span>):</span><br><span class="line"></span><br><span class="line">        self.application_id = application_id</span><br><span class="line">        self.frida_script = frida_script</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> device == <span class="string">&#x27;remote&#x27;</span>:</span><br><span class="line">            self.device = frida.get_remote_device()</span><br><span class="line">        <span class="keyword">elif</span> device == <span class="string">&#x27;usb&#x27;</span>:</span><br><span class="line">            self.device = frida.get_usb_device()</span><br><span class="line">        <span class="keyword">elif</span> device == <span class="string">&#x27;local&#x27;</span>:</span><br><span class="line">            self.device = frida.get_local_device()</span><br><span class="line">        <span class="keyword">elif</span> device == <span class="string">&#x27;device&#x27;</span>:</span><br><span class="line">            self.device = frida.get_device(host_port_device_id)        </span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            self.device = frida.get_device_manager().add_remote_device(host_port_device_id)</span><br><span class="line"></span><br><span class="line">        self.pid = self.device.spawn([self.application_id])</span><br><span class="line"></span><br><span class="line">        self.session = self.device.attach(self.pid)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">with</span> codecs.<span class="built_in">open</span>(self.frida_script, <span class="string">&#x27;r&#x27;</span>, <span class="string">&#x27;utf-8&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">            source = f.read()</span><br><span class="line"></span><br><span class="line">        self.script = self.session.create_script(source)</span><br><span class="line">        self.script.load()</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">resume_application</span>(<span class="params">self</span>):</span><br><span class="line"></span><br><span class="line">        self.device.resume(self.pid)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">reload_script</span>(<span class="params">self</span>):</span><br><span class="line"></span><br><span class="line">        <span class="keyword">with</span> codecs.<span class="built_in">open</span>(self.frida_script, <span class="string">&#x27;r&#x27;</span>, <span class="string">&#x27;utf-8&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">            source = f.read()</span><br><span class="line"></span><br><span class="line">        self.script = self.session.create_script(source)</span><br><span class="line">        self.script.load()</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">disconnect_application</span>(<span class="params">self</span>):</span><br><span class="line"></span><br><span class="line">        self.device.kill(self.pid)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">detach_application</span>(<span class="params">self</span>):</span><br><span class="line"></span><br><span class="line">        self.session.detach()</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">callexportfunction</span>(<span class="params">self, methodName, args</span>):</span><br><span class="line">        method_to_call = <span class="built_in">getattr</span>(self.script.exports, methodName)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># Take the Java list passed as argument and create a new variable list of argument</span></span><br><span class="line">        <span class="comment"># (necessary for bridge Python - Java, I think)</span></span><br><span class="line">        s = []</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> args:</span><br><span class="line">            s.append(i)</span><br><span class="line"></span><br><span class="line">        return_value = method_to_call(*s)</span><br><span class="line">        <span class="keyword">return</span> return_value</span><br><span class="line"></span><br><span class="line"><span class="meta">    @Pyro4.oneway</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">shutdown</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;shutting down...&#x27;</span>)</span><br><span class="line">        self.daemon.shutdown()</span><br><span class="line"></span><br><span class="line"><span class="comment"># Disable python buffering (cause issues when communicating with Java...)</span></span><br><span class="line">sys.stdout = Unbuffered(sys.stdout)</span><br><span class="line">sys.stderr = Unbuffered(sys.stderr)</span><br><span class="line"></span><br><span class="line">host = sys.argv[<span class="number">1</span>]</span><br><span class="line">port = <span class="built_in">int</span>(sys.argv[<span class="number">2</span>])</span><br><span class="line">daemon = Pyro4.Daemon(host=host,port=port)</span><br><span class="line"></span><br><span class="line"><span class="comment">#daemon = Pyro4.Daemon(host=&#x27;127.0.0.1&#x27;,port=9999)</span></span><br><span class="line">bs = BridaServicePyro(daemon)</span><br><span class="line">uri = daemon.register(bs,objectId=<span class="string">&#x27;BridaServicePyro&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;Ready.&quot;</span>)</span><br><span class="line">daemon.requestLoop()</span><br></pre></td></tr></table></figure>
+
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Brida/" rel="tag">Brida</a><a class="tag-none-link" href="/tags/Burpsuite/" rel="tag">Burpsuite</a><a class="tag-none-link" href="/tags/Hook/" rel="tag">Hook</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2024/05/27/Brida-Starting-From-Beginning/">
                 brida从0配置
             </a>
@@ -728,82 +860,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Arknights/" rel="tag">Arknights</a><a class="tag-none-link" href="/tags/Picture/" rel="tag">Picture</a><a class="tag-none-link" href="/tags/Schwarz/" rel="tag">Schwarz</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/02/01/Apk-Resigned/">
-                灰产-如何对APK修改后重签
-            </a>
-        </h2>
-    
-    <time>
-        Feb 1, 2024
-    </time>
-    <section class="content">
-        <h1><span id="灰产-如何对apk修改后重签">灰产-如何对APK修改后重签</span></h1><p><img src="/2024/02/01/Apk-Resigned/1.png" alt="image"></p>
-<h2><span id="写在前面">写在前面</span></h2><blockquote>
-<p>前段时间没有事做的时候，组织上仿佛看穿了我很咸，突然让我去研究下灰产包，让我分析用了什么技术&amp;做出了什么改动。</p>
-<p><img src="/2024/02/01/Apk-Resigned/2.png" alt="image"></p>
-</blockquote>
-<h2><span id="总而言之">总而言之</span></h2><blockquote>
-<p>虽然入职就听说了公司应用之前有被灰产“薅羊毛”的问题，但真让我弄我也没专门弄过啊，而且这部分之前是交给风控组去做的，这么久了整不来靠我嘛？而且我也想吐槽这灰产包你们又是怎么弄来的，还有两份不同技术实现的……</p>
-<p><img src="/2024/02/01/Apk-Resigned/3.png" alt="image"></p>
-</blockquote>
-<h2><span id="签名篡改">签名篡改</span></h2><blockquote>
-<p>如果想对apk内部内容进行修改，从而达到实现某些功能或规避某些审查的目的，就一定要对签名进行重签，这一点上只需要和正版签名比对一下便能发现。如何检测使用了这些篡改应用的用户等不在这次的任务范围内，篡改功能点内容也不展开讨论，此处仅讨论绕过审查重签的技术。</p>
-<p><img src="/2024/02/01/Apk-Resigned/4.png" alt="image"></p>
-</blockquote>
-<h3><span id="mt-app签名检查及绕过">MT APP签名检查及绕过</span></h3><blockquote>
-<p>对灰产包简单的逆向后，我在第一个包很快地就发现了一个<code>KillApplication.java</code>：</p>
-<p><img src="/2024/02/01/Apk-Resigned/5.png" alt="image"></p>
-<p>很显然，做篡改的兄弟还不够细，或者根本没懂相应的原理性知识，留下了如此明显的痕迹，并且在URL参数直接暴露了篡改方式：</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/L-JINBIN/ApkSignatureKillerEx">ApkSignatureKillerEx</a></p>
-<p><img src="/2024/02/01/Apk-Resigned/6.png" alt="image"></p>
-<p>算是让我直接回忆起之前用过的MT管理器，好像酷安就能下到，不过我已经很久没用过了，不知道MT现在是自带这种签名方式还是作为外部插件使用的。</p>
-<p>而MT APP签名检查及绕过在<a target="_blank" rel="noopener" href="https://taardisaa.github.io/2023/09/08/Android%E9%80%86%E5%90%91-APP%E7%AD%BE%E5%90%8D/">Android逆向-获取APP签名</a> 一文中有详细表述，在此不做赘述（懒）</p>
-</blockquote>
-<h3><span id="np-app签名检查及绕过">NP APP签名检查及绕过</span></h3><blockquote>
-<p>那我们再来看下一个，啊，还不用我找，MobSF都给我翻出来了：</p>
-<p><img src="/2024/02/01/Apk-Resigned/7.png" alt="image"></p>
-<p><strong>你是？</strong></p>
-<p><img src="/2024/02/01/Apk-Resigned/8.png" alt="image"></p>
-<p>顺着<code>FuckSign.java</code> 和 <code>2863678687@qq.com</code> 这两个信息（痕迹也是太明显了），我找到了另一种篡改方式：</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/githubXiaowangzi/NP-Manager">NP-Manager</a></p>
-<p><img src="/2024/02/01/Apk-Resigned/9.png" alt="image"></p>
-<p>直接获取下来也很容易就复现了篡改与绕过：</p>
-<p><img src="/2024/02/01/Apk-Resigned/10.png" alt="image"></p>
-</blockquote>
-<h2><span id="写在后面">写在后面</span></h2><blockquote>
-<p>首先啊，风控安全真是和什么都斗争不断，除开apk包篡改，也还有模拟GPS定位、虚拟用户接码手机号等等，还好不是我直接负责：</p>
-<p><img src="/2024/02/01/Apk-Resigned/11.png" alt="image"></p>
-<p>然后，之前文章提到过外网可能是MobSF官方开的一个在线检测的平台，<a href="https://szczecin.github.io/2024/01/31/Firebase-API-Key-Hard-Coding/">直接暴露了非常多的检测应用报告</a>，无独有偶，我在做这次灰产分析的时候，在搜索引擎寻找<code>FuckSign.java</code>，发现了国内一个仿MobSF的在线检测平台，从搜索引擎记录来看，市场上很多其他应用也不堪灰产侵扰：</p>
-<p><img src="/2024/02/01/Apk-Resigned/12.png" alt="image"></p>
-<p>我在发现这个检测平台的时候，它给检测项部分“需要开通VIP”解锁，该说是刻意而为导致规避了部分问题还是啥呢……总之，我在几周后重新访问的时候，他已经是崩溃状态，嘛，不好评价：</p>
-<p><img src="/2024/02/01/Apk-Resigned/13.png" alt="image"></p>
-<p>最后，要做灰产黑产，就要从原理性把痕迹去除或转化，不能留太明显的技术痕迹，虽然可以说这些最后找到的都是开源项目，是卖刀者不是作恶人，但淹死的多是会水的，这里分享一篇文章：<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/388062512">灰产，赚点快钱？</a>。</p>
-<p><img src="/2024/02/01/Apk-Resigned/12.gif" alt="image"></p>
-</blockquote>
-<h2><span id="参考引用">参考引用</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://github.com/L-JINBIN/ApkSignatureKillerEx">ApkSignatureKillerEx</a></p>
-<p><a target="_blank" rel="noopener" href="https://taardisaa.github.io/2023/09/08/Android%E9%80%86%E5%90%91-APP%E7%AD%BE%E5%90%8D/">Android逆向-获取APP签名</a> </p>
-<p><a target="_blank" rel="noopener" href="https://github.com/githubXiaowangzi/NP-Manager">NP-Manager</a></p>
-<p><a href="https://szczecin.github.io/2024/01/31/Firebase-API-Key-Hard-Coding/">Firebase Installations API 密钥硬编码</a></p>
-<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/388062512">灰产，赚点快钱？</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Signature/" rel="tag">Signature</a>
             </div>
         
 

