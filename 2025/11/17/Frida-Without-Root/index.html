@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>非root环境下frida持久化的两种方式及脚本 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="非root环境下frida持久化的两种方式及脚本 本文转自 八重嘤 并作补充   frida是一个非常好用的hook框架，但使用中有两个问题，一是非root手机使用挺麻烦的，二是frida相较于其他HOOK框架没那么持久。网上的持久化大多基于xposed、刷ROM或者是virtualapp，前面两个是比较重量级，不够轻便。虚拟化技术本身就自带风险，很容易被检测到。 在Android端，网上教程里大">
+<meta property="og:type" content="article">
+<meta property="og:title" content="非root环境下frida持久化的两种方式及脚本">
+<meta property="og:url" content="https://szczecin.github.io/2025/11/17/Frida-Without-Root/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="非root环境下frida持久化的两种方式及脚本 本文转自 八重嘤 并作补充   frida是一个非常好用的hook框架，但使用中有两个问题，一是非root手机使用挺麻烦的，二是frida相较于其他HOOK框架没那么持久。网上的持久化大多基于xposed、刷ROM或者是virtualapp，前面两个是比较重量级，不够轻便。虚拟化技术本身就自带风险，很容易被检测到。 在Android端，网上教程里大">
+<meta property="og:locale">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/17/Frida-Without-Root/1.jpg">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/17/Frida-Without-Root/2.jpg">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/17/Frida-Without-Root/3.jpg">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/17/Frida-Without-Root/4.jpg">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/17/Frida-Without-Root/5.jpg">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/17/Frida-Without-Root/6.jpg">
+<meta property="article:published_time" content="2025-11-17T08:15:25.000Z">
+<meta property="article:modified_time" content="2025-11-17T08:45:41.580Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Reprint">
+<meta property="article:tag" content="Frida">
+<meta property="article:tag" content="Hook">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://szczecin.github.io/2025/11/17/Frida-Without-Root/1.jpg">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-Frida-Without-Root"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2025/11/17/Frida-Without-Root/">
+            非root环境下frida持久化的两种方式及脚本
+        </a>
+    </h2>
+    <time>
+        Nov 17, 2025
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="非root环境下frida持久化的两种方式及脚本">非root环境下frida持久化的两种方式及脚本</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://bbs.kanxue.com/thread-268175.htm">八重嘤</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>frida是一个非常好用的hook框架，但使用中有两个问题，一是非root手机使用挺麻烦的，二是frida相较于其他HOOK框架没那么持久。网上的持久化大多基于xposed、刷ROM或者是virtualapp，前面两个是比较重量级，不够轻便。虚拟化技术本身就自带风险，很容易被检测到。</p>
+<p>在Android端，网上教程里大部分都是使用frida server来进行hook，其实还有一种使用方法为 frida gadget，此方法需要将frida-gadget.so注入到apk中，纯手动的话过于麻烦，所以这里实现两个脚本，分别用修改smali、修改so来注入目标。</p>
+</blockquote>
+<blockquote>
+<p><strong>我使用的frida-gadget版本为14.2.18。有其他版本的需求，需要替换tools下的so文件</strong></p>
+</blockquote>
+<h2><span id="方法一-调试apk中含有so">方法一 调试apk中含有so</span></h2><blockquote>
+<p>此方法相对简单。原理来自于古早的静态注入方式：<a target="_blank" rel="noopener" href="https://gslab.qq.com/portal.php?mod=view&aid=163">Android平台感染ELF文件实现模块注入</a></p>
+<p>而这种注入方式有工具可以快速实现：<a target="_blank" rel="noopener" href="https://lief.re//doc/latest/tutorials/09_frida_lief.html">How to use frida on a non-rooted device</a></p>
+<p>该方法优点在于可以让gadget是第一个启动的，缺点是没有so的apk不能用。</p>
+</blockquote>
+<h3><span id="1效果">1.效果</span></h3><blockquote>
+<p>首先运行注入脚本，获得注入且重签名后的apk。直接安装。</p>
+<p><img src="/2025/11/17/Frida-Without-Root/1.jpg" alt="image"></p>
+<p>将frida_script.js push 到&#x2F;data&#x2F;local&#x2F;tmp。frida_script.js为你的hook代码：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="title class_">Java</span>.<span class="title function_">perform</span>(<span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">  <span class="keyword">var</span> <span class="title class_">Log</span> = <span class="title class_">Java</span>.<span class="title function_">use</span>(<span class="string">&quot;android.util.Log&quot;</span>);</span><br><span class="line">  <span class="title class_">Log</span>.<span class="title function_">e</span>(<span class="string">&quot;frida-OOOK&quot;</span>, <span class="string">&quot;Have fun!&quot;</span>);</span><br><span class="line">&#125;);<span class="comment">//android 不要使用console.log</span></span><br></pre></td></tr></table></figure>
+
+<p>打开app即可看到效果，app每次启动都会成功的打印LOG：</p>
+<p><img src="/2025/11/17/Frida-Without-Root/2.jpg" alt="image"></p>
+<p>不想使用持久化（本地js脚本），也可以通过电脑连接：</p>
+<p><img src="/2025/11/17/Frida-Without-Root/3.jpg" alt="image"></p>
+<p>不使用持久化，就不必添加config文件，所以脚本执行不需要执行-persistence，执行下面的就可以：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python LIEFInjectFrida.py apkfile  outdir  libnative-lib.so  -apksign</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="2代码">2.代码</span></h3><blockquote>
+<p>工具详细代码：<a target="_blank" rel="noopener" href="https://github.com/nszdhd1/UtilScript/blob/main/LIEFInjectFrida.py">https://github.com/nszdhd1/UtilScript/blob/main/LIEFInjectFrida.py</a></p>
+<p>运行脚本记得安装lief（pip install lief）</p>
+<p>其实关键代码就几行：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> soname <span class="keyword">in</span> injectsolist: <span class="comment">#遍历apk中指定SO有哪几种架构，并添加gadget.so为依赖库。</span></span><br><span class="line">  <span class="keyword">if</span> soname.find(<span class="string">&quot;x86&quot;</span>) != -<span class="number">1</span>:</span><br><span class="line">    <span class="keyword">continue</span></span><br><span class="line">  so = lief.parse(os.getcwd()+<span class="string">&quot;\\&quot;</span>+soname)</span><br><span class="line">  so.add_library(<span class="string">&quot;libfrida-gadget.so&quot;</span>)</span><br><span class="line">  so.write(soname+<span class="string">&quot;gadget.so&quot;</span>)</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="方法二-apk中没有so">方法二  apk中没有so</span></h2><blockquote>
+<p>在实际情况下，并不是所有的apk都有so。没有so，方法一便没有用武之地了。</p>
+<p>此方法呢，是通过修改smali，调用System.loadLibrary来加载so。该原理更简单，但是有一个弊端就是时机不够靠前，没有办法hook Activity 启动之前的代码。</p>
+<p>手动修改太麻烦，还是写一个脚本自动化注入。</p>
+<p>此方法优点是原理简单，缺点是脚本实现麻烦，容易写bug</p>
+</blockquote>
+<h3><span id="1-效果">1. 效果</span></h3><blockquote>
+<p>首先运行注入脚本，获得注入且重签名后的apk。直接安装。</p>
+<p><img src="/2025/11/17/Frida-Without-Root/4.jpg" alt="image"></p>
+<p><img src="/2025/11/17/Frida-Without-Root/5.jpg" alt="image"></p>
+<p>frida_script.js代码同上，同样也可以使用电脑连接：</p>
+<p><img src="/2025/11/17/Frida-Without-Root/6.jpg" alt="image"></p>
+</blockquote>
+<h3><span id="2-代码">2. 代码</span></h3><blockquote>
+<p>工具详细代码：<a target="_blank" rel="noopener" href="https://github.com/nszdhd1/UtilScript/blob/main/SmaliInjectFrida.py">https://github.com/nszdhd1/UtilScript/blob/main/SmaliInjectFrida.py</a></p>
+<p>关键代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">get_launchable_activity_aapt</span>(<span class="params">self</span>): <span class="comment">#通过aapt找到apk的启动activity</span></span><br><span class="line">  aapt_path = os.path.join(self.toolPath, <span class="string">&#x27;aapt.exe&#x27;</span>)</span><br><span class="line">  cmd = <span class="string">&#x27;%s dump badging &quot;%s&quot; &#x27;</span> % (aapt_path, self.apkpath)</span><br><span class="line">  p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=<span class="literal">True</span>)</span><br><span class="line">  out,err = p.communicate()</span><br><span class="line">  cmd_output = out.decode(<span class="string">&#x27;utf-8&#x27;</span>).split(<span class="string">&#x27;\r&#x27;</span>)</span><br><span class="line">  <span class="keyword">for</span> line <span class="keyword">in</span> cmd_output:</span><br><span class="line">    <span class="comment">#正则，pattern.search正常，pattern.match就会有问题=-=懒得解决了</span></span><br><span class="line">    pattern = re.<span class="built_in">compile</span>(<span class="string">&quot;launchable-activity: name=&#x27;(\S+)&#x27;&quot;</span>)</span><br><span class="line">    match = pattern.search(line)</span><br><span class="line">    <span class="keyword">if</span> match:</span><br><span class="line">      <span class="comment"># print match.group()[27:-1]</span></span><br><span class="line">      <span class="keyword">return</span> match.group()[<span class="number">27</span>:-<span class="number">1</span>]</span><br><span class="line">           </span><br><span class="line"><span class="keyword">def</span> <span class="title function_">injectso</span>(<span class="params">self</span>):</span><br><span class="line">  target_activity = self.get_launchable_activity_aapt()</span><br><span class="line">  <span class="keyword">for</span> dex <span class="keyword">in</span> self.dexList:</span><br><span class="line">    <span class="built_in">print</span>(dex)</span><br><span class="line">    <span class="keyword">if</span> self.dexDecompile(dex):</span><br><span class="line">      smali_path = os.path.join(self.decompileDir,target_activity.replace(<span class="string">&#x27;.&#x27;</span>,<span class="string">&#x27;\\&#x27;</span>))+<span class="string">&quot;.smali&quot;</span></span><br><span class="line">      <span class="built_in">print</span>(smali_path)</span><br><span class="line">      <span class="keyword">with</span> <span class="built_in">open</span>(smali_path, <span class="string">&#x27;r&#x27;</span>) <span class="keyword">as</span> fp:</span><br><span class="line">        lines = fp.readlines()</span><br><span class="line">        has_clinit = <span class="literal">False</span></span><br><span class="line">        start = <span class="number">0</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="built_in">len</span>(lines)):  </span><br><span class="line">          <span class="comment">#start是获取smali中，可以添加代码的位置</span></span><br><span class="line">          <span class="keyword">if</span> lines[i].find(<span class="string">&quot;.source&quot;</span>) != -<span class="number">1</span>:</span><br><span class="line">            start = i</span><br><span class="line">          <span class="comment">#找到初始化代码</span></span><br><span class="line">          <span class="keyword">if</span> lines[i].find(<span class="string">&quot;.method static constructor &lt;clinit&gt;()V&quot;</span>) != -<span class="number">1</span>:</span><br><span class="line">            <span class="keyword">if</span> lines[i + <span class="number">3</span>].find(<span class="string">&quot;.line&quot;</span>) != -<span class="number">1</span>:</span><br><span class="line">              code_line = lines[i + <span class="number">3</span>][-<span class="number">3</span>:]</span><br><span class="line">              lines.insert(i + <span class="number">3</span>, <span class="string">&quot;%s%s\r&quot;</span> % (lines[i + <span class="number">3</span>][<span class="number">0</span>:-<span class="number">3</span>], <span class="built_in">str</span>(<span class="built_in">int</span>(code_line) - <span class="number">2</span>)))</span><br><span class="line">              <span class="built_in">print</span>(<span class="string">&quot;%s%s&quot;</span> % (lines[i + <span class="number">3</span>][<span class="number">0</span>:-<span class="number">3</span>], <span class="built_in">str</span>(<span class="built_in">int</span>(code_line) - <span class="number">2</span>)))</span><br><span class="line">              <span class="comment">#添加相关代码</span></span><br><span class="line">              lines.insert(i + <span class="number">4</span>, <span class="string">&quot;const-string v0, \&quot;frida-gadget\&quot;\r&quot;</span>)</span><br><span class="line">              lines.insert(i + <span class="number">5</span>, <span class="string">&quot;invoke-static &#123;v0&#125;, Ljava/lang/System;-&gt;loadLibrary(Ljava/lang/String;)V\r&quot;</span>)</span><br><span class="line">              has_clinit = <span class="literal">True</span></span><br><span class="line">              <span class="keyword">break</span></span><br><span class="line">        <span class="comment">#如果碰上本身没有clinit函数的apk，就需要自己添加</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> has_clinit:</span><br><span class="line">          lines.insert(start + <span class="number">1</span>, <span class="string">&quot;.method static constructor &lt;clinit&gt;()V\r&quot;</span>)</span><br><span class="line">          lines.insert(start + <span class="number">2</span>, <span class="string">&quot;.registers 1\r&quot;</span>)</span><br><span class="line">          lines.insert(start + <span class="number">3</span>, <span class="string">&quot;.line 10\r&quot;</span>)</span><br><span class="line">          lines.insert(start + <span class="number">4</span>, <span class="string">&quot;const-string v0, \&quot;frida-gadget\&quot;\r&quot;</span>)</span><br><span class="line">          lines.insert(start + <span class="number">5</span>, <span class="string">&quot;invoke-static &#123;v0&#125;, Ljava/lang/System;-&gt;loadLibrary(Ljava/lang/String;)V\r&quot;</span>)</span><br><span class="line">          lines.insert(start + <span class="number">6</span>, <span class="string">&quot;return-void\r&quot;</span>)</span><br><span class="line">          lines.insert(start + <span class="number">7</span>, <span class="string">&quot;.end method\r&quot;</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">with</span> <span class="built_in">open</span>(smali_path, <span class="string">&quot;w&quot;</span>) <span class="keyword">as</span> fp:</span><br><span class="line">          fp.writelines(lines)</span><br><span class="line">      self.dexCompile(dex)</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="frida-持久化检测特征">Frida 持久化检测特征</span></h2><blockquote>
+<p>我因为方便，将frida js 放在了&#x2F;data&#x2F;local&#x2F;tmp下，如果直接放在app的沙箱下，这就是一个稳定的hook框架了。</p>
+<p>既然做了持久化，就要从防御者角度看看哪些方面可以检测到应用被注入了。</p>
+<p>首先，当然是内存中会有frida-gadget.so。但这个so可以被重命名（我可以命名为常见的模块，比如libBugly.so），所以检测&#x2F;proc&#x2F;pid&#x2F;maps下是否有frida-gadget并不准确。因为frida有一个config文件，是持久化必须存在的。所以检测libs下是否有lib*.so和lib*.config.so是一种较为可行的方法。但是，如果你不使用持久化，或者去github上找到frida的源码修改gaget.vala（ps.这一点是合理的猜想，还未验证过），就可以让防御者检测不到。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">#gaget.vala 代码片段</span><br><span class="line"><span class="keyword">if</span> ANDROID</span><br><span class="line">  <span class="title function_">if</span> <span class="params">(!FileUtils.test (config_path, FileTest.EXISTS)</span>) &#123;</span><br><span class="line">   <span class="type">var</span> <span class="variable">ext_index</span> <span class="operator">=</span> config_path.last_index_of_char (<span class="string">&#x27;.&#x27;</span>);</span><br><span class="line">   <span class="keyword">if</span> (ext_index != -<span class="number">1</span>) &#123;</span><br><span class="line">    config_path = config_path[<span class="number">0</span>:ext_index] + <span class="string">&quot;.config.so&quot;</span>;#修改这里，就可以检测不到。需要保持后缀不变（例如改成symbols.so）</span><br><span class="line">   &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    config_path = config_path + <span class="string">&quot;.config.so&quot;</span>;</span><br><span class="line">   &#125;</span><br><span class="line">  &#125;</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
+
+<p>除去端口检测这种几乎没什么用的，还有一种比较可行的是内存扫描，扫描内存中是否有LIBFRIDA_GADGET关键词，具体实现网上有教程我就不介绍了。</p>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/Frida/" rel="tag">Frida</a><a class="tag-none-link" href="/tags/Hook/" rel="tag">Hook</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/szczecin" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/tags/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

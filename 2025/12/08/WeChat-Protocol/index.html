@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>基于wireshark对网页版微信抓包和ios微信抓包分析 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="基于wireshark对网页版微信抓包和ios微信抓包分析 本文转自 hjsz 并作补充  网页版微信分析过程  先查看本机的IP地址    打开浏览器准备登录微信网页版。扫码的时候查看抓的包，其中有个DNS数据包询问extshaort.weixin.qq.com的IP地址。   查看这个报文的具体内容，发现这是一个DNS查询报文，DNS查询报文为标准查询即通过主机名查询对应的IP   查询本机网">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于wireshark对网页版微信抓包和ios微信抓包分析">
+<meta property="og:url" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="基于wireshark对网页版微信抓包和ios微信抓包分析 本文转自 hjsz 并作补充  网页版微信分析过程  先查看本机的IP地址    打开浏览器准备登录微信网页版。扫码的时候查看抓的包，其中有个DNS数据包询问extshaort.weixin.qq.com的IP地址。   查看这个报文的具体内容，发现这是一个DNS查询报文，DNS查询报文为标准查询即通过主机名查询对应的IP   查询本机网">
+<meta property="og:locale">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/1.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/2.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/3.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/4.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/5.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/6.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/7.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/8.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/9.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/10.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/11.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/12.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/13.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/14.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/15.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/16.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/17.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/18.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/19.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/20.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/21.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/22.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/23.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/24.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/25.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/26.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/27.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/28.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/29.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/30.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/31.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/32.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/33.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/34.png">
+<meta property="article:published_time" content="2025-12-08T07:42:25.000Z">
+<meta property="article:modified_time" content="2025-12-08T08:31:08.340Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Reprint">
+<meta property="article:tag" content="Hook">
+<meta property="article:tag" content="WeChat">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://szczecin.github.io/2025/12/08/WeChat-Protocol/1.png">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-WeChat-Protocol"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2025/12/08/WeChat-Protocol/">
+            基于wireshark对网页版微信抓包和ios微信抓包分析
+        </a>
+    </h2>
+    <time>
+        Dec 8, 2025
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="基于wireshark对网页版微信抓包和ios微信抓包分析">基于wireshark对网页版微信抓包和ios微信抓包分析</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://xz.aliyun.com/news/12839">hjsz</a> 并作补充</p>
+</blockquote>
+<h2><span id="网页版微信">网页版微信</span></h2><h3><span id="分析过程">分析过程</span></h3><blockquote>
+<ul>
+<li>先查看本机的IP地址</li>
+</ul>
+<p><img src="/2025/12/08/WeChat-Protocol/1.png" alt="image"></p>
+<ul>
+<li><p>打开浏览器准备登录微信网页版。扫码的时候查看抓的包，其中有个DNS数据包询问extshaort.weixin.qq.com的IP地址。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/2.png" alt="image"></p>
+<ul>
+<li><p>查看这个报文的具体内容，发现这是一个DNS查询报文，DNS查询报文为标准查询即通过主机名查询对应的IP</p>
+<p><img src="/2025/12/08/WeChat-Protocol/3.png" alt="image"></p>
+</li>
+<li><p>查询本机网络信息得知，本地DNS服务器地址为192.168.31.1</p>
+<p><img src="/2025/12/08/WeChat-Protocol/4.png" alt="image"></p>
+</li>
+<li><p>下面是DNS回复报文，从DNS回复报文中可以看出网页版微信的IP地址有多个，为了应对大流量的访问包括避免宕机影响业务，大企业或者大型服务都会有多个服务器。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/5.png" alt="image"></p>
+</li>
+<li><p>从接下来的报文中可以看出用户选择了223.166.152.101这个服务器进行访问连接。因为DNS查询后有一定数量的TCP数据包是本机与223.166.152.101之间的</p>
+<p><img src="/2025/12/08/WeChat-Protocol/6.png" alt="image"></p>
+</li>
+</ul>
+</li>
+<li><p>分析上述提到的TCP数据包（三次握手过程）</p>
+<ul>
+<li><p>从下图流量包看到了源IP是本机IP，目的IP为DNS返回的其中一个IP。分析TCP报文内容，看到了目的Port为80即常见的HTTP协议的端口。然后标志位 SYN置1，为TCP三次握手中的第一步。说明本机正常通过TCP与微信的服务器建立连接。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/7.png" alt="image"></p>
+</li>
+<li><p>下图流量包是服务器回复的报文。其中确认号ACK&#x3D;x+1，x为请求报文中的0，syn &#x3D; 1，表示客户端的请求报文有效，服务器可以正常接收客户端发送的数据，同意创建与客户端的的新连接。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/8.png" alt="image"></p>
+</li>
+<li><p>客户端收到服务器回复的报文后得知服务器允许建立连接，此时客户端还会再发送一个TCP报文，这个数据包的seq &#x3D; x+1&#x3D;1,ack还是为1。表明可以建立连接了。接下来的就是双方的数据传输。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/9.png" alt="image"></p>
+</li>
+</ul>
+</li>
+<li><p>三次握手后建立连接后客户端向服务器发送了一个 HTPP post报文，客户端开始提交数据。看HTTP的内容，request URI，而这个URI为….&#x2F;getloginqrcode，是微信登录的二维码。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/10.png" alt="image"></p>
+<p><img src="/2025/12/08/WeChat-Protocol/11.png" alt="image"></p>
+</li>
+<li><p>扫码登录</p>
+<ul>
+<li><p>登录后有大量的TCP数据包及HTTP POST和HTTP响应数据包。从这里可以看出这时候与登录前的服务器IP不同，但是都是之前DNS返回的IP之一。这种大型业务不同的服务器承载着不同的业务需求。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/12.png" alt="image"></p>
+</li>
+<li><p>客户端向微信服务器请求同步数据等数据传输的HTTP。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/13.png" alt="image"></p>
+<p><img src="/2025/12/08/WeChat-Protocol/14.png" alt="image"></p>
+</li>
+</ul>
+</li>
+<li><p>加密协议。微信使用了应用层与传输层之间的SSL&#x2F;TLS协议进行数据加密。</p>
+<ul>
+<li><p>Client Hello开始客户端向服务器发送建立连接的请求：（版本号，随机数等）</p>
+<p><img src="/2025/12/08/WeChat-Protocol/15.png" alt="image"></p>
+<p><img src="/2025/12/08/WeChat-Protocol/16.png" alt="image"></p>
+</li>
+</ul>
+</li>
+<li><p>Server Hello，根据请求中携带的内容建立连接版本，加密套件，生成服务器端随机数。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/17.png" alt="image"></p>
+</li>
+<li><p>服务器向用户发送由CA签发的证书，验证身份。（Certificate，server Key exchange等）</p>
+<p><img src="/2025/12/08/WeChat-Protocol/18.png" alt="image"></p>
+<p><img src="/2025/12/08/WeChat-Protocol/19.png" alt="image"></p>
+</li>
+<li><p>Change Cipher Spec（通知）</p>
+<p><img src="/2025/12/08/WeChat-Protocol/20.png" alt="image"></p>
+</li>
+<li><p>通信建立</p>
+</li>
+</ul>
+<ul>
+<li><p>消息测试</p>
+<ul>
+<li><p>给好友传一张照片</p>
+</li>
+<li><p>抓包发现还是原来的建立通信的过程</p>
+<p><img src="/2025/12/08/WeChat-Protocol/21.png" alt="image"></p>
+</li>
+<li><p>抓包发现了HTTP请求报文，是关于uploadmsgimg的,即上传图片。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/22.png" alt="image"></p>
+</li>
+</ul>
+</li>
+</ul>
+</blockquote>
+<h2><span id="ios端微信抓包分享">IOS端微信抓包分享</span></h2><blockquote>
+<p>开始进行了网页端的微信抓包分析，正好手头有个IPAD，就试了一下IOS端的，还请各位多多指教</p>
+</blockquote>
+<h3><span id="分析">分析</span></h3><blockquote>
+<ul>
+<li><p>用PC作为一个无线AP，让移动端接入。查看移动端的IP和MAC地址。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/23.png" alt="image"></p>
+</li>
+<li><p>将wireshark绑定在这个无线接口，进行抓包分析。还是先通过DNS查找微信的服务器IP。IP地址和之前的类似。116.128开头。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/24.png" alt="image"></p>
+</li>
+<li><p>获得登录二维码，在获得二维码过程中，终端和121.51.73.100进行了大量的TCP通信。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/25.png" alt="image"></p>
+<ul>
+<li><p>观察其中一个报文，发现了之前不太了解的字段SACK。在网上查找相关知识，得知这个字段可以告诉发送方哪些报文段丢失，哪些报文段重传。根据这些信息，发送方可以重传这些真正丢失的字段。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/26.png" alt="image"></p>
+</li>
+</ul>
+</li>
+<li><p>登录。经过网上查找发现微信客户端用的是自己改进的mmtls协议。也抓到了相关的mmtls POST数据包。</p>
+<ul>
+<li><p>在刷新微信列表的时候发现有大量的TCP包和其中的HTTP请求包。以下面这个为例：<br>开始有个HTTP Get，应该是下载某个数据，然后服务器向用户发送多个TCP 后，最后接上一个HTTP OK（JPEG JFIF Image）。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/27.png" alt="image"></p>
+</li>
+<li><p>一般来说TCP可以发1500个字节，减去40字节的头文件就还有1452个字节，所以一般大于1452TCP也会分段。如上图，一个TCP中包含1440字节数据。<br>TCP segment of a reassembled PDU，TCP层收到上层大块报文后分解成段后发出去。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/28.png" alt="image"></p>
+</li>
+<li><p>比如下面几个报文的ACK是相同的，正是分段后的结果。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/29.png" alt="image"></p>
+</li>
+<li><p>下图是最后的HTTP OK报文，其中包含了之前6个TCP的数据，让我想起了之前做的IP分片，最后也是ICMP重组所有分片。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/30.png" alt="image"></p>
+</li>
+<li><p>看到JPEG就知道应该是关于图像数据的GET传输，找到最后的HTTP OK 报文。找到了JPEG File数据段。当时看到了开头的FF D8，就抱着试试看的态度去找了一下JPEG文件的文件格式，发现正是是开头FF D8，结尾是FF D9，数据段也符合。就想着将数据取出生成JPEG文件。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/31.png" alt="image"></p>
+<p><img src="/2025/12/08/WeChat-Protocol/32.png" alt="image"></p>
+</li>
+<li><p>用python将Hex 串写入一个文件并以图片形式存储到本地。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> binascii</span><br><span class="line"><span class="comment"># payload为十六进制字符串，如：“ffd8ffe111e0457869...”；经过如下代码转换，可将pic存储为图片形式并可以正常打开</span></span><br><span class="line">filepath = <span class="string">&quot;C:\\Users\\14112\\Desktop\\yang\\a.jpg&quot;</span></span><br><span class="line">payload = <span class="string">&quot;FF D8......FF D9&quot;</span> <span class="comment">#只取了文件头和尾，数据太长</span></span><br><span class="line">f=<span class="built_in">open</span>(filepath,<span class="string">&quot;ab&quot;</span>) <span class="comment"># filepath为你要存储的图片的全路径</span></span><br><span class="line">pic = binascii.a2b_hex(payload.encode())</span><br><span class="line">f.write(pic)</span><br><span class="line">f.close()</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>发现生成的图片可以打开</p>
+<p><img src="/2025/12/08/WeChat-Protocol/33.png" alt="image"></p>
+</li>
+</ul>
+</li>
+<li><p>生成了上述图片就去微信列表找头像，发现下面这个群头像正是从抓到的报文中提取出的十六进制数据生成的。</p>
+<p><img src="/2025/12/08/WeChat-Protocol/34.png" alt="image"></p>
+</li>
+<li><p>了解到微信使用的是基于TLS的mmtls，能力有限，就不再分析腾讯未公开的协议了。原有的加密是存在业务层，加密的是请求包主体，但是数据包包头是明文，其中还包括用户的id等信息，而且加密的安全性也都待加强，所以腾讯开发了保护Client到Server之前所有网络通信数据、而且加密通信保护对业务开发人员透明的安全通信协议即mmtls。</p>
+</li>
+</ul>
+</blockquote>
+<h2><span id="总结">总结</span></h2><blockquote>
+<ul>
+<li>现在我们使用的PC以及移动网络设备每时每刻都运行着各种服务，也和非常多的服务器之间进行数据包的传输，但是基本离不开TCP&#x2F;IP 还有HTTP等常见的协议。感觉在真实的网络环境抓包比在GNS3上最难的就是无法排除其他服务数据包的干扰，在本机可能一打开wireshark就出现了大量的数据包，所以这时候wireshark使用技巧就尤为重要，学会过滤报文。<br>分析微信的通信过程中服务器的IP会发送变化，也许是不同的业务使用不同的服务器，开始的时候需要分析DNS，因为开始主机会查询相关服务器的IP地址，从DNS中也可以看出一项大型服务会使用多个服务器，多个IP来保证业务正常。Web版应用基于TLS的加密也表现了web版应用存在一定不安全性。通过协议分析和实操也发现了自己真的很菜，还有很多要做要学的。</li>
+</ul>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/Hook/" rel="tag">Hook</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WeChat/" rel="tag">WeChat</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/szczecin" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/tags/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

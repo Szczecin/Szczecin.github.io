@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Tag: XStream | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Open your eyes to see the light in life">
+<meta property="og:type" content="website">
+<meta property="og:title" content="氕氘氚">
+<meta property="og:url" content="https://szczecin.github.io/tags/XStream/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Open your eyes to see the light in life">
+<meta property="og:locale">
+<meta property="article:author" content="Szczecin">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        
+  <section class="page-header tag">
+    <h1>- <span>XStream</span> -</h1>
+  </section>
+
+
+
+
+
+
+<section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2025/12/09/XStream-RCE/">
+                【组件攻击链】XStream组件高危漏洞分析与利用
+            </a>
+        </h2>
+    
+    <time>
+        Dec 9, 2025
+    </time>
+    <section class="content">
+        <h1><span id="组件攻击链xstream组件高危漏洞分析与利用">【组件攻击链】XStream组件高危漏洞分析与利用</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/256286.html">深信服千里目安全技术中心</a> 并作补充</p>
+</blockquote>
+<h2><span id="组件介绍">组件介绍</span></h2><blockquote>
+<p>XStream是Java类库，用来将对象序列化成XML(JSON)或反序列化为对象。XStream在运行时使用Java反射机制对要进行序列化的对象树的结构进行探索，并不需要对对象作出修改。XStream可以序列化内部字段，包括私private和final字段，并且支持非公开类以及内部类。在缺省情况下，XStream不需要配置映射关系，对象和字段将映射为同名XML元素。但是当对象和字段名与XML中的元素名不同时，XStream支持指定别名。XStream支持以方法调用的方式，或是Java标注的方式指定别名。XStream在进行数据类型转换时，使用系统缺省的类型转换器。同时，也支持用户自定义的类型转换器。XStream类图：</p>
+<p><img src="/2025/12/09/XStream-RCE/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="高危漏洞介绍">高危漏洞介绍</span></h2><blockquote>
+<p><img src="/2025/12/09/XStream-RCE/2.png" alt="image"></p>
+<p>XStream组件漏洞主要是java反序列化造成的远程代码执行漏洞，目前官方通过黑名单的方式对java反序列化攻击进行防御，由于黑名单防御机制存在被绕过的风险，因此以后可能会再次出现类似上述java反序列化漏洞。</p>
+</blockquote>
+<h2><span id="漏洞利用链">漏洞利用链</span></h2><h3><span id="1-组件风险梳理">1 组件风险梳理</span></h3><blockquote>
+<p>根据XStream组件的漏洞，结合XStream常用的使用场景，得到如下风险梳理的场景图。</p>
+<p><img src="/2025/12/09/XStream-RCE/3.png" alt="image"></p>
+</blockquote>
+<h3><span id="2-利用链总结">2 利用链总结</span></h3><blockquote>
+<p>基于风险梳理思维导图，总结出一种漏洞的利用场景。</p>
+<p><strong>无权限 -&gt; GetShell</strong></p>
+<p><img src="/2025/12/09/XStream-RCE/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="高可利用漏洞分析">高可利用漏洞分析</span></h2><blockquote>
+<p>从高危漏洞列表中，针对部分近年高可利用漏洞进行漏洞深入分析。</p>
+</blockquote>
+<h3><span id="技术背景">技术背景</span></h3><h4><span id="java动态代理">java动态代理</span></h4><blockquote>
+<p>Java标准库提供了一种 <strong>动态代理（Dynamic Proxy）</strong>的机制：可以在运行期动态创建某个interface的实例。</p>
+<p><strong>例子：</strong>我们先定义了接口Hello，但是我们并不去编写实现类，而是直接通过JDK提供的一个Proxy.newProxyInstance()创建了一个Hello接口对象。这种没有实现类但是在运行期动态创建了一个接口对象的方式，我们称为动态代码。JDK提供的动态创建接口对象的方式，就叫动态代理。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> test3_proxyclass;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.InvocationHandler;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Method;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Proxy;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Main</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line"></span><br><span class="line">        <span class="type">InvocationHandler</span> <span class="variable">handler</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">InvocationHandler</span>() &#123;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">public</span> Object <span class="title function_">invoke</span><span class="params">(Object proxy, Method method, Object[] args)</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line"></span><br><span class="line">                System.out.println(method);</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (method.getName().equals(<span class="string">&quot;morning&quot;</span>)) &#123;</span><br><span class="line"></span><br><span class="line">                    System.out.println(<span class="string">&quot;Good morning, &quot;</span> + args[<span class="number">0</span>]);</span><br><span class="line"></span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        &#125;;</span><br><span class="line"></span><br><span class="line">        <span class="type">Hello</span> <span class="variable">hello</span> <span class="operator">=</span> (Hello) Proxy.newProxyInstance(</span><br><span class="line"></span><br><span class="line">                Hello.class.getClassLoader(), <span class="comment">// 传入ClassLoader</span></span><br><span class="line"></span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">Class</span>[] &#123; Hello.class &#125;, <span class="comment">// 传入要实现的接口</span></span><br><span class="line"></span><br><span class="line">                handler); <span class="comment">// 传入处理调用方法的InvocationHandler</span></span><br><span class="line"></span><br><span class="line">        hello.morning(<span class="string">&quot;Bob&quot;</span>);</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">interface</span> <span class="title class_">Hello</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">morning</span><span class="params">(String name)</span>;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>java动态代理机制中有两个重要的类和接口InvocationHandler（接口）和Proxy（类），这一个类Proxy和接口InvocationHandler是我们实现动态代理的核心；</p>
+<p>**InvocationHandler接口:**proxy代理实例的调用处理程序实现的一个接口，每一个proxy代理实例都有一个关联的调用处理程序；在代理实例调用方法时，方法调用被编码分派到调用处理程序的invoke方法。</p>
+<p>**newProxyInstance:**创建一个代理类对象，它接收三个参数，我们来看下几个参数的含义：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">loader：一个classloader对象，定义了由哪个classloader对象对生成的代理类进行加载</span><br><span class="line"></span><br><span class="line">interfaces：一个interface对象数组，表示我们将要给我们的代理对象提供一组什么样的接口，如果我们提供了这样一个接口对象数组，那么也就是声明了代理类实现了这些接口，代理类就可以调用接口中声明的所有方法。</span><br><span class="line"></span><br><span class="line">h：一个InvocationHandler对象，表示的是当动态代理对象调用方法的时候会关联到哪一个InvocationHandler对象上，并最终由其调用。</span><br></pre></td></tr></table></figure>
+
+<p><strong>getInvocationHandler</strong>： 返回指定代理实例的调用处理程序</p>
+<p><strong>getProxyClass</strong>： 给定类加载器和接口数组的代理类的java.lang.Class对象。</p>
+<p><strong>isProxyClass</strong>： 当且仅当使用getProxyClass方法或newProxyInstance方法将指定的类动态生成为代理类时，才返回true。</p>
+<p><strong>newProxyInstance</strong>： 返回指定接口的代理类的实例，该接口将方法调用分派给指定的调用处理程序。</p>
+</blockquote>
+<h3><span id="1-xstream-远程代码执行漏洞">1 XStream 远程代码执行漏洞</span></h3><h4><span id="11-漏洞信息">1.1 漏洞信息</span></h4><blockquote>
+<p><strong>1.1.1 漏洞简介</strong></p>
+<p>● 漏洞名称：XStream Remote Code Execution Vulnerability</p>
+<p>● 漏洞编号：CVE-2013-7285</p>
+<p>● 漏洞类型：Remote Code Execution</p>
+<p>● CVSS评分：CVSS v2.0：7.5 ， CVSS v3.0：9.8</p>
+<p>● 漏洞危害等级：高危</p>
+<p><strong>1.1.2 漏洞概述</strong></p>
+<p>包含类型信息的流在unmarshalling时，会再次创建之前写入的对象。因此XStream会基于这些类型信息创建新的实例。攻击者可以操控XML数据，将恶意命令注入在在可以执行任意shell命令的对象中，实现漏洞的利用。</p>
+<p><strong>1.1.3 漏洞利用条件</strong></p>
+<p>无</p>
+<p><strong>1.1.4 漏洞影响</strong></p>
+<p>影响版本：XStream &lt;&#x3D; 1.4.6</p>
+<p><strong>1.1.5 漏洞修复</strong></p>
+<p>获取XStream最新版本，下载链接：<a target="_blank" rel="noopener" href="https://x-stream.github.io/download.html">https://x-stream.github.io/download.html</a></p>
+</blockquote>
+<h4><span id="12-漏洞复现">1.2 漏洞复现</span></h4><blockquote>
+<p><strong>1.2.1 环境拓扑</strong></p>
+<p><img src="/2025/12/09/XStream-RCE/5.png" alt="image"></p>
+<p><strong>1.2.2 应用协议</strong></p>
+<p>8080&#x2F;HTTP</p>
+<p><strong>1.2.3 环境搭建</strong></p>
+<p>基于Windows平台，使用环境目录下的xstreamdemo环境，拷贝后使用Idea打开xstreamdemo文件夹，下载maven资源，运行DemoApplication类，即可启动环境。效果如图。</p>
+<p><img src="/2025/12/09/XStream-RCE/6.png" alt="image"></p>
+<p><strong>1.2.4 漏洞复现</strong></p>
+<p>运行sniper工具箱，填写表单信息，点击Attack，效果如图。</p>
+<p><img src="/2025/12/09/XStream-RCE/7.png" alt="image"></p>
+</blockquote>
+<h3><span id="13-漏洞分析">1.3 漏洞分析</span></h3><blockquote>
+<p><strong>1.3.1 代码分析</strong></p>
+<p>传入的payload首先会在com.thoughtworks.xstream.XStream的fromXML()方法中处理，在进入unmarshal()方法中进行解集。</p>
+<p><img src="/2025/12/09/XStream-RCE/8.png" alt="image"></p>
+<p>在com.thoughtworks.xstream.core.AbstractTreeMarshallingStrategy类中的unmarshal()方法中调用start()方法进行Java对象转换。</p>
+<p><img src="/2025/12/09/XStream-RCE/9.png" alt="image"></p>
+<p>在com.thoughtworks.xstream.core.TreeUnmarshaller类中的start()方法通过调用readClassType()获取type类型。</p>
+<p><img src="/2025/12/09/XStream-RCE/10.png" alt="image"></p>
+<p>在readClassType()方法中调用readClassAttribute方法。</p>
+<p><img src="/2025/12/09/XStream-RCE/11.png" alt="image"></p>
+<p>进入readClassAttribute方法调用aliasForSystemAttribute方法获取别名。调用getAttribute方法，获取reader对象中记录的外部传入XML数据中是否存在对应的标签，如果不存在则返回null。</p>
+<p><img src="/2025/12/09/XStream-RCE/12.png" alt="image"></p>
+<p>回到HierarchicalStreams#readClassType方法中调用realClass方法，通过别名在wrapped对象中的Mapper中循环查找，获取与别名对应的类。</p>
+<p><img src="/2025/12/09/XStream-RCE/13.png" alt="image"></p>
+<p>找到sorted-set别名对应的java.util.SortedSet类，并将类存入realClassCache对象中。</p>
+<p><img src="/2025/12/09/XStream-RCE/14.png" alt="image"></p>
+<p>回到TreeUnmarshaller#start方法，调用convertAnother方法。进入convertAnother方法后，调用defaultImplementationOf方法，在mapper对象中寻找java.util.SortedSet接口类的实现类java.util.TreeSet。</p>
+<p><img src="/2025/12/09/XStream-RCE/15.png" alt="image"></p>
+<p>获取java.util.TreeSet类型，调用lookupConverterForType方法，寻找对应类型的转换器。进入lookupConverterForType方法，循环获取转换器列表中的转换器，调用转换器类中的canConvert方法判断选出的转换器是否可以对传入的type类型进行转换。</p>
+<p><img src="/2025/12/09/XStream-RCE/16.png" alt="image"></p>
+<p>转换器TreeSetConverter父类CollectionConverter中canConvert方法判断，传入的type与java.util.TreeMap相同，返回true，表示可以使用TreeSetConverter转换器进行转换。</p>
+<p><img src="/2025/12/09/XStream-RCE/17.png" alt="image"></p>
+<p>回到DefaultConverterLookup#lookupConverterForType方法，将选取的converter与对应的type存入typeToConverterMap。</p>
+<p>回到TreeUnmarshaller#convertAnother方法中，调用this.convert方法。</p>
+<p><img src="/2025/12/09/XStream-RCE/18.png" alt="image"></p>
+<p>首先判断传入的xml数据中是否存在reference标签，如果不存在，则将当前标签压入parentStack栈中，并调用父类的convert方法。</p>
+<p><img src="/2025/12/09/XStream-RCE/19.png" alt="image"></p>
+<p>进入convert方法中，调用转换器中的unmarshal方法，对传入的xml数据继续解组。</p>
+<p><img src="/2025/12/09/XStream-RCE/20.png" alt="image"></p>
+<p>首先调用unmarshalComparator方法判断是否存在comparator，如果不存在，则返回NullComparator对象。</p>
+<p><img src="/2025/12/09/XStream-RCE/21.png" alt="image"></p>
+<p>根据unmarshalledComparator对象状态，为possibleResult对象赋予TreeSet类型对象。</p>
+<p><img src="/2025/12/09/XStream-RCE/22.png" alt="image"></p>
+<p>由于possibleResult是一个空的TreeMap，因此最终treeMap也是一个空对象，从而调用treeMapConverter.populateTreeMap方法。</p>
+<p><img src="/2025/12/09/XStream-RCE/23.png" alt="image"></p>
+<p>进入populateTreeMap方法中，首先调用调用putCurrentEntryIntoMap方法解析第一个标签，再调用populateMap方法处理之后的标签（此流程中二级标签只存在一个，因此在处理二级标签时暂不进入populateMap方法）。</p>
+<p><img src="/2025/12/09/XStream-RCE/24.png" alt="image"></p>
+<p>具体调用流程如下，com.thoughtworks.xstream.converters.collections.TreeSetConverter类中调用putCurrentEntryIntoMap方法 -&gt; com.thoughtworks.xstream.converters.collections.AbstractCollectionConverter.readItem() 中的 readClassType()方法获取传入xml数据中标签名（别名）对应的类（与本节中获取sorted-set对应类的流程相同）。本次获取的是dynamic-proxy对应的java.lang.reflect.Proxy.DynamicProxyMapper类型，并将别名与类型作为键值对，存入realClassCache中。</p>
+<p><img src="/2025/12/09/XStream-RCE/25.png" alt="image"></p>
+<p><img src="/2025/12/09/XStream-RCE/26.png" alt="image"></p>
+<p>回到AbstractCollectionConverter.readItem()方法中，调用convertAnother方法，寻找DynamicProxyMapper对应的convert，获取到DynamicProxyConverter转换器。</p>
+<p><img src="/2025/12/09/XStream-RCE/27.png" alt="image"></p>
+<p>得到com.thoughtworks.xstream.mapper.DynamicProxyMapper$DynamicProxy，按照之前获取转换器之后的流程，调用转换器中的unmarshal()方法获取interface元素，得到java.lang.Comparable，并添加到mapper中。</p>
+<p><img src="/2025/12/09/XStream-RCE/28.png" alt="image"></p>
+<p>在通过循环查询，继续查找下面的节点元素，进而获得了handler  java.beans.EventHandler。</p>
+<p><img src="/2025/12/09/XStream-RCE/29.png" alt="image"></p>
+<p>调用Proxy.newProxyInstance方法创建动态代理，实现java.lang.Comparable接口。</p>
+<p><img src="/2025/12/09/XStream-RCE/30.png" alt="image"></p>
+<p>调用convertAnother方法获取传入type的转换器，java.beans.EventHandler对应的convert是ReflectionConverter。并将父类及其对象写进HashMap中</p>
+<p><img src="/2025/12/09/XStream-RCE/31.png" alt="image"></p>
+<p><img src="/2025/12/09/XStream-RCE/32.png" alt="image"></p>
+<p>在com.thoughtworks.xstream.converters.reflection.AbstractReflectionConverter.duUnmarshal()方法获取下面的节点元素target  java.lang.ProcessBuilder。</p>
+<p>具体流程如下：调用getFieldOrNull方法，判断xml格式中传入的标签名在目标类中是否存在对应属性。</p>
+<p><img src="/2025/12/09/XStream-RCE/33.png" alt="image"></p>
+<p><img src="/2025/12/09/XStream-RCE/34.png" alt="image"></p>
+<p>在调用reader.getNodeName()方法获取标签名，并赋值给originalNodeName。</p>
+<p><img src="/2025/12/09/XStream-RCE/35.png" alt="image"></p>
+<p>调用realMember方法获取反序列化属性的名称。</p>
+<p><img src="/2025/12/09/XStream-RCE/36.png" alt="image"></p>
+<p>调用readClassAttribute方法获取target标签中传入的类名</p>
+<p><img src="/2025/12/09/XStream-RCE/37.png" alt="image"></p>
+<p>调用realClass获取上述过程中类名对应的类，并调用unmarshallField方法进行解析。</p>
+<p><img src="/2025/12/09/XStream-RCE/38.png" alt="image"></p>
+<p>进入方法中，寻找对应type的转换器，由于是java.beans.EventHandler作为动态代理的实现类，所以选择的转化器都是ReflectionConverter 。使用选中的转换器进行解组。</p>
+<p><img src="/2025/12/09/XStream-RCE/39.png" alt="image"></p>
+<p>使用ReflectionConverter convert处理java.lang.ProcessBuilder ，在duUnmarshal()方法获取command标签和comand标签下的String标签及其参数。（其中String标签下的参数是在下一层convert调用中获取的。）</p>
+<p><img src="/2025/12/09/XStream-RCE/40.png" alt="image"></p>
+<p>调用this.reflectionProvider.writeField方法，将参数值传入对象中。</p>
+<p><img src="/2025/12/09/XStream-RCE/41.png" alt="image"></p>
+<p><img src="/2025/12/09/XStream-RCE/42.png" alt="image"></p>
+<p><img src="/2025/12/09/XStream-RCE/43.png" alt="image"></p>
+<p>在按照获取target标签相同的流程获取action标签，最终将start方法存入对象中。</p>
+<p><img src="/2025/12/09/XStream-RCE/44.png" alt="image"></p>
+<p>回到TreeMapConverter#populateTreeMap方法中，上述过程中构造的object保存在sortedMap中。且其中的动态代理实现的接口是java.lang.Comparable，因此只要调用java.lang.Comparable接口中的compareTo方法，即可触发动态代理，进入java.beans.EventHandler实现类中的invoke方法。在populateTreeMap方法中调用putAll方法，将sortedMap中的对象写入result变量的过程中会调用到compareTo，调用链如下。</p>
+<p><img src="/2025/12/09/XStream-RCE/45.png" alt="image"></p>
+<p>进入java.beans.EventHandler#invoke方法中，通过反射执行对象中的方法。</p>
+<p><img src="/2025/12/09/XStream-RCE/46.png" alt="image"></p>
+<p><strong>1.3.2 补丁分析</strong></p>
+<p>XStream1.4.7版本中，在com.thoughtworks.xstream.converters.reflection.ReflectionConverter添加type !&#x3D; eventHandlerType阻止ReflectionConverter解析java.beans.EventHandler类。从而防御了此漏洞。</p>
+<p><img src="/2025/12/09/XStream-RCE/47.png" alt="image"></p>
+</blockquote>
+<h3><span id="2-xstream-远程代码执行漏洞">2 XStream 远程代码执行漏洞</span></h3><h4><span id="21-漏洞信息">2.1 漏洞信息</span></h4><blockquote>
+<p><strong>2.1.1 漏洞简介</strong></p>
+<p>● 漏洞名称：XStream Remote Code Execution Vulnerability</p>
+<p>● 漏洞编号：CVE-2019-10173</p>
+<p>● 漏洞类型：Remote Code Execution</p>
+<p>● CVSS评分：CVSS v2.0：7.3 ， CVSS v3.0：9.8</p>
+<p>● 漏洞危害等级：高危</p>
+<p><strong>2.1.2 漏洞概述</strong></p>
+<p>包含类型信息的流在unmarshalling时，会再次创建之前写入的对象。因此XStream会基于这些类型信息创建新的实例。攻击者可以操控XML数据，将恶意命令注入在在可以执行任意shell命令的对象中，实现漏洞的利用。</p>
+<p><strong>2.1.3 漏洞利用条件</strong></p>
+<p>无</p>
+<p><strong>2.1.4 影响版本</strong></p>
+<p>影响版本：XStream &#x3D; 1.4.10</p>
+<p><strong>2.1.5 漏洞修复</strong></p>
+<p>获取XStream最新版本，下载链接：<a target="_blank" rel="noopener" href="https://x-stream.github.io/download.html">https://x-stream.github.io/download.html</a></p>
+</blockquote>
+<h4><span id="22-漏洞复现">2.2 漏洞复现</span></h4><blockquote>
+<p><strong>2.2.1 拓扑图</strong></p>
+<p><img src="/2025/12/09/XStream-RCE/48.png" alt="image"></p>
+<p><strong>2.2.2 应用协议</strong></p>
+<p>8080&#x2F;HTTP</p>
+<p><strong>2.2.3 环境搭建</strong></p>
+<p>基于Windows平台，使用环境目录下的xstreamdemo环境，拷贝后使用Idea打开xstreamdemo文件夹，下载maven资源，运行DemoApplication类，即可启动环境。效果如图。</p>
+<p><img src="/2025/12/09/XStream-RCE/49.png" alt="image"></p>
+<p><strong>2.2.4 漏洞复现</strong></p>
+<p>运行sniper工具箱，填写表单信息，点击Attack，效果如图。</p>
+<p><img src="/2025/12/09/XStream-RCE/50.png" alt="image"></p>
+</blockquote>
+<h4><span id="23-漏洞分析">2.3 漏洞分析</span></h4><blockquote>
+<p><strong>2.3.1 代码分析</strong></p>
+<p>CVE-2019-10173漏洞与CVE-2013-7285漏洞原理相同，由于在XStream的安全模式默认不启动，导致防御失效。</p>
+<p><strong>Xstream 1.4.7对于漏洞的防御措施</strong>：</p>
+<p>通过在</p>
+<p>com.thoughtworks.xstream.converters.reflection.ReflectionConverter添加type !&#x3D; eventHandlerType阻止ReflectionConverter解析java.beans.EventHandler类</p>
+<p><img src="/2025/12/09/XStream-RCE/51.png" alt="image"></p>
+<p><strong>Xstream 1.4.10漏洞产生原因</strong>：</p>
+<p>在com.thoughtworks.xstream.converters.reflection.ReflectionConverter类中，canConvert方法中的type !&#x3D; eventHandlerType被删除了，使得原来的漏洞利用方式可以再次被利用。</p>
+<p>由于在Xstream1.4.10中的com.thoughtworks.xstream.XStream类增加了setupDefaultSecurity()方法和InternalBlackList转换器，通过黑名单的形式对漏洞进行防御。但是安全模式默认不开启，必须在初始化后才可以使用，eg：XStream.setupDefaultSecurity(xStream)。导致防御失效，造成漏洞的第二次出现。</p>
+<p><img src="/2025/12/09/XStream-RCE/52.png" alt="image"></p>
+<p><img src="/2025/12/09/XStream-RCE/53.png" alt="image"></p>
+<p><strong>2.3.2 补丁分析</strong></p>
+<p>XStream1.4.11版本中，在com.thoughtworks.xstream.XStream更改安全模式初始化方法中的securityInitialized标志位。在调用InternalBlackList转换器中的canConvert方法时,可以进行黑名单匹配，从而防御了此漏洞。</p>
+<p><img src="/2025/12/09/XStream-RCE/54.png" alt="image"></p>
+<p><img src="/2025/12/09/XStream-RCE/55.png" alt="image"></p>
+<p><strong>2.3.3 漏洞防御</strong></p>
+<p>在Xstream1.4.11中的com.thoughtworks.xstream.XStream类中InternalBlackList类会对java.beans.EventHandler进行过滤，java.beans.EventHandler执行marshal或者unmarshal方法时，会抛出异常终止程序。</p>
+<p><img src="/2025/12/09/XStream-RCE/56.png" alt="image"></p>
+</blockquote>
+<h3><span id="3-xstream-远程代码执行漏洞">3 XStream 远程代码执行漏洞</span></h3><h4><span id="31-漏洞信息">3.1 漏洞信息</span></h4><blockquote>
+<p><strong>3.1.1 漏洞简介</strong></p>
+<p>● 漏洞名称：XStream Remote Code Execution Vulnerability</p>
+<p>● 漏洞编号：CVE-2020-26217</p>
+<p>● 漏洞类型：Remote Code Execution</p>
+<p>● CVSS评分：CVSS v2.0：无， CVSS v3.0：8.0</p>
+<p>● 漏洞危害等级：高危</p>
+<p><strong>3.1.2 漏洞概述</strong></p>
+<p>包含类型信息的流在unmarshalling时，会再次创建之前写入的对象。因此XStream会基于这些类型信息创建新的实例。攻击者可以操控XML数据，将恶意命令注入在在可以执行任意shell命令的对象中，实现漏洞的利用。</p>
+<p><strong>3.1.3 漏洞利用条件</strong></p>
+<p>无</p>
+<p><strong>3.1.4 漏洞影响</strong></p>
+<p>影响版本：XStream &#x3D; 1.4.13</p>
+<p><strong>3.1.5 漏洞修复</strong></p>
+<p>获取XStream最新版本，下载链接：<a target="_blank" rel="noopener" href="https://x-stream.github.io/download.html">https://x-stream.github.io/download.html</a></p>
+</blockquote>
+<h4><span id="32-漏洞复现">3.2 漏洞复现</span></h4><blockquote>
+<p><strong>3.2.1 环境拓扑</strong></p>
+<p><img src="/2025/12/09/XStream-RCE/57.png" alt="image"></p>
+<p><strong>3.2.2 应用协议</strong></p>
+<p>8080&#x2F;HTTP</p>
+<p><strong>3.2.3 环境搭建</strong></p>
+<p>基于Windows平台，使用环境目录下的xstreamdemo环境，拷贝后使用Idea打开xstreamdemo文件夹，下载maven资源，运行DemoApplication类，即可启动环境。效果如图。</p>
+<p><img src="/2025/12/09/XStream-RCE/58.png" alt="image"></p>
+<p><strong>3.2.4 漏洞复现</strong></p>
+<p>运行sniper工具箱，填写表单信息，点击Attack，效果如图。</p>
+<p><img src="/2025/12/09/XStream-RCE/59.png" alt="image"></p>
+</blockquote>
+<h4><span id="33-漏洞分析">3.3 漏洞分析</span></h4><blockquote>
+<p><strong>3.3.1 代码分析</strong></p>
+<p>代码分析：传入的payload首先会在com.thoughtworks.xstream.XStream的fromXML()方法中处理，在进入unmarshal()方法中进行解集。</p>
+<p><img src="/2025/12/09/XStream-RCE/60.png" alt="image"></p>
+<p>在com.thoughtworks.xstream.core.AbstractTreeMarshallingStrategy类中的unmarshal()方法中调用start()方法进行Java对象转换。</p>
+<p><img src="/2025/12/09/XStream-RCE/61.png" alt="image"></p>
+<p>在com.thoughtworks.xstream.core.TreeUnmarshaller类中的start()方法通过调用readClassType()获取type类型。</p>
+<p><img src="/2025/12/09/XStream-RCE/62.png" alt="image"></p>
+<p>在readClassType()方法中调用readClassAttribute方法。</p>
+<p><img src="/2025/12/09/XStream-RCE/63.png" alt="image"></p>
+<p>进入readClassAttribute方法调用aliasForSystemAttribute方法获取别名。调用getAttribute方法，获取reader对象中记录的外部传入XML数据中是否存在对应的标签，如果不存在则返回null。</p>
+<p><img src="/2025/12/09/XStream-RCE/64.png" alt="image"></p>
+<p>回到HierarchicalStreams#readClassType方法中调用realClass方法，通过别名在wrapped对象中的Mapper中循环查找，获取与别名对应的类。</p>
+<p><img src="/2025/12/09/XStream-RCE/65.png" alt="image"></p>
+<p>在DefaultMapper中，通过反射，获取到string标签传入的class，并将类存入realClassCache对象中。</p>
+<p><img src="/2025/12/09/XStream-RCE/66.png" alt="image"></p>
+<p><img src="/2025/12/09/XStream-RCE/67.png" alt="image"></p>
+<p>回到TreeUnmarshaller#start方法，调用convertAnother方法。进入convertAnother方法后，调用lookupConverterForType方法，寻找对应类型的转换器。进入lookupConverterForType方法，循环获取转换器列表中的转换器，调用转换器类中的canConvert方法判断选出的转换器是否可以对传入的type类型进行转换。</p>
+<p><img src="/2025/12/09/XStream-RCE/68.png" alt="image"></p>
+<p>转换器ReflectionConverter中canConvert方法判断，传入的type非null，返回true，表示可以使用ReflectionConverter转换器进行转换。</p>
+<p><img src="/2025/12/09/XStream-RCE/69.png" alt="image"></p>
+<p>回到DefaultConverterLookup#lookupConverterForType方法，将选取的converter与对应的type存入typeToConverterMap。</p>
+<p>回到TreeUnmarshaller#convertAnother方法中，调用this.convert方法。</p>
+<p><img src="/2025/12/09/XStream-RCE/70.png" alt="image"></p>
+<p>首先判断传入的xml数据中是否存在reference标签，如果不存在，则将当前标签压入parentStack栈中，并调用父类的convert方法。</p>
+<p><img src="/2025/12/09/XStream-RCE/71.png" alt="image"></p>
+<p>在com.thoughtworks.xstream.converters.reflection.AbstractReflectionConverter.duUnmarshal()方法获取下面的节点元素iter java.util.ArrayList$Itr。</p>
+<p>具体流程如下：调用getFieldOrNull方法，判断xml格式中传入的标签名在目标类中是否存在对应属性。</p>
+<p><img src="/2025/12/09/XStream-RCE/72.png" alt="image"></p>
+<p><img src="/2025/12/09/XStream-RCE/73.png" alt="image"></p>
+<p>在调用reader.getNodeName()方法获取标签名，并赋值给originalNodeName。</p>
+<p><img src="/2025/12/09/XStream-RCE/74.png" alt="image"></p>
+<p>调用realMember方法获取反序列化属性的名称。</p>
+<p><img src="/2025/12/09/XStream-RCE/75.png" alt="image"></p>
+<p>调用readClassAttribute方法获取iter标签中传入的类名</p>
+<p><img src="/2025/12/09/XStream-RCE/76.png" alt="image"></p>
+<p>调用realClass获取上述过程中类名对应的类，并调用unmarshallField方法进行解析。</p>
+<p><img src="/2025/12/09/XStream-RCE/77.png" alt="image"></p>
+<p>进入方法中，寻找对应type的转换器，使用选中的ReflectionConverter转换器进行解组。</p>
+<p><img src="/2025/12/09/XStream-RCE/78.png" alt="image"></p>
+<p>使用ReflectionConverter convert处理java.util.ArrayList$Itr ，在duUnmarshal()方法获取cursor标签和cursor标签下的参数。（调用unmarshallField方法，与上述流程相似）</p>
+<p><img src="/2025/12/09/XStream-RCE/79.png" alt="image"></p>
+<p>调用this.reflectionProvider.writeField方法，将参数值传入对象中。</p>
+<p><img src="/2025/12/09/XStream-RCE/80.png" alt="image"></p>
+<p><img src="/2025/12/09/XStream-RCE/81.png" alt="image"></p>
+<p>回到AbstractReflectionConverter#doUnmarshal方法中获取后续的标签及其参数（分别为lastRet，expectedModCount，outer-class）。</p>
+<p><img src="/2025/12/09/XStream-RCE/82.png" alt="image"></p>
+<p>按照同样的反序列化流程获取属性值，并写入对象。</p>
+<p><img src="/2025/12/09/XStream-RCE/83.png" alt="image"></p>
+<p>解析outer-class标签，由于type是java.util.ArrayList，选择转换器是CollectionConverter。</p>
+<p><img src="/2025/12/09/XStream-RCE/84.png" alt="image"></p>
+<p>调用CollectionConverter#unmarshal方法进行反序列化。</p>
+<p><img src="/2025/12/09/XStream-RCE/85.png" alt="image"></p>
+<p>调用CollectionConverter#populateCollection -&gt; CollectionConverter#addCurrentElementToCollection-&gt;AbstractCollectionConverter#readItem方法。最终调用realClass方法获取type类，获取过程中将outer-class标签下的子标签存入realClassCache中。</p>
+<p><img src="/2025/12/09/XStream-RCE/86.png" alt="image"></p>
+<p>回到AbstractCollectionConverter#readBareItem方法调用convertAnother方法，按照之前的流程进行反序列化，为属性赋值，并写入对象。</p>
+<p><img src="/2025/12/09/XStream-RCE/87.png" alt="image"></p>
+<p>最终返回ProcessBuilder对象，写入FilterIterator对象中。</p>
+<p><img src="/2025/12/09/XStream-RCE/88.png" alt="image"></p>
+<p>在按照获取java.util.ArrayList$Itr对象相同的流程获取javax.imageio.ImageIO$ContainsFilter对象，通过反序列化为其内部的method属性和name属性进行赋值。</p>
+<p>在选择转换器的过程中，由于method属性的类型是java.lang.reflect.Method，因此选择对应的转换器为JavaMethodConverter。</p>
+<p><img src="/2025/12/09/XStream-RCE/89.png" alt="image"></p>
+<p>调用JavaMethodConverter#unmarshal方法进行xml数据解析，获取java.lang.processBuilder类中的start方法对象，写入到javax.imageio.ImageIO$ContainsFilter对象中。</p>
+<p><img src="/2025/12/09/XStream-RCE/90.png" alt="image"></p>
+<p>再按照相同的流程，将start方法名写入name属性中。</p>
+<p><img src="/2025/12/09/XStream-RCE/91.png" alt="image"></p>
+<p>将FilterIterator对象返回给最初的iterator对象中。</p>
+<p><img src="/2025/12/09/XStream-RCE/92.png" alt="image"></p>
+<p>调用iterator.next()方法时，会调用其实现类FilterIterator中的next方法。</p>
+<p><img src="/2025/12/09/XStream-RCE/93.png" alt="image"></p>
+<p>进入调用advance方法，调用filter方法时，会通过反射执行ProcessBuilder对象中的start方法，从而造成代码执行。</p>
+<p><img src="/2025/12/09/XStream-RCE/94.png" alt="image"></p>
+<p><img src="/2025/12/09/XStream-RCE/95.png" alt="image"></p>
+<p><strong>3.3.2 补丁分析</strong></p>
+<p>XStream1.4.11版本中，在com.thoughtworks.xstream.XStream更改安全模式初始化方法中的securityInitialized标志位。在调用InternalBlackList转换器中的canConvert方法时,可以进行黑名单匹配，从而防御了此漏洞。</p>
+<p><img src="/2025/12/09/XStream-RCE/96.png" alt="image"></p>
+<p><img src="/2025/12/09/XStream-RCE/97.png" alt="image"></p>
+<p><strong>3.3.3 漏洞防御</strong></p>
+<p>XStream1.4.14版本中，在com.thoughtworks.xstream.XStream的黑名单添加java.lang.ProcessBuilder和javax.imageio.ImageIO$ContainsFilter。从而防御了此漏洞。</p>
+<p><img src="/2025/12/09/XStream-RCE/98.png" alt="image"></p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/yaomingyang/article/details/80981004">https://blog.csdn.net/yaomingyang/article/details/80981004</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/x-stream/xstream/compare/XSTREAM_1_4_6...XSTREAM_1_4_7">https://github.com/x-stream/xstream/compare/XSTREAM_1_4_6...XSTREAM_1_4_7</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/x-stream/xstream/compare/XSTREAM_1_4_10...XSTREAM_1_4_11">https://github.com/x-stream/xstream/compare/XSTREAM_1_4_10...XSTREAM_1_4_11</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/x-stream/xstream/compare/XSTREAM_1_4_13...XSTREAM_1_4_14">https://github.com/x-stream/xstream/compare/XSTREAM_1_4_13...XSTREAM_1_4_14</a></li>
+</ol>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XStream/" rel="tag">XStream</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+</section>
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/szczecin" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/tags/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Tag: Apktool | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Open your eyes to see the light in life">
+<meta property="og:type" content="website">
+<meta property="og:title" content="氕氘氚">
+<meta property="og:url" content="https://szczecin.github.io/tags/Apktool/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Open your eyes to see the light in life">
+<meta property="og:locale">
+<meta property="article:author" content="Szczecin">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        
+  <section class="page-header tag">
+    <h1>- <span>Apktool</span> -</h1>
+  </section>
+
+
+
+
+
+
+<section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2025/11/13/Fuzz-AndroidManifest/">
+                fuzz AndroidManifest.xml 实现反编译对抗
+            </a>
+        </h2>
+    
+    <time>
+        Nov 13, 2025
+    </time>
+    <section class="content">
+        <h1><span id="fuzz-androidmanifestxml-实现反编译对抗">fuzz AndroidManifest.xml 实现反编译对抗</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://xz.aliyun.com/news/12384">枫糖甜酒</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>有的恶意APK为了防止被apktool反编译，就会在AndroidManifest.xml里面进行一些特殊处理，来干扰apktool反编译，实现安装运行APK没问题，但是apktool 反编译的时候会出现异常并退出<br>例如下面这个APK，在apktool 2.8.1版本下，就无法正常反编译，但是却能够adb install安装</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/1.png" alt="image"></p>
+<p>这篇文章<a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/12893#toc-10">Android免杀小结</a>中提到过可以通过修改AndroidManifest.xml二进制文件中的某一位来干扰apktool的判断，但是告诉我们如何寻找这种能够干扰反编译软件的位，所以本篇会针对单位修改AndroidManifest.xml文件对抗反编译进行讨论</p>
+</blockquote>
+<h2><span id="环境准备">环境准备</span></h2><blockquote>
+<p>本机使用windows系统，测试机 AOSP Android 11，这里的反编译工具是Apktool，截止到今天最新版本是 <a target="_blank" rel="noopener" href="https://github.com/iBotPeaches/Apktool/releases/tag/v2.9.0">v2.9.0</a></p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/2.png" alt="image"></p>
+<p>本地更新一下jar包</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/3.png" alt="image"></p>
+<p>010Editor，用到这个是为了查看AndroidManifest.xml 的二进制数据格式<br>现在环境就OK了</p>
+</blockquote>
+<h2><span id="androidmanifestxml-简介">AndroidManifest.xml 简介</span></h2><blockquote>
+<p><em>如果不了解AndroidManifest.xml 文件结构就暴力fuzz未免太粗鲁了</em><br>AndroidManifest.xml 是 Android 应用程序的清单文件，用于描述应用程序的基本信息、声明组件和权限等内容，是安卓应用开发中非常重要的一个文件<br>以之前写的一个AndroidManifest.xml 文件为例：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;utf-8&quot;</span>?&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">manifest</span> <span class="attr">xmlns:android</span>=<span class="string">&quot;http://schemas.android.com/apk/res/android&quot;</span></span></span><br><span class="line"><span class="tag">    <span class="attr">xmlns:tools</span>=<span class="string">&quot;http://schemas.android.com/tools&quot;</span></span></span><br><span class="line"><span class="tag">    <span class="attr">package</span>=<span class="string">&quot;hi.beautifulz.myapplication&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">uses-permission</span> <span class="attr">android:name</span>=<span class="string">&quot;android.permission.INTERNET&quot;</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">uses-permission</span> <span class="attr">android:name</span>=<span class="string">&quot;android.permission.ACCESS_WIFI_STATE&quot;</span> /&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">uses-feature</span> <span class="attr">android:name</span>=<span class="string">&quot;android.hardware.camera&quot;</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">uses-feature</span> <span class="attr">android:name</span>=<span class="string">&quot;android.hardware.camera.autofocus&quot;</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">uses-feature</span> <span class="attr">android:name</span>=<span class="string">&quot;android.hardware.microphone&quot;</span> /&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">application</span></span></span><br><span class="line"><span class="tag">        <span class="attr">android:allowBackup</span>=<span class="string">&quot;true&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">android:icon</span>=<span class="string">&quot;@mipmap/ic_launcher&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">android:label</span>=<span class="string">&quot;@string/app_name&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">android:roundIcon</span>=<span class="string">&quot;@mipmap/ic_launcher_round&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">android:theme</span>=<span class="string">&quot;@style/AppTheme&quot;</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">activity</span></span></span><br><span class="line"><span class="tag">            <span class="attr">android:name</span>=<span class="string">&quot;.MainActivity&quot;</span></span></span><br><span class="line"><span class="tag">            <span class="attr">android:label</span>=<span class="string">&quot;@string/app_name&quot;</span></span></span><br><span class="line"><span class="tag">            <span class="attr">android:exported</span>=<span class="string">&quot;true&quot;</span></span></span><br><span class="line"><span class="tag">            &gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">intent-filter</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">action</span> <span class="attr">android:name</span>=<span class="string">&quot;android.intent.action.MAIN&quot;</span> /&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">category</span> <span class="attr">android:name</span>=<span class="string">&quot;android.intent.category.LAUNCHER&quot;</span> /&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">intent-filter</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">activity</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">receiver</span></span></span><br><span class="line"><span class="tag">            <span class="attr">android:name</span>=<span class="string">&quot;.MainBroadcastReceiver&quot;</span></span></span><br><span class="line"><span class="tag">            <span class="attr">android:label</span>=<span class="string">&quot;MainBroadcastReceiver&quot;</span></span></span><br><span class="line"><span class="tag">            <span class="attr">android:exported</span>=<span class="string">&quot;true&quot;</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">intent-filter</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">action</span> <span class="attr">android:name</span>=<span class="string">&quot;android.intent.action.BOOT_COMPLETED&quot;</span> /&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">intent-filter</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">receiver</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">service</span> <span class="attr">android:name</span>=<span class="string">&quot;.MyService&quot;</span> <span class="attr">android:exported</span>=<span class="string">&quot;true&quot;</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">application</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;/<span class="name">manifest</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>简单介绍一下该文件：</p>
+<ul>
+<li><p><manifest> 元素是必须的，它定义了整个文件的根元素，并且包含了一些必要的属性，例如 package </manifest></p>
+</li>
+<li><p><uses-permission> 元素用于声明应用程序所需的权限</uses-permission></p>
+</li>
+<li><p><uses-feature> 元素用于声明应用程序所需的设备功能和硬件特性</uses-feature></p>
+</li>
+<li><p><application> 元素是应用程序的核心元素，它包含了所有的组件和各种配置信息，例如主 activity、自定义 theme、icon 等等。</application></p>
+<ul>
+<li><activity> 元素用于声明应用程序中的 Activity 组件</activity></li>
+<li><service> 元素用于声明应用程序中的 Service 组件</service></li>
+<li><receiver> 元素用于声明应用程序中的 Broadcast Receiver 组件</receiver></li>
+<li><provider> 元素用于声明应用程序中的 Content Provider 组件</provider></li>
+<li>…….</li>
+</ul>
+</li>
+</ul>
+</blockquote>
+<h2><span id="androidmanifestxml二进制文件结构">AndroidManifest.xml二进制文件结构</span></h2><h3><span id="文件大纲">文件大纲</span></h3><blockquote>
+<p>MindMac师傅在看雪发的图</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/4.png" alt="image"></p>
+<p>当然没基础的话，直接看这个图其实没什么卵用<br>根据附件里面的AndroidManifest.xml文件生成二进制文件，跟着MindMac的思路使用010Editor进行分析<br>编码前的xml文件内容如下</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;utf-8&quot;</span>?&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">manifest</span> <span class="attr">xmlns:android</span>=<span class="string">&quot;http://schemas.android.com/apk/res/android&quot;</span></span></span><br><span class="line"><span class="tag">    <span class="attr">package</span>=<span class="string">&quot;com.android.test&quot;</span></span></span><br><span class="line"><span class="tag">    <span class="attr">android:versionCode</span>=<span class="string">&quot;1&quot;</span></span></span><br><span class="line"><span class="tag">    <span class="attr">android:versionName</span>=<span class="string">&quot;1.0&quot;</span> &gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">uses-sdk</span></span></span><br><span class="line"><span class="tag">        <span class="attr">android:minSdkVersion</span>=<span class="string">&quot;14&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">android:targetSdkVersion</span>=<span class="string">&quot;19&quot;</span> /&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">uses-permission</span> <span class="attr">android:name</span>=<span class="string">&quot;android.permission.INTERNET&quot;</span> /&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">application</span></span></span><br><span class="line"><span class="tag">        <span class="attr">android:allowBackup</span>=<span class="string">&quot;false&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">android:icon</span>=<span class="string">&quot;@drawable/ic_launcher&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">android:label</span>=<span class="string">&quot;@string/app_name&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">android:theme</span>=<span class="string">&quot;@style/AppTheme&quot;</span> &gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">activity</span></span></span><br><span class="line"><span class="tag">            <span class="attr">android:name</span>=<span class="string">&quot;com.android.test.MainActivity&quot;</span></span></span><br><span class="line"><span class="tag">            <span class="attr">android:label</span>=<span class="string">&quot;@string/app_name&quot;</span> &gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">intent-filter</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">action</span> <span class="attr">android:name</span>=<span class="string">&quot;android.intent.action.MAIN&quot;</span> /&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">category</span> <span class="attr">android:name</span>=<span class="string">&quot;android.intent.category.LAUNCHER&quot;</span> /&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">intent-filter</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">activity</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">application</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">manifest</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>用这个xml生成APK，APK再解压之后得到AndroidManifest.xml二进制文件，丢到010editor里面，以十六进制的格式查看</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/5.png" alt="image"></p>
+<p>感觉跟MindMac的内容有点不太一样，难道是因为版本的问题，加载AndroidManifest.bt Template</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/6.png" alt="image"></p>
+<p>可以看到已经把AndroidManifest文件架构列出来了<br>MindMac把文件分为了五个结构，这里的Magic Number和File Size其实都属于header</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/7.png" alt="image"></p>
+<p>header内容为</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/8.png" alt="image"></p>
+<p>所以可以分为四个部分</p>
+<ul>
+<li>Header : 包括文件魔数和文件大小</li>
+<li>String Chunk : 字符串资源池</li>
+<li>ResourceId Chunk : 系统资源 id 信息</li>
+<li>XmlContent Chunk : 清单文件中的具体信息，其中包含了五个部分</li>
+</ul>
+<p>接下来简单分析一下这几个部分</p>
+</blockquote>
+<h3><span id="header">Header</span></h3><blockquote>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/9.png" alt="image"></p>
+<p>AndroidManifest的魔数为 0x00080003</p>
+<blockquote>
+<p>关于魔数<br>二进制文件的魔数（Magic Number）是一种固定值，用于标识文件类型或格式。不同的文件类型通常具有不同的魔数。</p>
+<p>以下是一些常见的二进制文件魔数示例：</p>
+<ul>
+<li>ELF（可执行和共享目标文件）：0x7F 0x45 0x4C 0x46</li>
+<li>JPEG（图片文件）：0xFF 0xD8</li>
+<li>PNG（可移植网络图形）：0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A</li>
+<li>PDF（便携式文档格式）：0x25 0x50 0x44 0x46</li>
+<li>ZIP（压缩文件）：0x50 0x4B 0x03 0x04</li>
+<li>GIF（图形交换格式）：0x47 0x49 0x46 0x38</li>
+</ul>
+</blockquote>
+<p>另外为什么这里是 0x00080003 而不是 0x03000800<br>是因为清单文件是小端表示的</p>
+<p>在早期的apktool会识别AndroidManifest文件，如果魔数不为0x00080003则反编译失败，该方法也用在了某些恶意APK上，比如链安的这篇文章<a target="_blank" rel="noopener" href="https://www.liansecurity.com/#/main/news/IPONQIoBE2npFSfFbCRf/detail">https://www.liansecurity.com/#/main/news/IPONQIoBE2npFSfFbCRf/detail</a></p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/10.png" alt="image"></p>
+<p>其中修改魔数为 00 00 08 00 则可以实现干扰<br>该方法在新版本的apktool测试已失效</p>
+<p>该文件的filesize为0x00000904即2308字节</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/11.png" alt="image"></p>
+</blockquote>
+<h3><span id="other">Other</span></h3><blockquote>
+<p>其他的模块就不一一赘述，如果想要自己跟着分析每一块内容可以参考</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://bbs.kanxue.com/thread-194206.htm">https://bbs.kanxue.com/thread-194206.htm</a></li>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/6844903747169026061">https://juejin.cn/post/6844903747169026061</a></li>
+</ul>
+<p>总而言之，AndroidManifest里面的每一位都有自己的作用</p>
+</blockquote>
+<h2><span id="手动修改androidmanifest文件">手动修改AndroidManifest文件</span></h2><blockquote>
+<p>手动修改在010Editor里面修改AndroidManifest，例如这里修改为 00</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/12.png" alt="image"></p>
+<p>然后压缩成zip文件，修改zip后缀为apk，就能够生效了（这个时候只是修改，并没有干扰反编译软件)</p>
+</blockquote>
+<h2><span id="自动化fuzz">自动化fuzz</span></h2><blockquote>
+<blockquote>
+<p>手动是不可能手动的</p>
+</blockquote>
+<p>自动化fuzz的AndroidManifest.xml文本内容如下：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;utf-8&quot;</span>?&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">manifest</span> <span class="attr">xmlns:android</span>=<span class="string">&quot;http://schemas.android.com/apk/res/android&quot;</span></span></span><br><span class="line"><span class="tag">    <span class="attr">package</span>=<span class="string">&quot;com.android.test&quot;</span></span></span><br><span class="line"><span class="tag">    <span class="attr">android:versionCode</span>=<span class="string">&quot;1&quot;</span></span></span><br><span class="line"><span class="tag">    <span class="attr">android:versionName</span>=<span class="string">&quot;1.0&quot;</span> &gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">uses-sdk</span> <span class="attr">android:targetSdkVersion</span>=<span class="string">&quot;29&quot;</span> /&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">uses-permission</span> <span class="attr">android:name</span>=<span class="string">&quot;android.permission.INTERNET&quot;</span> /&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">application</span></span></span><br><span class="line"><span class="tag">        <span class="attr">android:allowBackup</span>=<span class="string">&quot;false&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">android:icon</span>=<span class="string">&quot;@drawable/ic_launcher&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">android:label</span>=<span class="string">&quot;@string/app_name&quot;</span></span></span><br><span class="line"><span class="tag">        <span class="attr">android:theme</span>=<span class="string">&quot;@style/AppTheme&quot;</span> &gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">activity</span></span></span><br><span class="line"><span class="tag">            <span class="attr">android:name</span>=<span class="string">&quot;com.android.test.MainActivity&quot;</span></span></span><br><span class="line"><span class="tag">            <span class="attr">android:label</span>=<span class="string">&quot;@string/app_name&quot;</span> &gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">intent-filter</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">action</span> <span class="attr">android:name</span>=<span class="string">&quot;android.intent.action.MAIN&quot;</span> /&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">category</span> <span class="attr">android:name</span>=<span class="string">&quot;android.intent.category.LAUNCHER&quot;</span> /&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">intent-filter</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">activity</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">application</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">manifest</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="获取apktool解析结果">获取apktool解析结果</span></h3><blockquote>
+<p>之前先知上面的这篇文章 <a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/12893#toc-10">https://xz.aliyun.com/t/12893#toc-10</a> stringPoolSize陷阱，修改字符串个数 stringCount 字段，导致跟实际对应不上，会造成AndroidManifest.xml解析出现问题，但是这个问题 2.9.0已经修复了，我们在2.8.1上先捕捉一下这个错误</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/13.png" alt="image"></p>
+<p>使用python获取apktool的运行结果，为啥这里写的这么复杂是因为apktool的运行结果直接获取不到，需要Press any key to continue . . .<br>需要获取实时的运行流才可以确认结果</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">apktoolDecode</span>() -&gt; <span class="built_in">bool</span>:</span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    获取apktool的扫描结果</span></span><br><span class="line"><span class="string">    :rtype: object</span></span><br><span class="line"><span class="string">        True 扫描出错</span></span><br><span class="line"><span class="string">        False 扫描成功</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    apktool_cmd = <span class="string">f&quot;apktool d -f <span class="subst">&#123;sign_name&#125;</span> &quot;</span></span><br><span class="line">    process = subprocess.Popen(apktool_cmd, shell=<span class="literal">True</span>, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 定义一个标志位来表示命令是否已经执行完成</span></span><br><span class="line">    command_completed = threading.Event()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">handle_output</span>(<span class="params">stream, prefix</span>):</span><br><span class="line">        <span class="keyword">for</span> line <span class="keyword">in</span> stream:</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;prefix&#125;</span>: <span class="subst">&#123;line.strip()&#125;</span>&quot;</span>)</span><br><span class="line">            command_completed.<span class="built_in">set</span>()  <span class="comment"># 设置标志位，表示命令已完成</span></span><br><span class="line"></span><br><span class="line">    stderr_thread = threading.Thread(target=handle_output, args=(process.stderr, <span class="string">&quot;STDERR&quot;</span>))</span><br><span class="line">    stderr_thread.start()</span><br><span class="line">    timeout_seconds = <span class="number">5</span></span><br><span class="line">    command_completed.wait(timeout_seconds)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> command_completed.is_set():</span><br><span class="line">        process.terminate()</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        process.terminate()</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">True</span></span><br></pre></td></tr></table></figure>
+
+<p>遇到解析不了的APK的时候就会返回True，正常解析的就会返回False</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/14.png" alt="image"></p>
+</blockquote>
+<h3><span id="优化">优化</span></h3><blockquote>
+<p>简单计算一下会有多少种可能性，前面提到过该文件有2308个字节，一个字节修改范围为 0x00 - 0xFF，即256，所以一共有590848种可能性，如果是单线程运行的话需要八百多个小时</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/15.png" alt="image"></p>
+<p>蒽….<br>考虑已知的干扰位置，我们对每一个字节的修改范围变成下面两种可能来缩减范围：</p>
+<ul>
+<li>0x00 比如魔数，把 0x03修改为了0x00</li>
+<li>跟原本位置不同的数字，比如stringCount原来是0x23 我们修改为0x24</li>
+</ul>
+<p>在这个基础上 可能性缩减到了4616</p>
+</blockquote>
+<h3><span id="获取结果">获取结果</span></h3><blockquote>
+<p>在前面的思路上编写出脚本运行就可以了，能够造成apktool 2.9.0 干扰的位置有很多，但是有的位置修改了之后会导致手机也安装不上，出现错误</p>
+<blockquote>
+<p>adb: failed to install .\app-debug.apk: Failure [INSTALL_PARSE_FAILED_UNEXPECTED_EXCEPTION: Failed to parse &#x2F;data&#x2F;app&#x2F;vmdl1242571071.tmp&#x2F;base.apk: Corrupt XML binary file]</p>
+</blockquote>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/16.png" alt="image"></p>
+<p>所以我们不仅要能够干扰apktool，还需要修改之后能够正常安装<br>在原来的基础上添加了自动签名代码</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">signApk</span>():</span><br><span class="line">    subprocess.run(</span><br><span class="line">        [<span class="string">&#x27;jarsigner&#x27;</span>, <span class="string">&#x27;-verbose&#x27;</span>, <span class="string">&#x27;-sigalg&#x27;</span>, <span class="string">&#x27;SHA1withRSA&#x27;</span>, <span class="string">&#x27;-digestalg&#x27;</span>, <span class="string">&#x27;SHA1&#x27;</span>, <span class="string">&#x27;-keystore&#x27;</span>, <span class="string">&quot;./spring.keystore&quot;</span>,</span><br><span class="line">         <span class="string">&#x27;-storepass&#x27;</span>, <span class="string">&quot;123456&quot;</span>, <span class="string">&#x27;-keypass&#x27;</span>, <span class="string">&quot;123456&quot;</span>, <span class="string">&#x27;-signedjar&#x27;</span>, <span class="string">&quot;sign.apk&quot;</span>, <span class="string">&quot;./app-debug.apk&quot;</span>, <span class="string">&quot;spring&quot;</span>])</span><br></pre></td></tr></table></figure>
+
+<p>验证是否能正常安装代码</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">installApp</span>():</span><br><span class="line">    adb_install_cmd = <span class="string">f&#x27;adb install  <span class="subst">&#123;sign_name&#125;</span>&#x27;</span></span><br><span class="line">    result = os.system(adb_install_cmd)</span><br><span class="line">    <span class="keyword">if</span> result == <span class="number">0</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">False</span></span><br></pre></td></tr></table></figure>
+
+<p>跑了一会fuzz脚本之后就出现了结果，这里给出一个apktool2.9.0的干扰结果<br>在String Offsets数组里面（存储每个字符串在字符串池中的相对偏移量），修改0X00000198为0X00005098，为什么是这个值，这里只是找一个能让数组越界的下标值，因为fuzz出来是这个我就填这个了</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/17.png" alt="image"></p>
+<p>修改之后</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/18.png" alt="image"></p>
+<p>保存后重新打包成zip，并且签名<br>安装和运行没问题</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/19.png" alt="image"></p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/20.png" alt="image"></p>
+<p>使用apktool 2.9.0 进行反编译，反编译失败</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/21.png" alt="image"></p>
+</blockquote>
+<h2><span id="jadx对抗">jadx对抗</span></h2><blockquote>
+<p>本来准备结束了，<a target="_blank" rel="noopener" href="https://xz.aliyun.com/u/38717">Red256</a>问我能不能对抗jadx</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/22.png" alt="image"></p>
+<blockquote>
+<p>因为没有遇到我（吐舌</p>
+</blockquote>
+<p>使用jadx最新版本1.4.7，设置前面给出的干扰位置，把重新压缩的APK丢到jadx里面</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/23.png" alt="image"></p>
+<p>AndroidManifest.xml解析失败，对抗成功<br>给APK签名后检查能否安装</p>
+<blockquote>
+<p>jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore .&#x2F;spring.keystore -storepass 123456 -keypass 123456 -signedjar sign.apk .&#x2F;app-debug.apk spring</p>
+</blockquote>
+<p>安装成功</p>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/24.png" alt="image"></p>
+</blockquote>
+<h2><span id="小结">小结</span></h2><blockquote>
+<p>对于文件有增删查改四种操作，除了查操作之外，其他的三种操作都有机会对抗反编译软件，本篇也只是对改操作里面的单位操作进行了fuzz分析，除单位之外，还可以进行两位、三位….的修改，组合的情况也就更多了</p>
+<p>具体为什么反编译软件会出现报错，我们查看反编译软件的报错</p>
+<blockquote>
+<p>apktool报错</p>
+</blockquote>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/25.png" alt="image"></p>
+<blockquote>
+<p>jadx-gui报错</p>
+</blockquote>
+<p><img src="/2025/11/13/Fuzz-AndroidManifest/26.png" alt="image"></p>
+<p>其实都是指向同一个问题</p>
+<blockquote>
+<p>java.lang.ArrayIndexOutOfBoundsException</p>
+</blockquote>
+<p>查看apktool源代码，具体位置在</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="type">int</span>[] getUtf16(<span class="type">byte</span>[] array, <span class="type">int</span> offset) &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">val</span> <span class="operator">=</span> ((array[offset + <span class="number">1</span>] &amp; <span class="number">0xFF</span>) &lt;&lt; <span class="number">8</span> | array[offset] &amp; <span class="number">0xFF</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ((val &amp; <span class="number">0x8000</span>) != <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="type">int</span> <span class="variable">high</span> <span class="operator">=</span> (array[offset + <span class="number">3</span>] &amp; <span class="number">0xFF</span>) &lt;&lt; <span class="number">8</span>;</span><br><span class="line">        <span class="type">int</span> <span class="variable">low</span> <span class="operator">=</span> (array[offset + <span class="number">2</span>] &amp; <span class="number">0xFF</span>);</span><br><span class="line">        <span class="type">int</span> <span class="variable">len_value</span> <span class="operator">=</span>  ((val &amp; <span class="number">0x7FFF</span>) &lt;&lt; <span class="number">16</span>) + (high + low);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">int</span>[] &#123;<span class="number">4</span>, len_value * <span class="number">2</span>&#125;;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">int</span>[] &#123;<span class="number">2</span>, val * <span class="number">2</span>&#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>错误在这一行</p>
+<blockquote>
+<p>int val &#x3D; ((array[offset + 1] &amp; 0xFF) &lt;&lt; 8 | array[offset] &amp; 0xFF);</p>
+</blockquote>
+<p>所以是传入的恶意偏移量导致了数组越界产生了异常并退出</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41866334/article/details/126853346">https://blog.csdn.net/qq_41866334/article/details/126853346</a></li>
+<li><a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/12893">https://xz.aliyun.com/t/12893</a></li>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/7158107697907236878">https://juejin.cn/post/7158107697907236878</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/guolin_blog/article/details/49738023">https://blog.csdn.net/guolin_blog/article/details/49738023</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/baidu_31156101/article/details/108364110">https://blog.csdn.net/baidu_31156101/article/details/108364110</a></li>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/6844903747169026061">https://juejin.cn/post/6844903747169026061</a></li>
+<li><a target="_blank" rel="noopener" href="https://bbs.kanxue.com/thread-194206.htm">https://bbs.kanxue.com/thread-194206.htm</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.liansecurity.com/#/main/news/IPONQIoBE2npFSfFbCRf/detail">https://www.liansecurity.com/#/main/news/IPONQIoBE2npFSfFbCRf/detail</a></li>
+</ul>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Apktool/" rel="tag">Apktool</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/11/08/Apktool-URL/">
+                提取APK中的URL地址
+            </a>
+        </h2>
+    
+    <time>
+        Nov 8, 2023
+    </time>
+    <section class="content">
+        <h1><span id="提取apk中的url地址">提取APK中的URL地址</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/Aaron_Miller/article/details/108759583">風月长情</a> 并作补充</p>
+</blockquote>
+<h2><span id="一-目的">一、目的</span></h2><blockquote>
+<p>客户端渗透测试前期信息收集过程中可以在APK中检索开发过程中没有删掉的URL地址，在这些地址中可能会发现后台、搜索引擎、子域名查找不到的一些资源。</p>
+</blockquote>
+<h2><span id="二-操作">二、操作</span></h2><blockquote>
+<p>反编译APK文件<br><code>apktool d &lt;xxx.apk&gt;</code><br>将反编译的文件zip打包发送到linux系统中<br><img src="/2023/11/08/Apktool-URL/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>使用grep命令进行URL正则匹配<br>通过grep正则匹配包下边所有文件的uri地址，然后排序，删除重复行，最后重定向到文件中<br><code>grep -ohr -E &quot;https?://[a-zA-Z0-9\.\/_&amp;=@$%?~#-]*&quot; /Kevin/com.sogou.map.android.maps/ |sort|uniq &gt;&gt; test.txt</code><br><img src="/2023/11/08/Apktool-URL/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>然后在搜索出来的地址中查看是否有敏感地址：<br>比如这个地址就不在我搜索的上千个子域中：<br><img src="/2023/11/08/Apktool-URL/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>随便一试直接进入后台，到此文件上传拿shell一个高危漏洞又到手了，香吧~<br><img src="/2023/11/08/Apktool-URL/4.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apktool/" rel="tag">Apktool</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+</section>
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/szczecin" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/tags/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

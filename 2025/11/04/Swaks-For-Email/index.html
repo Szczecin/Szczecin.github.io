@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>邮件伪造原理和实践 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="邮件伪造原理和实践 本文转自 yanq 并作补充  1. smtp协议 smtp(Simple Mail Transfer Protocol)是用来发送邮件的协议，属于应用层协议的一种。SMTP的连接和发送过程如下：  建立TCP连接 客户端发送HELO或者EHLO命令以标识发件人自己的身份，服务器返回250 OK或者更详细一点的信息。 然后客户端发送MAIL命令，表明发件人邮箱地址， 服务器端以">
+<meta property="og:type" content="article">
+<meta property="og:title" content="邮件伪造原理和实践">
+<meta property="og:url" content="https://szczecin.github.io/2025/11/04/Swaks-For-Email/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="邮件伪造原理和实践 本文转自 yanq 并作补充  1. smtp协议 smtp(Simple Mail Transfer Protocol)是用来发送邮件的协议，属于应用层协议的一种。SMTP的连接和发送过程如下：  建立TCP连接 客户端发送HELO或者EHLO命令以标识发件人自己的身份，服务器返回250 OK或者更详细一点的信息。 然后客户端发送MAIL命令，表明发件人邮箱地址， 服务器端以">
+<meta property="og:locale">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/04/Swaks-For-Email/1.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/04/Swaks-For-Email/2.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/04/Swaks-For-Email/3.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/04/Swaks-For-Email/4.jpg">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/04/Swaks-For-Email/5.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/04/Swaks-For-Email/6.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/04/Swaks-For-Email/7.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/04/Swaks-For-Email/8.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/04/Swaks-For-Email/9.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/04/Swaks-For-Email/10.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/04/Swaks-For-Email/11.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/04/Swaks-For-Email/12.png">
+<meta property="article:published_time" content="2025-11-04T07:29:25.000Z">
+<meta property="article:modified_time" content="2025-11-04T08:45:07.350Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Reprint">
+<meta property="article:tag" content="Email">
+<meta property="article:tag" content="Fishing">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://szczecin.github.io/2025/11/04/Swaks-For-Email/1.png">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-Swaks-For-Email"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2025/11/04/Swaks-For-Email/">
+            邮件伪造原理和实践
+        </a>
+    </h2>
+    <time>
+        Nov 4, 2025
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="邮件伪造原理和实践">邮件伪造原理和实践</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://saucer-man.com/information_security/452.html">yanq</a> 并作补充</p>
+</blockquote>
+<h2><span id="1-smtp协议">1. smtp协议</span></h2><blockquote>
+<p>smtp(Simple Mail Transfer Protocol)是用来发送邮件的协议，属于应用层协议的一种。SMTP的连接和发送过程如下：</p>
+<ol>
+<li>建立TCP连接</li>
+<li>客户端发送HELO或者EHLO命令以标识发件人自己的身份，服务器返回250 OK或者更详细一点的信息。</li>
+<li>然后客户端发送MAIL命令，表明发件人邮箱地址， 服务器端以OK作为响应，表明准备接收</li>
+<li>客户端发送RCPT命令，表明接收人邮箱地址，可以有多个RCPT行，服务器端以OK作为响应，表示愿意为收件人接收邮件</li>
+<li>协商结束，发送邮件，用命令DATA发送，服务端会返回邮件发送成功与否的情况。</li>
+</ol>
+<p>下面我们用一个telnet来模仿使用qq邮箱客户端发送一封邮件到gmail邮箱的过程：</p>
+<p><img src="/2025/11/04/Swaks-For-Email/1.png" alt="image"></p>
+<p>发送结果：</p>
+<p><img src="/2025/11/04/Swaks-For-Email/2.png" alt="image"></p>
+<p>上述我们使用qq邮箱服务器发送了邮件给gmail邮箱服务器，其架构如下：</p>
+<p><img src="/2025/11/04/Swaks-For-Email/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="2-spf介绍">2. SPF介绍</span></h2><blockquote>
+<p>上一节我们是使用qq邮箱服务器来发送邮件的，那么我们能够本地直接发送邮件给gmail服务器呢？答案是可以的，那我们能否在本地发送邮件时假装自己是<a href="mailto:xxx@qq.com">xxx@qq.com</a>呢?</p>
+<p>这就涉及到了邮件伪造问题，我们可以发送邮件给目标邮件服务器，然后声称自己是<a href="mailto:xxx@qq.com">xxx@qq.com</a>，因为SMTP 协议本身也不要求对此声明做认证，这也就是钓鱼邮件的原理。</p>
+<p>但是显然经过这么多年的发展，邮件服务器也不能什么都不管，什么都信任。</p>
+<p>发件人策略框架（Sender Policy Framework）就是一套电子邮件认证机制，当你定义了你域名的SPF记录之后，邮件接收方的收件服务器在接受到邮件后，首先检查域名的SPF记录，来确定发件人的IP地址是否被包含在SPF记录里面，如果在，就认为是一封正确的邮件，否则会认为是一封伪造的邮件进行退回或丢弃处理。</p>
+<p><img src="/2025/11/04/Swaks-For-Email/4.jpg" alt="image"></p>
+<p>比如我们直接向163邮箱服务器发送一个邮件，并且声称自己是<a href="mailto:hr@huawei.com">hr@huawei.com</a>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 163mx03.mxmail.netease.com是163邮件服务器的mx记录ip</span></span><br><span class="line">ubuntu@10-9-15-151:~$ telnet 163mx03.mxmail.netease.com 25</span><br><span class="line">Trying 220.181.14.158...</span><br><span class="line">Connected to 163mx03.mxmail.netease.com.</span><br><span class="line">Escape character is <span class="string">&#x27;^]&#x27;</span>.</span><br><span class="line">220 163.com Anti-spam GT <span class="keyword">for</span> Coremail System (163com[20141201])</span><br><span class="line">ehlo antispam</span><br><span class="line">250-mail</span><br><span class="line">250-PIPELINING</span><br><span class="line">250-AUTH LOGIN PLAIN </span><br><span class="line">250-AUTH=LOGIN PLAIN</span><br><span class="line">250-coremail 1Uxr2xKj7kG0xkI17xGrU7I0s8FY2U3Uj8Cz28x1UUUUU7Ic2I0Y2UrZp-lKUCa0xDrUUUUj</span><br><span class="line">250-STARTTLS</span><br><span class="line">250-SIZE 73400320</span><br><span class="line">250 8BITMIME</span><br><span class="line">mail from:&lt;hr@huawei.com&gt;</span><br><span class="line">550 MI:SPF 163 mx41,W8CowADH_BmJ+n1e3WJCCQ--.18274S2 1585314452 http://mail.163.com/help/help_spam_16.htm?ip=106.71.91.111&amp;<span class="built_in">hostid</span>=mx41&amp;time=1585314452</span><br></pre></td></tr></table></figure>
+
+<p>可以看到当我们发送<code>mail from:&lt;hr@huawei.com&gt;</code>来声称邮件发送方时，163的邮箱服务器抛出了SPF错误，也就是说我们发送方的ip<code>106.71.91.111</code>不在huawei.com域名的SPF记录名单里面。</p>
+<p>我们可以查一下huawei.com的spf记录</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">ubuntu@10-9-15-151:~$ nslookup -<span class="built_in">type</span>=txt huawei.com</span><br><span class="line">;; Truncated, retrying <span class="keyword">in</span> TCP mode.</span><br><span class="line">Server:        10.9.255.1</span><br><span class="line">Address:    10.9.255.1<span class="comment">#53</span></span><br><span class="line"></span><br><span class="line">Non-authoritative answer:</span><br><span class="line">huawei.com    text = <span class="string">&quot;fz9vxRtJpRFrw8&amp;VLnW9Z4gUPdofN1DwkF516%&amp;L9YXHev2&amp;VuoPYaiKqkD@tf7&amp;eI^Aryg5I8SWUR&amp;MxzvhgCfK3*OjUnT%6&amp;ghuawei20190518&quot;</span></span><br><span class="line">huawei.com    text = <span class="string">&quot;v=spf1 ip4:45.249.212.32 ip4:45.249.212.35 ip4:45.249.212.255 ip4:45.249.212.187/29 ip4:45.249.212.191 ip4:185.176.76.210 ip4:168.195.93.47 ip4:103.69.140.247 -all&quot;</span></span><br><span class="line">huawei.com    text = <span class="string">&quot;v=DMARC1;p=none;rua=mailto:dmarc@edm.huawei.com&quot;</span></span><br><span class="line">huawei.com    text = <span class="string">&quot;N3U/UqKcdI+8rthQEYTbph+m6MCg7+IW43PP5SuPxww=&quot;</span></span><br><span class="line">huawei.com    text = <span class="string">&quot;MS=C4F6A693225CC6E058F6C9C39FD728C06C43E597&quot;</span></span><br><span class="line"></span><br><span class="line">Authoritative answers can be found from:</span><br><span class="line">.    nameserver = d.root-servers.net.</span><br><span class="line">.    nameserver = b.root-servers.net.</span><br><span class="line">.    nameserver = k.root-servers.net.</span><br><span class="line">.    nameserver = c.root-servers.net.</span><br><span class="line">.    nameserver = j.root-servers.net.</span><br><span class="line">.    nameserver = e.root-servers.net.</span><br><span class="line">.    nameserver = f.root-servers.net.</span><br><span class="line">.    nameserver = g.root-servers.net.</span><br><span class="line">.    nameserver = i.root-servers.net.</span><br><span class="line">.    nameserver = a.root-servers.net.</span><br><span class="line">.    nameserver = h.root-servers.net.</span><br><span class="line">.    nameserver = m.root-servers.net.</span><br><span class="line">.    nameserver = l.root-servers.net.</span><br></pre></td></tr></table></figure>
+
+<p>关注其中的</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">v=spf1 ip4:45.249.212.32 ip4:45.249.212.35 ip4:45.249.212.255 ip4:45.249.212.187/29 ip4:45.249.212.191 ip4:185.176.76.210 ip4:168.195.93.47 ip4:103.69.140.247 -all</span><br></pre></td></tr></table></figure>
+
+<p>这是一种常见的SPF写法，其中的<code>-all</code>表明在不匹配前面所列主机时，接收服务器需要将邮件全部拒绝</p>
+<p>SPF 记录的匹配机制主要用于定义和指定可由该域名发送邮件的主机，其定义方式包括：</p>
+<ul>
+<li>all 匹配任何主机，它写在SPF记录最后以匹配在其前面所列出的主机。</li>
+<li>ip4 匹配IPv4地址或网络范围。</li>
+<li>ip6 匹配IPv6地址或网络范围。</li>
+<li>a 匹配主机名或域名。</li>
+<li>mx 匹配域名的MX记录，当出站与入站邮件为同一服务器时通常采用此种机制。</li>
+<li>ptr 通过DNS反向记录来匹配发件人IP和域名，由于会增加DNS负载，一般不采用此种机制。</li>
+<li>exists 只检查域是否在DNS中存在。</li>
+<li>include 将发件人IP和SPF记录指向另一个域，这种匹配机制通常用于云服务，如Exchange Online Protection。</li>
+</ul>
+<p>SPF 记录的匹配机制会结合一些限定词来使用，以告诉服务器找到一条匹配记录时该怎么办。常见的限定词有：</p>
+<ul>
+<li>+放行，如果没有明确指定限定词，则为默认值</li>
+<li>–硬拒绝，直接拒绝来自未经授权主机的邮件</li>
+<li>~软拒绝，邮件可被接受，也可被标记为垃圾邮件</li>
+<li>?中性，不考虑邮件是否被接受</li>
+</ul>
+</blockquote>
+<h2><span id="3-dkim与dmarc">3. DKIM与DMARC</span></h2><blockquote>
+<p>域名密钥识别邮件（DomainKeys Identified Mail，DKIM）是一套电子邮件认证机制，使用公开密钥加密邮件，以检测邮件是否是伪造或被篡改。通常发送方会在电子邮件的标头插入DKIM-Signature及电子签名, 而接收方则透过DNS查询得到公钥后进行验证.</p>
+<p>DMARC建立在发件人策略框架 (SPF)和域名识别邮件 (DKIM)协议之上。如果这两种身份验证方法都不通过，DMARC 策略将决定如何处理该消息。DMARC要求域名所有者在DNS记录中设置SPF记录和DKIM记录，并明确声明对验证失败邮件的处理策略。</p>
+<p>以上两种机制也是现有的电子邮件安全机制，不过以SPF策略为主。</p>
+</blockquote>
+<h2><span id="4-邮件伪造">4. 邮件伪造</span></h2><h3><span id="41-swaks">4.1 Swaks</span></h3><blockquote>
+<p>Swaks（Swiss Army Knife for SMTP，SMTP瑞士军刀），多功能的SMTP协议测试工具，利用Swaks可以很方便的发送伪造邮件。</p>
+<p>常用Swaks指令</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">--ehlo [helo-string]：伪造ehlo头信息</span><br><span class="line">--header [header-and-data]：伪造From、Subject、Message-Id、X-Mailer等头信息</span><br><span class="line">--data [data-portion]：伪造DATA的全部内容，可直接将邮件源码作为选项</span><br><span class="line">--attach [attachment-specification]：添加附件</span><br></pre></td></tr></table></figure>
+
+<p>具体介绍就不多介绍了，可以看<a target="_blank" rel="noopener" href="https://www.jetmore.org/john/code/swaks/">官方主页</a></p>
+<p>这里来个示例：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">swaks --to <span class="built_in">test</span>@163.com --from <span class="built_in">test</span>@gmail.com --body <span class="string">&#x27;This is a test mailing&#x27;</span> --header <span class="string">&#x27;Subject: test&#x27;</span> --ehlo gmail.com --header-X-Mailer gmail.com</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="42-spf记录未设置或者设置不当">4.2 SPF记录未设置或者设置不当</span></h3><blockquote>
+<p>当一个域名未设置SPF记录或者设置不当时，就存在邮件伪造漏洞风险。可以通过以下方式探测域名是否存在SPF记录：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nslookup -<span class="built_in">type</span>=txt xxx.com.cn</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>未设置（比如我自己的域名）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">root@Test-WEB1-yanq:~<span class="comment"># nslookup -type=txt saucer-man.com</span></span><br><span class="line">Server:        10.40.59.251</span><br><span class="line">Address:    10.40.59.251<span class="comment">#53</span></span><br><span class="line"></span><br><span class="line">Non-authoritative answer:</span><br><span class="line">*** Can<span class="string">&#x27;t find saucer-man.com: No answer</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>设置不当</p>
+</li>
+</ul>
+<p>比如下面的域名，SPF记录设置成<code>~all</code>，未匹配到的邮件可被接受，也可被标记为垃圾邮件。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ubuntu@10-9-15-151:~$ nslookup -q=txt xxx.com</span><br><span class="line">Server:        10.9.255.1</span><br><span class="line">Address:    10.9.255.1<span class="comment">#53</span></span><br><span class="line"></span><br><span class="line">Non-authoritative answer:</span><br><span class="line">xxx.com    text = <span class="string">&quot;v=spf1 ip4:36.7.172.15 ip4:220.248.245.131 ip4:111.39.232.6 ip4:36.7.172.14 ~all&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>经过测试，当接收邮箱系统验证SPF时出现上述情况时，不同邮箱系统的反应如下：</p>
+<ul>
+<li>qq邮箱不接受</li>
+<li>outlook邮箱接收</li>
+<li>gmail邮箱标记为垃圾邮件</li>
+<li>163邮箱标记为垃圾邮件</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">root@Test:~<span class="comment"># swaks --to yixianosaurusphaaaga7096@gmail.com --from admin@saucer-man.com --body &#x27;This is a test mailing&#x27; --header &#x27;Subject: test mail&#x27; --ehlo saucer-man.com --header-X-Mailer saucer-man.com</span></span><br><span class="line">=== Trying gmail-smtp-in.l.google.com:25...</span><br><span class="line">=== Connected to gmail-smtp-in.l.google.com.</span><br><span class="line">&lt;-  220 mx.google.com ESMTP m6si9771129pld.54 - gsmtp</span><br><span class="line"> -&gt; EHLO saucer-man.com</span><br><span class="line">&lt;-  250-mx.google.com at your service, [103.59.50.2]</span><br><span class="line">&lt;-  250-SIZE 157286400</span><br><span class="line">&lt;-  250-8BITMIME</span><br><span class="line">&lt;-  250-STARTTLS</span><br><span class="line">&lt;-  250-ENHANCEDSTATUSCODES</span><br><span class="line">&lt;-  250-PIPELINING</span><br><span class="line">&lt;-  250-CHUNKING</span><br><span class="line">&lt;-  250 SMTPUTF8</span><br><span class="line"> -&gt; MAIL FROM:&lt;admin@saucer-man.com&gt;</span><br><span class="line">&lt;-  250 2.1.0 OK m6si9771129pld.54 - gsmtp</span><br><span class="line"> -&gt; RCPT TO:&lt;yixianosaurusphaaaga7096@gmail.com&gt;</span><br><span class="line">&lt;-  250 2.1.5 OK m6si9771129pld.54 - gsmtp</span><br><span class="line"> -&gt; DATA</span><br><span class="line">&lt;-  354  Go ahead m6si9771129pld.54 - gsmtp</span><br><span class="line"> -&gt; Date: Mon, 30 Mar 2020 15:32:58 +0800</span><br><span class="line"> -&gt; To: yixianosaurusphaaaga7096@gmail.com</span><br><span class="line"> -&gt; From: admin@saucer-man.com</span><br><span class="line"> -&gt; Subject: <span class="built_in">test</span> mail</span><br><span class="line"> -&gt; X-Mailer: saucer-man.com</span><br><span class="line"> -&gt; </span><br><span class="line"> -&gt; This is a <span class="built_in">test</span> mailing</span><br><span class="line"> -&gt; </span><br><span class="line"> -&gt; .</span><br><span class="line">&lt;-  250 2.0.0 OK  1585553581 m6si9771129pld.54 - gsmtp</span><br><span class="line"> -&gt; QUIT</span><br><span class="line">&lt;-  221 2.0.0 closing connection m6si9771129pld.54 - gsmtp</span><br><span class="line">=== Connection closed with remote host.</span><br></pre></td></tr></table></figure>
+
+<p>接收到的信息：</p>
+<p><img src="/2025/11/04/Swaks-For-Email/5.png" alt="image"></p>
+<p>原始数据：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">Delivered-To: yixianosaurusphangnga7096@gmail.com</span><br><span class="line">Received: by 2002:a4f:f31a:0:0:0:0:0 with SMTP <span class="built_in">id</span> c26csp2268818ivo;</span><br><span class="line">        Mon, 30 Mar 2020 00:33:01 -0700 (PDT)</span><br><span class="line">X-Google-Smtp-Source: APiQypJvIKWdfG+6JpupjdqrYQfiXBeg7CPCrQ/ME+6eM+jUzhd19nOOsyGO1oi2FzXc892BL1EW</span><br><span class="line">X-Received: by 2002:a63:6d0b:: with SMTP <span class="built_in">id</span> i11mr2776601pgc.404.1585553581825;</span><br><span class="line">        Mon, 30 Mar 2020 00:33:01 -0700 (PDT)</span><br><span class="line">ARC-Seal: i=1; a=rsa-sha256; t=1585553581; cv=none;</span><br><span class="line">        d=google.com; s=arc-20160816;</span><br><span class="line">        b=YbBzqga5isSYWhaqAsRdWg/lzDH0S92InVplzXxAmGXkCqxdt7C3t9mOFLwZpEkpqi</span><br><span class="line">         QW4Y2I4+vAIpbiMi2MqUyLL7tU2Cq/jNlaO6VX+r0Gu1nx8ZxTpUR</span><br><span class="line">         b9yqaZaq6tcg48EWzGfuOT3uBs2aVp9W8Upf0MeSxPLVbpgEnzqMRjqlIhZaXAIe9kR1xg4V4IObPilZfBb4uYY0ayLTDcDDMXTc</span><br><span class="line">         GyjA==</span><br><span class="line">ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;</span><br><span class="line">        h=subject:from:to:<span class="built_in">date</span>:message-id;</span><br><span class="line">        bh=ecGWgWCJeWxJFeM0urOVWP+KOlqqvsQYKOpYUP8nk7I=;</span><br><span class="line">        b=ZHdmyDNpyMR/DCfW1heAmecEtINi+fb5Myr8+sjj1meh6oH0VhTZzvOCTylrp/WXlu</span><br><span class="line">         kGgDW2zzC95QeKAFF3ZbXClFoDVgEGECg2mTmQ2QUXB74qi5EDtu+X4izzxqjBZ+</span><br><span class="line">         m97oeNIBQoka40rvItwK8foHNSo3l6k55cpTvJ6+c1SvOz/eW5f0Im7dFpX3ELrioNMK</span><br><span class="line">         Kuvw==</span><br><span class="line">ARC-Authentication-Results: i=1; mx.google.com;</span><br><span class="line">       spf=temperror (google.com: error <span class="keyword">in</span> processing during lookup of admin@saucer-man.com: DNS error) smtp.mailfrom=admin@saucer-man.com</span><br><span class="line">Return-Path: &lt;admin@saucer-man.com&gt;</span><br><span class="line">Received: from saucer-man.com ([003.11.50.2])</span><br><span class="line">        by mx.google.com with ESMTP <span class="built_in">id</span> m6si9771129pld.54.2020.03.30.00.33.01</span><br><span class="line">        <span class="keyword">for</span> &lt;yixianosaurusphaaaga7096@gmail.com&gt;;</span><br><span class="line">        Mon, 30 Mar 2020 00:33:01 -0700 (PDT)</span><br><span class="line">Received-SPF: temperror (google.com: error <span class="keyword">in</span> processing during lookup of admin@saucer-man.com: DNS error) client-ip=003.11.50.2;</span><br><span class="line">Authentication-Results: mx.google.com;</span><br><span class="line">       spf=temperror (google.com: error <span class="keyword">in</span> processing during lookup of admin@saucer-man.com: DNS error) smtp.mailfrom=admin@saucer-man.com</span><br><span class="line">Message-ID: &lt;5e81a0ad.1c69fb81.18eb2.4993SMTPIN_ADDED_MISSING@mx.google.com&gt;</span><br><span class="line">Date: Mon, 30 Mar 2020 15:32:58 +0800</span><br><span class="line">To: yixianosaurusphaaaga7096@gmail.com</span><br><span class="line">From: admin@saucer-man.com</span><br><span class="line">Subject: <span class="built_in">test</span> mail</span><br><span class="line">X-Mailer: saucer-man.com</span><br><span class="line"></span><br><span class="line">This is a <span class="built_in">test</span> mailing</span><br></pre></td></tr></table></figure>
+
+<p>可以看出没有SPF记录，所以SPF验证失败，虽然也接收了，但是放进了垃圾邮箱。</p>
+</blockquote>
+<h3><span id="43-利用邮件托管平台绕过spf记录">4.3 利用邮件托管平台绕过SPF记录</span></h3><blockquote>
+<p>当大部分公司SPF都设置的没问题，我们就需要想其他办法了。</p>
+<p>我们需要借助到邮件托管平台来绕过SPF监测：</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://www.smtp2go.com/">smtp2go</a>（速度慢但免费发送量大，需要自己有域名）</li>
+<li><a target="_blank" rel="noopener" href="https://www.sendcloud.net/">SendCloud</a>（速度快但免费发送量少）</li>
+<li>也可以自己搭建邮件服务器</li>
+</ul>
+<p>这里我们使用smtp2go，注册账户并登录，smtp2go中需要存在有效SMTP Users和Domains才能正常投递邮件。</p>
+<p>Add SMTP Users：</p>
+<p><img src="/2025/11/04/Swaks-For-Email/6.png" alt="image"></p>
+<p>Add Domains，新建Domain需要一个域名并按照引导完成CNAME绑定:</p>
+<p><img src="/2025/11/04/Swaks-For-Email/7.png" alt="image"></p>
+<p>然后利用swaks发送邮件：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">swaks --to xxx@qq.com --from hr@huawei.com --header <span class="string">&#x27;Subject: test main&#x27;</span> --ehlo gmail.com --body <span class="string">&#x27;hello, I am blut&#x27;</span> --server mail.smtp2go.com -p 2525 -au &lt;username&gt; -ap &lt;password&gt; --header-X-Mailer gmail.com</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/11/04/Swaks-For-Email/8.png" alt="image"></p>
+<p>但是邮箱显示出由 bT.8bpq490&#x3D;utd2ksqiq7h24d&#x3D;<a href="mailto:th2qtu@return.smtpservice.net">th2qtu@return.smtpservice.net</a> 代发。</p>
+<p><img src="/2025/11/04/Swaks-For-Email/9.png" alt="image"></p>
+<p>经过测试，各大邮箱的反应如下：</p>
+<ul>
+<li>qq邮箱，正常接收，显示代发</li>
+<li>gmail邮箱，正常接收，显示代发</li>
+<li>163邮箱，正常接收，显示代发</li>
+<li>outlook邮箱，正常接收，不显示代发</li>
+</ul>
+<p><strong>为什么会显示代发</strong>：</p>
+<p>查看原始邮件会发现存在smtp.from以及From字段。smtp.from代表的就是真正发件人，收件服务器会去其代表的域下进行SPF记录校验，From字段是我们自定义的邮件Header字段，如果当两者不一致时，邮件服务商可能会在客户端显示代发，用来提示收件人邮件伪造攻击风险。</p>
+<p>我们使用托管邮箱平台发送邮件时，邮件托管平台的域名会被作为smtp.from值，所以SPF记录校验是PASS的。</p>
+<p><img src="/2025/11/04/Swaks-For-Email/10.png" alt="image"></p>
+</blockquote>
+<h2><span id="5-总结">5. 总结</span></h2><blockquote>
+<p>上述说了伪造邮件的方式。</p>
+<ul>
+<li>如果SPF记录未设置 直接用swaks伪造即可</li>
+<li>如果存在SPF记录，则利用第三方邮件托管平台伪造，但是一般会显示由xxx代发</li>
+</ul>
+<p>一般情况下我们可以使用如下的流程去发送：</p>
+<ol>
+<li>自己用邮箱编辑好钓鱼邮件，可以包含附件等再发送，然后导出为eml文件：</li>
+</ol>
+<p><img src="/2025/11/04/Swaks-For-Email/11.png" alt="image"></p>
+<ol start="2">
+<li>编辑eml文件，删除from值和之前的无关紧要的信息，及更改收件人昵称</li>
+</ol>
+<p><img src="/2025/11/04/Swaks-For-Email/12.png" alt="image"></p>
+<ol start="3">
+<li>使用如下命令发送。</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">swaks --to xxx@qq.com --from hr@huawei.com --data aaa.eml --server mail.smtp2go.com -p 2525 -au &lt;username&gt; -ap &lt;password&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>邮件伪造作为 APT 攻击的常见入口方式，是我在第一份工作时就进行的实现，当时是全自动化的评估企业邮箱的安全性吧，当时某易和某企鹅的产品都多少存在问题，无法识别全部的 POC，当时用到的工具就有 Swaks</p>
+<p>直到24年做安全演练，想想做钓鱼邮件吧，就才把邮件伪造的相关资料翻出来，结果发现自己竟然没写过相关的博文，在此补上，和后续的自建smtp服务器、gophish实践一起，算作纪念</p>
+</blockquote>
+<h2><span id="参考">参考</span></h2><blockquote>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/kerry0071/article/details/28604267">SMTP协议详解及工作过程</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.freebuf.com/sectool/184555.html">伪造电子邮件以及制造电子邮件炸弹的攻防探讨</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.renfei.org/blog/introduction-to-spf.html">SPF 记录：原理、语法及配置方法简介</a></li>
+<li><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E5%8F%91%E4%BB%B6%E4%BA%BA%E7%AD%96%E7%95%A5%E6%A1%86%E6%9E%B6">发件人策略框架</a></li>
+<li><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E5%9F%9F%E5%90%8D%E5%AF%86%E9%92%A5%E8%AF%86%E5%88%AB%E9%82%AE%E4%BB%B6">域名密钥识别邮件DKIM</a></li>
+<li><a target="_blank" rel="noopener" href="https://service.mail.qq.com/cgi-bin/help?subtype=1&&no=1001508&&id=16">DMARC介绍</a></li>
+<li><a target="_blank" rel="noopener" href="https://payloads.online/archivers/2019-05-09/1">Swaks伪造邮件</a></li>
+</ul>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/Email/" rel="tag">Email</a><a class="tag-none-link" href="/tags/Fishing/" rel="tag">Fishing</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/szczecin" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/tags/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

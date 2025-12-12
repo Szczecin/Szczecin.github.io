@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>【安全测试】Owasp Dependency-check 集成jenkins | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="【安全测试】Owasp Dependency-check 集成jenkins 本文转自 码上起舞 并作补充  一、目的 本文主要记录我在搭建安全体系中第三方依赖检查的过程中，使用Owsap dependency-check的过程及问题  二、OWASP Dependency-check简介 dependency-check适用于对代码中使用到的第三方依赖包进行扫描检测，查看引入的第三方包是否有已知">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【安全测试】Owasp Dependency-check 集成jenkins">
+<meta property="og:url" content="https://szczecin.github.io/2025/11/10/Dependency-Check-Jenkins/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="【安全测试】Owasp Dependency-check 集成jenkins 本文转自 码上起舞 并作补充  一、目的 本文主要记录我在搭建安全体系中第三方依赖检查的过程中，使用Owsap dependency-check的过程及问题  二、OWASP Dependency-check简介 dependency-check适用于对代码中使用到的第三方依赖包进行扫描检测，查看引入的第三方包是否有已知">
+<meta property="og:locale">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/10/Dependency-Check-Jenkins/1.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/10/Dependency-Check-Jenkins/2.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/10/Dependency-Check-Jenkins/3.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/10/Dependency-Check-Jenkins/4.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/10/Dependency-Check-Jenkins/10.png">
+<meta property="og:image" content="https://szczecin.github.io/2025/11/10/Dependency-Check-Jenkins/11.png">
+<meta property="article:published_time" content="2025-11-10T07:28:25.000Z">
+<meta property="article:modified_time" content="2025-12-08T03:05:55.560Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Reprint">
+<meta property="article:tag" content="SCA">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://szczecin.github.io/2025/11/10/Dependency-Check-Jenkins/1.png">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-Dependency-Check-Jenkins"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2025/11/10/Dependency-Check-Jenkins/">
+            【安全测试】Owasp Dependency-check 集成jenkins
+        </a>
+    </h2>
+    <time>
+        Nov 10, 2025
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="安全测试owasp-dependency-check-集成jenkins">【安全测试】Owasp Dependency-check 集成jenkins</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://www.cnblogs.com/happylumei/p/16091297.html">码上起舞</a> 并作补充</p>
+</blockquote>
+<h2><span id="一-目的">一、目的</span></h2><blockquote>
+<p>本文主要记录我在搭建安全体系中第三方依赖检查的过程中，使用Owsap dependency-check的过程及问题</p>
+</blockquote>
+<h2><span id="二-owasp-dependency-check简介">二、OWASP Dependency-check简介</span></h2><blockquote>
+<p>dependency-check适用于对代码中使用到的第三方依赖包进行扫描检测，查看引入的第三方包是否有已知的漏洞和缺陷，及早暴露风险及解决。</p>
+<p>其原理可以在另一篇文章中查看。</p>
+</blockquote>
+<h2><span id="三-owasp-dependency-check-安装及使用">三、OWASP Dependency-check 安装及使用</span></h2><blockquote>
+<p>dependency check支持jenkins插件集成，也支持linux下命令行模式执行，还支持maven等。</p>
+<p>ps：maven集成需要修改pom.xml，然后用命令</p>
+<ul>
+<li>mvn org.owasp:dependency-check-maven:check</li>
+<li>mvn dependency:list|grep -i “log4j*”</li>
+<li>mvn dependency:tree</li>
+</ul>
+<p>我们采用linux下命令行模式执行，然后在jenkins中execute shell集成denpendency-check的脚本，并利用jenkins插件，发布dependency-check的报告。</p>
+</blockquote>
+<h3><span id="31-dependency-check下载">3.1 dependency-check下载</span></h3><blockquote>
+<ol>
+<li>command line安装包下载地址：<a target="_blank" rel="noopener" href="https://owasp.org/www-project-dependency-check/">https://owasp.org/www-project-dependency-check/</a></li>
+<li>jenkins插件下载地址：<a target="_blank" rel="noopener" href="http://updates.jenkins-ci.org/download/plugins/dependency-check-jenkins-plugin/">http://updates.jenkins-ci.org/download/plugins/dependency-check-jenkins-plugin/</a></li>
+</ol>
+<p><img src="/2025/11/10/Dependency-Check-Jenkins/1.png" alt="image"></p>
+<p>点击Command Line，即可下载 dependency-check-7.0.4-release.zip</p>
+</blockquote>
+<h3><span id="32-dependency-check使用纯cmd模式">3.2 dependency-check使用（纯cmd模式）</span></h3><blockquote>
+<p>将下载下来的dependency包解压后，进入bin目录，可以看到有dependency-check.sh 和dependency-check.bat脚本，sh脚本是linux使用脚本，bat是windows使用脚本。</p>
+<p>我们以linux使用为例，将解压后文件夹拷贝到linux目录&#x2F;data&#x2F;tools</p>
+<p>进入bin目录，执行 sh dependency-check.sh -help 查看命令行使用帮助。</p>
+<p>执行扫描命令如下：</p>
+<p>DIR&#x3D;&#x2F;data&#x2F;tools&#x2F;apps&#x2F;</p>
+<p>sh &#x2F;data&#x2F;tools&#x2F;dependency-check&#x2F;bin&#x2F;dependency-check.sh -s ${DIR} –format HTML –format XML -o .&#x2F; –disableNodeAudit</p>
+<p>命令行说明：</p>
+<ul>
+<li>-s ：扫描对象的路径，扫描的是文件夹路径下的所有文件的，例如war包，jar包均可被扫描</li>
+<li>–format：生成报告的格式</li>
+<li>-o :报告生成的路径</li>
+</ul>
+</blockquote>
+<h3><span id="33-查看扫描结果">3.3 查看扫描结果</span></h3><blockquote>
+<p>在-o指定的路径下会生成dependency的dependency-check-report.html报告，浏览器打开即可查看扫描内容</p>
+<p><img src="/2025/11/10/Dependency-Check-Jenkins/2.png" alt="image"></p>
+<p>扫描结果会有个工程汇总信息，总共扫描多少个dependencies，有多少个漏洞被发现等</p>
+<p>在工程信息下面会有汇总信息，比如对应的每个依赖包，例如abc.jar包，对应的cpe信息，以及枚举的漏洞级别数量等信息，每个漏洞对应具体的CVE号。需要具体分析；</p>
+<p>也可以结合jenkins发布xml报告，查看更详细的信息，见步骤四。</p>
+</blockquote>
+<h2><span id="四-dependency-check集成jenkins配置">四、dependency-check集成jenkins配置</span></h2><blockquote>
+<ul>
+<li>目的：扫描指定路径下的文件，路径下可能有需要部署的jar包和war包。路径暂定jenkins的变量${WORKSPACE}</li>
+<li>前提：</li>
+</ul>
+<ol>
+<li>安装jenkins的dependency-check查看，方便发布报告用。</li>
+<li>部署jenkins的linux服务器上已经安装第三部安装好dependency check软件包。</li>
+</ol>
+</blockquote>
+<h3><span id="41-新建jenkins工程自由风格">4.1 新建jenkins工程，自由风格</span></h3><blockquote>
+<p>配置完成后构建效果如下，可以上传文件（jar，war，zip等包，点击构建开始扫描）</p>
+<p><img src="/2025/11/10/Dependency-Check-Jenkins/3.png" alt="image"></p>
+<p>配置上传文件如下：</p>
+<p><img src="/2025/11/10/Dependency-Check-Jenkins/4.png" alt="image"></p>
+</blockquote>
+<h3><span id="42-execute-shell">4.2 execute shell</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cp</span> jsrepository.json.right jsrepository.json <span class="comment">#这步是因为有时候会构建失败，然后发现jsrepository.json是空的，每次扫描前用一个正确的去替换，确保扫描的稳定性</span></span><br><span class="line"><span class="built_in">echo</span> <span class="variable">$&#123;BUILD_NUMBER&#125;</span><span class="built_in">echo</span> <span class="variable">$&#123;WORKSPACE&#125;</span><span class="built_in">cd</span> <span class="variable">$&#123;WORKSPACE&#125;</span></span><br><span class="line">sh /home/appdeploy/dependency-check/bin/dependency-check.sh -s <span class="variable">$&#123;WORKSPACE&#125;</span>/file/ --format HTML --format XML  -o ./</span><br><span class="line"><span class="comment">#如果使用本地库，需加上如下命令参数（本地镜像库需自己搭建后，将这些文件发布成可以http访问）</span></span><br><span class="line">--cveUrlModified http://nvdcve-mirror.domain.com/nvdcve-1.1-modified.json.gz  --cveUrlBase http://nvdcve-mirror.domain.com/nvdcve-1.1-%d.json.gz</span><br><span class="line"></span><br><span class="line"><span class="comment">### 4.3 jenkins发布xml报告</span></span><br><span class="line"></span><br><span class="line">![image](5.png)</span><br><span class="line"></span><br><span class="line"><span class="comment">### 4.4 jenkins发布html报告</span></span><br><span class="line"></span><br><span class="line">![image](6.png)</span><br><span class="line"></span><br><span class="line"><span class="comment">### 4.5 构建完成后查看html报告</span></span><br><span class="line"></span><br><span class="line">![image](7.png)</span><br><span class="line"></span><br><span class="line"><span class="comment">### 4.6 查看jenkins发布的xml报告</span></span><br><span class="line"></span><br><span class="line">点击进入构建号的build页，左侧可以看到Dependency-check的选项，点击即可出现表格式的漏洞汇总</span><br><span class="line"></span><br><span class="line">![image](8.png)</span><br><span class="line"></span><br><span class="line">![image](9.png)</span><br><span class="line"></span><br><span class="line">说明：在这个dependecny-check结果列表里面，会列出所有有漏洞的第三方依赖包，包括依赖包的名字，对应的漏洞CVE <span class="built_in">id</span>，漏洞等级等信息，点击对应的包名，可以查看依赖包所在的路径，以及漏洞的描述。如果信息不够，可以查看html中的详细内容，以及搜索对应的CVE编号，去NVD漏洞库中查看完整的漏洞信息及解决方案。</span><br><span class="line"></span><br><span class="line">NVD漏洞库：https://nvd.nist.gov/vuln/detail/CVE-2020-44226</span><br><span class="line"></span><br><span class="line">不同的漏洞编号，替换后面的CVE编号查询即可。</span><br><span class="line"></span><br><span class="line">**报告中一些重要字段的含义：**</span><br><span class="line"></span><br><span class="line">· Dependency - 被扫描的第三依赖库名字</span><br><span class="line"></span><br><span class="line">· CPE - 所有被识别出来的CPE.</span><br><span class="line"></span><br><span class="line">· GAV - Maven 组, Artifact, 版本 (GAV).</span><br><span class="line"></span><br><span class="line">· Highest Severity - 所有关联的cve的最高漏洞等级</span><br><span class="line"></span><br><span class="line">· CVE Count - 关联的cve个数</span><br><span class="line"></span><br><span class="line">· CPE Confidence - dependency-check正确识别cpe的程度</span><br><span class="line"></span><br><span class="line">· Evidence Count - 识别CPE的数据个数</span><br><span class="line"></span><br><span class="line"><span class="comment">### 4.7 举一反三</span></span><br><span class="line"></span><br><span class="line">- 1.扫描中的<span class="built_in">dir</span>可以提取出来当build with param的参数，可以单独执行，也可以上下游工程串联执行</span><br><span class="line">- 2.扫描中的<span class="built_in">dir</span>可以是git自动down下来的文件夹目录，即只要构建参数指定git地址和分支名称，即可实现对该分支自动扫描</span><br><span class="line"></span><br><span class="line"><span class="comment">##  五、解析html文件用于消息的发送</span></span><br><span class="line"></span><br><span class="line">解析html报告的代码文件get_security_result.py，获取html报告中summary数据中的critical的漏洞数量</span><br><span class="line"></span><br><span class="line">```python</span><br><span class="line">from bs4 import BeautifulSoup</span><br><span class="line">from lxml import etree</span><br><span class="line"></span><br><span class="line">class GetSecRes:</span><br><span class="line">    </span><br><span class="line">    def get_dependency_critical_num_with_lxml(self, filename):</span><br><span class="line">        <span class="string">&#x27;&#x27;</span><span class="string">&#x27;</span></span><br><span class="line"><span class="string">        用lxml库解析安全扫描的html报告，并统计出其中的critical的漏洞数量</span></span><br><span class="line"><span class="string">        :param filename: dependency-check扫描完成后生产的html文件，文件名全路径</span></span><br><span class="line"><span class="string">        :return:critical数量</span></span><br><span class="line"><span class="string">        &#x27;</span><span class="string">&#x27;&#x27;</span></span><br><span class="line">        <span class="comment"># 读取html文件</span></span><br><span class="line">        with open(filename, encoding=<span class="string">&#x27;utf-8&#x27;</span>) as f:</span><br><span class="line">            data = f.read()</span><br><span class="line">        doc = etree.HTML(data)</span><br><span class="line">        <span class="comment"># 获取漏洞汇总表中的漏洞行信息</span></span><br><span class="line">        trs = doc.xpath(<span class="string">&#x27;//*[@id=&quot;summaryTable&quot;]//tr[@class=&quot; vulnerable&quot;]&#x27;</span>)</span><br><span class="line">        criticalres = []</span><br><span class="line">        <span class="comment"># 统计出每行的critical数量</span></span><br><span class="line">        <span class="keyword">for</span> <span class="built_in">tr</span> <span class="keyword">in</span> trs:</span><br><span class="line">            tr_list = tr.xpath(<span class="string">&#x27;./td/@data-sort-value&#x27;</span>)</span><br><span class="line">            td_text = tr.xpath(<span class="string">&#x27;./td/text()&#x27;</span>)</span><br><span class="line">            tr_list.extend(td_text)</span><br><span class="line">            [criticalres.append(td) <span class="keyword">for</span> td <span class="keyword">in</span> tr_list <span class="keyword">if</span> <span class="string">&quot;CRITICAL&quot;</span> == td]</span><br><span class="line">        <span class="built_in">return</span> (len(criticalres))</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    import sys</span><br><span class="line">    filename = sys.argv[1]</span><br><span class="line">    criticalres = GetSecRes().get_dependency_critical_num_with_lxml(filename)</span><br><span class="line">    <span class="built_in">print</span>(criticalres)</span><br></pre></td></tr></table></figure>
+
+<p>集成get_security_result.py到jenkins的execute shell中(在sh下执行python脚本)</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">critical=$(python3 /data/script/get_security_result.py <span class="variable">$&#123;DIR&#125;</span>/dependency-check-report.html)</span><br><span class="line"><span class="built_in">echo</span> <span class="variable">$critical</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="六-troubshooting">六、Troubshooting</span></h2><h3><span id="61-could-not-connect-to-central-search-analysis-failed">6.1 Could not connect to Central search. Analysis failed.</span></h3><blockquote>
+<p><strong>问题描述：</strong>jenkins构建时，提示连接失败</p>
+<p><img src="/2025/11/10/Dependency-Check-Jenkins/10.png" alt="image"></p>
+<p><strong>问题解决：</strong><br><a target="_blank" rel="noopener" href="https://issues.jenkins.io/browse/JENKINS-47991">https://issues.jenkins.io/browse/JENKINS-47991</a><br>1.原因是jenkins访问maven失败，需要在jenkins服务器开通访问 <a target="_blank" rel="noopener" href="https://search.maven.org/%E8%BF%99%E4%B8%AA%E5%9C%B0%E5%9D%80%E7%9A%84%E6%9D%83%E9%99%90">https://search.maven.org/这个地址的权限</a><br>2.测试访问：<br># curl <a target="_blank" rel="noopener" href="https://search.maven.org/">https://search.maven.org/</a></p>
+</blockquote>
+<h3><span id="62-failed-to-request-component-reports">6.2 Failed to request component-reports</span></h3><blockquote>
+<p><strong>问题描述：</strong></p>
+<p>jenkins构建dependency-check时，生成报告，报错</p>
+<p><img src="/2025/11/10/Dependency-Check-Jenkins/11.png" alt="image"></p>
+<p><strong>问题解决：</strong><br>1.原因是因为jenkins服务器无法访问<a target="_blank" rel="noopener" href="https://ossindex.sonatype.org/">https://ossindex.sonatype.org/</a><br>加上授权即可构建成功</p>
+</blockquote>
+<h3><span id="63-owasp-需要的外网访问权限包括">6.3 owasp 需要的外网访问权限包括</span></h3><blockquote>
+<p><a target="_blank" rel="noopener" href="https://nvd.nist.gov/">https://nvd.nist.gov</a><br><a target="_blank" rel="noopener" href="https://search.maven.org/">https://search.maven.org/</a><br><a target="_blank" rel="noopener" href="https://ossindex.sonatype.org/">https://ossindex.sonatype.org/</a><br><a target="_blank" rel="noopener" href="https://retirejs.github.io/">https://retirejs.github.io</a><br><a target="_blank" rel="noopener" href="https://github.com/advisories">https://github.com/advisories</a><br><a target="_blank" rel="noopener" href="https://registry.npmjs.org/">https://registry.npmjs.org</a><br><a target="_blank" rel="noopener" href="https://www.npmjs.com/">https://www.npmjs.com</a></p>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SCA/" rel="tag">SCA</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/szczecin" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/tags/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>

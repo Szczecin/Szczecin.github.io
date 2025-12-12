@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>MySQL数据库字段超长问题 | 氕氘氚</title>
+    <meta name="keywords" content="hexo,theme,otakism,otaku"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="google-site-verification" content=""/>
+    <meta name="baidu-site-verification" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="MySQL数据库字段超长问题 本文转自 adrninistrat0r 并作补充  1. 存在的问题 在向MySQL数据库表中插入或更新记录时，有时会出现字段超长的问题，包括但不限于以下场景： 处理上游系统发送的交易信息，将多个字段拼成一个JSON或其他格式的字符串；在增加字段，或数据较长时，写入或更新数据库时可能超长； 调用下游系统的服务，返回的部分字段（如错误信息等）较长时，导致更新数据库记录失">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL数据库字段超长问题">
+<meta property="og:url" content="https://szczecin.github.io/2025/11/12/MYSQL-Field-Overflow/index.html">
+<meta property="og:site_name" content="氕氘氚">
+<meta property="og:description" content="MySQL数据库字段超长问题 本文转自 adrninistrat0r 并作补充  1. 存在的问题 在向MySQL数据库表中插入或更新记录时，有时会出现字段超长的问题，包括但不限于以下场景： 处理上游系统发送的交易信息，将多个字段拼成一个JSON或其他格式的字符串；在增加字段，或数据较长时，写入或更新数据库时可能超长； 调用下游系统的服务，返回的部分字段（如错误信息等）较长时，导致更新数据库记录失">
+<meta property="og:locale">
+<meta property="article:published_time" content="2025-11-12T08:00:25.000Z">
+<meta property="article:modified_time" content="2025-11-12T08:00:36.850Z">
+<meta property="article:author" content="Szczecin">
+<meta property="article:tag" content="Reprint">
+<meta property="article:tag" content="MySQL">
+<meta name="twitter:card" content="summary">
+    
+
+    <!-- Favicon -->
+    
+        <link rel="icon" href="/img/favicon.ico" />
+    
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata|Roboto:300,400,700" rel="stylesheet">
+
+    
+<link rel="stylesheet" href="/style.css">
+
+    <script>
+      function setLoadingBarProgress(num) {
+        document.getElementById('loading-bar').style.width = num + "%";
+      }
+    </script>
+
+    
+
+
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<body>
+
+<div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+<script>setLoadingBarProgress(20)</script>
+
+<div id="site-wrapper">
+
+    <header id="header">
+    <div id="header-wrapper" class="clearfix">
+        <a id="logo" href="/">
+            <img src="/img/logo.png"/>
+            <span id="site-desc">
+                Be A Gorgeous World
+            </span>
+        </a>
+        <button id="site-nav-switch">
+            <span class="icon icon-menu"></span>
+        </button>
+    </div>
+</header>
+    <script>setLoadingBarProgress(40);</script>
+
+    <main id="main" role="main">
+        <article id="post-MYSQL-Field-Overflow"
+         class="post article white-box article-type-post"
+         itemscope itemprop="blogPost">
+    <h2 class="title">
+        <a href="/2025/11/12/MYSQL-Field-Overflow/">
+            MySQL数据库字段超长问题
+        </a>
+    </h2>
+    <time>
+        Nov 12, 2025
+    </time>
+    <section class="content">
+        <div class="article-entry" itemprop="articleBody">
+            <h1><span id="mysql数据库字段超长问题">MySQL数据库字段超长问题</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://blog.csdn.net/a82514921/article/details/126073366">adrninistrat0r</a> 并作补充</p>
+</blockquote>
+<h2><span id="1-存在的问题">1. 存在的问题</span></h2><blockquote>
+<p>在向MySQL数据库表中插入或更新记录时，有时会出现字段超长的问题，包括但不限于以下场景：</p>
+<p>处理上游系统发送的交易信息，将多个字段拼成一个JSON或其他格式的字符串；在增加字段，或数据较长时，写入或更新数据库时可能超长；</p>
+<p>调用下游系统的服务，返回的部分字段（如错误信息等）较长时，导致更新数据库记录失败。</p>
+</blockquote>
+<h2><span id="2-问题解决与优化建议">2. 问题解决与优化建议</span></h2><h3><span id="21-json等格式的字段">2.1. JSON等格式的字段</span></h3><blockquote>
+<p>有业务含义的重要字段，不建议通过JSON字符串格式保存在一个数据库字段中。</p>
+<p>假如需要将字段以JSON字符串格式保存在一个数据库字段中，建议只保存相对不重要，且不需要作为唯一的查询条件的字段，在进行保存时也需要考虑字段超长问题，及新旧数据与新旧代码相互之间的兼容问题。</p>
+</blockquote>
+<h4><span id="211-mysql字符串字段长度">2.1.1. MySQL字符串字段长度</span></h4><blockquote>
+<p>半角英文字母、数字、符号等常见字符，1个字符占用1个字节；1个汉字字符占用3个字节。</p>
+<p>在utf8字符集下，1个字符最多占用3个字节，不支持占用4个字节的字符。</p>
+<p>在utf8mb4字符集下，1个字符最多占用4个字节，可以保存emoji表情等占用4个字节的字符。</p>
+<p>MySQL字符串字段的最大长度如下所示：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>最大长度</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CHAR(n)</td>
+<td>255</td>
+<td>字符数</td>
+</tr>
+<tr>
+<td>VARCHAR(n)</td>
+<td>65535</td>
+<td>字符数</td>
+</tr>
+<tr>
+<td>TINYTEXT</td>
+<td>255</td>
+<td>字节数</td>
+</tr>
+<tr>
+<td>TEXT</td>
+<td>65535</td>
+<td>字节数</td>
+</tr>
+<tr>
+<td>MEDIUMTEXT</td>
+<td>16777215</td>
+<td>字节数</td>
+</tr>
+<tr>
+<td>LONGTEXT</td>
+<td>4294967295</td>
+<td>字节数</td>
+</tr>
+</tbody></table>
+<p>需要注意，CHAR、VARCHAR类型字段的最大长度的单位为字符数，能够保存的汉字数量等于最大支持字符数；</p>
+<p>TEXT等类型字段的最大长度的单位为字节数，能够保存的汉字数量不超过最大支持字节数的1&#x2F;3。</p>
+</blockquote>
+<h4><span id="212-mysql使用较长的字符串类型字段影响">2.1.2. MySQL使用较长的字符串类型字段影响</span></h4><blockquote>
+<p>MySQL、MariaDB较新版本支持JSON类型字段，其他版本需要使用字符串类型字段保存。</p>
+<p>MySQL中长度超过768字节的固定长度字段被编码为变长字段，例如VARCHAR（超过768字节）、TEXT等，变长字段被称为页外列（off-page），不是保存在InnoDB的B+树索引中，而是保存在溢出页（overflow page）中。在溢出页中，变长字段的值以单链表形式存储。</p>
+<p>对于保存JSON形式的字符串类型字段，由于需要保存较多内容，很可能属于变长字段。保存JSON形式的字符串类型字段不适合在查询时作为唯一的查询条件，原因如下：</p>
+<p>保存JSON形式的字符串类型字段不适合创建索引：一是JSON字符串中的字段顺序不固定，通过like进行最左匹配查询，很难从保存JSON形式的字段中查询到需要的数据；二是因为InnoDB索引支持的长度有限（在MySQL InnoDB默认配置下，索引支持的最大长度为768字节）；</p>
+<p>仅通过变长字段进行查询时，无法通过B+树结构的索引进行查询，而是需要在单链表形式的溢出页中逐条进行查询，查询效率会非常低。</p>
+<p>查询变长字段，与不查询变长字段相比，开销会更大，耗时会更长。因为查询变长字段时，会增加从溢出页中查询数据的步骤；且需要返回的数据量可能较大，数据返回耗时会增加。</p>
+<p>在查询包含变长字段的数据库表时，假如不需要获取变长字段，则不应该在SQL语句中指定查询变长字段。</p>
+</blockquote>
+<h3><span id="22-可以截断的字段">2.2. 可以截断的字段</span></h3><blockquote>
+<p>对于截断后不影响使用的字段，在写入或更新数据库时，可对存在超长风险的字段按照数据库字段长度进行截断；</p>
+<p>JDK中的String.substring()方法，commons-lang3中的StringUtils.substring()、StringUtils.truncate()方法，参数中的数字单位都是字符数，不是字节数。</p>
+<p>在Java中对字符串进行截取时，建议使用StringUtils.truncate()方法。</p>
+<p>MySQL中的CHAR、VARCHAR类型的最大长度，也是字符数，不是字节数。</p>
+<p>因此在Java中对字符串根据MySQL的字符串类型字段长度进行截取时，两者的长度是一致的。</p>
+<p>例如MySQL中的字段为VARCHAR(200)，则可使用以下方式进行截取，将截取结果写入数据库。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javaStringUtils.truncate(<span class="string">&quot;xxx&quot;</span>, <span class="number">200</span>);</span><br></pre></td></tr></table></figure>
+</blockquote>
+
+        </div>
+        <div class="article-tags tags">
+            
+                <a class="tag-none-link" href="/tags/MySQL/" rel="tag">MySQL</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            
+        </div>
+    </section>
+</article>
+
+
+
+
+
+        <script>setLoadingBarProgress(60);</script>
+    </main>
+
+    <footer id="footer" class="clearfix">
+
+    
+
+    <div class="social-wrapper">
+        
+            
+                <a href="https://github.com/szczecin" class="social github"
+                   target="_blank" rel="external">
+                    <span class="icon icon-github"></span>
+                </a>
+            
+                <a href="/atom.xml" class="social rss"
+                   target="_blank" rel="external">
+                    <span class="icon icon-rss"></span>
+                </a>
+            
+        
+    </div>
+
+    <div class="theme-by">Theme <span class="codename">Memory</span> designed by <a href="https://artifact.me/"
+                                                                                    target="_blank">Art Chen</a>.
+    </div>
+    <div>&copy; <a href="/">氕氘氚</a></div>
+
+</footer>
+
+
+    <script>setLoadingBarProgress(80);</script>
+    <div class="overlay"></div>
+</div>
+
+<div class="site-sidebar" id="site-sidebar">
+
+    
+
+    <div class="sidebar-switch clearfix "
+         style="display: none">
+        <a class="dark-btn active" data-toggle="toc">
+            <span class="icon icon-list"></span>
+            <span class="text">Index</span>
+        </a>
+        <a class="dark-btn" data-toggle="bio">
+            <span class="icon icon-person"></span>
+            <span class="text">Bio</span>
+        </a>
+    </div>
+
+    <div class="site-toc "
+         style="display: none">
+        
+            <div class="no-index">No Index</div>
+        
+    </div>
+
+    <div class="site-bio show"
+         style="display: block">
+
+        <div class="about-me clearfix">
+            <div class="avatar">
+                <img src="/img/avatar.png"/>
+            </div>
+            <div class="info">
+                <a class="name dark-btn" href="/about">
+                    Szczecin
+                </a>
+            </div>
+            <div class="info">
+                <span class="item desc">
+                    Open your eyes to see the light in life
+                </span>
+            </div>
+        </div>
+
+        <div class="menu section">
+            <ul class="clearfix">
+                
+                    <li class="left">
+                        <a href="/about"
+                           onfocus="this.blur();"
+                           class="nav-about dark-btn block">
+                            简介
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/archives"
+                           onfocus="this.blur();"
+                           class="nav-archives dark-btn block">
+                            归档
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/categories"
+                           onfocus="this.blur();"
+                           class="nav-categories dark-btn block">
+                            分类
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/tags"
+                           onfocus="this.blur();"
+                           class="nav-tags dark-btn block">
+                            TAGs
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/WriteUP"
+                           onfocus="this.blur();"
+                           class="nav-WriteUP dark-btn block">
+                            WriteUP
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/EXP"
+                           onfocus="this.blur();"
+                           class="nav-EXP dark-btn block">
+                            EXP
+                        </a>
+                    </li>
+                
+                    <li class="left">
+                        <a href="/tags/SRC"
+                           onfocus="this.blur();"
+                           class="nav-SRC dark-btn block">
+                            SRC
+                        </a>
+                    </li>
+                
+                    <li class="right">
+                        <a href="/Life"
+                           onfocus="this.blur();"
+                           class="nav-Life dark-btn block">
+                            Life
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+
+    </div>
+
+    <div class="shortcuts">
+        <a href="#header" class="top window-nav dark-btn" id="go-top">
+            <span class="icon icon-chevron-thin-up"></span>
+        </a>
+        <a class="close dark-btn" id="sidebar-close">
+            <span class="icon icon-close"></span>
+        </a>
+        <a href="#footer" class="top window-nav dark-btn" id="go-bottom">
+            <span class="icon icon-chevron-thin-down"></span>
+        </a>
+    </div>
+
+</div>
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery.min.js"><\/script>')</script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+
+<script>
+  var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+  var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+  var ALGOLIA_API_KEY = "";
+  var ALGOLIA_APP_ID = "";
+  var ALGOLIA_INDEX_NAME = "";
+  var AZURE_SERVICE_NAME = "";
+  var AZURE_INDEX_NAME = "";
+  var AZURE_QUERY_KEY = "";
+  var SEARCH_SERVICE = "";
+  var universalSearchConfig = {};
+  if (SEARCH_SERVICE === 'google') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: GOOGLE_CUSTOM_SEARCH_API_KEY,
+      engineId: GOOGLE_CUSTOM_SEARCH_ENGINE_ID,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'algolia') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      apiKey: ALGOLIA_API_KEY,
+      appId: ALGOLIA_APP_ID,
+      indexName: ALGOLIA_INDEX_NAME,
+      imagePath: "/img/"
+    };
+  } else if (SEARCH_SERVICE === 'azure') {
+    universalSearchConfig = {
+      searchService: SEARCH_SERVICE,
+      serviceName: AZURE_SERVICE_NAME,
+      indexName: AZURE_INDEX_NAME,
+      apiKey: AZURE_QUERY_KEY,
+      imagePath: "/img/"
+    };
+  }
+</script>
+
+<script src="/js/app.js"></script>
+
+
+<script src="/js/search.js"></script>
+
+
+
+
+
+<script>setLoadingBarProgress(100);</script>
+
+</body>
+</html>
