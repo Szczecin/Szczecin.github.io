@@ -82,6 +82,196 @@
 
     
         <h2 class="title">
+            <a href="/2025/11/10/Dependency-Track-BOM/">
+                Dependency Track BOM文件推送插件使用
+            </a>
+        </h2>
+    
+    <time>
+        Nov 10, 2025
+    </time>
+    <section class="content">
+        <h1><span id="dependency-track-bom文件推送插件使用">Dependency Track BOM文件推送插件使用</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://www.cnblogs.com/yemoox/p/16478564.html">Yemoox</a> 并作补充</p>
+</blockquote>
+<h2><span id="一-干活啦猪头">一、干活啦，猪头</span></h2><blockquote>
+<p>开源第三方扫描工具Dependency的免费版-Dependency Track，用户第三方组件的漏洞监控，只需要推送BOM文件，就可以自动创建项目，然后进行检查。但在Java项目里，只有pom.xml文件，如何把利用pom.xml快速的生成bom文件，则成了如何帅气使用dependency Track的重要问题。靠着孜（不）孜（要）不（脸）倦（屁）的精神，终于把这个问题搞定了。</p>
+</blockquote>
+<h2><span id="二-配置pomxml文件">二、配置pom.xml文件</span></h2><blockquote>
+<p>首先获取pom.xml文件，用IDEA打开，并为这个文件单独创建项目。</p>
+<p><img src="/2025/11/10/Dependency-Track-BOM/1.png" alt="image"></p>
+<p>此时需要进行dependency Track的插件配置，插件地址为：<a target="_blank" rel="noopener" href="https://github.com/pmckeown/dependency-track-maven-plugin%EF%BC%8C%E8%BF%99%E9%87%8C%E8%BF%9B%E8%A1%8C%E6%8F%92%E4%BB%B6%E9%85%8D%E7%BD%AE%E3%80%82">https://github.com/pmckeown/dependency-track-maven-plugin，这里进行插件配置。</a><br>在pom.xml文件中找到plugins插件配置位置，添加插件：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>io.github.pmckeown<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>dependency-track-maven-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.0.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">dependencyTrackBaseUrl</span>&gt;</span>dependencyTrack URL<span class="tag">&lt;/<span class="name">dependencyTrackBaseUrl</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">apiKey</span>&gt;</span>api_key<span class="tag">&lt;/<span class="name">apiKey</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.cyclonedx<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>cyclonedx-maven-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.5.1<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">phase</span>&gt;</span>package<span class="tag">&lt;/<span class="name">phase</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">goal</span>&gt;</span>makeAggregateBom<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">projectType</span>&gt;</span>library<span class="tag">&lt;/<span class="name">projectType</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">schemaVersion</span>&gt;</span>1.2<span class="tag">&lt;/<span class="name">schemaVersion</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">includeBomSerialNumber</span>&gt;</span>true<span class="tag">&lt;/<span class="name">includeBomSerialNumber</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">includeCompileScope</span>&gt;</span>true<span class="tag">&lt;/<span class="name">includeCompileScope</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">includeProvidedScope</span>&gt;</span>true<span class="tag">&lt;/<span class="name">includeProvidedScope</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">includeRuntimeScope</span>&gt;</span>true<span class="tag">&lt;/<span class="name">includeRuntimeScope</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">includeSystemScope</span>&gt;</span>true<span class="tag">&lt;/<span class="name">includeSystemScope</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">includeTestScope</span>&gt;</span>false<span class="tag">&lt;/<span class="name">includeTestScope</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">includeLicenseText</span>&gt;</span>false<span class="tag">&lt;/<span class="name">includeLicenseText</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">outputFormat</span>&gt;</span>all<span class="tag">&lt;/<span class="name">outputFormat</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">outputName</span>&gt;</span>bom<span class="tag">&lt;/<span class="name">outputName</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>在dependencyTrackBaseUrl条目中加入你的dependencyTrack地址，也就是你的访问URL，apikey条目中加入你的apikey，可在你的后台获取，注意这个apikey需要有添加权限，我这里直接给的最高的，避免出现未知情况。如果你的pom.xml文件中没有私有仓库地址，就可以运行命令进行生成bom文件，然后上传。</p>
+</blockquote>
+<h2><span id="三-maven私有仓库配置">三、Maven私有仓库配置</span></h2><blockquote>
+<p>因为演示的pom.xml中包含私有仓库，则需要对Maven进行私有仓库配置。如果你使用的是本地搭建的maven，则需要修改setting文件。如果是使用的是IDEA自带的Maven则需要改IDEA的maven配置。可以百度一下如何配置本地的maven私有库。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mvn org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom   </span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="四-bom文件生成与上传">四、BOM文件生成与上传</span></h2><blockquote>
+<p>现在已经在pom.xml中配置好了dependencyTrack插件，和maven私有仓库。则可以在pom.xml目录下，运行BOM生成命令。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mvn org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom   </span><br></pre></td></tr></table></figure>
+
+<p>此时在当前目录下已经生成target文件夹，以及该文件夹下的bom.xml文件，在运行上传命令，上传bom文件，上传成功后便可以去dependencyTrack查看项目了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mvn dependency-track:upload-bom   </span><br></pre></td></tr></table></figure></blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SCA/" rel="tag">SCA</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
+            <a href="/2025/11/10/Dependency-Check/">
+                Dependency Check
+            </a>
+        </h2>
+    
+    <time>
+        Nov 10, 2025
+    </time>
+    <section class="content">
+        <h1><span id="dependency-check">Dependency Check</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://icybersec.gitbook.io/cybersecuritynote/devsecops/sca/dependency-check">icybersec</a> 并作补充</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/jeremylong/DependencyCheck">https://github.com/jeremylong/DependencyCheck</a></p>
+</blockquote>
+<h2><span id="简介">简介</span></h2><blockquote>
+<p>Dependency-Check 是一个开源的安全漏洞扫描工具，用于检查应用程序和依赖项中的已知漏洞。它可以扫描各种编程语言的依赖项，如Java、Python、.NET等，并根据公开的漏洞数据库，如NVD、OSV等，检查依赖项的版本是否存在已知的安全漏洞。</p>
+<p>Dependency-Check 可以通过命令行或插件集成到各种构建工具中，如Maven、Gradle、Ant等。它会生成报告，显示已检测到的漏洞以及建议的修复措施。这些报告可以帮助开发人员识别和解决与应用程序或依赖项相关的安全问题，从而提高应用程序的安全性。</p>
+</blockquote>
+<h2><span id="cli">cli</span></h2><blockquote>
+<p><code>dependency-check.sh</code>支持的参数：</p>
+<ul>
+<li>–advancedHelp：打印高级帮助信息。</li>
+<li>–enableExperimental：启用实验性的分析器。</li>
+<li>–exclude ：指定一个排除模式。可以多次指定此选项，并接受 Ant 风格的排除。</li>
+<li>-f,–format ：指定报告格式（HTML、XML、CSV、JSON、JUNIT、SARIF、JENKINS 或 ALL）。默认为 HTML。可以指定多个格式参数。</li>
+<li>–failOnCVSS ：指定如果检测到 CVSS 分数高于指定级别的漏洞，构建是否应该失败。默认为 11；由于 CVSS 分数为 0-10，因此默认情况下构建永远不会失败。</li>
+<li>-h,–help：打印帮助信息。</li>
+<li>–junitFailOnCVSS ：指定在生成 junit 报告时，被认为是失败的 CVSS 分数。默认值为 0。</li>
+<li>-l,–log ：写入详细日志信息的文件路径。</li>
+<li>-n,–noupdate：禁用自动更新 NVD-CVE、hosted-suppressions 和 RetireJS 数据。</li>
+<li>-o,–out ：写入报告的文件夹路径。默认为当前目录。如果未将格式参数设置为 ALL，则可以将其设置为特定的文件名。</li>
+<li>–prettyPrint：指定 JSON 和 XML 报告格式将被漂亮地打印。</li>
+<li>–project ：正在扫描的项目的名称。</li>
+<li>-s,–scan ：要扫描的路径 - 可以多次指定此选项。支持 Ant 风格的路径（例如，’path&#x2F;**&#x2F;*.jar’）；如果使用 Ant 风格的路径，则强烈建议将参数值用引号引起来。</li>
+<li>–suppression ：抑制 XML 文件的文件路径。可以多次指定此选项以使用多个抑制文件。</li>
+<li>-v,–version：打印版本信息。</li>
+</ul>
+<p>对webgoat7的组件进行扫描</p>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/mpogr/WebGoat-7.0.1">https://github.com/mpogr/WebGoat-7.0.1</a></p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./dependency-check.sh -s /tmp/WebGoat-7.0.1/ --project webgoat</span><br></pre></td></tr></table></figure>
+
+<p>输出扫描报告，没有扫描到有用的东西。</p>
+<p><img src="/2025/11/10/Dependency-Check/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="jenkins">jenkins</span></h2><blockquote>
+<p>docker启动Jenkins</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -itd -p 8080:8080 -p 50000:50000 -u root -v /tmp/jenkins:/var/jenkins_home   -v  /tmp/maven:/usr/local/maven jenkins/jenkins:2.344</span><br></pre></td></tr></table></figure>
+
+<p>安装插件</p>
+<p><img src="/2025/11/10/Dependency-Check/2.png" alt="image"></p>
+</blockquote>
+<h3><span id="全局工具配置">全局工具配置</span></h3><blockquote>
+<p>Jenkins可以通过全局工具配置来安装一个或多个Dependency-Check版本。可以自动安装Dependency-Check，这将从Github下载并提取官方的命令行界面（CLI），或者可以手动安装官方版本，并在配置中引用安装路径。Dependency-Check是一个用于识别应用程序中存在的已知漏洞和依赖项的开源工具。</p>
+<p><img src="/2025/11/10/Dependency-Check/3.png" alt="image"></p>
+</blockquote>
+<h3><span id="builder">Builder</span></h3><blockquote>
+<p>Builder是指使用预定义的Dependency-Check CLI安装之一执行分析的组件。在Jenkins中，特定于配置的部分很少，工作配置中的重要方面是“Arguments”字段，该字段直接发送到定义的CLI安装程序。Builder用于在Jenkins工作流中集成Dependency-Check分析。Builder的配置将传递给Dependency-Check CLI进行分析，并将分析结果传递回Jenkins用于显示和后续处理。</p>
+<blockquote>
+<p>对webgoat进行maven编译，生成JAR包</p>
+</blockquote>
+<p><img src="/2025/11/10/Dependency-Check/4.png" alt="image"></p>
+</blockquote>
+<h3><span id="publisher">Publisher</span></h3><blockquote>
+<p>Publisher是一个独立于工具配置或Builder的组件，负责读取dependency-check-report.xml并生成指标、趋势、发现，并根据可配置的阈值选择性地将构建设为失败或警告状态。在Jenkins工作流程中，Publisher用于生成Dependency-Check的度量和报告，并可根据预定义的阈值将构建标记为失败或警告状态。通过读取dependency-check-report.xml文件，Publisher可以对构建进行分析并提供有关依赖项和已知漏洞的详细信息。</p>
+<p><img src="/2025/11/10/Dependency-Check/5.png" alt="image"></p>
+</blockquote>
+<h3><span id="结果">结果</span></h3><blockquote>
+<p>构建结果</p>
+<p><img src="/2025/11/10/Dependency-Check/6.png" alt="image"></p>
+<p>当任务配置了Publisher时，趋势图将显示按严重性分组的结果总数。</p>
+<p><img src="/2025/11/10/Dependency-Check/7.png" alt="image"></p>
+<p>点击Latest Dependency-Check，可以看到具体的组件报告</p>
+<p><img src="/2025/11/10/Dependency-Check/8.png" alt="image"></p>
+<p><img src="/2025/11/10/Dependency-Check/9.png" alt="image"></p>
+</blockquote>
+<h2><span id="maven">maven</span></h2><h3><span id="mvn">mvn</span></h3><blockquote>
+<p>这是 Maven 插件 Dependency-Check 的命令，用于检测应用程序依赖项中已知漏洞并生成报告。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mvn org.owasp:dependency-check-maven:check</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mvn org.owasp:dependency-check-maven:aggregate</span><br></pre></td></tr></table></figure>
+
+<p>命令执行是全面的漏洞扫描，并生成包含所有依赖项中已知漏洞信息的报告</p>
+</blockquote>
+<p><img src="/2025/11/10/Dependency-Check/10.png" alt="image"></p>
+<p>使用maven进行扫描webgoat7可以看到报告里面有JAR包组件漏洞，<strong>比直接CLI扫描更能发现问题。</strong></p>
+<p><img src="/2025/11/10/Dependency-Check/11.png" alt="image"></p>
+</blockquote>
+<h3><span id="pomxml">pom.xml</span></h3><h4><span id="1检测组件">①检测组件</span></h4><blockquote>
+<p>在目标目录中创建 <code>dependency-check-report.html</code></p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">project</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="tag">&lt;<span class="name">build</span>&gt;</span></span><br><span class="line">        ...</span><br><span class="line">        <span class="tag">&lt;<span class="name">plugins</span>&gt;</span></span><br><span class="line">            ...</span><br><span class="line">            <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.owasp<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>dependency-check-maven<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">version</span>&gt;</span>8.1.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">                  <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">                      <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                          <span class="tag">&lt;<span class="name">goal</span>&gt;</span>check<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">                      <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">                  <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">            ...</span><br><span class="line">        <span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></span><br><span class="line">        ...</span><br><span class="line">    <span class="tag">&lt;/<span class="name">build</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line"><span class="tag">&lt;/<span class="name">project</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>在IDEA进行<code>maven verify</code>，生成报告</p>
+<p><img src="/2025/11/10/Dependency-Check/12.png" alt="image"></p>
+</blockquote>
+<h4><span id="2检测所有依赖项">②检测所有依赖项</span></h4><blockquote>
+<p>在站点内创建汇总的依赖性检查报告</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">project</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="tag">&lt;<span class="name">reporting</span>&gt;</span></span><br><span class="line">        ...</span><br><span class="line">        <span class="tag">&lt;<span class="name">plugins</span>&gt;</span></span><br><span class="line">            ...</span><br><span class="line">            <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.owasp<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>dependency-check-maven<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">version</span>&gt;</span>8.1.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">reportSets</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;<span class="name">reportSet</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">reports</span>&gt;</span></span><br><span class="line">                            <span class="tag">&lt;<span class="name">report</span>&gt;</span>aggregate<span class="tag">&lt;/<span class="name">report</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;/<span class="name">reports</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;/<span class="name">reportSet</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;/<span class="name">reportSets</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">            ...</span><br><span class="line">        <span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></span><br><span class="line">        ...</span><br><span class="line">    <span class="tag">&lt;/<span class="name">reporting</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line"><span class="tag">&lt;/<span class="name">project</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="3cvss评分过滤">③CVSS评分过滤</span></h4><blockquote>
+<p>创建 <code>dependency-check-report.html</code> 并使 CVSS 大于或等于 8 的构建失败</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">project</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="tag">&lt;<span class="name">build</span>&gt;</span></span><br><span class="line">        ...</span><br><span class="line">        <span class="tag">&lt;<span class="name">plugins</span>&gt;</span></span><br><span class="line">            ...</span><br><span class="line">            <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.owasp<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>dependency-check-maven<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">version</span>&gt;</span>8.1.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">                  <span class="tag">&lt;<span class="name">failBuildOnCVSS</span>&gt;</span>8<span class="tag">&lt;/<span class="name">failBuildOnCVSS</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">                  <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">                      <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                          <span class="tag">&lt;<span class="name">goal</span>&gt;</span>check<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">                      <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">                  <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">            ...</span><br><span class="line">        <span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></span><br><span class="line">        ...</span><br><span class="line">    <span class="tag">&lt;/<span class="name">build</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line"><span class="tag">&lt;/<span class="name">project</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>效果如下</p>
+<p><img src="/2025/11/10/Dependency-Check/13.png" alt="image"></p>
+</blockquote>
+<h4><span id="4跳过没有使用到组件">④跳过没有使用到组件</span></h4><blockquote>
+<p>通常情况下，使用 <code>mvn org.owasp:dependency-check-maven:aggregate</code>命令来运行 OWASP 的 “dependency-check-maven” 插件，以检查项目依赖项中是否存在已知的安全漏洞，并生成报告。</p>
+<p>但是，有时候我们不想包含某些依赖项，比如 provided 范围的依赖，这些依赖项不会被打包到分发包中，因此不需要进行漏洞检查。在这种情况下，可以使用上述命令来创建报告并跳过这些依赖项，以提高效率和减少报告中的噪音。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">project</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="tag">&lt;<span class="name">build</span>&gt;</span></span><br><span class="line">        ...</span><br><span class="line">        <span class="tag">&lt;<span class="name">plugins</span>&gt;</span></span><br><span class="line">            ...</span><br><span class="line">            <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.owasp<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>dependency-check-maven<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">version</span>&gt;</span>8.1.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;<span class="name">skipProvidedScope</span>&gt;</span>true<span class="tag">&lt;/<span class="name">skipProvidedScope</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                            <span class="tag">&lt;<span class="name">goal</span>&gt;</span>check<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">            ...</span><br><span class="line">        <span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></span><br><span class="line">        ...</span><br><span class="line">    <span class="tag">&lt;/<span class="name">build</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line"><span class="tag">&lt;/<span class="name">project</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="5使用内部cve源">⑤使用内部CVE源</span></h4><blockquote>
+<p>创建 <code>dependency-check-report.html</code>报告文件，并使用内部 CVE 内容的镜像。这意味着，<code>dependency-check-maven</code>插件将使用本地存储的 CVE 内容，而不是从网络上获取。这通常可以提高扫描的速度，并且可以在没有网络连接的情况下进行扫描。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">project</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="tag">&lt;<span class="name">build</span>&gt;</span></span><br><span class="line">        ...</span><br><span class="line">        <span class="tag">&lt;<span class="name">plugins</span>&gt;</span></span><br><span class="line">            ...</span><br><span class="line">            <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.owasp<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>dependency-check-maven<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">version</span>&gt;</span>8.1.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;<span class="name">cveUrlModified</span>&gt;</span>http://internal-mirror.mycorp.com/nvdcve-1.1-modified.json.gz<span class="tag">&lt;/<span class="name">cveUrlModified</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;<span class="name">cveUrlBase</span>&gt;</span>http://internal-mirror.mycorp.com/nvdcve-1.1-%d.json.gz<span class="tag">&lt;/<span class="name">cveUrlBase</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                            <span class="tag">&lt;<span class="name">goal</span>&gt;</span>check<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">            ...</span><br><span class="line">        <span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></span><br><span class="line">        ...</span><br><span class="line">    <span class="tag">&lt;/<span class="name">build</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line"><span class="tag">&lt;/<span class="name">project</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="6仅更新仓库">⑥仅更新仓库</span></h4><blockquote>
+<p>从 NIST 更新 NVD 数据的本地缓存，而不分析依赖关系。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">project</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="tag">&lt;<span class="name">build</span>&gt;</span></span><br><span class="line">        ...</span><br><span class="line">        <span class="tag">&lt;<span class="name">plugins</span>&gt;</span></span><br><span class="line">            ...</span><br><span class="line">            <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.owasp<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>dependency-check-maven<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">version</span>&gt;</span>8.1.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                            <span class="tag">&lt;<span class="name">goal</span>&gt;</span>update-only<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">            ...</span><br><span class="line">        <span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></span><br><span class="line">        ...</span><br><span class="line">    <span class="tag">&lt;/<span class="name">build</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line"><span class="tag">&lt;/<span class="name">project</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4><span id="7抑制误报">⑦抑制误报</span></h4><blockquote>
+<p>使用多个抑制文件（例如公司范围的抑制文件和本地项目文件）抑制误报。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">project</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="tag">&lt;<span class="name">build</span>&gt;</span></span><br><span class="line">        ...</span><br><span class="line">        <span class="tag">&lt;<span class="name">plugins</span>&gt;</span></span><br><span class="line">            ...</span><br><span class="line">            <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.owasp<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>dependency-check-maven<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">version</span>&gt;</span>8.1.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;<span class="name">suppressionFiles</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">suppressionFile</span>&gt;</span>http://example.org/suppression.xml<span class="tag">&lt;/<span class="name">suppressionFile</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">suppressionFile</span>&gt;</span>project-suppression.xml<span class="tag">&lt;/<span class="name">suppressionFile</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;/<span class="name">suppressionFiles</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                            <span class="tag">&lt;<span class="name">goal</span>&gt;</span>check<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">            ...</span><br><span class="line">        <span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></span><br><span class="line">        ...</span><br><span class="line">    <span class="tag">&lt;/<span class="name">build</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line"><span class="tag">&lt;/<span class="name">project</span>&gt;</span></span><br></pre></td></tr></table></figure></blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SCA/" rel="tag">SCA</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2025/11/10/Dependency-Check-Jenkins/">
                 【安全测试】Owasp Dependency-check 集成jenkins
             </a>
@@ -719,7 +909,7 @@
 <h2><span id="7创建smtp账号自动让你输入密码">(7).创建smtp账号，自动让你输入密码</span></h2><blockquote>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">saslpasswd2 -c -u nidey.com 392223903</span><br></pre></td></tr></table></figure>
 
-<p>上面生成的邮箱账号：<a href="mailto:&#x33;&#57;&#x32;&#50;&#50;&#x33;&#57;&#48;&#51;&#x40;&#x6e;&#105;&#x64;&#101;&#x79;&#x2e;&#99;&#x6f;&#x6d;">&#x33;&#57;&#x32;&#50;&#50;&#x33;&#57;&#48;&#51;&#x40;&#x6e;&#105;&#x64;&#101;&#x79;&#x2e;&#99;&#x6f;&#x6d;</a></p>
+<p>上面生成的邮箱账号：<a href="mailto:&#x33;&#57;&#x32;&#x32;&#x32;&#x33;&#x39;&#48;&#51;&#x40;&#x6e;&#105;&#x64;&#101;&#121;&#x2e;&#99;&#111;&#x6d;">&#x33;&#57;&#x32;&#x32;&#x32;&#x33;&#x39;&#48;&#51;&#x40;&#x6e;&#105;&#x64;&#101;&#121;&#x2e;&#99;&#111;&#x6d;</a></p>
 </blockquote>
 <h2><span id="8其他命令">(8).其他命令</span></h2><blockquote>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sasldblistusers2   查看所有用户</span><br><span class="line">saslpasswd2 -d 392223903@nidey.com  删除用户</span><br></pre></td></tr></table></figure>
@@ -930,900 +1120,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Email/" rel="tag">Email</a><a class="tag-none-link" href="/tags/Fishing/" rel="tag">Fishing</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2025/10/13/After-Vladivostok/">
-                滨海远东之后（After Vladivostok）
-            </a>
-        </h2>
-    
-    <time>
-        Oct 13, 2025
-    </time>
-    <section class="content">
-        <h1><span id="滨海远东之后after-vladivostok">滨海远东之后（After Vladivostok）</span></h1><p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/1.png" alt="image"></p>
-<h2><span id="特殊的世界观察之始">特殊的世界观察之始</span></h2><blockquote>
-<p>如果说24年去日本（近畿关西）还是非常大众选择的范畴，那么25年也就是今年，选择海参崴（滨海远东）完全是个人的一厢情愿了</p>
-<p>如果说，在日本还能在宇治桥头和大阪电电城偶遇同样独自旅行的国人</p>
-<p><strong>这次在海参崴，我没有遇到任何一个独行人</strong></p>
-<p>在我例行寻求同行者时，熟悉的国家但陌生的城市让大多数人没有兴趣，不知道它在哪的大有人在，以至于被友人评价为“这个目的地出乎意料，感觉只有在地理书上出现的地方”，对此我也只能回到“那还是有很多地理书上没有出现过的地方也是值得去的”</p>
-<p>其实这次出行安排出发时是周末，非常适合一抹多一起来，她也喜欢看海，尤其是这种国内没有的“悬崖海边”（她的称呼），但由于惧怕导员不给批假期，遂咕</p>
-<p>剩下的老同学们一个个不是护照上交，就是已经请假较多不方便再请，还有被新谈女友扣住说第一次要陪她去莫斯科才行的……总之，9.3阅兵上的鸽子跟他们咕起来都是没有效率的</p>
-<p><strong>由此看来，我想，孤独可能仍会是跟随我许久的引注脚</strong></p>
-<p>所以我开始进一步观察和感受我所不知的世界，自这次远东旅行后，我怀疑在我30岁时，我能访问大半个地球，假设那天听闻我一个人跨德雷克海峡，踏上南极洲在科考站给企鹅充Q币，别认为这个人多勇敢多开心，想想他有多孤独啊</p>
-</blockquote>
-<h2><span id="为什么选择海参崴">为什么选择海参崴？</span></h2><blockquote>
-<p>坦白说，在做相关攻略之前，我对这个城市的印象只有：</p>
-<p>高纬度地区，和东北相近，但是个海滨城市，历史上是被割让给沙俄，少有的不冻港口，仅此而已，但好像在了解这个城市的同时就被钉下了是个可以旅游的城市认知，不知为何（或许是拜中学老师或图书馆书籍所赐）</p>
-<p>由于24年已经去过日本，尤其是京都的人文与景象让我很是满足，详见 <a href="https://szczecin.github.io/2024/10/10/After-Kansai-Kinki/">关西近畿之后（After Kansai Kinki）</a>，于是并没有想接连着去到访现代化的关东（不感冒），也合时间去北海道，而提到北海道，话说去北海道为什么不去相邻近维度的海参崴呢？由是乎今年去海参崴成为了我觉得可行而且有趣有意义的计划</p>
-<p>后来在今年初至年中做攻略看有什么景点和美食时我才知道，海参崴街上基本都是欧洲式的建筑，知道有便宜的帝王蟹可以吃，知道了与国内不同的“悬崖海边”风光，也知道了这座城市在近200年的历史</p>
-<p>自2022年起，俄乌冲突已经持续了近4年，海参崴作为远离前线战场的另一端，从安全考虑是比莫斯科更加合适的，从位置与时间考虑，是比不在冬季的贝加尔湖更合适的（我也不是很喜欢雪和天寒地冻）</p>
-<p>带着战争对俄罗斯经济产生了什么影响，远在远东的人民生活会有多少冲击，帝王蟹到底有多好吃，最容易到达的“世界尽头”到底和照片相差多少等等这些疑惑，我在一边备考 CISSP 一边做好了旅行准备（以至于我觉得这次准备更简陋，但海参崴是一个意外松弛和休闲的城市，这个下文会有体现），前篇博文说到考试的通过，仅两天时间，我便出发前往滨海远东</p>
-<p><strong>但，甚至对于我自己来说，我也深知这第一次出行可能也会是最后一次到访</strong></p>
-</blockquote>
-<h2><span id="回顾第二次出国之旅">回顾第二次出国之旅</span></h2><blockquote>
-<p>抛开感慨，接下来我会复盘一下这第一次出国之旅，从准备到实际景点体验，从自己遇到的趣事，到实际可以提升体验的细节，还会记下自己的一些花费，供后人参考<br>PS：各种沿途的景色照片原图请见我的<a target="_blank" rel="noopener" href="https://github.com/Szczecin/Travel-Pictures/tree/main/20250927">旅行照片仓库</a>，本篇展示的图片都是压缩了60%-70%的大小，为了能较顺畅的加载</p>
-</blockquote>
-<h3><span id="准备">准备</span></h3><blockquote>
-<p>1、护照尽早准备，签证的话刚在我出发前中国对俄罗斯免签，普京表示会尽快提供等同的谢意作为回应，这应该要看战争什么时候结束了；所以目前签证还是要交300多近400块，自己网上办理的，详见 <a target="_blank" rel="noopener" href="https://evisa.kdmid.ru/">电子签证办理 - 俄罗斯联邦外交部领事司</a></p>
-<p>2、国际航班登机前提前2-3小时到并不夸张，但这次我只提前了1小时到，我到的时候已经快行李托运结束，检票快开始了（别学，毕竟8点的飞机，我已经5点半起了QAQ），按去年的出行经验来说，机票在离出发快两个月的时候最便宜，但由于俄罗斯签证仅允许出发前40天办理，所以我拖到了8月26日才订机票，8月25日才订酒店，但也正因如此，我买到了2500+的国航；</p>
-<p>这次国航在买机票后就可以直接值机，相比上次厦航的v50选视线更好的位置，这次近乎所有位置都是免费（也可能是因为我比较早值机？），我找来了空客321和波音737的舱位与机翼相对位置图，以此选位置，事实证明，我选的后座的位置还可以再后一些，毕竟机翼实在太长了；而我选的前排的位置还可以再前一排，因为前排确实看不到机翼了，但还有一个引擎的身位在机翼前！</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/2.jpg" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/3.jpg" alt="image"></p>
-<p>其次国航也可以在值机后可以直接在APP选择想吃什么，可以把普通的盒饭免费换成特色食物，但是四趟航班只让我选了一餐，而且，这里有一个管理学问题：如果只有极个别的乘客发现了特色食物，选了海鲜餐，怎么在控制成本的情况下（别的乘客都是统一出餐肯定更便宜）给他提供特色餐呢？</p>
-<p>国航的回答是，那大家都吃海鲜餐不就好了！大锅一起，只不过你的特色就是虾仁番茄拌面，人家的是虾仁蛋拌面了！（草，完全不能和厦航的大热狗面包比，差评！）</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/4.png" alt="image"></p>
-<p>3、信用卡确实有必要办理，但也只在 Zenhotels 上预订酒店和国内预定航班用到了，因为国际制裁，尤其是欧盟的协议制裁，即使是银联与Visa的信用卡，都会因为“3-D Secure authorization error Try again later”无法支付成功，同理，在海参崴也无法从ATM机进行换汇取钱！</p>
-<p>4、海参崴是没有类似日本的景点复合券或者交通券的，毕竟绝大多数景点都不需要门票，公共交通也只有公交</p>
-<p>5、各种景点、餐饮一定要注意什么时候开业或不开业，但由于制裁的原因，这次去海参崴无法通过信用卡线上购买景点门票，不过好在餐厅基本可以不需要押金预约（现在想来去伊根时预约神慈餐厅需要押金是真的生鲜，人家要切实在那天准备）</p>
-<p>6、由于是第一次去高纬度地区，又是接近10月了，据三尾说在东北都快开始供暖了，所以我不敢怠慢，但看气温也是十几度到二十度，所以还是以单件长袖为主，薄厚外套各一件，结果因为是海滨城市，并且我还在旅行四处奔走，反而让我觉得一件长袖都热，别说外套，没带短袖都是失策；</p>
-<p>伞、充电宝一定要带（我在海参崴就遇到了细雨），我10000mAh的小充电宝，返航时甚至不需要拿出包来，只能说国内安检确实最严格（但俄罗斯安检会要你打开随身包看看）</p>
-<p>7、现金我带了3k CNY（现金），得益于 CNY&#x2F;RUB 汇率的走高，结果只花掉了2400（还包括给一抹多的纪念品），比预期还低，但是回来最好别带卢布回来，一定要想办法在海参崴花掉，不然就是贬值；</p>
-<p>为什么带人民币现金呢？因为在9月上中旬我才发现，招行已经没办法购买卢布的外汇了，可能只有中行和工行这种可以，但即使可以，也无法在杭州取出卢布了（可能是因为战争的管制原因），在当时不知道信用卡是否可以换汇的情况下，唯一合适的方式就是带人民币现金去海参崴当地的汇所换钱；</p>
-<p>这里需要感谢一下小红书，我收回先前对小红书的诋毁，在我咨询银行客服收到查询回复后说可以在俄罗斯使用信用卡的保证后，不想带现金的我碰到景点门票都无法用信用卡支付并且报统一错误的情况时，还是想确认清楚，这个时候只有小红书这样的平台才能验证具体情况（毕竟很多旅游资讯），不少近期去旅行的游客都表示信用卡无法换汇，让我下定决心带现金</p>
-<p>8、俄文按键输入和翻译都用的是 iPhone 自带的，然而去没用到俄文按键输入，拍照翻译翻那些正楷字或者说明挺好用的；</p>
-<p>这里要吐槽一下俄罗斯人的英语水平，和他们的英语水平比起来，日本才应该被称为欧洲国家，纵使是标明可提供英文服务的酒店前台和高档如马林斯基剧院的售票都无法与你用英语良好的沟通，所以翻译吧！</p>
-<p>9、Yandex Map 堪称俄罗斯的缺德导航，它是有路真给你导啊，在它的指导下，我经过废弃工厂、走过山顶小路甚至穿越原始丛林，但不得不说成功把我带到目的地了，没让我丢了……（记得把两者的离线地图都下了，现在地图软件能让你自己选择地图范围获取离线地图了）</p>
-<p>10、流量卡我买的是5天每天1G，实际体验好像完全足够用；因为我是旧卡，没办理国际长途漫游，也就接受不到国内的短信，或者说几乎接受不到短信；</p>
-<p>还有一点，有的境外流量卡划分区域比较小，我在海参崴机场是没有流量的（因为VVO在俄罗斯 远东联邦区 滨海边疆区 阿尔乔姆市北郊）！很难想象我在下飞机发现没信号以为是卡发错货了时候的绝望，在这种情况下我完成了机场换汇和赶上前往市区的末班快轨，期间我都想好该怎么寻求帮助了，包括其实机场也有卖相关 SIM 卡的柜台，当时最好的情况其实就是在机场再买一张，但如果做这个动作拖延时间，我就应该赶不上末班快轨了</p>
-<h4><span id="准备费用">准备费用</span></h4><p>护照：<del>护照费用：130 RMB</del> 去年办好，不计</p>
-<p>签证费用：377 CNY</p>
-<p>机票费用：2587.01 CNY</p>
-<p>电话卡：29 CNY</p>
-<p>MAC 欧标&#x2F;德标插头：25 CNY</p>
-<p><del>（超小充电宝10000mAh：79.04 RMB）</del></p>
-<p>住宿费用：2251.35 CNY（很贵，但是这是两个人住的40+平的Lofter套房，原定是和朋友一起住的，但是都是鸽子，海参崴也没有单间的酒店，单间都是胶囊旅馆没有独立卫浴，不安全，民宿就这英语沟通水平，还涉及到押金遂放弃）</p>
-<p>现金：2400 CNY（这里包含了所有交通、景点、餐饮、纪念品等费用）</p>
-<p>门票及交通券费用合计：</p>
-<p>机场快轨来回：335x2 &#x3D; 670 RUB</p>
-<p>14趟公交：50x14 &#x3D; 700 RUB</p>
-<p>S-56 潜艇博物馆：200 RUB</p>
-<p>观景台上山缆车：50 RUB</p>
-<p>马林斯基滨海剧院：1200 RUB</p>
-<p>符拉迪沃斯托克远东历史博物馆：1200 RUB</p>
-</blockquote>
-<h3><span id="9月27日">9月27日</span></h3><h4><span id="中国国际航空ca1703x2fca811">中国国际航空CA1703&#x2F;CA811</span></h4><blockquote>
-<p><strong>行于白色荒漠之间</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/186.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/5.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/6.png" alt="image"></p>
-<p>相比从杭州到日本在空中感受到的山水画卷，不论是从杭州到北京，还是再由北京到海参崴，给我带来的感受就是或厚重或各异的云层，仿佛置身于一片白色荒漠，多一份浩瀚</p>
-<p>CA811&#x2F;2的航线是25年3月31日才首航成功的航线（我真幸运），怪不得是稍有颠簸的（也可能和维度与云层有关）；</p>
-<p>而在经辽吉或内蒙的上空时，我第一次看到了荒漠，在教科书上提到的“盐碱化荒漠化土地”，紧挨着农田（这是南方人很难想象的），我也深刻理解到为什么前些年北京春会起如此沙尘，这些在高空肉眼可见的沙丘是否是因为可控难以流动了，才在边上种植田地，还是范围在扩大不断侵蚀田野，希望是前者，毕竟这里恰好是“三北”防护林的规划区域，而这一工程一直被规划到了2050年的八期工程</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/7.png" alt="image"></p>
-<h5><span id="tips">Tips</span></h5><p>1、如果你选择的是跨境联程的航班，托运行李取飞机票的时候要出示护照和签证，柜台小姐用身份证查了半天发现查不到我的对应航班后问我到哪，然后反应过来需要护照并看签证（没错，俄罗斯不查你的签证，我们出关查）</p>
-<p>2、其实我对上面第二张拍到海参崴的照片不是满意，原因是做我旁边的女生醒了！醒来看到这个景象，恨不得用手机贴在飞机窗玻璃上拍，但是她这样的手法是对不上焦的，因为我坐在窗边，她也向我说抱歉，我以为她就此罢休了，结果立刻从包里掏出一个单反……于是乎，整个临近降落的过程机窗都被她霸占了，我也让着她，不做反抗了</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/8.png" alt="image"></p>
-<p>这里没有诋毁与讨厌的意思，因为看得出来她的高兴与对景色的赞叹，我又何尝不是欣喜的——有人和我选择了一样的目的地并认可这番景色，让我更加感到，如果身边有熟人陪伴，分享这份喜悦该有多好</p>
-<p>3、在临降落前我换好了流量卡，然后发现没！有！网！17:10下飞机出关等行李，必须吐槽一下行李转运效率，足足等到近17:40我才拿到行李，然后去找扶梯边的ATM，用 Visa 卡换汇，ATM 账单票都出了，就是没有见到现金出来，这也就是我前面提到的协议制裁导致的</p>
-<p>为了赶18:00的机场快轨，我只能快速跑到机场的人工换汇窗口（还好 VVO 不大，一下就找到了在哪，相距不远），途中还不小心撞上了一位俄罗斯大妈，人家左肩贴着手机在耳边，两手握住行李推车，回了我一句“记得看路”，看她并无怒色，赶忙道歉的我到换汇窗口，只有10.05的汇率让我恨不得在心里骂天下机场一般黑（北京PEK的换汇也差不多的汇率，正常应该在11.5左右），考虑到到市区已晚，我没法今天在市内汇所换汇，包括现在我并没有网络，也许需要其他钱急用，只得用 400 CNY 换 4020 RUB</p>
-<p>4、机场快轨入口就在机场左右尽头，快速过安检后我到售票口，俄语听不懂！售票员没有想和我沟通售票的意思，一瞬间我认为是不是车快开了停止售票了，事实上确实如此，但她直接示意我向闸机入口看，闸机边的警卫也放开闸门，示意我快赶上车吧</p>
-<p>到了列车边，还心想着车票怎么办，我记得车上是有人要查票的（好市民当惯了根本没想过先上车后补票），结果列车边的查票员正等着我呢，模糊沟通后我理解了一趟 335 RUB的意思，她直接给我从手上的出票机出票，让我上车</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/9.png" alt="image"></p>
-<p>说是机场快轨，实际上就是我们的绿皮火车改，虽然车上较空，但好不容易赶上末班的我没法顾及预先想坐右侧看海的计划（实际上没有必要，后面有的是看海机会），只能苦闷的在想没有网络怎么办的问题</p>
-<p>所幸，当列车驶近市区，信号恢复了，与朋友道平安后的我，也终于可以正常的规划行程了</p>
-<p>5、在列车上，我第一次看到了征兵广告，大意是你参军给你多少钱，转正役及待够多少久给多少钱，让人第一次感受到战争对这个社会的影响；此时还没有太大感觉的我还没意识到，征兵会在我之后去的许多地方看到（列车、公交、车站、滚动广告频乃至节日庆典的摊位上），我也会从多个层面体会到战争对国家、对人民生活的影响，即使在远离战场的另一端</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/10.png" alt="image"></p>
-<h5><span id="交通费用">交通费用</span></h5><p>机场快轨：335 RUB（以下所有费用都由现金支付，此处只做记录）</p>
-</blockquote>
-<h4><span id="port-may">PORT MAY</span></h4><blockquote>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/11.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/12.png" alt="image"></p>
-<p>这一个房间40多平的lofter，很大空间很足，电路独立不受房卡控制，配备了睡衣、冰柜甚至专业开酒器，可惜没有梳子，酒店没有洗衣机（有外包洗衣房需要统一带过去）</p>
-<h5><span id="tips">Tips</span></h5><p>1、出快轨站本可以坐公交到酒店，但我看也就走小十几分钟，于是看着 yandex map 给的路线前进，边上就是海参崴火车站，对面就是列宁像（诶？写到此时我才意识到我忘记去看列宁像了），路上有较多车穿行，让我认为之后不会走这条路了不安全，然而后面我才知道，这已经是最安全的路了，至少还有车和路灯</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/13.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/14.png" alt="image"></p>
-<p>2、Port May 的前台小姐很有尽责尽业（在我后来办理退房手续时我看到她和另一组国内游客靠翻译软件一句一句用人民币结算提前入住费用和手续办理），但当我办入住时，英语沟通不是很顺利，后面询问洗衣机的时候她甚至紧张到忘记了衣服改用英文怎么说而说成了dress，由此我意识到俄罗斯人的英语水平可能和我预期有一点小出入……</p>
-<p>3、不知道是俄罗斯全体还是PORT MAY一家，我入住没有像在日本一样再交一笔税或者支付押金，互相理解后是较为顺利的直接入住了</p>
-</blockquote>
-<h4><span id="tbilissimo">Tbilissimo</span></h4><blockquote>
-<p><strong>总的来说，不太值得来这家餐厅</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/15.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/16.png" alt="image"></p>
-<p>船型芝士面包是好吃且有特色的，缺点是单吃有点干了，但我刚好也点了类似番茄牛肉的查舒舒利可以一蘸，然而，查舒舒利它没！味！啊！明明是番茄做的却没有番茄的酸甜味，也没有牛肉的咸味，那是不是这家餐厅做的问题呢？不，后面我吃的所有此类酱都是如此</p>
-<h5><span id="tips">Tips</span></h5><p>1、不知道是不是俄罗斯的文化，还是这家餐厅的规定，不许客人穿外套进入；而基本所有餐厅在结账时都要收取10%的服务费（这个和小费是分开算的，不强收小费）</p>
-<p>2、在听闻我只点了两道菜且喝的也只想喝水以后，服务员给我上了一份绝对是我此生以来喝的最贵的一瓶矿泉水，玻璃瓶装的，一上来我还以为是酒（抱着好奇心把它喝完的），后来我算了一下，这瓶水快 30 CNY</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/17.png" alt="image"></p>
-<p>3、前往 Tbilissimo 吃晚餐及回去的路上我领悟到了国内的基础建设是多么夸张，海参崴除了滨海大道是柏油路切满路灯外，其他的道路基本都是水泥路，路灯更是偏离市中心两条主干道外的奢侈品，如果需要通过石阶和金属梯上下联通还可以被称为特色的话，那夜晚走在路上就只能靠居民楼的灯光了</p>
-<p>由此也算是知道为什么国外抢劫等事情仍有发生，这个环境氛围加上没有摄像头，简直为犯罪提供便利，以至于这里的每一个便利店都是先一个前置单人门，中间一个隔门进入的（为了防止多人涌入抢劫），和国内的敞开店门迎客完全不同</p>
-<p><strong>所以我不建议任何人单独来海参崴旅行，尤其是晚上出门</strong></p>
-<p>这样的警告下面还会出现两次</p>
-<p>4、在俄罗斯，酒尤其是啤酒文化很浓重，甚至啤酒比水便宜，路上喝罐装啤酒的人比比皆是，反而没有夸张到和伏特加的</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/18.png" alt="image"></p>
-<h5><span id="餐饮费用">餐饮费用</span></h5><p>猪肉牛肉双拼热乌冬加半生蛋：800 JPY约 39.13 RMB（WeChat Pay）</p>
-<p>船型芝士面包（内含扇贝）+ 番茄牛肉（查舒舒利）+ 究极矿泉水 &#x3D; 2165 RUB</p>
-</blockquote>
-<h3><span id="9月28日">9月28日</span></h3><h4><span id="pelmeny-pirogy">Pelmeny pirogy</span></h4><blockquote>
-<p><strong>没吃到更奇形怪状的饺子有点遗憾</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/19.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/20.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/21.png" alt="image"></p>
-<p>上图的饺子已经吃了小一半了（15个），这个饺子店的布置非常温馨，而且，谁能懂我在餐台点单看了半天菜单（没有饺子图片我甚至不知道那个分类是饺子）然后把菜单翻面看到英文的救赎感！</p>
-<p>当被问道要喝些什么时，我表示茶就可以（不敢说只要水了），然后店长用飞快的俄语向我说了好几个茶的种类，完全听不懂，于是我们只能一个人指菜单前一面的俄文单词，我翻过来确认英文，原来表述的是大吉岭、阿沙姆等等，然而量还是没能互相理解，所以上了这么一大杯……</p>
-<h5><span id="tips">Tips</span></h5><p>1、海参崴的餐厅究竟是先付钱再用餐还是反过来不同的店是不同的，具体需要自己问问</p>
-<p>2、在海参崴上公交也是后上前下，下车给钱，现金 50 RUB 全程，刷卡什么的会更便宜；公交司机有权利对行车路线进行临时变更，尤其是 Middle Bus（中巴，大面包车做成的公交），也有到站没人下车上车不停的权利（公交上有下车铃的很少），所以如果不是远程（市区里），宁可早一站随人流下车也别坐过站好（海参崴市区不大，一站就3分钟步行）；在远程时（去俄罗斯岛），快到站时一定要盯紧地图，要到位置了不管看没看到车站都和司机表示出要下车的意图，这里下文会细说；</p>
-<p>这里要吐槽一下海参崴公交司机的险恶，一趟 50 RUB，你给他 100 RUB，他怎么给你找零呢？以为会直接给你面值50的纸币吗？硬币this！以为给你5个10卢布？To Young To Simple，4个10卢布1个5卢布2个2卢布1个1卢布！搞得我后悔没有带零钱袋来，我以为只有日本会有这么多“硬通货”</p>
-<p>以至于后来我以其人之道还治其人之身，你以为我把这一串硬币凑成50付车费就算了？我还往里面掺纸币，做到两张10卢布纸币一个10卢布硬币两张5卢布纸币一个5卢布硬币再加2个2卢布1个1卢布！最后一天收到我这一套的司机不知道脸是不是绿的（互相伤害</p>
-<h5><span id="交通amp餐饮费用">交通&amp;餐饮费用</span></h5><p>公交：50 RUB</p>
-<p>羊肉饺子（15只）+ 大杯阿萨姆红茶 &#x3D; 600 RUB</p>
-</blockquote>
-<h4><span id="百万卡-millionka">百万卡 Millionka</span></h4><blockquote>
-<p><strong>历史不被掩盖，即使双方各执一词</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/22.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/23.png" alt="image"></p>
-<p>老旧的砖墙已被彩绘粉饰，关于百万卡的历史，有兴趣的朋友可以自己搜索一下，有一个基础认知，而下文我也会贴出在符拉迪沃斯托克远东历史博物馆里对这一事件的描述，大家可以相互比较</p>
-<h5><span id="tips">Tips</span></h5><p>1、在海参崴的每天晚上我基本都快和一抹多及三尾聊天到凌晨1、2点（国内23、24点），然后基本都是到上午 10:30 起，却都能基本完成我规划的安排，让我不禁感慨在日本玩的还是太紧了，这才是旅游生活</p>
-<p>2、从 Pelmeny pirogy 吃完饺子出来我是去了 Commercial Bank Summit Bank 进行换汇，非常方便，取票交钱签字一气呵成，11.75的正常汇率让我再次感慨机场黑心（虽然没22年22的离谱之高），我换了 2k CNY，折合 23500 RUB</p>
-<p>3、在出发前我仔细核对了一下后面选择的海鲜餐厅，普遍让我觉得都太贵了（7 futov、More乃至Crab House的帝王蟹价格感觉与国内差异不大了），不能被本地人坑了啊，必须出重拳！于是在北京候机时还是在小红书查了一下，发现有店家在给自己“打广告”：2500 RUB&#x2F;kg 的活帝王蟹，并且附有地图地址，既然现在时候还早，我不如先确认这店家的虚实如何？</p>
-<p>于是就开始了我在市区的乱逛，从百万卡出来，天就开始下细雨，在为今天奠下情感基调，此时我还不知道，这场下下停停的雨差点让我无法去托比津纳海角</p>
-</blockquote>
-<h4><span id="老虎日">老虎日</span></h4><blockquote>
-<p><strong>择日不如撞日的典型范例</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/24.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/25.png" alt="image"></p>
-<p>我并不知道俄罗斯尤其是远东地区在每年的9月最后一个星期日会举办老虎节，之前也只是在别人的博客中提到在九月有这么个活动，但活动之大，人民响应热情之高让我闻所未闻，就有点像我们端午赛龙舟，他们搭舞台表演从早到晚，摊贩自己做小吃搞游玩又如日本的夏日晚会（只能说东亚是真的互相影响的）</p>
-<p>老虎节把大半个滨海广场占据了，入场还要过金属探测仪，在各种摊贩的布置阻碍下，想先来踩点找帝王蟹餐厅的我死活看不见门面，绕来绕去才发现就是被挡住了</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/26.png" alt="image"></p>
-<p>看到“中国饭店”四个字，确定晚饭有着落了，于是乎放心地朝遇到要去的中央广场走去了</p>
-<p>在前往中央广场的路上，在车流中我看到了一面苏联国旗，内心有说不出道不明的感受</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/27.png" alt="image"></p>
-<p>上图的汽车看起来还较为正常，但我在海参崴看过好几次前面保险杠和车壳都被撞掉却照样正常行驶上路的车了，惊讶于俄罗斯人的狂野和警察不管</p>
-<p>在滨海广场找餐厅的时间段里，我第一次在海参崴近距离看海，和着雨幕，心旷神怡</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/28.png" alt="image"></p>
-</blockquote>
-<h4><span id="中央广场">中央广场</span></h4><blockquote>
-<p><strong>英雄出于人民</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/29.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/30.png" alt="image"></p>
-<p>在拍第一张苏联红军远征纪念碑时，工作刚停手的小哥看到了正在拍摄的我，他有些不好意思，想闪躲让出更好的景象，但自己身处高台无可奈何，殊不知我认为这才是更美好的画面：劳动人民就是生活中的英雄，又怎会为画面抹黑</p>
-</blockquote>
-<h4><span id="远东主显圣大教堂-спасо-преображенский-кафедральный-собор">远东主显圣大教堂 Спасо-Преображенский кафедральный собор</span></h4><blockquote>
-<p><strong>一般，不让进正厅</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/31.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/32.png" alt="image"></p>
-<p>很可惜，可能是因为我是中国人，也可能是因为绝大部分中国人信马列，也可能是因为我穿的衣服不对，总之推门想入正厅的我，被安检大妈拦住说我并不能进去，还好，我本就对宗教不是很感兴趣，但一瞥正厅，确实金碧辉煌，仅此而已</p>
-<h5><span id="tips">Tips：</span></h5><p>1、之所以说自己穿的衣服不太对，是因为在海参崴浅色系尤其是纯白色的着装，即使在女性中也不流行，整个大街上一个亚裔面孔的男性穿着各式纯白色长袖，说着英语，在哪里都是极其显眼的存在，所幸这些视线里并无敌意</p>
-</blockquote>
-<h4><span id="s-56-博物馆">S-56 博物馆</span></h4><blockquote>
-<p><strong>多少人登过军舰甲板，但鲜有人进过潜艇内部吧</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/33.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/34.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/36.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/37.png" alt="image"></p>
-<p>如果一定要我推荐海参崴市区内的人文景点，S-56和远东历史博物馆必须去</p>
-<p>S-56 博物馆用一艘1:1的 S-56 潜艇做成，里面几乎按原有潜艇配置还原了真实的装置布局，各种仪表盘、监听室、休息室、鱼雷发射器等，你需要像真的士兵一样从圆形管道钻过一个又一个的舱室，与对岸的“红旗”号比值多了</p>
-<p>S-56 是一艘传奇的潜艇，在二战苏联海军普遍没有什么战绩的情况下，这艘潜艇完成了横跨地球支援盟军，监听轴心舰艇的壮举，以至于目前俄罗斯潜艇还是让人敬畏的一支力量</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/35.png" alt="image"></p>
-<h5><span id="景点费用">景点费用</span></h5><p>S-56 博物馆：200 RUB</p>
-<p>从教堂下阶梯，就是一个港口了，这一侧从货船集装箱，到巨型帆船，到邮轮，乃至33号军港都在这里，军港停着一些小船，较大些的舰艇不在这（后来从俄罗斯岛回来的时候看到了在 Anna Bay 附近），都隶属于远东舰队，这也是我第一次较近距离观看到军舰</p>
-<p>S-56 外是二战苏联远东烈士墙（可能只是海军的），附近是一枚燃着火焰的金星雕塑，下面还有人献花，图片我便不放了；</p>
-<p>与我一起参观博物馆的还有几名海军士官，看年龄比我还年轻，大概是附近高校出身，在海参崴的旅途中，我不时就能看到海军服装的年轻人，他们应该大多都是高校在校或毕业生，战争对人民的影响由此显现</p>
-<p>在S-56，最让我满意的展品是当年为了打消长期潜伏的无聊时光，船员们用来娱乐的一副国际象棋</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/38.png" alt="image"></p>
-</blockquote>
-<h4><span id="尼古拉二世凯旋门-николаевские-триумфальные-ворота">尼古拉二世凯旋门 Николаевские триумфальные ворота</span></h4><blockquote>
-<p><strong>一般，不如身后的博物馆有价值的感觉</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/39.png" alt="image"></p>
-<p>这个凯旋门始建于沙俄末代，其历史在远东历史博物馆还有记载，在1917年苏俄内战（红白大战）中被毁，与2003年被修复，据说修复时有不少中国人参与</p>
-<p>但我想说的是，它背后就是远东历史博物馆的城市展区分馆，那个馆外有一个石碑（没错是在馆外没被保护起来），记载了乌苏里江地区被割让后清政府官员对沙俄的谄媚，是我此行错过的三处之一，只恨当时忘记</p>
-</blockquote>
-<h4><span id="登山缆车-нижняя-станция-фуникулера">登山缆车 Нижняя станция фуникулера</span></h4><blockquote>
-<p><strong>只有小孩子才会坐缆车上山，大人都是开车从公路上去了</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/41.png" alt="image"></p>
-<p>这个缆车，以前是链接山下和上山鹰巢观景台的观光要道，但是以前是以前，现在是现在，现在鹰巢观景台周边环区被开发商圈下，正在盖楼动土呢！以西方人的速度，得建到什么时候犹未可知（好像从23还是24年就开始建了）</p>
-<p>然而我是不知道这一切的！以至于我上缆车，车上都是带孩子的家庭，他们和售票老太太齐刷刷地看向我这个独自一人来坐缆车的外乡人，爆发出笑声</p>
-<h5><span id="交通费用">交通费用</span></h5><p>山上缆车：50 RUB</p>
-<h5><span id="tips">Tips</span></h5><p>1、从凯旋门到山下车站其实也是一段小爬坡，在途中我遇到了还留在海参崴的第二家汉堡王（Burger King），其实这还是蛮稀奇的事情，因为在近乎全领域的西方制裁下，肯德基和麦当劳都退出了俄罗斯变成了本土的R记，看来汉堡王的经验有所不同，可能这两家店都是合伙人全资？</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/40.png" alt="image"></p>
-<p>2、当我乘缆车上山，看到施工的场景时，我还不死心，认为观景台可能只是在后面被挡住了，直到我绕了一大圈被铁丝网拦住，遂放弃，只能趁着时间还来得及，赶赴马林斯基剧院，毕竟戏剧只有今天这场</p>
-<p>但有心栽花花不开，无心插柳柳成荫，在鹰巢观景台本想看到的金湾大桥和市区全貌，在后来的行程被不同的景点补足了，比如这张就是在马林斯基剧院门口眺望：</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/42.png" alt="image"></p>
-</blockquote>
-<h4><span id="马林斯基滨海剧院">马林斯基滨海剧院</span></h4><blockquote>
-<p><strong>只可惜没赶上芭蕾的排期</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/43.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/44.png" alt="image"></p>
-<p>在9月28日上映的是喜剧：唐帕斯夸莱（Don Pasquale），戏剧演员们表演得很好，轮椅用的恰到好处，唱腔该浮夸时足够浮夸，人物表现最好的应该是侄子埃内斯托这个角色，颇有意思</p>
-<p>对于个人来说，马林斯基剧院虽然比不上欧洲名院，但已足够庞大，来观戏者大多正装革履，便服反而却是少数，观众大多是中年女性，实属高档之所，第一次观看戏剧在这样的环境，纵使我无法听懂俄语，但一边看着英文的字幕，一边看着台上的演出，我切实感受到了这部戏想表达的资本笼络人心的荒诞和对人们追求自由爱情的歌颂，某种程度来说可能比芭蕾舞更加易于让我接受</p>
-<p>刚来时我因无法比及国内的基建水平而视海参崴为普通的小镇，从这部戏剧开始改观，同时也是海参崴之行质量陡然上升的开始</p>
-<h5><span id="交通amp景点费用">交通&amp;景点费用</span></h5><p>公交：50 RUB</p>
-<p>马林斯基滨海剧院：1200 RUB</p>
-<h5><span id="tips">Tips</span></h5><p>1、因为无法提前在网上购票支付成功，我只能在线下在窗口购票，利用翻译软件告诉售票员是否能选择 1200 RUB 档位的位置，也许是这场戏并不爆满，也许是线下购票的优惠，我可以选择在线上对外国人标价为 1800 RUB 的位置（恰好是俄罗斯国内人 1200 RUB的价格），恰好在一层看台，检票进入剧院后工作人员会贴心的告诉你你的位置在哪一楼，开映前20分钟左右可以入场，还有工作人员引你到位置上</p>
-</blockquote>
-<h4><span id="海边餐厅">海边餐厅</span></h4><blockquote>
-<p><strong>吃完觉得梭子蟹就是什么垃圾</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/45.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/46.png" alt="image"></p>
-<p>这家店的俄语名称我一时找不到了，店门在上文有图，位置在 Ул. Адмирала Фокина 1 目前是 2500 RUB&#x2F;kg（应该是较平民的价格了），杭州国内是近300块&#x2F;斤，差了两倍多，两前台小哥都是国人，后厨还一俄罗斯女生帮忙，蟹在进门口水缸，可以自己选也可以让小哥帮你挑，我一个人吃1.3kg多的蟹加 500 RUB有蟹肉炒饭（用你吃剩下的蟹肉，实测留小半个蟹身就够）吃撑</p>
-<p>用剪刀开蟹，蟹腿肉间都还有一层白蟹油，吃完顿时觉得之前吃的蟹都是什么垃圾，尤其是对于我这种喜欢吃蟹肉而非蟹黄的人来说（帝王蟹也有黄，不多）</p>
-<h5><span id="交通amp餐饮费用">交通&amp;餐饮费用</span></h5><p>公交：100 RUB（从剧院出来到餐厅坐错车了一次）</p>
-<p>1.3+kg 清蒸帝王蟹 + 蟹蟹炒饭 + 可乐一瓶 &#x3D; 3900 RUB</p>
-<h5><span id="tips">Tips</span></h5><p>1、海参崴的公交不一定会按照地图显示准点到达，甚至会直接跨过这个时间段没车，如果你在车站等某班车比地图显示时间迟10分钟都还没来，就别等这趟了，尤其是中巴；</p>
-<p>Yandex Maps 上会显示公交目前所在的位置，如果快到站了会有绿色或紫色的公交标识在地图线路上移动过来；</p>
-<p>俄罗斯公交的英文不一定会用英文表述，小心做错车（比如15和15k）</p>
-<p>2、由于制裁，俄罗斯已经无法直接获取到可口可乐或可乐原浆了，所以只能从中国进口可口可乐或者可乐原浆，冲兑后灌入自己的可乐品牌瓶中，后续我也尝试了俄罗斯的可乐是啥味道</p>
-<p>3、这家店虽然叫海边餐厅，但实际上你并不能一边看海一边吃蟹，因为海边是被另一家叫“China”的餐厅包下了，那边可以在海边吃饭，但比起市内的海滨，此时我还没意识到，明天会有更好的去处</p>
-</blockquote>
-<h4><span id="海边散步">海边散步</span></h4><blockquote>
-<p><strong>感受另一种城市风貌</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/47.png" alt="image"></p>
-<p>这条道路是纪念与海参崴友好城市而创立的，原本白石柱上还有各个城市的浮雕字符，其中包括大连，现在字符脱落，留下的只有在原本浮雕位置的模糊痕迹，令人感到可惜</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/48.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/50.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/49.png" alt="image"></p>
-<p>沿着海岸边，晚上8、9点，老虎节的狂欢氛围还没结束，夜摊还在持续，恰好沿路上去就是原本后续计划要来的圆形观景台，也能一览对岸的游乐园，之后我还会来到这里，看看白天的景色</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/52.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/51.png" alt="image"></p>
-<p>图1是乐队在为夜晚的演奏加油打气，图2是一群年轻人正等着酒吧的开业</p>
-<p>仿佛除了国内，在国外玩乐队的人本身就是街区的一道风景，在日本有弹吉他做直播出售自己专辑的歌手，在海参崴有打着架子鼓为老虎节庆祝的大叔，也有潦倒在地下人行道出口弹键盘的乞讨者，唯一陪伴他的是他的爱犬</p>
-<p>我亲眼看到与女孩吻别的年轻小伙子，他们相拥，然后被电话传来的讯息分开，男孩身着海军服装，重新戴好军帽，走过一盏盏路灯，坚定地步入夜幕，他将离开家乡，奔赴远方；与此同时，另一批人在等待酒吧的开业，好快点让他们在自己的醉与梦中忘却烦恼，宣泄自己的欲望</p>
-<p><strong>他们都如此年轻</strong></p>
-<h5><span id="tips">Tips</span></h5><p>1、或许你们不敢相信，除了在东京池袋我能说出“在池袋，不许说日语外”，在海参崴我也能说“在海参崴，不许说俄文”，从火锅到奶茶，古玩到猫咖，也许是靠近边境的原因，你能在这里找到东亚各国文化的影响；</p>
-<p>除开中国的店面，日本动画在此也有受众，光在公交上看到别有吧唧的痛包和身着带有近期动画元素衣着的年轻人我也看到几个，但好像基本都是女生的爱好？此外，在中央广场对面就是一家大影院，外屏放着正在热映影片的介绍，于是我看到了鬼灭无限城的PV，可想而知国内的审核是真的严格，我甚至能先在海参崴看俄文版的鬼灭</p>
-<p>2、晚上从餐厅吃完，我一路晃悠边拍摄边往回走的时候路过一家名为“尊宴”的国人饭店，一辆黑色SUV刚停在路边，下来两三个国人面孔的小哥，正准备点烟过瘾，我从摄像头里看他们，他们也直接看到我——</p>
-<p>“哟！老哥都已经逛到这来了！”</p>
-<p>我这才反应过来，这两位就是刚才吃蟹餐厅招待过我的两位，估计是和这家店老板也认识，过来聚聚，而我这个身穿白色衣服的面孔在海参崴还是太少见了，被他们一眼就认出来……只能说海参崴也太小了吧</p>
-</blockquote>
-<h3><span id="929">9.29</span></h3><h4><span id="国立海洋大学">国立海洋大学</span></h4><blockquote>
-<p><strong>相比起之后的远东联邦大学（FEFU）就小多了</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/53.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/54.png" alt="image"></p>
-<p>是不是大学都能很容易混进去（</p>
-<p>虽然在市中心的国立海洋大学不大，但我也没找到主教楼的阔派台阶，反而是认为要找一阵的小教堂一下就发现了，路上学生也不是很多，从窗户里能看见窗内的实验器材与学生宿舍里的地球仪，学生公寓前还有身着军服的学生在做打扫……兜兜转转后，我只能放弃寻找，准备乘车去看灯塔</p>
-<h5><span id="tips">Tips</span></h5><p>1、Port May 的旁边就是这所大学，然后公交站也很近，我在去公交站的路上甚至看到了“俄货批发”字样的超市</p>
-<p>2、在校园附近的便利店墙边，我看到了一张寻猫启事：</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/55.png" alt="image"></p>
-</blockquote>
-<h4><span id="octopus-cafe">Octopus Cafe</span></h4><blockquote>
-<p><strong>感觉爆杀 Crab House</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/56.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/57.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/58.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/59.png" alt="image"></p>
-<p>虽然我事先在 Google Maps 上发现了这家餐厅，但这餐本来预期是在更靠近灯塔的 Crab House 吃的，而在我线上看了 Crab House 的菜单价格后，不得不感慨景区价就是贵，而 Octopus Cafe 的价格却更加合适，并且在小红书也被提到可以来吃蟹较便宜，再看看这高楼小木屋，恰好可以眺望到灯塔和电塔，景色开始发力了</p>
-<p>在 Octopus Cafe 我并没有再吃蟹，而是想尝试些其他的海鲜，于是点了鱿鱼、虾蟹贝拼盘和一个大螺，鱿鱼能尝出来带点烤的处理，但肉嫩却不软，韧却不胶，加上咸甜的酱料和底下的烤土豆，如果说帝王蟹是我目前吃过最好吃的蟹，那这鱿鱼鲜切沙拉拼盘就是我目前吃过最好吃的鱿鱼</p>
-<p>蟹腿和柠檬贝一般（贝本来是类似青口的那种，但今天没有，所以换成了更多的扇贝），但这个虎虾确实够大够肥，还有抱籽，可惜我不太喜欢吃籽吃黄</p>
-<p>最后这个大螺，螺是处理好的肉全部可以吃，很大一块，配上紫色的蘸料（蘸料可能是蓝莓酱？不咸有点清甜味），味道是十分鲜甜，第一次感受到高纬度冷海的海鲜如此好吃，是真的在食材质量上碾压，怪不得三尾那家伙说在南方什么都不够好吃</p>
-<h5><span id="交通amp餐饮费用">交通&amp;餐饮费用</span></h5><p>公交：50 RUB</p>
-<p>鱿鱼鲜切+番茄沙拉+蟹腿虎虾扇贝拼盘+大海螺+柠檬气泡酒 &#x3D; 5665 RUB</p>
-<p>这已经是在往贵的吃了，因为我此时发现不多吃点吃贵点钱要花不出去了</p>
-<h5><span id="tips">Tips</span></h5><p>这家餐厅的服务员会一点点中文，会问我是否买单，是不是可以换扇贝，英文也算是能正常沟通的；我吃完去卫生间时（俄罗斯大多公共卫生间需要收费），看到了如下难绷的指示牌，一时不知该如何吐槽：</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/60.png" alt="image"></p>
-</blockquote>
-<h4><span id="托卡列夫灯塔-маяктокаревскаякошка">托卡列夫灯塔 МаякТокаревскаякошка</span></h4><blockquote>
-<p><strong>到海参崴不看托卡列夫灯塔，如去关西大阪不访大阪城</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/61.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/62.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/63.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/64.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/65.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/66.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/67.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/68.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/69.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/70.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/71.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/72.png" alt="image"></p>
-<p>现在近下午三点，恰好是潮低的时刻，海浪随风拍打着路基两岸，海平面上是舰桥与远山齐高的巨轮，沿路下去是高耸的电塔，犹抱琵琶半遮面的，便是托卡列夫灯塔了</p>
-<p>比起作为《七月与安生》取景的灯塔，我认为这红白涂装的电塔才是浪漫所在</p>
-<h5><span id="tips">Tips</span></h5><p>1、傻逼的海参崴公交，到灯塔线路的终点站后，你至少还要走半小时才能到灯塔，而这条路上的中间就是 Octopus Cafe，末端是 Crab House；</p>
-<p>Crab House 绝对也是一个好的吃海鲜去处，他那浑身海鲜涂装的面包车常在市区内穿行，有可能是去拉客了，但怎么说呢，还是贵了，比起 Octopus Cafe 更景区价</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/73.png" alt="image"></p>
-<p>说起面包车，这还有一辆面包车，我不予置评（阳光在哪？）</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/74.png" alt="image"></p>
-<p>2、除开公交车司机的快速行进外，在海岸边我也深刻感受到了俄罗斯人的生猛：两俄罗斯女生挽起裤脚就下水捞海星去了，更别提带来泳衣直接下水游泳的老人，最后还有典中典项目：钓鱼佬对决（伊根复刻了属于是）</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/75.png" alt="image"></p>
-<p>3、终点站回市区的公交站（没错又要走半小时过去）我觉得还挺好看的，被一抹多指出“透光性很好，但刮风下雨怎么办”，我表示这好像是我这次旅途中唯一看到这么通透的车站，其他的都能遮风挡雨</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/76.png" alt="image"></p>
-</blockquote>
-<h4><span id="圣母代祷教堂">圣母代祷教堂</span></h4><blockquote>
-<p><strong>一般，比前面那个强一点，但不多</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/77.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/78.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/79.png" alt="image"></p>
-<p>这座教堂寂静一些，也不坐落在闹市区，而是在市区北，不知道是不是时间不对，前来礼拜的人不多，当我推门进入时，工作人员表示欢迎，但一般来的都是行礼节作仪式的，所以我也就没有步入正厅</p>
-<h5><span id="交通费用">交通费用</span></h5><p>公交：50 RUB</p>
-</blockquote>
-<h4><span id="山顶上的十字架">山顶上的十字架</span></h4><blockquote>
-<p><strong>海参崴最佳观景点</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/80.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/82.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/81.png" alt="image"></p>
-<p>上面第一张照片是我心目中这次滨海远东之行的最佳，甚至超过后面的海角</p>
-<p><strong>但我不推荐你来这里</strong></p>
-<p>这里确实弥补了先前还在施工的鹰巢观景台的遗憾，视野不错，一览无遗</p>
-<p>但是 Yandex Maps 是真的缺德啊，有路就给你导，且不说软件显示13min的步行路程，光从上下到半山腰就是一路的石阶和木梯：</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/83.png" alt="image"></p>
-<p>没事，如果只是这样还算轻松爬山，但是半山腰后开始就只有盘山土路了，那也还行，为了景色值得一试，然后当你到快到山顶，还剩三分之一左右路程时，你会看到一个类幼儿园的地方：</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/84.png" alt="image"></p>
-<p>然后，剩下来的路就都是山路了，我不知道大家特定时节是否去过山坟上扫墓，就是那种树木拦腰，稍不留神滑倒就会滚下山一段的路……你能想象我一路过来在快登顶时树丛发出声响，然后一支黑皮黄底的耷尾狗和你四目相对时的紧张感吗？</p>
-<p>整个登山过程中，除了在山腰遇到踢球的孩子们，山路下石椅上的大哥怡然刷手机外，我没有遇到过其他人了，我背靠着十字架（这真是十字架吗？不知道有什么意义）坐在阶梯上，感受山顶上的风，环顾着整个海参崴城，还有从我眼前穿来穿去的 doge 一家</p>
-<p>按当地人的说法，在这里看夕阳会更加漂亮，但那样就要在傍晚时段走山路了，独身在异国他乡，不该如此犯险了</p>
-<p>在我在山顶待了一会后，从另一面上来两个拿着自拍杆和便携式三脚架的女士，赞叹山顶风光的同时，也对一个完全不同面孔的我在山顶表示惊讶，我也便起身，不打扰她们采风</p>
-<p>写到这里我才发现，其实这和我一年前登稻荷山是异曲同工的，为什么感觉危险和疲累还要往上走，就是一个人独行时没太多顾忌，也希望能以自己的方式去向这一方水土一方神明诉说自己来过</p>
-</blockquote>
-<h4><span id="supra">Supra</span></h4><blockquote>
-<p><strong>氛围感很好的格鲁吉亚餐厅，比 Tbilissimo 强不少</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/85.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/86.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/87.png" alt="image"></p>
-<p>Supra 的服务员能听懂英语，也是我在海参崴唯一遇到的拥有四语（俄英中韩）菜单餐厅，烤肉确实不错，为了多花点我还多点了一份牛小骨，吃撑了，但还是得说羊排好吃点，牛肉串太大一块了，一块我需要用刀叉分成三块才能入口，就显得柴了</p>
-<p>当在选择饮品时，服务员先是给我看了菜单上的果汁与纯茶，看我还在犹豫，便问我要不要试试“啵啵茶”，好奇心驱使我看看这奇怪的名字到底指代何物，接受了他的建议，怎么形容呢，如果它不这么甜还挺好的，有点像很甜的芒果汁，加入冰块和啵啵球（咬一口会爆出液体的，不是国内那种胶状体）</p>
-<p>但是 Supra 有一个很大的缺点，服务员为你提供的服务（点单、干杯等），在结账时会向你收取一定的小费，这部分是和原本账单就收了10%的费用（每家餐厅都收，不知道是不是税）区分开的，服务员会先用手机翻译出向你索要小费的请求，征得你的同意，同时他不会让你自己去前台结账，会直接从你这拿钱替你去付，这个时候如果你不叫住他，不说清楚给多少小费，就会被认为剩下的所有找零都被认作小费了</p>
-<p>所以立刻翻译过来的我便叫住了他，并和他说饭钱 4359，我付 4500，剩下的当作小费，请找回 500 给我，我觉得这是个合适的数目了，不知道他意下如何</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/88.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/89.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/90.png" alt="image"></p>
-<p>在去 Supra 前，趁着天色还早，我回到了圆形观景台，看看晨景</p>
-<h5><span id="tips">Tips</span></h5><p>1、虽然主要来吃烤肉，但我还是尝试了一下“烧麦包子”（亨卡利），只能说不太好吃，面揪是生面不用吃的，感觉浪费还没包子好吃，更没烧麦好吃，我特意点的其中一个是辣味，但对于江西人来说，这辣椒怎么没味啊</p>
-<h5><span id="交通amp餐饮费用">交通&amp;餐饮费用</span></h5><p>公交：50 RUB</p>
-<p>烤羊排 + 牛肉串 + 牛小骨 + 啵啵茶 + 4亨卡利 + 小费 &#x3D; 4500（4359 + 141）RUB</p>
-</blockquote>
-<h3><span id="930">9.30</span></h3><h4><span id="8-minut">8 Minut</span></h4><blockquote>
-<p><strong>我没去苏联大食堂，但 8 分钟也许更适合我</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/91.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/92.png" alt="image"></p>
-<p>9月30日和10月1日的两餐午饭我都是在8 minut 解决的，30号来是想见识下俄罗斯食堂是什么样的，有没有之前还能看到的列宁标语</p>
-<p>从这个角度来看结果是失望的，因为海参崴火车站对面的这家 8 minut 已经是极其现代化的装修了，我想看到的“无产阶级联合起来”自然也没找到</p>
-<p>但如果是就餐来说，通透性很好的餐厅氛围，虽然品类不多但也足够的打餐窗口，虽然能感受到俄罗斯大妈对我这个外乡人不太耐烦，但还是很称职的确认我想要的东西，称重好后插上重量小旗</p>
-<p>虽然是食堂式的餐厅，但除了荧屏上放着俄罗斯女星的MV外，餐点价格也偏资本主义了，可是在能保证你吃饱的情况下，这已经比其他地方便宜了</p>
-<p>30日我点了两个干点心，吃了一个（剩下一个我漂洋过海带回去给三尾吃了23333），里面裹着葡萄干和甜酱，感觉带点压缩饼干或者切糕的意思，只能一口一口咬慢慢下咽，于是我决定喝点“果汁”，打开瓶盖闻到味道我就意识到不好，这是酒……打餐窗口上有两种瓶装饮品红橙两色，红的我看瓶子上的图标很多蔬菜瓜果，应该是蔬菜汁，橙的想必是果汁了吧，当我看到瓶上类似小麦的图案，其实已经开始怀疑是不是啤酒了（都怪俄语太难打了不想敲出来翻译一下），但小麦麦穗也不该这么大个吧，知道我现在查了一下，Облепиховый 是沙棘的意思，我喝的是沙棘酒，我此前从没喝过的东西</p>
-<p>不过沙拉还不错，是我喜欢的类型，香肠就不太好了，不是说用料不足，而是太足了，一根肠全是瘦肉，吃起来有点像吃干肉饼，但是这个鱼就不一样了，这个鱼刺大肉粗，还能渗出些油，一看就是海鱼，吃起来除开鲜以外很香，和细嫩肉的河鱼口感不同，反而这种做法就是很适合肉紧的海鱼，第二天我再去吃时果断点了两块，旁边的女士问大妈这是什么鱼，大妈回答的发音是“马丁”，从分布来说应该是大马哈鱼，但也保不准就是我听错了是马林鱼，那就有点可怕了</p>
-<p>1日时我把沙棘酒换成了红桑果茶（主要是昨天红色瓶装的没了，不然我还想看看那是什么滋味），要了一份甜品蛋糕，我只能说太甜了，以后去国外尤其是西方，少吃他们的甜品，尤其是我不太喜欢吃甜食（年轻人要多吃苦啊），之所以还在 8 minut 吃一是因为它就在车站对面，我下午很好出发，再者我买完纪念品后钱吃顿好的不太够，到 8 minut 绰绰有余</p>
-<h5><span id="交通amp餐饮费用">交通&amp;餐饮费用</span></h5><p>公交：50 RUB</p>
-<p>两份干点心 + 沙棘酒 + 肉肠 + 马丁鱼 + 沙拉 &#x3D; 825 RUB</p>
-</blockquote>
-<h4><span id="托比津纳海角-мыс-тобизина">托比津纳海角 Мыс Тобизина</span></h4><blockquote>
-<p><strong>即使是最容易到达的「世界尽头」也不易到达</strong></p>
-<p><strong>不推荐任何人单人 or 无车前往托比津纳海角</strong></p>
-<p>事关安全，所以如果你想乘公共交通前往海角，下面的话请认真阅读：</p>
-<p>从市区只有 29 路能前往俄罗斯岛（回来也是它），抵达海角“附近”的公交站，但不是终点站，应该在 ТЭЦ Коммунальная 站就下车，然后顺着公路往海角走</p>
-<p>如果你像我一样，觉得 ТЭЦ Коммунальная 站到海角还太远了，逆向思维，看到回来时可以在 11-й форт 等 29 路并且有一条更近的路到海角，那么你就会经历原始丛林</p>
-<p>以下是我的心路历程，供大家参考：</p>
-<p>首先，不知道是不是因为去俄罗斯岛的人本就不多，路上上车人也少，师傅在公交后胎出问题的情况下（他下车检查了，后续也空车不载可以看出我推断的没错），一过桥经远东联邦大学后就开始过站不停，我眼睁睁看着他把我载过 11-й форт 后我赶忙示意他停车，好消息是他没把我带到下一个站再丢下，坏消息是此时已经距 11-й форт 1.5 km 远了，不过不要紧，反正这条路就是更近的，远了就远了，当作没抄近路呗，回到 11-й форт，当我按照 Yandex 找路的入口时，我就看到了这个：</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/93.png" alt="image"></p>
-<p>没错这就是入口！然后是一块俄文告示板（什么乱丢垃圾毁坏树林要罚款balabala）和真正的原始丛林，除了这条你能感觉是被越野车或者其他什么碾出来的土路以外，陪你的就只有小昆虫、蓝羽啄木鸟、鹰等等了，一片勃勃生机万物竞发的景象犹在眼前！</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/94.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/95.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/96.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/97.png" alt="image"></p>
-<p>知道的知道我在海参崴，不知道的以为这是非洲草原和丛林</p>
-<p>之所以我说28日的雨差点让我去不了海角就是因为如果雨再大点，这条林间小路我是绝对走不了的，路会全部松开成泥，而且这段林子的路真的很危险，树根从土壤中裸露出来真的像蛇，我也深度怀疑这林子里很可能是有蛇的</p>
-<p>所以尽可能包车走公路到海角下的海岸吧，不然危险难走，也别问我为啥我能走得</p>
-<p><strong>即使是最容易到达的「世界尽头」也名不虚传</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/98.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/100.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/99.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/101.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/102.png" alt="image"></p>
-<p>到达海岸边后就可以开始赞叹海角景色了，绝大部分的游人都是从公路驾车前来，好像只有我走的林道，坐在秋千上休息一阵后，我开始攀登第一座山</p>
-<p>在抵达海角附近前，我并不知道需要爬山，但在踏上土路的那一刻起，心里就有预感：该不会后面的路都是这样吧，然后丝毫没有意外的这条路顺沿到了山上</p>
-<p>到海角其实有两条路，一条偏向悬崖海边一侧，道路狭窄，比较危险，行走时重心尽可能靠内侧一些些，切忌为了拍摄不顾一切，不注意脚下，真的非常危险</p>
-<p>另一条路是主路，较为平坦，走的是海角内部，那条路可以穿过白花花的芦苇丛，据说到了春天这些芦苇会变成紫色（也可能是别的什么），相比上一条路来说安全不少，我在上山时没有发现主路，直接随着人流一起走的窄路，颇感惊险，返回时老老实实走主路了</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/103.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/104.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/105.png" alt="image"></p>
-<p>在攀爬完第一座山后，映入眼帘的就是这片白色苇丛，不逊旁边的碧海蓝天，也让我知道了还有第二座山的情况，让我明白了看到翻过这个坡就能看到海角的想法有多么天真，不过抱着强烈的好奇与都到这了肯定要看到的念头，我穿过苇丛，开始了继续的攀登，此时的我预期着如果时间可以，或许还能去去水族馆</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/106.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/107.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/108.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/109.png" alt="image"></p>
-<p>这些是一山到二山大概能看到的景色，一抹多说上面这张图有点像地理书封面，现在看来确实可能像在一些地理杂志上可能会看到的景象，不过当时我可没法在意这么多，惊险的路途需要集中注意力，连爬两山的我也开始感到地图上显示的 5km 左右路程不是虚标，但这回总到了吧……到了吧？</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/110.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/111.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/112.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/113.png" alt="image"></p>
-<p>是第三座山，此时我意识到必须得放弃水族馆的计划了，兴许我如果早上不睡到 10:30 还有机会……并且，从预估来看，一来一回，这已经要超过在大阪万博的 8km 路线了，人家是柏油路和竞走跑道，你是？</p>
-<p>不过好在二山和三山之间的路渐宽，与主路也开始交汇了，丛林间我们看到了金属制的瞭望塔，应该是给专门摄影工作者搭建的，想必可以在顶上获得良好的视野和景色，但没有任何防护措施的我可不敢冒生命危险，爬两个梯子到近五人高的平台，况且我也没专业摄影设备，只得作罢</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/114.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/115.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/116.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/117.png" alt="image"></p>
-<p>当你登到第三座山顶时，你应该就可以看到海角了，翻山越岭，该见见正主了</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/118.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/119.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/120.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/121.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/122.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/123.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/124.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/125.png" alt="image"></p>
-<p>我是一个出行追求简单的人，行李不愿意带多不方便，也不愿意买过多特产，是为了能电子支付 Suica 不带那么多现金而新购 iphone 的人，但此刻我多么想有一些更好的设备能拍摄下更漂亮的景色，因为很显然由于阳光直射的原因，上面拍的照片多少会有受到影响</p>
-<p><strong>托比津纳海角如巨人的一只手臂，想去触碰到那可望不可及的地平线</strong></p>
-<p>实际上我并没有走到海角尽头，一抹多也吐槽说我怎么不到海角尽头去拍摄海天一线，看了照片的大伙应该能看出最后这一段中间是断隔开的，当地人固然有勇，顺着崖边的粗绳下到崖底，对岸还能再爬上去，还能隐约看到另一座瞭望塔，还有人在下面游泳，但太危险了，衣装不便，体力不支不说，下去了我真能再顺着绳子爬上来吗，这可是来回 10km 的山路，到此为止吧</p>
-<p>不过在这一路走来，见到了不少国人面孔，与在日本的粤语口音不同，大多应该都是北方人，他们或四个女生两两成行，或小情侣带一个灯泡摄影，或拖家带口还传来婴孩的哭声……从在海岸边下车就开始惊叹，并且说“这不比待在工位坐班舒服！”，在峭壁边叮嘱道“当心点拍，别只看镜头里啊”等等，独身一人的我不仅在成伴的本地人见显得另类，也在他乡的同胞间是特例，纵使在返途中遇到了和我一样独自一人在朝海角进发的国人，他也是在和电话里另一端还在旅店休息的同伴吐槽“你们怎么才起，我都已经到这边了，就是那个海角，你们打不打算过来”</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/126.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/127.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/128.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/129.png" alt="image"></p>
-<p>返途我走的是主路，实在没力气了，只得走更平缓些的土地，而又因为实在没力气了，没法绕远走公路到车站，于是我又不怕死地走了一遍原始丛林，因为我看到有本地人也这么走，他们的车停在那个入口处，而我是“赌”在那个上午不停的公交站能拦下一辆29路，这次丛林里除了啄木鸟嘶牙外，还多了一颗被车压断的树</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/130.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/131.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/132.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/133.png" alt="image"></p>
-<p>之所以我敢说上午那辆29路确实是出问题了但是师傅硬是开着跑到俄罗斯岛，是因为我在等16:30左右的那班29路时，先来的一辆还是他驾驶，还是那辆29路，不过空无一人，他在站边停下后，打了一个电话，结束后我在车外示意我想上车，结果他指了指后面，我理解是让我乘下一班的意思，随后目睹他光速空载返回市区</p>
-<p>大约小几分钟内，下一班29路就到了，并不是这班车又多么频繁的发车，恰恰相反，这班车即使是从市区等我在上午都等了很久，后面这班29路完全就是来替前面这辆的班的，想清楚的我不得不感叹俄罗斯司机的大条还有一点汗流浃背</p>
-<p>回市区的公交上，再次路过了远东联邦大学（FEFU），这大学是真的大，应该也是俄罗斯远东最大最好的大学，没能去参观也没能去成水族馆，以及后面忘了的列宁像，是这次去海参崴的三大憾事</p>
-<p>从窗外我再次看到了金湾大桥，也看到了远东舰队的停靠的新港，令我感到惊奇的是，旁边俄罗斯女生包上挂着的是一个柿子布偶，并且写有“好柿发生”，我无法推测她是否清楚这字词和物件的含义，但至少说明中华文化对她的感染</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/134.png" alt="image"></p>
-<h5><span id="交通费用">交通费用</span></h5><p>公交：来回 100 RUB</p>
-</blockquote>
-<h4><span id="汉堡王-burger-king">汉堡王 Burger King</span></h4><blockquote>
-<p><strong>没有可乐</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/135.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/137.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/138.png" alt="image"></p>
-<p>别问我为什么咕掉了预期安排的 7 futov 而去了汉堡王，因为我真的走不动了，这爬山的 10km，让我都不想从公交椅子上下来，于是我果断选择整点能外带到酒店的吃的（当然也想看看汉堡王的营业状况和有什么与国内的区别），于是我想起了之前看到的很大一家汉堡王，里面还不少人在就餐，在一个商场旁边，商场大屏上的 pad 广告是华为的……</p>
-<p>汉堡王的员工能流畅的用英文沟通！问我要什么套餐，然后肉卷什么口味做法，还问我要什么酱，最后在问到要什么饮品时，吃炸鸡快餐当然要可乐（顺便一提我是KFC可乐党，也就是百事党），但服务员很遗憾地告知我没有可乐了，芬达可以吗？于是给我整了大杯芬达</p>
-<p>我当然不死心，于是拿着两大个纸袋子，乘着公交回到酒店房间后，还折返到酒店外的一家酒铺，想去买俄罗斯自己的可乐，但是牌子实在太多了，于是就选了1L还是1.5L的 EVERVESS，准备喝撑</p>
-<p>回到房间，看着几十个鸡翅（估计有3、40个，翅尖翅根都有）、大牛肉卷、一杯700ml芬达和1.5L的可乐我陷入沉思，后来一直从20点吃到1点才将将吃完，牛肉卷因为是我放置了很久已经凉了，没那么好吃了，鸡翅、芬达、可乐的味道其实和国内基本一致，可乐更像百事，也有说法是俄罗斯的可乐战时其实也是从中国进口的原浆然后冲到自己品牌的可乐里……</p>
-<p>先前我来时没注意到，这次再到汉堡王，发现旁边有海参崴版的“好想成为人类啊”</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/136.png" alt="image"></p>
-<h5><span id="交通amp餐饮费用">交通&amp;餐饮费用</span></h5><p>公交：50 RUB</p>
-<p>大牛肉卷 + 30、40个烤鸡翅 + 700ml 芬达 + 大薯 &#x3D; 1665 RUB</p>
-<p>1.5L EVERVESS 可乐 &#x3D; 90 左右 RUB还是 190 左右 RUB，记不太清了</p>
-</blockquote>
-<h3><span id="101">10.1</span></h3><h4><span id="远东历史博物馆-vladimir-k-arseniev-museum-of-far-east-history">远东历史博物馆 Vladimir K. Arseniev Museum of Far East History</span></h4><blockquote>
-<p><strong>东方古国的影响从古但是否至今</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/139.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/140.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/141.png" alt="image"></p>
-<p>首先要说明的是，这是远东历史博物馆，除海参崴自身的历史外，整个远东地区乃至阿拉斯加，又或是与远东有关的人物历史，都会在此被收集展示</p>
-<p>一层是许多法令、书信、绘画的展示，我在此记录了一副颇有张力的战斗景象以及女性着戎装的绘图，关于俄罗斯女性在社会的构成，下文我会进行一点探讨</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/142.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/143.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/144.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/145.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/150.png" alt="image"></p>
-<p>二层是古代展，展出了从原始社会到封建社会的历史，很显然，这部分中国的影响很深，毕竟海参崴曾是中国的国土，印玺、铜钱（甚至还有算盘）就是最好的证明，在三层四层还有赠予远东的精美瓷器，可能与“大英博物馆”不同的是，这些大多不是掠夺而来，而是这片土地本就留下的历史</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/146.png" alt="image"></p>
-<p>包括在四层的阿拉斯加人所使用的工具，捕鸟、钓鱼以及获得的毛皮（鼠鼠我啊），都是远东古代史的一部分</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/147.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/148.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/149.png" alt="image"></p>
-<p>而到了第三层，就是近代史与现代史的部分了，大部分的展品笔墨在描述俄国对远东的影响，从各式地形图、航海仪器、打字机（我就是为了看这个来的）等等，甚至神学、生物学（俄国人很在意生物学，这从博物馆的纪念品也能看出来）</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/151.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/152.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/153.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/154.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/155.png" alt="image"></p>
-<p>在馆内有一本堪比《美国鸟类》的图书，应该也是按照鸟类本身大小描绘的，很细致，栩栩如生</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/158.png" alt="image"></p>
-<p>说起俄罗斯的宗教，虽然同信耶稣，但东正教和传统基督教你又可以感到略有不同，这个从吃的番茄酱就能看出来，毕竟番茄在最初的宗教认为是邪恶的植物，有毒不能吃</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/157.png" alt="image"></p>
-<p>在经济层面，除了传统的货币、账本、支票等，还有邮票的展出，别问我为什么邮票和经济有关系，详见经济学典型案例：邮票价值</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/156.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/159.png" alt="image"></p>
-<p>在第三层有一个专门的展区是给到百万卡 Millionka 的，我把展馆的介绍放在下面：</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/160.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/161.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/162.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/163.png" alt="image"></p>
-<p>这两大段文字的大意是：早在俄罗斯开发远东前，就有许多民族在这里生活，其中早期到来的中国人为这里带来了繁荣，他们在此经商，担任厨师或其他职业，但当时间到达19世纪70年代时，由于相关的政策法令与条约的签署，海参崴市开始将当地中国人逐步转移到特定的地区，成为了百万卡的雏形</p>
-<p>但在百万卡的中国人开始变得吸食鸦片，在拥挤的房屋里塞满住户，百万卡逐渐变成了一个充斥着犯罪活动、暴力分子，频繁进行卖淫等活动的地区，且地方当局无法组织这里的生活</p>
-<p>于是在1936年，依据斯大林的“肃清“指令，百万卡遭到了清除——97个”巢穴“被关闭，807人遭到镇压，此后百万卡内的中国人一部分（约3700人）或回到了中国或去了周围的村庄，一部分留下来成为了苏联公民……</p>
-<p>在我看来，这是妥妥的是找了个理由，在领土割让后清除这里长期存在的中国居民罢了，从国家城市治理来说，现在有不少国家的城市都有贫民窟，治理好的鲜有，但你说直接物理清除驱赶消灭，那还是你苏联狠，从1858到1936快7、80年了，这些人理论上都应该是国民才对，现在安在百万卡中国人头上的罪名只不过是为了让这种行径有依靠，师出有名</p>
-<p>到今天，我在去百万卡旧址时，还有俄罗斯导游给俄罗斯人讲述这里的故事，在远东历史博物馆的专门展区也恰好有领讲员在述说，我无法听懂他们对这段历史的评述，也难以揣测在博物馆专设展区的意图（往好了说可能是正视历史，认为这种事件是一种错误，往坏处想可能是把这个作为城市治理的一项功绩）</p>
-<p>但至少，人家把这件事记录下来，承认自己干过屠杀的事情</p>
-<p>第四层开始就是对现代史的介绍了，主要是远东远洋、造船，还有学术论文的介绍，在此之间有一位还是两位女性的专展，附有历史照片，从照片来看我猜测是说某位可能很有名的外籍女性远嫁到远东，而这位女性本身地位不凡，也展示出不逊于男性的方面</p>
-<p>而在这些照片里，我发现了一张中国人抓着帝王蟹的照片，果然吃对于中国人来说才是真谛</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/164.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/165.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/166.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/167.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/168.png" alt="image"></p>
-<p>在众多古董文物间，有一份极具现代化的展品：炼乳罐头和 AI 生成的繁华炼乳工厂图，这又是那家的广告了</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/169.png" alt="image"></p>
-<p>远东历史博物馆第四层的进门也是出口的地方，有一本笔记本，用于供大家写下此次浏览的感想，上面优美的笔迹让我一度以为这是一份展品，我并不认为我的字是好看的类型，就不献丑了，不过这个想法应该是对的：多年后这本笔记也会成为展品的一部分</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/170.png" alt="image"></p>
-<p>而整个远东历史博物馆是以一个投影展厅结束的，展厅中央是一个地球仪，环绕这个地球仪投影着这片地区的历史——以海上的风浪开头，再回到海上的风浪</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/171.png" alt="image"></p>
-<p>其实我本来想把远东历史博物馆称为“有猫的博物馆”的，因为我在参观前，一只猫就在我必经的转角柜子上回头看我，待我参观结束，它又在一楼出口窗边玩拼图，工作人员都很喜欢它，但也怕它乱来，但仔细一想，故宫好像还有一大群猫呢，所以还不能乱给头衔</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/172.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/173.png" alt="image"></p>
-<p>这里要吐槽一下俄罗斯的文创实在不行，景点纪念品我本来以为会是义乌小商品的类型，结果发现精细度连义乌小商品都不如，看来是自己生产的不是进口的</p>
-<p>所以我只能寄希望于远东历史博物馆的周边，结果嘛……用同样在周边商店绕了一圈的女生的话来说：“我还是更想要一些和博物馆有关的周边做纪念品的”，随后她两就离开了，我不死心，于是仔细找寻，发现除了石英项链（我认为不太值）外，在柜台一眼扫过去看着觉得是很廉价的“塑料制品”，竟然是有氧树脂制成的饰品，里面包裹着海参崴本地的花朵、水草、乃至珍珠，一人只能带一份</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/174.png" alt="image"></p>
-<p>及时联系一抹多让她挑选，结果评价是“这些我都不要，看起来像是小孩子的手工作品”，然后在纠结了许久后，被以“PDD上有蝉的模型，虽然没有那个树脂球，所以还是蜘蛛吧”的理由选了下面的蜘蛛别针，就我个人而言是更喜欢蝉上的菊，对于这两个模型我都不喜欢就是了&#x3D; &#x3D;</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/175.png" alt="image"></p>
-<h5><span id="tips">Tips</span></h5><p>1、国外酒店基本都可以给你提供行李寄存服务，我就是把行李留到酒店然后去博物馆再回来取的</p>
-<p>2、从博物馆回酒店取行李的公交上我遇到了一堆年轻情侣，约摸高中年龄，在我上车不久后，站在我旁边的女生就开始用“你好”向我搭话，我一开始不确信，知道听了三回我才肯定她是在向我问好</p>
-<p>我只能很尴尬的回了一句“Do you study for Chinese”（现在想起来应该用 Are you learning 好些），她很高兴的发现我回应了她，和后面男生交流了一会，开始打算用手机翻译软件和我沟通</p>
-<p>但由于路途颠簸，我们又是站着，她始终没能很好的把想说的翻译出来，不一会儿只能先行下车了，剩下我和那位男生，出于没能好好沟通和回应的歉意，我祝那个男生好运后下车了，当然，我怀疑我说的两句英语他们应该都没听懂，所以更别强求我用英文沟通了</p>
-<h5><span id="交通amp餐饮amp景点花费">交通&amp;餐饮&amp;景点花费</span></h5><p>公交：去博物馆又回酒店取行李 100 RUB</p>
-<p>两块马丁鱼 + 红桑果茶 + 沙拉 + 甜品 &#x3D; 1064 RUB</p>
-<p>符拉迪沃斯托克远东历史博物馆：1200 RUB</p>
-<p>纪念品：2500 RUB</p>
-</blockquote>
-<h4><span id="海参崴火车站">海参崴火车站</span></h4><blockquote>
-<p><strong>在此再次表达对列宁像的歉意</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/176.png" alt="image"></p>
-<p>这是从海参崴快轨站拍摄的火车站内部，对，去机场是不坐火车的，快轨站和火车站不在一块，两隔壁</p>
-<p>在快轨站等车好久的我始终没想起来忘记去看列宁像了，实在是可惜</p>
-<p>这次终于不用在上车时买票了，我提前在窗口买好，等车时发现了修理工人在搬运快轨站坏掉的自动贩卖机，然后我看到了自动贩卖机上绘制的图案，我猜测画的是俄罗斯地图，虽然我没证据</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/177.png" alt="image"></p>
-<h5><span id="tips">Tips</span></h5><p>1、我在将要发车的前20分钟进站台，正在确认眼前这班车是否是前往机场的时，旁边一位背着大小旅行包，一头卷曲黑发，肤色黝褐的老哥凑了过来，用快速且我完全听不懂的语言说着什么，下意识的我回了一声“What mean？”</p>
-<p>这下他反应了过来，开始用英语问我这班车是否能到机场，我说我也是第一次到这，看站台的显示屏应该是这班，但我不敢肯定，又或者，你和我一起等到16:16（发车是16:22），如果这班车还在这，那肯定就是它了</p>
-<p>说完，我们两个互相都笑了，他表示希望能早点上车，占个好位置，然后向远处候车椅上的本地人询问去了，我这才反应过来或许他一开始说的是俄语，得到肯定答复后，他向我挥手示意，说就是这班，可以上车，不过他又犹豫了会，问我这列车是随便坐吗？我表示这几节应该都是可以随意选座位的，如果想要好些的景色，可以坐左边靠窗，能看到海</p>
-<p>在车上，他坐在离我后一排的位置，相隔挺近，在列车上我看他非常忙碌，连续接了两个电话，都非常有礼貌的走到车厢隔间去接听</p>
-<p>当在终点站（机场）前一站，人基本下完的车厢空空如也，只剩下的我俩又开始攀谈起来——他先问我准备去哪里，我说北京，我反问他从哪里来，打算去哪，从他的回答里，我听不出出发地的名字，只知道他需要从海参崴去莫斯科，所以我只好追问他来自那个国家，和我猜测的一样，他来自印度，他也反问我，知晓我是来自中国，也问我去北京是做何打算，我便说只是作为中转，我需要再转机去杭州，回家，而他是要转机到莫斯科去跑业务（也许是受了 H-1B 签证的影响）</p>
-<p>他便饶有兴趣的问起我来海参崴是做什么，我回答道只是来旅游，算是小度假，于是他很自然的抛出了那个疑问：”为什么不去莫斯科呢？你之前去过吗？“</p>
-<p>“我没去过莫斯科，一方面莫斯科确实旅途有些遥远，另一方面，你知道的，因为现在的战争，或许不太安全”</p>
-<p>我可能很难忘记他当时的表情——嘴明显的上撅成一条倒弧，显露出下巴上的褶皱，眼角耷拉下来，连连点两下头，配合他本就黝褐的皮肤，饶有兴致的轻松欢愉立刻变成了难以明说苦闷</p>
-<p>半晌，印度老哥打破了沉默，开始关心我航班什么时候起飞，我表示这也正是我担心的，飞机18:15起飞，可我们大概要17:30才能到，我可能没多少时间了，这时他到乐观，说我那不是还至少有45分钟吗？（以国内来说可能真的不太够，但国外确实够了，后来我办完一切手续在候机还等了一阵，安检和关卡的细致度导致的）</p>
-<p>眼看快到机场，印度老哥感慨我英语口语的优秀，我倒是自己不这么觉得，也只能道谢，回过头来我觉得自己也该尽到情谊，我希望他在以后有时间的话，能来中国玩玩</p>
-<p>结果得到的反应与我预期的不尽相同，“或许吧，但这可能很难，除去有没有空闲时间这一点，中国的签证很难批准，而且中文也很难写，翻译可能是个问题”</p>
-<p>作为一个中国人，我几乎从来没有想过这个问题，对于一个外国人来说，中国的工作与学习签证确实不容易获得（这也是我查询资料后了解到的），所以国家颁布144+小时滞留许可后才会有一批外国人来华；而作为沟通交流的方面来说，象形文字确实对于国外朋友来说有点小困难，此外，直到我此次回国后不久，国家才颁布中印直飞航班恢复的消息，5年来两国之间没有直飞航班是我难以想象的</p>
-<p>下车后，我祝他好运，旅途愉快，他也并不吝啬，对我同样祝福</p>
-<p>2、天下机场一般黑！如果你只有220+RUB，你可能在机场连瓶水都买不起，但在国内，你可以3块钱买到怡宝了</p>
-<p>3、在 VVO 出关的时候，当过完安检，有两位女军官在询问桌边把我拦住，一眼就看出了我是中国人，用略微生硬的中文问到我是否随身携带了现金，有多少数目，我一时不知道是什么意思，只能问到是指还有多少卢布吗？她们顿了顿，表示任何币种都算现金，这时我大概意识到她们在查什么了，虽然身上还有从国内带来剩下的几百人民币，但我只说了还剩两百多的卢布，她们也没刁难我，直接放我过去了</p>
-<h5><span id="交通费用">交通费用</span></h5><p>公交：50 RUB</p>
-<p>快轨：335 RUB</p>
-</blockquote>
-<h4><span id="中国国际航空ca812x2fca1730">中国国际航空CA812&#x2F;CA1730</span></h4><blockquote>
-<p><strong>追寻日落以西</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/178.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/179.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/180.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/181.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/182.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/183.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/184.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/185.png" alt="image"></p>
-<p>预期在海参崴时间18:15起飞的CA812原计划18:45就能抵达北京（超音速了笑），但由于起飞等待了很久，以至于我接近20:00才到达首都国际机场，但这也不是坏事，我直接在飞机上进行了一次追逐晨昏线的旅途，如此美不胜收</p>
-<p><del>一回国我就被热死了（x</del></p>
-<p>在北京登机，我第一次乘坐摆渡车，我幻想着“那这样我岂不是可以走楼梯上飞机，就像什么出访的领导人一样？”结果才不是呢，楼梯是走了，但摆渡车送你到登机塔楼下，你走的是上登机塔的楼梯，然后和往常一样，通过登机塔延伸出去的走道登机，白高兴一场</p>
-<p>然而从CA812降落开始，我望着窗外的灯火通明，我就在思考：去年我感叹了长三角的灯火繁华如身处美利坚，那首都圈如何呢？CA1730能把我从首都圈带去长三角，两者相较何如？</p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/187.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/188.png" alt="image"></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/189.png" alt="image"></p>
-<p>第一张应该是天津港，第二张应该是北京中轴线，第三张应该是苏州太湖段</p>
-<p>看起来都比我去年拍的好，一回生二回熟，看来选对位置也很重要</p>
-<h5><span id="tips">Tips</span></h5><p>1、在首都国际机场回来时，由于是10月1日，给我办转机手续的小姐在台前已经接近崩溃（应该是客流量太大了），在我的机票上敲了很多许可章以表不满外，敲完机票到我手上她仿佛才灵魂附体，问我我给你敲通行了吗？</p>
-<p>2、我在摆渡大巴上，从杭州出发前我刻意带的“哈吉米”挂饰（米浴也是哈吉米，还是朋友去日本给我带的），断掉了，直接掉在我脚边</p>
-<p><strong>这趟危险的旅途上，相必我本该已经死了，她帮我挡下了一切</strong></p>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/190.png" alt="image"></p>
-<p>3、待我落地杭州时，国航给我发来消息，我的行李没上飞机！表示明天和另一趟飞机给我送来，我无语了，只能在行李转盘上看了一眼就走了，这导致我错过了在行李柜台等候的国航工作人员，本来他们是想就地核验身份，谁知道我跑了！</p>
-<p>我把这件事和载我回家的司机师傅一说，他说他也遇到过，之前师傅在韩国跑业务，寄回来行李甚至不包邮得自己付钱……好在当晚凌晨1点国航工作人员拨通了我的电话，线上核验机票护照等信息后，第二天我的行李就被寄了过来，也不需要我付钱</p>
-<p><strong>难道行李箱也扛下了所有？</strong></p>
-</blockquote>
-<h3><span id="总共花费">总共花费</span></h3><blockquote>
-<h4><span id="交通">交通</span></h4><p>机票费用：2587.01 CNY</p>
-<p>机场快轨来回：335x2 &#x3D; 670 RUB</p>
-<p>14趟公交（可能不止）：50x14 &#x3D; 700 RUB</p>
-<h4><span id="酒店">酒店</span></h4><p>住宿费用：2251.35 CNY</p>
-<h4><span id="门票">门票</span></h4><p>S-56 潜艇博物馆 + 观景台上山缆车 + 马林斯基滨海剧院 + 符拉迪沃斯托克远东历史博物馆 &#x3D; 200 + 50 + 1200 + 1200 &#x3D; 2650 RUB</p>
-<h4><span id="午餐amp晚餐">午餐&amp;晚餐</span></h4><p>船芝士面包等 + 羊肉饺子红茶 + 帝王蟹餐 + 鱿鱼海螺餐 +烤肉餐 + 两次食堂 + 汉堡王 &#x3D; 2165 + 600 + 1200 + 3900 + 5665 + 4500 + 825 + 1665 + 1064 &#x3D; 21584 RUB</p>
-<h4><span id="现金">现金</span></h4><p>2400 CNY （还剩下 220+ RUB）</p>
-<h4><span id="证件amp通信">证件&amp;通信</span></h4><p>签证+电话卡+欧标插头：377 + 29 + 25 &#x3D; 431 CNY</p>
-<h4><span id="总计">总计</span></h4><p>7969.36 CNY </p>
-<p>玩了5天，比我预想的还要高啊，因为签证（普京大帝你的免签呢）和酒店确实贵了（两个人住的房间），但吃的比去年去日本那次好些（口味来说）</p>
-</blockquote>
-<h2><span id="写在后面">写在后面</span></h2><blockquote>
-<p>这次归来后的旅途感受写的很快，相比上次的拖到年关，现在也只不过是25年10月底，一方面是先前 CISSP 那篇（<a href="https://szczecin.github.io/2025/10/10/How-To-Pass-CISSP/">我是怎么通过CISSP的？</a>）写得很快，毕竟我想把这个消息传达出来，也给可能有意愿的同学一些建议，那这篇都写了我就想着要不从海参崴回来的旅途感想也一并起笔吧，10月10日写的时候还想着会不会和去年一样写到年关，目前看来是不太可能了</p>
-<p>另一方面是，我得承认对工作没那么上心了，除开近期工作本就是协调的方面居多，自己的工作一直不被认为有价值，积极性被削减是很大的原因，放心，认真且负责工作仍是我会保障的，但除开自己原定的体系构建外，以往的会主动找问题，或者去催他人解决问题，慢慢没有了，因为做这些没有价值，当领导认为必须要出了问题才能推动解决时，情况就很糟糕了，你事先发现的问题无法推动去解决，解决了也因为本就还没有造成危害而没有价值，那我为什么还要主动白忙活？</p>
-<p>从25年夏开始，我就不断觉得自己在浪费时光，业务对已经发现的危险置若罔闻，连最基础的限制不愿意去加，乃至问题已经影响到客户端崩溃指标了也不管，还认为人家是在给这个活动做无偿宣传，领导认为没有办法确定实际损失的情况下也没有办法硬性要求业务更改一点点规则……</p>
-<p>24年底我还在犹豫是在这待两年还是三年，现在的我只求年关快来，我好拿到年终奖跑路，加之今年以来甚至去年开始，就陆续有高层与老员工离职，尤其是25年Q3、Q4，明明公司还在赚钱，盈利向好，为什么还有如此大的变动，不知是否反省</p>
-<p>扯远了，这些应该会在我的博客简介下的年度记事里做表述，现在还是回到这次旅途来</p>
-<p><strong>以下的观点纯属主管论断，可能与实际不符，请勿一昧认可</strong></p>
-<h3><span id="这次去海参崴和去年去大阪京都有什么不同">这次去海参崴和去年去大阪京都有什么不同？</span></h3><h4><span id="轻松上阵拥抱未知">轻松上阵，拥抱未知</span></h4><p>显然，去海参崴已经不是我第一次出国了，在机酒、景点、餐食等方面的准备熟练了很多，但这次是去往语言文字完全无法理解的国度，城市的公共交通也不及过往便利，再加上景点门票的无法线上支付购买（信用卡因为协议问题无法支付成功），景点可能也有比较危险的地带涉及，纵使当时我并没意识到去山顶的十字架和托比津纳海角如此危险……</p>
-<p>总的来说还是有不少未知和挑战的，但我自己对这次旅行在出发前的定义就是一个过渡，我需要先前往一个语言文字不通的但又受中国影响不浅的国家，为以后可能去语言完全不通，和国家联系也较少的地方打下基础</p>
-<h4><span id="麻雀虽小五脏俱全">麻雀虽小，五脏俱全</span></h4><p>其实很担心海参崴是否能作为一个“旅游城市”，至少承担我希望达到的出行计划和目的，从结果来说，它无疑是做到了的</p>
-<p>我在海参崴规划的行程仅有4天左右，从抵达开始VVO的娇小就让我意识到这是如此小的一座城，但从快轨站出来时，海参崴火车站欧式的建筑风格、路边大跨越画幅的各职业人民涂鸦、通过几组石阶和金属梯才到的酒店都在告知这是与我过往去过的任何地点都不相同，尤具自己特色的城市</p>
-<p>几天的生活下来，其实没有什么不便，海参崴的市区较小，步行可以到达和沟通许多的景点，远离市区的俄罗斯岛也可以专线公交到达（而且因为人少，基本都能有位置），虽然没有罗森全家这种专门的便利店，取而代之的是其他各式的Title店面，更别说饮食了，个人觉得比在日本吃的好</p>
-<p>由于靠近边境和人种的差异，反而能更好地分辨国人，配合街道上汉字的门店，要不是欧式的“洋葱顶”，在城市间穿行时完全感受不到陌生，尤其是十月一日我要离开时，主街上就能看到很多大爷大妈的旅行团了</p>
-<h3><span id="有什么是去了海参崴之后才有的思考或感悟">有什么是去了海参崴之后才有的思考或感悟？</span></h3><h4><span id="战争与和平">战争与和平</span></h4><p><strong>这趟旅行让我无法回避的一个话题一定是“战争”，很明显，俄罗斯在用战争换取和平</strong></p>
-<p>在远东，人口只有60万的海参崴，你看不到硝烟，也没有防空警报，人们的生活仿佛与战前没有区别，他们甚至还有时间把今年的老虎节搞的有声有色</p>
-<p>但是呢？你无法忽视在公共场合如此扎眼的征兵广告，你会在街道上与身着军装的年轻人擦肩而过，你会看到同样来到这座小城的外国人谈战色变</p>
-<p>我想，俄罗斯应该还没有要求高校的毕业生一定要参军入伍的地步，但或出于爱国情怀，或出于需要这笔参军补贴，他们选择加入部队，令人在意的是，留在海参崴的男性大多是中年老年，他们大多已经有自己的事业产业，不需要去尽乎是地球的另一端卖命</p>
-<p>除了和军队相关的直接感受，各方面的制裁也让和平的生活束手束脚——你无法再享受到西方的大部分商品，如罗森全家可口可乐肯德基等的撤离，你无法再使用西方的大部分软件，如谷歌搜不到公交线路推特没有办法获取到推文，甚至连声称通用的国际信用卡组织也可以让你无法支付，部分财产冻结</p>
-<p>在这两方面，所幸俄罗斯也是一个资源性的大国，联合国常任理事国之一，轻工业的商品大多由从中国进口解决，包括电子产品在内，而内部也尽可能依靠自身的研发力量，摆脱对西方技术的依赖，Yandex占据了Google的生态位，俄罗斯女生们外放着 Tiktok 上的曲目，对于最直接的军事行动来说，与朝鲜签订了一系列合约，而在经济上，有人开玩笑说战时的计划体制让俄罗斯本不顺畅的一切顺畅多了，还是这个顺手</p>
-<p><strong>「战争很容易变成难言对错的一件事情」</strong></p>
-<p>我才不想把这个持续了快四年，至少牵扯进欧亚美三洲势力的情况仍定义为“冲突”，纵使国际上还是这么说</p>
-<p>按我个人浅薄的观点，乌克兰在为它的政治投机买单，他们的人民选择了这样的政府，或默许或支持了一步步走向北约的行为，逐步解除自己的核心力量，如果这是为了更好更稳定的生活，那么就应该要自觉承担这样选择可能带来的后果与代价</p>
-<p>对于俄罗斯来说，大方向上这有点像另一个版本的“朝鲜战争”，这里我们不讨论正义性与否的问题，因为历史上有数不清的非正义战争获得胜利写入史书的了，我们暂且先只讨论目的性——俄罗斯不会容许北约的爪牙伸到自己的家门口，它需要缓冲带，一如上世纪五十年代的朝鲜半岛，只不过当时是朝鲜半岛的内政，美国为首的联合国军插手的非正义性，加上朝鲜政府的求援，给了我们派出志愿军的正义性，而我们何尝不是为了获得一个重要的战略缓冲呢？当时的东北重工业之于新中国，又何尝不是乌拉尔以西之于俄罗斯？至于普京想通过这场战争对内不的改革也好清洗也好，不是我能臆测的了</p>
-<p>这场战争由于欧洲和美国的加入，变成了漫长的消耗战，有人持俄罗斯以战争养经济的观点，认为越打越富之类的，我不敢苟同，或许GDP等指标有客观的增长，但是相对而言的物价呢？人民工资呢？生活资料的富足度呢？或者我换个问法，假设不进行这场战争，和平发展，在合理有效的政府领导下，没有这样的经济增长吗？要知道在战前CNY&#x2F;RUB近12:1（21年），现在也近乎是这个值（25年），但在22年战争初期这个数字一度飙升到23:1</p>
-<h4><span id="两性权利与义务平等的代价是什么">两性权利与义务平等的代价是什么？</span></h4><p>这个话题下的个人观点是，对于目前国内的情况来说，社会两性权利与义务是略有畸形偏向女性的，这个观点可能会受到很多抨击，当然，关于这个话题很难不被抨击，我只是结合我在海参崴看到的和大家说说</p>
-<p>在海参崴，或者说在俄罗斯，性别构成是女性略多于男性的（100:86），在这个1.4亿人口的国家，女性比男性多1000多万，这是两次世界大战导致的问题，再加上现在的俄乌战争，街上你能看到近70%的都是女性</p>
-<p>女性参与了很多社会生产活动，因为本就没有那么多男性，平凡到司机、建筑工人，精英到企业高层、大学教授，她们在各行各业工作生活，乍一看与我们身边没有太大差异，但她们同样也酗酒、吸烟，作为释放压力的方式，她们的兴趣爱好越来越男性化</p>
-<p>在中国，男生从小就被教育要懂得怜香惜玉，要有绅士风度，同时也被告知要吃苦耐劳，你不干有的是人干，所以大部分男性在社会生活中承担更大的压力，所以他们会有喝酒、抽烟这样的释放压力的习惯（虽然我完全不会）</p>
-<p>类比来看，俄罗斯的女性肯定也是如此，她们需要在社会生产中承担更多的责任，需要面对更多的压力，所以她们才会如男性一般抽烟喝酒，这与我身边的一些女性同事一致，但在俄罗斯这是普通的不能再普通的现象</p>
-<p>一抹多和我讨论到这个话题时，她的基本观点是目前社会对女生不公平，很多岗位可能没有明写不要女生，但实际招聘运作下来就是只招男生，女生的就业面远小于男生</p>
-<p>我和她的解释是，中国谦让女生的风气一贯有之，从古今社会到现代，女性在生产活动中占的主要比例是在不断提高的，但确实不是主要，这也是和国家的人口结构有关系，而且很多人尤其是长一辈的想法中，女生可以通过结婚改变命运，女性本就不应该做较为忙碌的工作，在这种思想下，可能有不少年轻女性也是这么想的</p>
-<p>但对于男性则完全不同，男性要肩负绝对的生活开销，先不谈为了结婚付出的经济物质准备，单说结婚后为了支撑家庭，假设面对同样的工作压力时，男性更多可能咬咬牙加班扛过去，资本家们美其名曰“抗压能力较强”，因为要考虑家庭，如果自己辞去工作，很可能就没有主要且稳定的经济来源，而对于女性来说，可能部分女性就会考虑这家公司太过黑心，思考离职，对于一家公司来说，假设同一岗位雇佣过男性和女性，得到的是女性不如男性稳定的结论（当然这里也包括结婚产假等考虑因素），那么它自然就会在招聘时更倾向男性</p>
-<p>之所以在社会上会产生认为“女性比男性更难找工作”的观念，进而变成“这个社会根本不男女平等，完全偏向男性”的想法，根本原因是两性在社会生活中承担的义务不同，也就难以谈权利的平等，要知道男女平等不只是指权利，也有义务平等啊，需要问一句，如果让女生们如俄罗斯女性一般所有工作都可参与（婚前婚后不变），但压力大到喝酒抽烟都是稀松平常，是否愿意呢？</p>
-<p>另外一个原因是社会的福利保障制度没有良好落实，企业资本家仅追逐短期利益导致的，假设国家真的把产假等一些列保障措施落实，企业资本家接受这样的人力资本支出，我相信这个问题能够被很好解决，因为越来越多的企业开始这么做（至少我呆过的三家企业两家都是如此），所以当面对“女性比男性更难找工作”的时候，是不是要先考虑一下是不是企业认为你没达到她们的要求</p>
-<p>另外，仔细或会独立思考的人们应该会发现，以上两点的原因与性别没有关系，是不构成两性冲突的，是思想仍保守、义务不对等、保障未落实导致的，所以不论是女性还是男性，去指责异性是没有用也没道理的，否则就会陷入不去解决问题的怪圈</p>
-<h3><span id="还有什么想法可能得到了印证和深化">还有什么想法可能得到了印证和深化？</span></h3><h4><span id="国家的独特与不容易">国家的独特与不容易</span></h4><p>去年从日本回来，我发出了这番感慨，而今年从海参崴回来，还是要发出这样的感慨</p>
-<p>海参崴，即使是市区，也没有几条像样的柏油马路，基本都是水泥路，杭州超市门口都是柏油路了，路灯也是寥寥，夜晚回酒店都得靠两侧居民楼的灯光才能勉强看清路，公交是不会停在景区门口的，去灯塔你得再走半小时，去海角你得再走一段原始丛林，明明旁边有公路为什么不下去？而且在海角峭壁边爬山时，有这样一番对话：“这海真蓝真清啊，底下的石头都能看清，如果是在中国……”此时我以为她要不顾洋流等地理气候，狠狠批评中国要有什么污染之类的了，结果她接了句“如果是在中国，这里早就上围栏甚至缆车了”，由此可见国人对国家的基建能力的自信</p>
-<p>在酒店，我甚至有过一次停水，不过是很晚的时候，那个时候已经洗漱完毕，也不排除是更换水管之类的情况</p>
-<p>至于电子支付，海参崴的公交和商店也有手机扫码类的支付方式，只不过由于制裁，他们只能用一个叫 Pay 的软件，或者刷本地颁布的卡，对于国外游客来说就没有更便利了</p>
-<p>总的来说，海参崴的基建给我的感受还不如日本，但其实这样的比较不公平，你不能对一个只有60万人口的城市要求这么多，不如说已经足够了，那么问题来了，为什么一个地处中日韩三国交界的滨海港口城市会没有发展起来？</p>
-<p>我和一抹多得出的结论是：人太少导致的，但这感觉是一个恶性循环，海参崴年轻人的国族认同肯定还是俄罗斯，那么对于他们来说，在欧洲的繁华肯定比留在远东有吸引力，近些年俄罗斯的人口也是负增长，更没有劳动力来建设本地城市了，再加上俄罗斯政府也没有太大的意愿建设远东，与中央隔了一个这么大的西伯利亚，西伯利亚都开发不完，开发出来的资源也卖不出去，哪有功夫开发远东？</p>
-<p>这就有点类似中国西部大开发一般，但中国是社会主义，想做花时间真的做到了，如今的新疆建设已经很令人惊讶了，这个难度和带来的价值不比远东简单</p>
-<p>而说到底，你想好好建设国家，开发城市潜力，政权的稳固、政策的连贯、国家的和平、周边的安定是不可或缺的，从1858年《瑷珲条约》签订以来，至今160余年，海参崴得到了什么完全良好的时机及投入去发展吗？再看看它的原主如何？</p>
-<h4><span id="我们该如何与别的国家相处">我们该如何与别的国家相处？</span></h4><p>我第一次出国旅行选择的是日本大阪京都，第二次选择的是俄罗斯海参崴，不用任何人再次告诉我，我到访的国家在近代百年做过什么，而这次海参崴更甚，几乎每个写自己去海参崴旅行的博客或社交平台，下面的评论一定会有激进的言论说这个城市曾经是中国的领土等等</p>
-<p>不论你怎么算，至少从1840年第一次鸦片战争开始，一项项不平等条约就如同一条条病症缠绕在中国身上，整个世界现在有名有姓的国家你可以说都在中国想分一杯羹，那我们是否要拒绝全部与他们的交流？我的父亲明确反对我去日本，也直接导致了我妹没能去成，他的理由很简单，去日本旅行就是给敌人送钱，按这个逻辑，我们也不需要外汇了，或者说与其他国家有贸易往来的都是叛国</p>
-<p>除父亲外，母亲也有新奇的观点，她当时不反对我去日本，但建议我去俄罗斯、法国等国家，理由是和中国关系更好等，殊不知近代分走中国最多领土的不正是沙俄吗？</p>
-<p>所以，我们该如何与别的国家相处？特别是曾经给国家人民带来苦难的敌人？</p>
-<p><strong>雨果在《就英法联军远征中国给巴特勒上尉的信》中写道“有一天，两个来自欧洲的强盗闯进了圆明园。一个强盗洗劫财物，另一个强盗在放火。似乎得胜之后，便可以动手行窃了。”</strong></p>
-<p><strong>鲁迅在《拿来主义》中言说”取其精华，去其糟粕“</strong></p>
-<p><strong>毛泽东在《致林哲的信》中昭示“中国人民与日本人民是一致的，只有一个敌人，就是日本军国主义与中国的民族败类!”</strong></p>
-<p>不得不承认，我们是世界上最能记恨的国家民族，因为我们的历史是当今世界最高的山最长的河，这个没有断绝的文明近乎记得世界上任何一个国家对自己的不公对待，纵使那个国家已经民族更迭甚至消亡</p>
-<p>但从政治或经济建设角度而言，百废待兴的中国无法与世界脱钩，我们也不能一如汉武“虽远必诛”，欧洲人对法西斯的恶行因德国的分裂及勃兰特的“华沙之跪”开始渐渐选择原谅，中国对曾侵略过的国家也都近乎一一较量过了，一步步得到认可和正视，然后恢复友好的交流与往来，这是中国人自己的道，自己对过往的诠释：你需要正视你过去带来的苦难，不然我们帮你记住，直到你承认</p>
-<p>当今我们在极力避免让世界重回冷战的局面，而与之对应的，我们一直不与任何一个正常国家断开交流，不仅鼓励我们有条件可以出国看看，也欢迎外国友人来中国走一走，这两条都是基于现在国家建设的综合判断，不担心出国看到不同世界的我们无比艳羡，也不担心外国人来到中国认为不够惊艳</p>
-<p>在19、20世纪，不少游子游历四方，为国家开学识某发展，因为他们看到了国外的繁华但没有忘本，他们希望我的故乡也可以如此美好，今天我只是一个普通人，可以自由出行于世界大部分国家，纵使是日本，我也惊叹于他们的城镇规划，也见到了他们人民的生活，我希望能吸取更多外来的优势，知晓普通人能努力的方式，这与仇恨与否无关，因为人民想过好自己的生活本无过错，反而是支持仇恨教育的双方，不肯承认伤害与过错的政府在做完全错误的引导，因为做一个良好的假设——日本如西德一般，中日能以较和平的民间氛围交流，双方的发展肯定是比现在更好的</p>
-<p><strong>在目前的情况下，中国致力于与各国、各国致力于与中国维持正常交流，保持自我认知与判断，能够理性看待历史与人民关系的人们应该是伟大的，希望我们向世界输出良好的风貌，再带回世界不同视角的思考与创造</strong></p>
-<h4><span id="海参崴亦或称符拉迪沃斯托克是两个帝国的脚注">海参崴亦或称符拉迪沃斯托克，是两个帝国的脚注</span></h4><p>我不知道之前是否有人有这个观点：这个小城见证了清和沙俄最后的时光，也展示了现代中国与俄罗斯的异同</p>
-<p>如果说1840年的清朝被大英帝国用舰炮开国门，是中国近代百年的屈辱之始，那在1858年沙俄作为胜利者之姿认为拿下海参崴在内的外兴安岭、库页岛等领土，历史就也给这个帝国带来了近乎百年的动荡，两个帝国牵扯紧密的这座小城，将告知世人此后的历史如此相似又如此不同——</p>
-<p>1861年沙俄农奴制改革，但并不彻底，农民与地主贵族阶级的矛盾依然尖锐，此时清朝刚经历第二次鸦片战争，《瑷珲条约》、《北京条约》刚签订，太平天国已近末；</p>
-<p>1900年沙俄占领东北三省觊觎朝鲜半岛，此时甲午海战刚败，八国联军来华，清还在镇压义和团，洋务派与维新派接连破产，可到1904年日俄战争，沙俄亦大败，远东、东北、朝鲜半岛实属日本势力影响范围</p>
-<p>1911年辛亥革命胜利，终有喘息的中国却又在后陷军阀割据，再在后的1926年北伐战争与27年的“四一二”政变，中国开始陷入内战；而在更北方，不死心的沙俄皇室仍选择加入1914年世界第一次大战，径直导致1917年二月革命，沙俄退出历史舞台，而同年十月革命后，苏俄也开始陷入内战，也开始面对各国势力的干涉</p>
-<p>而后在20世纪30年代至40年代，两个国家卷入第二次世界大战并并肩作战，战后新中国政党本就诞生于共产主义思想，而后又师从苏联，建立了社会主义国家，开始建设自己的众多体系</p>
-<p>可以说，近代两国是如此相似，至少底层的百姓是活的一样辛苦，所以两个国家都一样的选择了相同的社会制度，作为统一国家的引导，对于两国人民来说，中国的苦难开始更早，结束更晚，苏联的历史包袱不轻而手段更直接无情，一刀切快速解决问题</p>
-<p>时至今日，中国从上世纪五十年代提出的独立自主，不得不说是几千年历史输入得到的处世原则，相比苏联提出的近乎不是朋友就是敌人的社会主义同盟，俄罗斯人的自大让他们没有意识到世界文化的差异，当尊重他国的社会制度差异变成强迫人民选择赤红，这就已经不是人民的意愿了</p>
-<p>为什么冷战中苏联会轰然坍塌，不仅在通辽仓鼠的奇葩小国中可见一二，海参崴的失与符拉迪沃斯托克的得也是绝佳的证明</p>
-<h3><span id="一块还没雕饰的璞玉">一块还没雕饰的璞玉</span></h3><p>这句话是我对海参崴的总结，清朝的闭关锁国，自然不会对这个仅盛产海参的“崴子”做什么过多投入开发，后割让给沙俄，沙俄倒是想开发，但当时建设的一些东西（包括凯旋门在内）都毁于后面的内战战火，同时日俄战争包括后续的两次世界大战，不知道洗劫了这里多少，纵使后来战争结束，苏联也是先着手建设波罗的海，开采西伯利亚的能源，你个臭远东的建设排期都到多少个五年计划了，而后又是百亿补贴勋多多，苏联大量的生产资料被用于供给其他国家，加上人口劳动力的问题，直到现在远东也并不是俄罗斯的建设重心</p>
-<p>所以到现在我依然觉得十分可惜，如果海参崴在中国治下，一个喀什都能被建设那样，我丝毫想不通一个地处两大发达经济体（中国、日本）间、第一亚欧大陆桥起点、扼制朝鲜半岛、直逼日本、连通美洲的不冻军港会被如何重视与对待，东北的经济构成可能会大有不同，<del>我还能不出国就吃上便宜的帝王蟹等海产</del></p>
-<p>但就目前来说，海参崴还是太小了，劳动力短缺加上上世纪90年代前苏联对资本主义的封闭，导致即使现在看来海参崴的国际开放气息也不多（我在旅途中遇到了有韩国人，但是好像没有日本人，不知道是不是也有民族关系在里面）</p>
-<p>现在，这里97%的人口是俄罗斯人，纵使撇开今天中国与俄罗斯的关系，160余年的生活与建设，这里的人民很难对中国会有归属感，我们也无法也不会像160余年前一样，一纸檄文决定它的去留，然后进行清洗之类</p>
-</blockquote>
-<blockquote>
-<p>其实三尾应该更有发言权才是，他可是土生土长的黑龙江人，这次准备海参崴的行程时，他和我说了一则趣事——在他的大学寝室（河北），有一个福建来的同学，谈论到这个话题就嚷嚷着要收复海参崴，他就会上去给他两拳，说我一个东北人都没说什么由得到你着急，这不就像是只会挑起矛盾口嗨的愤青一样？</p>
-</blockquote>
-<blockquote>
-<p><strong>「钢笔划过纸张的声音与打字机发出的噼噼啪啪并没有什么不同」</strong></p>
-<p><strong>「关键在于讲述了一个什么样的故事」</strong></p>
-</blockquote>
-<p><img src="https://raw.githubusercontent.com/Szczecin/Travel-Pictures/refs/heads/main/20250927_compress/191.png" alt="image"></p>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Chaos/" rel="tag">Chaos</a><a class="tag-none-link" href="/tags/New-Start/" rel="tag">New Start</a><a class="tag-none-link" href="/tags/Trip/" rel="tag">Trip</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2025/10/10/How-To-Pass-CISSP/">
-                我是怎么通过CISSP的？(How To Pass CISSP)
-            </a>
-        </h2>
-    
-    <time>
-        Oct 10, 2025
-    </time>
-    <section class="content">
-        <h1><span id="我是怎么通过cissp的">我是怎么通过CISSP的？</span></h1><p><img src="/2025/10/10/How-To-Pass-CISSP/1.jpg" alt="image"></p>
-<h2><span id="写在前面">写在前面</span></h2><blockquote>
-<p>本文是我个人对 CISSP 认证的学习准备与参加考试的记录，写下时已经是通过考试半个月后，期间又去了一趟远东（海参崴）旅行，感觉至少有一部分成长吧</p>
-<p>下文会对 CISSP 简单介绍，对学习内容简单概括，然后衍生出如何准备，如何学习，最后再谈考试当天的情况，期间会插入一些自己的态度和思考，全做后人的主观参考，切勿全部照搬（本人自身的情况应该稍有特殊）</p>
-</blockquote>
-<blockquote>
-<p>PS：在我细节了解 CISSP 之前，其实在23年底24年初时，现在的领导（CIO）问过我关于 CISSP 和 CISP 的区别以及含金量的问题，我的回答是：都没含金量（草</p>
-<p>因为我认为证书是能力证明的东西，当你达到了这个能力水平，去了解考试的内容并学习后，参加就应该能通过（这种想法其实很傲慢，但我不打算改 XD），站在技术的角度，拥有个人严重&amp;高危 CVE 才是真的含金量</p>
-<p>所以，如果是抱着涨工资或者评资历，又或是考证党的心态去参加 CISSP 考试，我是不太建议的</p>
-<p>PPS：到现在（2025年），中国大陆的 CISSP 持证人数乐观估计约在6000 - 8000左右？2022年官方给出的数据是 3866 人，而通过率是50-60%</p>
-</blockquote>
-<h2><span id="为什么要去考呢">为什么要去考呢？</span></h2><blockquote>
-<p>其实早在大学的时候就听闻过 CISSP，但当时觉得这种证书离自己还很遥远，也就没有仔细了解过；后来开始工作成为牛马，至少在前两家公司都会在每年的某个特定时刻讨论起大家是否有资证的情况，不过好像大多说的也是 CISP</p>
-<p>到了24年末时，掐指一算，好像我也到可以去尝试的时间了（4年工龄），加上23年面试时被说“更希望招安全管理的人才”的气还没消，而且从19年拿到软考中级后就再没有进一步的证书了（都担心过期了要），多少说不过去</p>
-<p><img src="/2025/10/10/How-To-Pass-CISSP/2.jpg" alt="image"></p>
-<p>之所以没想先去考 CISP，是听朋友说这个证很水刷题就过了，而 CISSP 都没几个（后来也验证了我确实是周围第一个通过的），所想不如一步到位，更具挑战性，更加稀少些的好</p>
-<p>所以，通过 CISSP 在我这里一直是作为一个能力证明存在的，而到了25年Q2，公司业务对给出的安全建议不想修改不想变动，更让通过 CISSP 成为了我自己路线及方法论是否正确的论证，我想证明我给出的建议、做出的建设等是对的，仅此而已，为此考证，回首看来如此卑微</p>
-</blockquote>
-<h2><span id="什么是cissp">什么是CISSP？</span></h2><blockquote>
-<p>CISSP 是由 ISC2 推出的国际信息安全管理方面的认证</p>
-<p>侧重安全管理，安全建设，安全开发（SDLC），而不直接考核安全技术</p>
-<p>被称为“信息安全管理层的门槛证书“，只是管理层的门槛，虽然算高级安全认证</p>
-<p>考试的内容与学习的内容以国外（美国）信息安全理论为基础，结合国际在信息安全管理方面的实践，覆盖安全体系建设全链路的知识</p>
-<p>IT管理这方面确实还是国外领先的，这点需要承认，然后虚心学习巩固自己</p>
-<p>然而以上都不是重点，重点是——</p>
-<p><strong>为通过CISSP的学习，光培训+考试的费用就近1w</strong></p>
-<p>而 CISSP 的认证证书需要满足至少5年（本科4年）的工作时间才可申请，即使你通过考试，在写此文时，我由于两次跳槽间的空闲时间，甚至还不满足4年，要等到11月底再申请（按第一次工作到现在的时间，6月底我就该满了的）</p>
-<p>因此，一般需要或知道 CISSP 价值的公司都会对参与者给予支持，比如通过了免除一定的费用，放假给你去工作日考试等，也需要参与者尽可能去获得公司的支持</p>
-<p>但我并没有，一个 CISSP 是什么都不知道的公司怎么会理解价值呢？虽然我希望能报销些费用，领导也模糊答应，但目前确实是没有得到一分钱补贴</p>
-</blockquote>
-<h2><span id="要不要报培训班">要不要报培训班？</span></h2><blockquote>
-<p><strong>我的建议是，报</strong></p>
-<p>我自己考的时候，恰好一个大学同学考完CISP，推荐我去他培训的机构，在最初其实我是不想报培训班的，因为网上有自学通过考试的案例（现在想来是很少有的），但仔细了解 CISSP 后，我意识到 CISSP 的证书是要内部成员背书申请的，且证书是需要续期的（有效期三年），每年的续期费用不说（125美元），还要求有至少120 CPE 学分，这一套下来想个人操作稍有困难（主要没人背书）</p>
-<p>此时我是有些动摇的，结合一般培训机构都会有更多的试题能更好的应对考试（CISSP没有题库，没办法通过刷题过），我开始倾向报个培训班了，但我并没有选择同学推荐的机构，原因是在收款时对方直接给我发来一个收款码，我想着这样如果后续需要开发票不好弄，于是要求能不能在官网购买课程，留下订单方便后续开票证明，结果对方说官网没有课程链接，走淘宝可以不可以……最后说我不放心可以签一个合同保证能开票，但我又不能现在就以公司的名义签（毕竟到现在都还没打算给我报销啥的）</p>
-<p>给我的感觉是，好不专业啊大哥</p>
-<p><img src="/2025/10/10/How-To-Pass-CISSP/3.png" alt="image"></p>
-<p>接着我另找了两个国内机构，他们一上来就推荐 CISP 的考试，对 CISSP 缄口不提</p>
-<p>后来在知乎上翻寻 CISSP 学习相关的流程时，我看到有提到了<a target="_blank" rel="noopener" href="https://edu.avtechcn.com/">艾威（Avtech）</a></p>
-<p>一番问价后，我也提出了要求官网支付的需求，人家就很自然的给我链接，注册账号购买，还问要不要现在开票（这就叫专业.jpg）</p>
-<p>我也很直接的问了，艾威的报价是我寻的几家里偏贵的（其实也就只有同学推荐的和艾威给出了价格，后者贵200-300），为什么？</p>
-<p>关于这个问题，对方没有直接回答，而是对比了CISP和CISSP的考试难度，然后给出了近期显示日期的学员通过后在学习群的反馈聊天记录，最后才说艾威已经做教培23年了，让人觉得更加真实留有好感</p>
-<p>但至此我还是拖着，迟迟没有决定报班，直到我看了一段 Youtube 上的 CISSP 课程，我彻底放弃了自学通过的想法，这个会在下文学习流程里提到</p>
-<p>我在4月底进行的报名，艾威立刻就寄来了自主编写的教材，并且开放过往的直播回放课程，章节课程，官方试题和老师收集试题在官网供学习，同时学习资料包含OSG的原文教材、OSG机翻中文教材以及往期同学写的一份笔记等</p>
-<p>而在此时，我才知道，由于25年 CISSP 考试的大纲略有变动，24年采用的OSG第九版教材已经不那么适用，而新出的OSG第十版还没有官方中文翻译版</p>
-<p><img src="/2025/10/10/How-To-Pass-CISSP/4.jpg" alt="image"></p>
-</blockquote>
-<h2><span id="该贷款学习了">该贷款学习了</span></h2><blockquote>
-<p>如果看到这里，培训班的近4000块，后续报考的750刀，这里少说快1w的沉默支出还没有打消你要学习的念头的话，你可以开始“贷款”学习了，下文是我自己在准备学习期间做的备考动作，希望能帮到你</p>
-</blockquote>
-<h3><span id="获得支持">获得支持</span></h3><blockquote>
-<p><strong>前期准备：安排好工作内容，并至少获得上级的支持（不反对）</strong></p>
-<p>在我24年末决定要在25年通过 CISSP 时，规划就已经开始了，只不过最早开始的是工作上的规划——</p>
-<p>我在25年初评定年终奖的私人会谈时，就和上级做了25年的部分展望，里面就玩趣地提到了我可能会去考证的事情，看看领导的反应，手下想去学习他自然是不反对的，即使他并不认为这会给公司带来什么价值（这个观点其实不太对），但这样对于我来说足够了，不反对就是我要的目的</p>
-<p>到了Q2，我直接把完成 ISC2 CISSP 8 Domain 学习，写在了 OKR 的一个 KR 里，落下笔；同时在Q3把参加 CISSP 考核写在了 OKR 的一个 KR 里（注意我没写通过）</p>
-<p>OKR是会在公司内公示的，虽然只是作为技术&amp;能力提升的一个层面点，也能告知大家我在Q2、Q3有学习任务（不论他人是否关注），其实也就是侧面表示在Q2、Q3会承载较少一些的工作任务，杂事不要那么多的打扰</p>
-<p>同时我在Q1把较多的工作打了提前量，解决掉了可能在Q2、Q3的工作，同时Q2、Q3自己安排的也是长期构建能力的工作，让领导和公司理解需要投入时间等待产出，在每个Q的结束例会上，我也会提一句目前 CISSP 的学习进度，让领导和同事意识到这个事我还在做，但我也只是打哈哈带过，这样可以保留他们的一丝注意，若我后来没通过也不会带来较大反弹</p>
-<p>至于补贴，因为公司对会计证有部分补贴（但也没白纸黑字写下来是最草的），我也主动拿这个和上级沟通，但也是给台阶说等我过了再看，毕竟我自己是做好全额支出的准备的，需要能承担1w块打水漂的压力</p>
-</blockquote>
-<h3><span id="初步认知">初步认知</span></h3><blockquote>
-<p><strong>认知内容：了解CISSP会学什么，细致程度，已经掌握多少</strong></p>
-<p>耗时：4月中旬-5月上旬</p>
-<p>这部分开始正式学习，请先在 Youtubu 看一遍（我学习时还没有2025年的总和课程出来，所以是在2025年看的2024年的合集）：</p>
-<p><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=_nyZhYnCNLA">CISSP Exam Cram Full Course (All 8 Domains) - Good for 2024 exam!</a></p>
-<p><img src="/2025/10/10/How-To-Pass-CISSP/5.jpg" alt="image"></p>
-<p>请不要勉强，打开字幕后选择中文翻译，这个视频由于近8小时，在前几小时后续将没有中文字幕，此时请逼迫自己，开着英文字幕看下去，并且要能够随演示和字幕知道大概在讲什么</p>
-<p>这种边阅读理解遍听力的8小时，如果你能大致了解CISSP会涉及到的部分知识的话，就足够了，然后和自己掌握的能力与接收过的工作做对比，判断自己接触过多少方面，完全没接触过多少方面，一定要对自己诚实！</p>
-<p>如果你的判断是这个外国人提的70%及以上是我接触过的，并且里面有些领域是我投入过较多时间的工作内容，那么恭喜你，你是比较适合去尝试 CISSP 的，可以开始考虑报班了；如果低于60%的水平，我觉得你还需要思考自己的工作路线是否和安全管理与安全建设这个方面符合，不要急着报班白花钱</p>
-</blockquote>
-<h3><span id="深度学习">深度学习</span></h3><blockquote>
-<p><strong>没有题库：请认真对待每一个领域的知识点，我给出的学习力度可以作为最低限度的参考</strong></p>
-<p>耗时：5月中旬-8月底</p>
-<p>这段时间很漫长，相比于 Youtube 上仅8小时的课程，艾威的课程足足接近40小时，而这些课程我都在工位上的空闲时间看完的</p>
-<p>如果你能完成或者已经完成了手头上的工作，有空闲时间我就翻开书，跟着视频1倍速仔细学习一并思考，不要担心被别人发现迎来批评，在能完成工作的前提下摸鱼时间是在学习专业知识而不是在看小说已经不知道高到哪里去了，我不认为这是错的，应该提升自己而不是一昧的给资本家贡献剩余价值</p>
-<p>在这最初的第一遍学习时，你需要边学边能记下一些知识点在脑海里，并且你要能很敏感地感觉到这个点会被考，需要背，有点难等，记得边看视频边在书上写写画画知识点，圈圈关键词等</p>
-<p>在前4个领域的第一遍学习时，每完成一小节的学习，我都会进行一遍抄书——把划下来的自己记不住或者觉得重要的或者自己没接触过感兴趣的知识点抄一遍到笔记本上（艾威会送两本笔记本，一本小几百页，一本几十页，按我这个低水平的学习力度都可以全部写满写完），然后当一整章学完时，稍微翻翻整章的书，开始做艾威提供的各领域官方练习题</p>
-<p>PS：就这样学下去，如果你担心学到中间前面的知识忘了也没关系，先不管，继续学，先对知识有记忆有印象</p>
-<p><img src="/2025/10/10/How-To-Pass-CISSP/6.png" alt="image"></p>
-</blockquote>
-<h3><span id="小试做题">小试做题</span></h3><blockquote>
-<p><strong>小约翰可汗：有时候你想成为做题家都是没那么简单的</strong></p>
-<p>其实我在看视频看书学习的时候还没有太明显的感觉有什么困难和不同的，当时也有按耐不住的好奇，到底美国的题目是啥样的，然后一做就意识到了不简单：</p>
-<p>几乎所有的题目都会依附一个模拟出来的工作场景，你会成为其中某个角色或者替其中某个角色参考，选出最合适或最不合适的答案，纵使都是客观题，因为代表角色的不同（管理高层&#x2F;苦命操作员等）、题干中强调的层面不同（最安全的实现&#x2F;最便利的实现）、更加合适的方案（几个选项都对都可以做）导致很接近的题目正确答案不经相同，这点在过往的应试教育是少见的</p>
-<p>再加上——为了保证题目不外泄，一般不会请业内人员来翻译，那么题目中的一些表述和名词就是会让人觉得比丝之歌的古风翻译还头疼（比如expect，如果翻译成期望就会带有主观色彩，可能不是预定要做的计划；如果翻译成预期，就可能是已经预定要做的事，是计划内了）</p>
-<p>除此之外，还有不得不尝的一定超纲的题目，这大概是为了让你适应在正式考试中本就会出现的20-25%的超纲题，比如一题四个选项里只有一个选项的法律规定你见过，选之，错误，这个时候只能靠自己去猜测，把握好自己的认知，即你要清晰的知道自己唯一见过的选项是不符合题目要求的，是出题者最后的仁慈，给你用来被排除掉的</p>
-<p>就在这种情况下，每当你学完一整章做完官方章节练习题（每章都有100道上下）后，正确率要争取接近70%，尽量高过，如果只有60%可能就要小心了，做完题后一定要学会整理错题、蒙对的题和作对题目里不懂的选项，这三块对于你来说是新的知识来源，不仅要知道自己为什么错，也要知道为什么对及其他选项是什么意思，我会把这部分的题目和题解与个人理解做下笔记</p>
-<p><img src="/2025/10/10/How-To-Pass-CISSP/7.png" alt="image"></p>
-</blockquote>
-<h3><span id="一遍复习">一遍复习</span></h3><blockquote>
-<p><strong>时间紧迫：重要的是怎么把最初学习到的知识和后续做的题目串联起来</strong></p>
-<p>耗时：9月上旬-9月中旬</p>
-<p>看到上面 <strong>深度学习</strong> 耗时长久的你可能会疑惑真的要花这么久吗？而事实上，光观看课程+做笔记每天可能就要花费两小时以上（在这个过程中我意识到时间不够了，所以只把笔记做完了前4个domain），后续做题每章100道也是接近两小时一次的时间，再算记错题也需要时间（错题我是全domain做了记录），最重要的是我懒啊不想牺牲休息时间（x，所以只有在上班工作的间隙中学，这也是半工半读的最大挑战，没经历过非脱产学习的人是难以想象的，以至于第一遍复习已到9月，现在看来是绝对晚了的安排</p>
-<p>在第一遍复习的时候，我没有做笔记，没有再看课程（艾威后来在8月每个周末的直播课我都是一边挂着一边玩游戏度过的），而是对着书仔细看，在这个过程中填补自己遗漏的知识，关注自己之前做错或做对题目涉及到的知识，在书上多画画</p>
-<p>与 <strong>深度学习</strong> 时一样，一章一章来，复习完一整章后做艾威提供的各领域老师整合的练习题（也是每章100道左右，很少很少有和之前官方练习题重复的，大概是历年收集到的真题，但也和真实考试时遇到的题不同，还是那句没有题库，和高考一样在考之前几乎不会有做过的题目），这部分同样要做错题笔记之类的</p>
-</blockquote>
-<h3><span id="二遍复习">二遍复习</span></h3><blockquote>
-<p><strong>时间紧迫：需要把自己变成人型目录</strong></p>
-<p>耗时：9月中旬-9月下旬</p>
-<p>这遍复习是最快也是最后的一次，我在这个期间还是回来翻书，把每个小节重点的知识结合正式表述，用自己的语句记在笔记本上，比如“SOX 法案 - 强制上市公司保证计算机系统信息安全，因为财务数据出自信息系统”等，简洁并能切中要点，自己理解</p>
-<p>这里我要吐槽一下艾威给的这本自编教材，近600页的书囊括了 CISSP 考试的重点知识（占考试80%左右知识点），也可能是因为过于庞大，每节涉及的知识点都很多，总之这本厚重的教材没有一个总和的知识点目录，比如当你想查找有关软件能力成熟度模型集成（CMMI）时，你不知道它在哪个领域哪一小节哪一页</p>
-<p>所以在二遍复习的目标就是，把你自己变成一个人型目录，你要能准确的知道你想要的知识点在哪个领域什么位置，反过来说就是对于每个领域包含的知识及表述你都能清楚，那么目的就达到了，可以开始准备考前的冲刺了</p>
-</blockquote>
-<h3><span id="模拟考试">模拟考试</span></h3><blockquote>
-<p><strong>因时间尽力而为</strong></p>
-<p>耗时：9月下旬</p>
-<p>当完成二次复习后，我大概就只剩一周的时间就要考试了，我还剩下8套综合试题（官方4套+老师收集4套）没做，而且到我参加考试，我也只完成了8套里的3套（1套官方+2套收集），其实做题量完全不大的</p>
-<p>为什么只做了三套呢？因为综合试题，一套就有超过150道的题目量，近180道更是家常便饭，我在做之前还天真的以为会不会就是之前的章节题拿过来汇编，结果我发现几乎全是没见过的新题，那一刻我的内心是崩溃的，也认定了我自己会做不完8套</p>
-<p><img src="/2025/10/10/How-To-Pass-CISSP/8.png" alt="image"></p>
-<p>在做综合题时，大家需要模拟考试的状态，把自己的做题时间放慢下来（如果之前做章节题时有很多是审题不清导致的更要注意这点），便于清晰审题不说，真实考试的时候题目很长，阅读理解时间都会与做题时不同；对于忘记的知识、超纲的知识要对自己诚实，错就错了，下一题争取追回来，180题呢，战线还长</p>
-<p>但是我得说，180题真不是人做的，考试的时候也是只给了 100-150 题的题量，因为当题量到了180题时，20-25%的超纲题影响会被放大，而且可以明显的发现150题后（甚至130题左右就开始）错误率陡然上升，就我个人而言已经很难像前150题一样集中注意力了，会变得疲惫，所以正式考试时，能100题内解决战斗才是最优解</p>
-<p>在做综合题期间，我看完了艾威整理的2024年参加考试的前辈笔记，意识到了两年大纲不同导致的知识差异（比如 RMM&amp;CMM&amp;CMMI 这三个模型的不同等级表述是不同的，尤其是第二级和第四级），更意识到了艾威给的教材是重点知识，也就意味着是精简过的，真正完整的教材应该还是得看OSG第十版，有很多细节知识可能会被考到</p>
-<p><strong>在此，我推荐所有有时间的后来者看一遍OSG的官方教材，我们是因为刚好改大纲且没有官中，只能看机翻（虽然我也没看就是，但看了肯定更好）</strong></p>
-</blockquote>
-<h2><span id="学习之外">学习之外</span></h2><blockquote>
-<p><strong>该玩玩，放轻松，船到桥头自然沉</strong></p>
-</blockquote>
-<h3><span id="检阅指标">检阅指标</span></h3><blockquote>
-<p>章节习题：正确率 70% 及以上（偶尔两次低于这个数字也行）</p>
-<p>综合习题：正确率 75-80%，更接近 80%（就是70-80% 这10% 往往带来了通过考试的容错）</p>
-</blockquote>
-<h3><span id="身心放松">身心放松</span></h3><blockquote>
-<ul>
-<li>你不能一直在学习，正如同你不能一直在工作，有时候学不下去了，敲点代码做点测试抓点灰产帮帮同事也是一种休息</li>
-<li>除了最后的两周以外，整个学习备考的时间都没有占用我本有的休息时间，该玩玩，该睡觉睡觉，比如我就不追直播课，周末睡到中午醒了再入会听的（听也是在打游戏）</li>
-<li>我在备考期间还要分出一部分经历去做远东旅游的计划，详见：<a href="https://szczecin.github.io/2025/08/11/Trip-Vladivostok/">滨海远东之行（Trip Vladivostok）</a>，我在纠结去哪个餐厅吃什么、能不能赶在涨潮前到景点、可恶的欧盟制裁导致线上支付不了门票和卢布能不能贬值成 22年的思考中完成了 CISSP 的学习</li>
-<li>最后的两周，陪伴我的娱乐就没有游戏了，除了明日方舟外，我的休闲手段变成了看通辽仓鼠的奇葩小国和硬核狠人系列（还没看到神奇组织就考完了），让我回想起当时在大学准备考研的最后时光，那时我和室友看的是围棋少年</li>
-</ul>
-<p><img src="/2025/10/10/How-To-Pass-CISSP/9.jpg" alt="image"></p>
-</blockquote>
-<h2><span id="挑战-boss-考试">挑战 BOSS - 考试</span></h2><h3><span id="考试须知">考试须知</span></h3><blockquote>
-<p>CISSP Exam 题量：100 - 150题（20-25%左右超纲检测题）</p>
-<p>合格率：正确率需达到 70%</p>
-<p>通过考试概率：50-60%（国内数据）</p>
-<p>考试方式：CAT 100题后当达到70%正确率或当检测到150题都无法达到70%正确率时自动停止考试</p>
-</blockquote>
-<h3><span id="报考提示">报考提示</span></h3><blockquote>
-<p>考试时间：每年每个季度最后一个月</p>
-<p>报名时间：每年每个季度前两个月</p>
-<p>一般会提前一个半月到一个月进行考试报名和考点选择，我在8月20日报名时，在杭州9月就只剩下9月24日的一个考点可以选择了，而且一般只有工作日可以选择，所以如果公司不支持，就只能像我一样请假去考试</p>
-<p><img src="/2025/10/10/How-To-Pass-CISSP/10.jpg" alt="image"></p>
-<p>我推荐自己去报名，艾威会提供完整的报名流程给你（这里注意自己 ISC2 的账号名称要是自己的姓名拼音，不要是昵称，详情可以咨询培训机构），自己报名直接面对的就是750美元的支出，培训机构代为报名会因为走的是培训机构的公司账户支出，税和开票之类的关系会导致代缴会更贵，如果你的公司支持美式账单报销，则可以个人支付并打印发票报销</p>
-<p><img src="/2025/10/10/How-To-Pass-CISSP/11.jpg" alt="image"></p>
-<p><strong>在这里，我建议没有十足把握的朋友选择可两次考试机会的套餐，需要999美元（官方价格）</strong></p>
-<p>虽然我是一遍并且100题就过了，但是当时从我的准备以及后面的时间紧迫来说，我还是选择了支出999刀，已经付了1w了，多这1-2k的不多，再有一次的模组可不是想有就有的</p>
-<p><img src="/2025/10/10/How-To-Pass-CISSP/12.png" alt="image"></p>
-</blockquote>
-<h3><span id="boss考试场地环境">BOSS（考试）场地环境</span></h3><blockquote>
-<p>入场凭证：护照+身份证，不推荐信用卡证明，比较麻烦</p>
-<p>场地开放：考场只会在考试前30分钟开（一般是在写字楼里的一个房间），所以提前1小时左右到，然后让自己平静一下是不错的</p>
-<p>考前核对：会让你签字、采集掌纹、拍摄人脸照片用于记录和核对身份</p>
-<p>讨伐规则：</p>
-<ul>
-<li>当你进入考场的那一刻，你就不能再看书了</li>
-<li>所有的物品有储物柜寄放，你能带入机房的只有自己和储物柜钥匙</li>
-<li>工作人员会给你分配电脑与隔间，理论上会提供可擦笔和涂写版，我考试时还有耳塞和耳机</li>
-<li>当工作人员示意可以开始考试时，你可以立刻操作电脑开始，即使还没到考试开始时间，因为是系统计时150分钟</li>
-<li><strong>一旦作答，不可回退，不可修改，单题直接计分</strong></li>
-</ul>
-</blockquote>
-<h2><span id="cissp-作战难度">CISSP 作战难度</span></h2><blockquote>
-<p>除去本就涉及到的知识难度，CISSP 绝境歼灭战的主要难度在题干</p>
-<p>由于是翻译而来，即使你能看英文原文，你也会觉得这都认识的字词怎么组合出一段又长又读不懂的话来的，以至于你去理解这个题干需要时间，经常看完一遍觉得看完一遍，不看选项都不知道它想要干什么，时间就在此期间消耗</p>
-<p>再就是你按下选项就不能回去重新改，不会给你所谓“检查一遍再交卷”或“后面一个题就是前面一题的答案让我回去改”的可能，每次按下选项都意味着如果做错，后面就要用资源（近乎作对三道题）来弥补，但你又不知道当前到底做对多少，有没有做错</p>
-<p><img src="/2025/10/10/How-To-Pass-CISSP/13.png" alt="image"></p>
-<p>以至于，做着做着我自己做题的速度赶不上时间，基本上要落后时间十几分钟，当我做到100题时就还剩20多分钟了，正当我在90多题就开始觉得下面要冲刺提速的时候，100题做完，弹出提示考试结束了</p>
-<p>然后就是几分钟时间给你填问卷，当时心里想怎么到这就结束了，难道是前面做的太差了</p>
-<p>后来问卷更是，第一问就是问此次考试你觉得难度如何，然后问你觉得那些方面比较难，然后再问你觉得是什么原因导致的你觉得这次成绩不佳，答题错误之类的，让我直接心凉透了，准备十二月的考试吧只能是</p>
-<p>我愣愣的，连问卷都没填完，填问卷的时间都结束了（问卷后面很多是主观回答，还要用英文敲），然后屏幕弹出提示，到机房外的工作人员手上拿通知书，我举手示意，得到许可出机房</p>
-<p>这时我才意识到，一起进来的三个考生里，一个早在考试一半就润了，想必是和自己准备的差距较大，放弃了；一位先我十分钟左右离开，希望他有个好成绩；还有一位仍在努力答题，看来是到100-150题的节点了</p>
-<p>出机房，签字，领结果告知书，我直接对折，拿钥匙去储物柜取东西了，内心从发愣逐步转化为小恼火，内心对美国佬的中文翻译水平颇有微词</p>
-<p>回来交钥匙，把告知书放包里前，我还是抱有一丝期望，看了眼上面的内容，我才意识到我通过了，我那时有点恍惚，生怕自己把未通过幻想看成了已通过</p>
-</blockquote>
-<h2><span id="写在后面">写在后面</span></h2><blockquote>
-<p>现在回想起来，那天我也只是平常的出了考场，很平静，出写字楼往地铁站的路上，我就开始想通过了也没什么的了，因为你不会改变什么</p>
-<p>作为能力的一部分，你只是证明了你有这个能力，但是公司并不理解你这个证有什么用，认为不会给公司带来价值，况且你准备了这么点时间就通过了，看来确实不难，和你自己说的一致，没有含金量</p>
-<p>黑神话悟空里，黑熊精向观音问袈裟之于金池，得到回答“若不披上这件袈裟，众生又怎知我尘缘已断，金海尽干”</p>
-<p>我还没到这个程度，反而是要被认为“你这是什么袈裟，烂大街的避火罩吧？”</p>
-<p>我现在还没拿到证书，因为要等4年工龄，磨到12月再申请吧</p>
-<p><strong>Call Back：我在11月进行了申请，才知道原来申请到通过要 4-6 周的时间，所以大家可以估下时间提前申请，下面是此次的更新——证书和徽章</strong></p>
-<p><img src="/2025/10/10/How-To-Pass-CISSP/16.png" alt="image"></p>
-<p><img src="/2025/10/10/How-To-Pass-CISSP/17.png" alt="image"></p>
-<p>聊以慰藉的是，考完往地铁站走的那段路上，在大学寝室群里发的一句“过了”，引来了友人の认可，会心一笑</p>
-<p><img src="/2025/10/10/How-To-Pass-CISSP/14.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p><strong>我不知我将身处何处，唯有做好自己</strong></p>
-<p><img src="/2025/10/10/How-To-Pass-CISSP/15.png" alt="image"></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/CISSP/" rel="tag">CISSP</a><a class="tag-none-link" href="/tags/Exam/" rel="tag">Exam</a><a class="tag-none-link" href="/tags/New-Start/" rel="tag">New Start</a>
             </div>
         
 
