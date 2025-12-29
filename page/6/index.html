@@ -82,8 +82,8 @@
 
     
         <h2 class="title">
-            <a href="/2025/11/10/Dependency-Track-BOM/">
-                Dependency Track BOM文件推送插件使用
+            <a href="/2025/11/10/Dependency-Track/">
+                基于DependencyTrack实现第三方组件管理
             </a>
         </h2>
     
@@ -91,30 +91,93 @@
         Nov 10, 2025
     </time>
     <section class="content">
-        <h1><span id="dependency-track-bom文件推送插件使用">Dependency Track BOM文件推送插件使用</span></h1><blockquote>
-<p>本文转自 <a target="_blank" rel="noopener" href="https://www.cnblogs.com/yemoox/p/16478564.html">Yemoox</a> 并作补充</p>
+        <h1><span id="基于dependencytrack实现第三方组件管理">基于DependencyTrack实现第三方组件管理</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/network/287486.html">Pamela@涂鸦智能安全实验室</a> 并作补充</p>
 </blockquote>
-<h2><span id="一-干活啦猪头">一、干活啦，猪头</span></h2><blockquote>
-<p>开源第三方扫描工具Dependency的免费版-Dependency Track，用户第三方组件的漏洞监控，只需要推送BOM文件，就可以自动创建项目，然后进行检查。但在Java项目里，只有pom.xml文件，如何把利用pom.xml快速的生成bom文件，则成了如何帅气使用dependency Track的重要问题。靠着孜（不）孜（要）不（脸）倦（屁）的精神，终于把这个问题搞定了。</p>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>在日常安全工作中，我们可能会经常遇到以下两个比较典型的场景：</p>
+<p>场景1:如果某天某个第三方组件爆出了安全漏洞，那么如何在最短的时间里确认：</p>
+<blockquote>
+<p>我们有这么多开发组，有没有哪个团队在用这个第三方组件？</p>
+<p>用了这个第三方组件的团队，他们使用的组件的版本是否受此次漏洞影响？</p>
 </blockquote>
-<h2><span id="二-配置pomxml文件">二、配置pom.xml文件</span></h2><blockquote>
-<p>首先获取pom.xml文件，用IDEA打开，并为这个文件单独创建项目。</p>
-<p><img src="/2025/11/10/Dependency-Track-BOM/1.png" alt="image"></p>
-<p>此时需要进行dependency Track的插件配置，插件地址为：<a target="_blank" rel="noopener" href="https://github.com/pmckeown/dependency-track-maven-plugin%EF%BC%8C%E8%BF%99%E9%87%8C%E8%BF%9B%E8%A1%8C%E6%8F%92%E4%BB%B6%E9%85%8D%E7%BD%AE%E3%80%82">https://github.com/pmckeown/dependency-track-maven-plugin，这里进行插件配置。</a><br>在pom.xml文件中找到plugins插件配置位置，添加插件：</p>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>io.github.pmckeown<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>dependency-track-maven-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.0.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">dependencyTrackBaseUrl</span>&gt;</span>dependencyTrack URL<span class="tag">&lt;/<span class="name">dependencyTrackBaseUrl</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">apiKey</span>&gt;</span>api_key<span class="tag">&lt;/<span class="name">apiKey</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.cyclonedx<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>cyclonedx-maven-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.5.1<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">phase</span>&gt;</span>package<span class="tag">&lt;/<span class="name">phase</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">goal</span>&gt;</span>makeAggregateBom<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">projectType</span>&gt;</span>library<span class="tag">&lt;/<span class="name">projectType</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">schemaVersion</span>&gt;</span>1.2<span class="tag">&lt;/<span class="name">schemaVersion</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">includeBomSerialNumber</span>&gt;</span>true<span class="tag">&lt;/<span class="name">includeBomSerialNumber</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">includeCompileScope</span>&gt;</span>true<span class="tag">&lt;/<span class="name">includeCompileScope</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">includeProvidedScope</span>&gt;</span>true<span class="tag">&lt;/<span class="name">includeProvidedScope</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">includeRuntimeScope</span>&gt;</span>true<span class="tag">&lt;/<span class="name">includeRuntimeScope</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">includeSystemScope</span>&gt;</span>true<span class="tag">&lt;/<span class="name">includeSystemScope</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">includeTestScope</span>&gt;</span>false<span class="tag">&lt;/<span class="name">includeTestScope</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">includeLicenseText</span>&gt;</span>false<span class="tag">&lt;/<span class="name">includeLicenseText</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">outputFormat</span>&gt;</span>all<span class="tag">&lt;/<span class="name">outputFormat</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">outputName</span>&gt;</span>bom<span class="tag">&lt;/<span class="name">outputName</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>场景2：各个团队当前使用的第三方组件的情况各不相同，从全局风险的角度来看，当前这些被使用的第三方组件的安全状况如何？例如：</p>
+<blockquote>
+<p>是否有团队在使用含有已知安全漏洞的组件？</p>
+<p>是否某个被使用的第三方组件已经过时？</p>
+<p>是否某个或某些组件不合规或者存在风险？</p>
+</blockquote>
+<p>基于以上场景，DependencyTrack应运而生。第三方组件管理在是开发安全中非常重要的一环，在上篇文章《浅谈软件成分分析（SCA）在企业开发安全建设中的落地思路》中，我们介绍过开源软件的风险以及在企业开发安全建设中的落地思路，并且在里面也有提到开源工具Dependency Track，不过只是简单提了一下，没有过多深入。而在这篇文章中，我们将重点介绍DependencyTrack的概念、以及使用。</p>
+</blockquote>
+<h2><span id="dependency-track">Dependency Track</span></h2><h3><span id="基本概念">基本概念</span></h3><blockquote>
+<p>Dependency-Track是OWASP推出的一个智能供应链组件分析平台，它集成了4种漏洞数据库：NPM Public Advisories、National Vulnerability Database、Sonartype OSS Index和VulnDB，帮助组织识别和减少使用第三方和开源组件的风险。</p>
+</blockquote>
+<h3><span id="dependency-track-vs-dependency-check">Dependency Track VS Dependency check</span></h3><blockquote>
+<p>可能你听说过甚至用过开源社区OWASP出品的DependencyCheck这款开源工具来扫描软件中的第三方组件（也叫‘依赖’）的安全性，可是今天我们要讲的不是这个工具，而是另一款名字和它非常相似的工具：DependencyTrack，同样也是OWASP出品。</p>
+<p>这两个工具就一字之差，Dependency<strong>Check</strong>和Dependency<strong>Track</strong>，都是做依赖安全检查的，有啥本质区别？简单讲，<strong>如果说DependencyCheck是给开发团队使用的工具，那么DependencyTrack更多的是给安全团队使用的工具。企业或者组织中的安全团队可以借助DependencyTrack实现第三方组件的统一安全管理。</strong></p>
+<p><img src="/2025/11/10/Dependency-Track/1.png" alt="image"></p>
+<p>通过以上的对比可以知道的是，这两个工具都可以检测出第三方组件的安全问题，不过本质区别在于，<strong>DependencyCheck</strong>只能对第三方组件做安全检测并生成报告，仅此而已。Dependency<strong>Track</strong>会保存历次第三方组件安全检测结果，你可以通过Dashboard了解或者追踪第三方组件的安全变化趋势。与此同时，Dependency<strong>Track</strong>还提供了很多额外的功能，例如漏洞通知、全局审查第三方组件、审计第三方组件软件授权协议、API等等。</p>
+</blockquote>
+<h3><span id="检测原理">检测原理</span></h3><blockquote>
+<p>从下图中，可以看到Dependency Track通过接收到生成的Software BOM(软件物料清单)，然后检查物料清单中的各个组件(以及当前清单中的版本)在漏洞数据库中是否存在已知安全漏洞的记录，并通过Dashboard展示出来。所以你需要先准备好一份SBOM清单，然后发送给Dependency Track，等待它完成扫描检测之后，然后在管理界面上查看结果。</p>
+<p><img src="/2025/11/10/Dependency-Track/2.png" alt="image"></p>
+<p>你可能会问，SBOM是什么？SBOM（Software Bill of Material）翻译之后称为软件物料清单。通俗的解释就是我们用到的所有第三方组件依赖（包括第三方组件自己所依赖的其他第三方组件，换句话讲，依赖的依赖）的信息清单，这些内容包括author、group, licenses, versions and copyright等数据。</p>
+<p>生成SBOM的工具有几个，其中比较有名的是CycloneDX。一旦我们有了BOM文件，我们就可以手动或通过整合CI&#x2F;CD中的上传功能将其上传到Dependency-Track。Dependency track相当于一个漏洞库和分析引擎，它基于SBOM，在漏洞库中搜索，这样我们就可以获得比传统组件分析更完整、更复杂的信息。</p>
+</blockquote>
+<h3><span id="核心架构">核心架构</span></h3><blockquote>
+<p>如图所示，Dpendency Track可以轻松集成到我们的CI&#x2F;DC流程中。</p>
+<p><img src="/2025/11/10/Dependency-Track/3.png" alt="image"></p>
+<p>Dependency Track默认集成了NVD、NPM Public Advisories、Sonatype OSS Index以及VulnDB 四个漏洞库，相比于其他开源检测工具单一的漏洞库，Dependency Track出现漏报或者误报的情况会小很多。同时它提供了强大的API集成功能（如openAPI和Jenkins的插件），在开发安全建设过程中我们可以将其整合到我们的pipeline中帮助DevOps团队提高开发流程速度，同时还能控制外部组件的使用和它们可能造成的风险。此外通过maven收集仓库中所有依赖包的信息，记录各个开发团队的应用程序所使用的各种第三方依赖信息，以便进行依赖包管理（版本控制、漏洞管理等）。在开发过程中可以基于soner bug追踪的组件安全跟踪，甚至fortify这样的代码白盒review介入，并通过邮件、钉钉告警通知安全团队、开发团队。</p>
+<p>下面我们将通过简单的使用来感受一下。</p>
+</blockquote>
+<h2><span id="基本使用">基本使用</span></h2><h3><span id="部署">部署</span></h3><blockquote>
+<p>DependencyCheck支持3种部署方式，分别是容器化部署、自运行安装包，以及可以直接在Tomcat里运行的WebApp包，此处以docker部署为例。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 下载DependencyTrack镜像</span></span><br><span class="line">docker pull owasp/dependency-track</span><br><span class="line"></span><br><span class="line"><span class="comment"># 创建并使用宿主机上的存储以避免数据丢失</span></span><br><span class="line">docker volume create --name dependency-track</span><br><span class="line"></span><br><span class="line"><span class="comment"># 在8080端口上运行DependencyTrack，默认账户密码admin/admin</span></span><br><span class="line">docker run -d -m 8192m -p 8080:8080 --name dependency-track -v dependency-track:/data owasp/dependency-track</span><br></pre></td></tr></table></figure>
 
-<p>在dependencyTrackBaseUrl条目中加入你的dependencyTrack地址，也就是你的访问URL，apikey条目中加入你的apikey，可在你的后台获取，注意这个apikey需要有添加权限，我这里直接给的最高的，避免出现未知情况。如果你的pom.xml文件中没有私有仓库地址，就可以运行命令进行生成bom文件，然后上传。</p>
-</blockquote>
-<h2><span id="三-maven私有仓库配置">三、Maven私有仓库配置</span></h2><blockquote>
-<p>因为演示的pom.xml中包含私有仓库，则需要对Maven进行私有仓库配置。如果你使用的是本地搭建的maven，则需要修改setting文件。如果是使用的是IDEA自带的Maven则需要改IDEA的maven配置。可以百度一下如何配置本地的maven私有库。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mvn org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom   </span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="四-bom文件生成与上传">四、BOM文件生成与上传</span></h2><blockquote>
-<p>现在已经在pom.xml中配置好了dependencyTrack插件，和maven私有仓库。则可以在pom.xml目录下，运行BOM生成命令。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mvn org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom   </span><br></pre></td></tr></table></figure>
+<p>更换默认数据库（可选）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#1.根路径新建dependency-track目录，然后在该目录下新建application.properties文件，在文件中填写下面配置</span></span><br><span class="line">alpine.database.mode=external</span><br><span class="line">alpine.database.url=jdbc:postgresql://localhost:5432/dtrack</span><br><span class="line">alpine.database.driver=org.postgresql.Driver</span><br><span class="line">alpine.database.username=dtrack</span><br><span class="line">alpine.database.password=password</span><br><span class="line"><span class="comment">#2.使用命令docker-compose up重新启动一下，配置就生效了，启动时间可能略长。参考：&lt;https://docs.dependencytrack.org/getting-started/database-support/&gt;</span></span><br></pre></td></tr></table></figure>
 
-<p>此时在当前目录下已经生成target文件夹，以及该文件夹下的bom.xml文件，在运行上传命令，上传bom文件，上传成功后便可以去dependencyTrack查看项目了。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mvn dependency-track:upload-bom   </span><br></pre></td></tr></table></figure></blockquote>
+<p>这里输入账号和密码之后，会要求更改密码。正常输入账号密码之后就可以进入管理界面了，这里有一丢丢慢。。</p>
+<p><img src="/2025/11/10/Dependency-Track/4.png" alt="image"></p>
+<p>进去之后，新建一个项目，如图所示：</p>
+<p><img src="/2025/11/10/Dependency-Track/5.png" alt="image"></p>
+<p>接下来我们需要做的就是使用插件对代码项目生成bom.xml，类似pip request requirements，清点出使用的组件。Dependency track相当于一个漏洞库和分析引擎，这个方法好处就是只需要在客户端直接生成bom.xml，PUT track的REST接口即可。</p>
+<p>总结起来分为两步：</p>
+<ol>
+<li>生成bom.xml文件</li>
+<li>将生成的bom.xml文件上传到Dependency-Track</li>
+</ol>
+<p>有很多工具可以帮我们生成SBOM，例如CycloneDX Maven Plugin和cyclonedx-gradle-plugin，因为我采用Jenkins做构建工具，故此处使用OWASP Dependency-Track插件来生成SBOM。</p>
+<p>首先，需要在jenkins中安装 OWASP Dependency-Track插件，搜索OWASP，第一个便是，选择安装即可。</p>
+<p><img src="/2025/11/10/Dependency-Track/6.png" alt="image"></p>
+<p>安装成功后，我们需要新建一个job,点击进入配置里面，可以看到Publish BOM to Dependency-Track这一项，这个插件可以在执行一些操作后，将扫描出的三方依赖相关信息上传到Dependency-Track的服务里面，以便于分析。</p>
+<p>接着在jenkins的job配置中做如下事情：</p>
+<ol>
+<li>在源码管理模块配置拉取代码</li>
+<li>在构建模块，选择Excute shell填写如下内容</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 打包</span></span><br><span class="line">mvn clean install -D mvn.test.skip=<span class="literal">true</span></span><br><span class="line"><span class="comment"># 生成bom.xml文件</span></span><br><span class="line">mvn org.cyclonedx:cyclonedx-maven-plugin:makeBom</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>构建后在操作模块，选择Publish BOM to Dependency-Track，填写生成bom.xml的路径，具体如下</li>
+</ol>
+<p><img src="/2025/11/10/Dependency-Track/7.png" alt="image"></p>
+<p>最后，在配置完成后构建job,构建完成后即可在Dependency-Track的web页面看到上传的结果，包括项目的组件，三方依赖的漏洞信息等等内容，然后可根据分析结果进行针对性修复。其他配置可参考<a target="_blank" rel="noopener" href="https://docs.dependencytrack.org/">https://docs.dependencytrack.org/</a></p>
+<p>这里如果推送失败的话，可以试下这个脚本。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">try &#123;</span><br><span class="line">    $xml = Get-Content (Join-Path $PSScriptRoot &quot;.\\bom.xml&quot;) –Raw</span><br><span class="line">    $ProjectGuid = &quot;xxx&quot;</span><br><span class="line">    $ApiKey = &quot;xxx”</span><br><span class="line">    $Uri = &quot;&lt;http://localhost:8080&gt;&quot;</span><br><span class="line"></span><br><span class="line">    $Body = ([PSCustomObject] @&#123;</span><br><span class="line">            project = $ProjectGuid</span><br><span class="line">            bom     = ([Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($xml)))</span><br><span class="line">        &#125; | ConvertTo-Json)</span><br><span class="line"></span><br><span class="line">    $Header = @&#123; &#x27;X-API-Key&#x27; = $ApiKey &#125;</span><br><span class="line"></span><br><span class="line">    Invoke-RestMethod –Method Put –Uri &quot;$Uri/api/v1/bom&quot; –Headers $Header  –ContentType &quot;application/json&quot; –Body $Body</span><br><span class="line">&#125;</span><br><span class="line">catch &#123;</span><br><span class="line">    Write-Host $_</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="卸载">卸载</span></h3><blockquote>
+<pre><code class="bash">docker rmi owasp/dependency-track
+docker rm dependency-track
+docker volume rm dependency-track:/data
+</code></pre>
+</blockquote>
+<h3><span id="reference">Reference</span></h3><blockquote>
+<p>docs.dependencytrack.org</p>
+<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/269080779">https://zhuanlan.zhihu.com/p/269080779</a></p>
+<p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/_6G3gQHKoTmFKkdiE2gBLg">https://mp.weixin.qq.com/s/_6G3gQHKoTmFKkdiE2gBLg</a></p>
+<p><a target="_blank" rel="noopener" href="https://medium.com/devroot/deploying-dependency-track-as-a-container-in-azure-and-building-a-pipeline-with-azure-devops-ab1627961114">https://medium.com/devroot/deploying-dependency-track-as-a-container-in-azure-and-building-a-pipeline-with-azure-devops-ab1627961114</a></p>
+</blockquote>
 
 
         
@@ -909,7 +972,7 @@
 <h2><span id="7创建smtp账号自动让你输入密码">(7).创建smtp账号，自动让你输入密码</span></h2><blockquote>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">saslpasswd2 -c -u nidey.com 392223903</span><br></pre></td></tr></table></figure>
 
-<p>上面生成的邮箱账号：<a href="mailto:&#x33;&#x39;&#50;&#50;&#x32;&#51;&#x39;&#48;&#51;&#64;&#110;&#x69;&#100;&#101;&#x79;&#46;&#99;&#x6f;&#x6d;">&#x33;&#x39;&#50;&#50;&#x32;&#51;&#x39;&#48;&#51;&#64;&#110;&#x69;&#100;&#101;&#x79;&#46;&#99;&#x6f;&#x6d;</a></p>
+<p>上面生成的邮箱账号：<a href="mailto:&#x33;&#x39;&#x32;&#50;&#x32;&#x33;&#x39;&#48;&#x33;&#x40;&#x6e;&#x69;&#x64;&#101;&#x79;&#x2e;&#99;&#111;&#x6d;">&#x33;&#x39;&#x32;&#50;&#x32;&#x33;&#x39;&#48;&#x33;&#x40;&#x6e;&#x69;&#x64;&#101;&#x79;&#x2e;&#99;&#111;&#x6d;</a></p>
 </blockquote>
 <h2><span id="8其他命令">(8).其他命令</span></h2><blockquote>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sasldblistusers2   查看所有用户</span><br><span class="line">saslpasswd2 -d 392223903@nidey.com  删除用户</span><br></pre></td></tr></table></figure>
