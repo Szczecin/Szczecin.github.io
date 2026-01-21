@@ -86,6 +86,75 @@
 
     
         <h2 class="title">
+            <a href="/2023/10/25/CVE-2022-31692-Spring-Security-Oauth2/">
+                CVE-2022-31692 Spring Security Oauth2 Client权限提升漏洞
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="cve-2022-31692-spring-security-oauth2-client权限提升漏洞">CVE-2022-31692 Spring Security Oauth2 Client权限提升漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/LJQClqjc/article/details/127676498">棱镜七彩</a> 并作补充</p>
+</blockquote>
+<h2><span id="项目介绍">项目介绍</span></h2><blockquote>
+<p>Spring Security是一个能够为基于Spring的企业应用系统提供声明式的安全访问控制解决方案的安全框架。它提供了一组可以在Spring应用上下文中配置的Bean，充分利用了Spring IoC，DI（控制反转Inversion of Control ,DI:Dependency Injection 依赖注入）和AOP（面向切面编程）功能，为应用系统提供声明式的安全访问控制功能，减少了为企业系统安全控制编写大量重复代码的工作。</p>
+</blockquote>
+<h2><span id="项目地址">项目地址</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://spring.io/projects/spring-security">https://spring.io/projects/spring-security</a></p>
+</blockquote>
+<h2><span id="漏洞概述">漏洞概述</span></h2><blockquote>
+<p>Spring Security 的受影响版本中存在权限提升漏洞，攻击者可以修改客户端通过浏览器向授权服务器发出的请求，如果授权服务器在后续使用包含空作用域列表的 ’OAuth2 Access Token Response‘ 响应来获取访问token，攻击者可以获得权限提升，以特权身份执行恶意代码。</p>
+</blockquote>
+<h2><span id="影响版本">影响版本</span></h2><blockquote>
+<p>org.springframework.security:spring-security-oauth2-client@[5.6, 5.6.9)<br>org.springframework.security:spring-security-oauth2-client@[5.7, 5.7.5)</p>
+</blockquote>
+<h2><span id="环境搭建">环境搭建</span></h2><blockquote>
+<ol>
+<li>下载并使用spring官方提供的<a target="_blank" rel="noopener" href="https://github.com/spring-projects/spring-security-samples/tree/main/servlet/spring-boot/java/oauth2">样例</a>进行测试</li>
+<li>分别启动login和authorization-server，官方提供的authorization-server默认账号密码是user、password</li>
+</ol>
+</blockquote>
+<h2><span id="漏洞分析">漏洞分析</span></h2><blockquote>
+<p>该漏洞是一个Spring Security Oauth2的逻辑漏洞，要想明白该漏洞，我们必须先了解下什么是Oauth2。<br>简单说，OAuth2 就是一种授权机制。数据的所有者告诉系统，同意授权第三方应用进入系统，获取这些数据。系统从而产生一个短期的进入令牌（token），用来代替密码，供第三方应用使用。<br>OAuth 2.0 规定了四种获得令牌的流程：<br>授权码（authorization-code）<br>隐藏式（implicit）<br>密码式（password）<br>客户端凭证（client credentials）<br>授权码模式最常用，该模式的整个授权过程的时序图如下：</p>
+<p><img src="/2023/10/25/CVE-2022-31692-Spring-Security-Oauth2/1.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>CVE-2022-31692漏洞产生的原因在于最后返回token时分配的scope不当，在spring security 中，应用向授权服务器请求token的代码如下：</p>
+<p><img src="/2023/10/25/CVE-2022-31692-Spring-Security-Oauth2/2.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>上述标注的代码会判断AccessTokenResponse.scope是否为空，如果条件成立，则会使用当前client配置的scope。而scope代表的是令牌有权限范围。也就是说当授权服务器返回的scope为空，则客户端权限提升至最大。因此存在权限提升漏洞。<br>官方修复commit如下，分析代码可知spring security实现了三种认证模式并全部修复了漏洞。</p>
+<p><img src="/2023/10/25/CVE-2022-31692-Spring-Security-Oauth2/3.png" alt="image"></p>
+</blockquote>
+<blockquote>
+<p>三种模式的修复代码都是类似的，选其中一个分析，从修复代码可知修复后直接使用授权服务器返回的内容。</p>
+<p><img src="/2023/10/25/CVE-2022-31692-Spring-Security-Oauth2/4.png" alt="image"></p>
+</blockquote>
+<h2><span id="修复方式">修复方式</span></h2><blockquote>
+<p>升级到最新版</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1917762">OAuth2.0究竟是个啥？看完这13张图你就明白了！ - 腾讯云开发者社区-腾讯云</a><br><a target="_blank" rel="noopener" href="https://spring.io/blog/2022/10/31/cve-2022-31690-privilege-escalation-in-spring-security-oauth2-client">CVE-2022-31690: Privilege Escalation in spring-security-oauth2-client</a><br><a target="_blank" rel="noopener" href="https://github.com/spring-projects/spring-security/commit/75004587a419a96d18909030b20c6b16b226ecbe">Spring-Security Commit:Fix scope mapping</a><br><a target="_blank" rel="noopener" href="https://www.ruanyifeng.com/blog/2019/04/oauth_design.html">OAuth 2.0 的一个简单解释</a><br><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=KghFWdMqP_w">[iThome鐵人賽 2022] Day31 (CVE-2022-31692) Spring Security 又(?)有漏洞惹~~ 使用個 forward 功能臭了嗎?! - YouTube</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Spring/" rel="tag">Spring</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/10/06/CORS/">
                 跨域资源共享漏洞分析总结（含实战）
             </a>
@@ -742,74 +811,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/09/03/Plaintext-VIEWSTATE/">
-                未加密的__VIEWSTATE参数
-            </a>
-        </h2>
-    
-    <time>
-        Sep 3, 2023
-    </time>
-    <section class="content">
-        <h1><span id="未加密的__viewstate参数">未加密的__VIEWSTATE参数</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_36292543/article/details/121357450">默默提升实验室</a> 并作补充</p>
-</blockquote>
-<h2><span id="0-知识补充">0. 知识补充</span></h2><blockquote>
-<p>表单提交在遇到服务器返回错误时候，再次填写表单时，上次填写的值不会被清空。</p>
-<p>维持ViewState是ASP.NET Web Forms的默认设置。如果你想不维持ViewState，需在.aspx页面顶部包含提示&lt;%@Page EnableViewState&#x3D;“false” %&gt;，或者或者向任意控件添加属性EnableViewState&#x3D;“false” 。</p>
-<p>没有设置维持ViewState，当点击按钮提交，表单值将消失。</p>
-</blockquote>
-<h3><span id="viewstate是如何使用的">ViewState是如何使用的</span></h3><blockquote>
-<p>ViewState 基本上由服务器生成，并以隐藏的表单字段 “_VIEWSTATE” 的形式发送给客户端，用于“POST”请求。当Web应用程序进行 POST 请求时，客户端将其发送到服务器。</p>
-<p>ViewState 以序列化数据的形式出现，当客户端再次进行请求（ViewState）被发送到服务器时，将进行反序列化。</p>
-<p>为了使 ViewState 不受篡改，存在一个启用 ViewState MAC 的选项，通过设置一个值并在反序列化期间对 ViewState 的值进行完整性检查。</p>
-</blockquote>
-<h2><span id="1-漏洞描述">1. 漏洞描述</span></h2><blockquote>
-<p>__VIEWSTATE 参数未加密，存在有人拦截存储在 ViewState 中的信息的机会。</p>
-</blockquote>
-<h2><span id="2-漏洞危害">2. 漏洞危害</span></h2><blockquote>
-<p>可能导致敏感信息泄露。</p>
-</blockquote>
-<h2><span id="3-漏洞验证">3. 漏洞验证</span></h2><blockquote>
-<p>使用工具：Burp Suit，需要安装插件ViewState Editor，如下图所示：</p>
-<p><img src="/2023/09/03/Plaintext-VIEWSTATE/1.png" alt="image"></p>
-<p>POC：{EXTRACTED_STRINGS}:string&#x3D; -2140192582</p>
-<p><img src="/2023/09/03/Plaintext-VIEWSTATE/2.png" alt="image"></p>
-<p>查看存在该问题的页面源码，搜索__VIEWSTATE，可以看到对应的value值，对该段值进行base64解码。可以得到对应的信息，在Burp Suit中使用 ViewState Decoder插件可以进行解码。</p>
-<p><img src="/2023/09/03/Plaintext-VIEWSTATE/3.png" alt="image"><br><img src="/2023/09/03/Plaintext-VIEWSTATE/4.png" alt="image"></p>
-</blockquote>
-<h3><span id="其他解码工具">其他解码工具</span></h3><blockquote>
-<p>网页：<a target="_blank" rel="noopener" href="https://www.httpdebugger.com/tools/ViewstateDecoder.aspx">https://www.httpdebugger.com/tools/ViewstateDecoder.aspx</a></p>
-<p><img src="/2023/09/03/Plaintext-VIEWSTATE/5.png" alt="image"></p>
-<p>软件：ViewStateDecoder2.0.exe</p>
-<p><img src="/2023/09/03/Plaintext-VIEWSTATE/6.png" alt="image"></p>
-</blockquote>
-<h2><span id="4-漏洞建议">4. 漏洞建议</span></h2><blockquote>
-<p>请将machineKey验证类型设置为AES。这将使得 ASP.NET 使用AES算法加密ViewState 值。</p>
-<p>​打开 Web.Config 并在 &lt;system.web&gt; 元素下添加以下行：<machinekey validation="“AES”/">如下：</machinekey></p>
-<p><code>&lt;system.web&gt; &lt;machinekey validation=&quot;3DES&quot;&gt;&lt;/machinekey&gt;&lt;/system.web&gt;</code></p>
-<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/previous-versions/dotnet/netframework-3.0/w8h3skw9%28v=vs.85%29">machineKey 元素（ASP.NET 设置架构）</a></p>
-</blockquote>
-<blockquote>
-<p>关于ViewState的相关demo案例：<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/RlY5HL_ak4G8EdcXyevWDg">ViewState 反序列化及其利用</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Plaintext/" rel="tag">Plaintext</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

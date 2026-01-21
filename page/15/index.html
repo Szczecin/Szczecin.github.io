@@ -82,6 +82,61 @@
 
     
         <h2 class="title">
+            <a href="/2023/10/25/SOME-Attack/">
+                浅析同源方式执行（SOME）攻击
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="浅析同源方式执行some攻击">浅析同源方式执行（SOME）攻击</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://www.freebuf.com/articles/web/169873.html">Str3am</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>SOME（Same Origin Method Execution），同源方式执行，不同于 XSS 盗取用户 cookie 为目的，直接劫持 cookie 经行操作，和 CSRF 攻击很类似，不同的是 CSRF 是构造一个请求，而 SOME 则希望脚本代码被执行。  非常感谢兔子师傅@Homaebic在分享会上的分享，才有了这篇文章。</p>
+</blockquote>
+<h2><span id="0x01-原理及危害">0x01 原理及危害</span></h2><blockquote>
+<p>想要理解SOME攻击，必须先对同源策略和JSONP技术有所了解，JSONP我理解为一种用户可控制js执行函数的跨域数据访问技术，详细可以参见这篇文章或者百度。<br><a target="_blank" rel="noopener" href="http://blog.safedog.cn/?p=13">SOME攻击</a><br>正是由于JSONP可以控制执行函数的特性，产生了SOME攻击，主要危害比如点击链接后自动关注微博，自动点赞，自动授权等。</p>
+</blockquote>
+<h2><span id="0x02-攻击条件">0x02 攻击条件</span></h2><blockquote>
+<p>存在用户可控函数点，读取用户输入执行对应javascript代码（即寻找JSONP点，通常以get方法callback名传入）<br>可控点可以输入”.”，点号（因为SOME攻击主要还是操作网页DOM）</p>
+</blockquote>
+<h2><span id="0x03-some复现">0x03 SOME复现</span></h2><blockquote>
+<p>这里通过一个大佬写的SOME靶场来练习复现，除了靶场，还有查找dom工具，exp生成，SOME原理介绍，很不错的一个学习网站。<br><img src="/2023/10/25/SOME-Attack/1.png" alt="image"> </p>
+<p><a target="_blank" rel="noopener" href="https://www.someattack.com/Playground/About">Same Origin Method Execution</a><br>点击第一个 Vulnerable Example 项目，并打开一个子网页，在颜色轮盘上选择任意颜色，发现父网页标签背景会根据选择改变。<br><img src="/2023/10/25/SOME-Attack/2.png" alt="image"> </p>
+<p>子网页其实就是一个JSONP可控点，当我们点击轮盘中的任意颜色后它的连接如下：<br><a target="_blank" rel="noopener" href="https://www.someattack.com/Playground/ColorPicker.php?callback=changeColor">https://www.someattack.com/Playground/ColorPicker.php?callback=changeColor</a><br>现在我们想要做的就是控制callback参数，访问之后自动点击父页面的红色按钮。<br>利用第二个 Reference Generator 项目介绍的谷歌插件，这是一个可以自动获取元素DOM位置的插件。<br><img src="/2023/10/25/SOME-Attack/3.png" alt="image"></p>
+<p>右键即可获取，可在控制台中用click事件测试是否获取正确。<br><img src="/2023/10/25/SOME-Attack/4.png" alt="image"></p>
+<p>修改子页面参数如下：<br><code>https://www.someattack.com/Playground/ColorPicker.php?callback=box.nextElementSibling.nextElementSibling.nextElementSibling.firstElementChild.click</code></p>
+<p>访问之后弹窗，按钮被点击，SOME攻击实现。<br><img src="/2023/10/25/SOME-Attack/5.png" alt="image"></p>
+<p>兔子师傅演示的时候打开了两个网页some1和some2，打开some1后，用windiow。open方式打开some2页面，等some1页面加载完之后，some2地址location.replace到payload实现攻击。<br>我在实际测试的时候发现，当我打开第一个页面，然后直接开启一个新的页面访问payload，第一个页面是不会弹窗的，但是两个页面都是满足同源策略的，按理说执行脚本代码是没问题的，参阅文章后发现，要实现DOM操作，两个界面还必须满足父窗口和子窗口关系，这样子窗口才能够操作到父窗口的DOM，否则执行操作的时候会提示元素找不到的错误。兔子师傅这里是在some1下用window.open打开的some2界面，两个窗口父子关系是满足的。<br>同时，还需要注意一点的是，因为很多浏览器禁止window.open的原因（谷歌和火狐会禁止），兔子师傅的方法局限性很大，柠檬师傅采用了两个iframe的办法，避免了拦截，也很好的保证了同源性。附上柠檬师傅的代码</p>
+</blockquote>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&lt;iframe src=<span class="string">&quot;https://www.someattack.com/Playground/&quot;</span> name=b&gt;&lt;/iframe&gt;</span><br><span class="line">        <span class="language-xml"><span class="tag">&lt;<span class="name">iframe</span> <span class="attr">name</span>=<span class="string">a</span>&gt;</span><span class="tag">&lt;/<span class="name">iframe</span>&gt;</span></span></span><br><span class="line">        <span class="language-xml"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">        <span class="variable language_">window</span>.<span class="property">frames</span>[<span class="number">0</span>].<span class="title function_">open</span>(<span class="string">&#x27;https://www.someattack.com/Playground/&#x27;</span>,<span class="string">&#x27;a&#x27;</span>);</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">        <span class="built_in">setTimeout</span>(</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">          <span class="keyword">function</span>(<span class="params"></span>)&#123;</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">            <span class="variable language_">window</span>.<span class="property">frames</span>[<span class="number">1</span>].<span class="property">location</span>.<span class="property">href</span> = <span class="string">&#x27;https://www.someattack.com/Playground/ColorPicker.php?callback=document.body.firstElementChild.lastElementChild.lastElementChild.lastElementChild.previousSibling.previousSibling.lastElementChild.click&#x27;</span></span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">          &#125;</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml">        ,<span class="number">1000</span>);</span></span></span><br><span class="line"><span class="language-javascript"><span class="language-xml"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+<h2><span id="0x04-漏洞防御">0x04 漏洞防御</span></h2><blockquote>
+<p>回调函数使用静态函数命名，限制该函数的调用范围。<br>谷歌的解决方法是，把回调函数加入服务器端的白名单。<br>Hayak建议，注册回调函数。</p>
+</blockquote>
+<h2><span id="参考链接">参考链接</span></h2><blockquote>
+<p><a target="_blank" rel="noopener" href="https://www.someattack.com/Playground/">https://www.someattack.com/Playground/</a><br><a target="_blank" rel="noopener" href="http://blog.safedog.cn/?p=13">http://blog.safedog.cn/?p=13</a><br><a target="_blank" rel="noopener" href="http://www.aqniu.com/hack-geek/5075.html">http://www.aqniu.com/hack-geek/5075.html</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/SOME/" rel="tag">SOME</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/10/25/CVE-2018-1273-Spring-Data/">
                 Spring Data Commons 远程命令执行漏洞（CVE-2018-1273）漏洞验证与getshell
             </a>
@@ -706,74 +761,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/CORS/" rel="tag">CORS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/10/06/Druid-Session/">
-                Druid未授权访问利用
-            </a>
-        </h2>
-    
-    <time>
-        Oct 6, 2023
-    </time>
-    <section class="content">
-        <h1><span id="druid未授权访问利用">Druid未授权访问利用</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/chest_/article/details/109695524">春日野穹</a> 并作补充</p>
-</blockquote>
-<h2><span id="引言">引言</span></h2><blockquote>
-<p>最近挖SRC经常遇到Druid未授权访问漏洞，觉得过程比较有趣，所以简单记录一下</p>
-</blockquote>
-<h2><span id="druid简介">Druid简介</span></h2><blockquote>
-<p>druid是阿里研发的一款数据库连接池，其开发语言为java，druid集合了c3p0、dbcp、proxool等连接池的优点，还加入了日志监控、session监控等数据监控功能，使用Druid能有效的监控DB池连接和SQL的执行情况。<br>更多信息可参考官方GitHub项目：<a target="_blank" rel="noopener" href="https://github.com/alibaba/druid">https://github.com/alibaba/druid</a><br>druid虽高效好用，但当开发者配置不当时就可能造成未授权访问，攻击者可利用泄露的Session登录后台</p>
-</blockquote>
-<h2><span id="druid未授权访问路径">Druid未授权访问路径</span></h2><blockquote>
-<p>怎么探寻Druid未授权访问呢？可以直接拼接以下路径进行访问，如果页面存在，即为Druid未授权访问</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">html:</span><br><span class="line">ip/druid/index.html 		 	##Druid Index</span><br><span class="line">ip/druid/sql.html				##Druid sql监控页面</span><br><span class="line">ip/druid/weburi.html			##Druid Web URI监控页面</span><br><span class="line">ip/druid/websession.html		##Druid Web Session监控页面</span><br><span class="line"></span><br><span class="line">json:</span><br><span class="line">ip/druid/weburi.json			##Druid Web URI json</span><br><span class="line">ip/druid/websession.json		##Druid Web Session json</span><br><span class="line"></span><br><span class="line">Druid 登录接口：</span><br><span class="line">ip/druid/login.html				##Druid登录认证页面</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>当一级目录不存在时，可尝试拼接二级目录进行访问<br>也可利用谷歌语法或目录扫描工具进行探测：<br><img src="/2023/10/06/Druid-Session/1.png" alt="image"></p>
-</blockquote>
-<h2><span id="提取session">提取session</span></h2><blockquote>
-<p>访问ip&#x2F;druid&#x2F;weburi.html看到以下页面则证明漏洞可被利用，如果url和session页面都为空，则说明这两项druid并不管理<br><img src="/2023/10/06/Druid-Session/2.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>当&#x2F;druid&#x2F;websession.html页面存在数据时，我们可利用该页面的session伪造登录，点击最后访问时间，然后复制一条离现在时间最为接近的session进行伪造登录；之所以要点击最后访问时间排序session，是因为此处记录的Session并非全部都是用户在线时的session，当用户退出系统时，session虽然还存在，但已失效，无法再利用。<br>也可利用py提取session然后结合burp的Intruder模块批量遍历高权限用户，session地址可参考上面给出的链接<br><img src="/2023/10/06/Druid-Session/3.png" alt="image"></p>
-<p>如果我们并不清楚后台的位置，我们可再把脚本改一下，利用url监控处为我们提供清晰的站点目录架构<br><img src="/2023/10/06/Druid-Session/4.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>ok，得到后台地址，接下来我们访问一下<br><img src="/2023/10/06/Druid-Session/5.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>重新刷新一下页面，然后开启burp进行抓包，抓包过程中发现站点cookie值存在session字段，点击最后访问时间排序一下session，随后复制session过来访问一下<br><img src="/2023/10/06/Druid-Session/6.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>毫无意外，成功进去，但是权限不高，看来还是得开启神奇的Intruder模块，爆破结果如下<br><img src="/2023/10/06/Druid-Session/7.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>根据返回包信息看哪条session权限高就用它伪造登录<br>注：除session伪造外，url监控和sql监控也能为我们开拓攻击的思路，当我们遇到一个注入且不清楚其语法结构时，查看sql监控处有可能会得到，此外，url监控处也为我们提供了较为清晰的站点目录架构</p>
-</blockquote>
-<h2><span id="session伪造进后台">session伪造进后台</span></h2><blockquote>
-<p>之后就是替换cookie值伪造登录了，f12改一下session值即可<br><img src="/2023/10/06/Druid-Session/8.png" alt="image"></p>
-</blockquote>
-<h2><span id="结语">结语</span></h2><blockquote>
-<p>druid作为数据源的一名后起之秀，凭借其出色的性能，渐渐被大家使用。当然还有他的监控页面也有这非常大的作用。但是监控页面往往包含了很多隐私的数据信息，所以需要将其保密，可以为监控页面添加一个用户名和密码，确保其安全性</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Druid/" rel="tag">Druid</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

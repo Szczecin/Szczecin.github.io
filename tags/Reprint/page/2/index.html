@@ -86,6 +86,85 @@
 
     
         <h2 class="title">
+            <a href="/2025/12/08/CVE-2022-40664-Apache-Shiro/">
+                Apache Shiro身份验证绕过漏洞（CVE-2022-40664）
+            </a>
+        </h2>
+    
+    <time>
+        Dec 8, 2025
+    </time>
+    <section class="content">
+        <h1><span id="apache-shiro身份验证绕过漏洞cve-2022-40664">Apache Shiro身份验证绕过漏洞（CVE-2022-40664）</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://www.freebuf.com/vuls/361424.html">安博通</a> 并作补充</p>
+</blockquote>
+<h2><span id="漏洞信息">漏洞信息</span></h2><blockquote>
+<p>CVE编号：CVE-2022-40664</p>
+<p>CNVD编号：CNVD-2022-68497</p>
+<p>Apache Shiro是一款功能强大且易于使用的Java安全框架，主要包含身份验证、授权、加密和会话管理等功能，可用于保护任何应用程序。</p>
+<ul>
+<li>身份验证：用户登录</li>
+<li>授权：访问控制</li>
+<li>加密：保护或隐藏数据不被窥探</li>
+<li>会话管理：管理每个用户的状态</li>
+</ul>
+<p>Apache Shiro身份验证绕过漏洞，是通过RequestDispatcher转发或包含时Shiro中的身份验证绕过而产生的漏洞。在Apache Shiro 1.10.0之前，攻击者可构造恶意代码利用该漏洞绕过shiro的身份验证，从而获取用户的身份权限。</p>
+</blockquote>
+<h3><span id="影响范围">影响范围</span></h3><blockquote>
+<p>Apache Shiro &lt; 1.10.0</p>
+</blockquote>
+<h3><span id="修复建议">修复建议</span></h3><blockquote>
+<p>直接升级，升级补丁链接如下：</p>
+<p><a target="_blank" rel="noopener" href="https://shiro.apache.org/download.html">https://shiro.apache.org/download.html</a></p>
+</blockquote>
+<h3><span id="安全防护">安全防护</span></h3><blockquote>
+<p>该漏洞是代码中函数逻辑问题导致的。当代码中存在一些特殊的调用和逻辑时，就可能触发该漏洞，因此远程请求是合法请求，没有恶意特征，安全厂商暂无法提取规则。</p>
+</blockquote>
+<h2><span id="漏洞研究">漏洞研究</span></h2><h3><span id="漏洞复现">漏洞复现</span></h3><blockquote>
+<p>问题复现demo代码。</p>
+<p><img src="/1.jpg" alt="image"></p>
+<p>两个URL分别为&#x2F;permit&#x2F;{value}和&#x2F;filterOncePerRequest&#x2F;{value} 。</p>
+<p>请求&#x2F;permit&#x2F;{value}时，被要求鉴权并拒绝。</p>
+<p><img src="/2.jpg" alt="image"></p>
+<p>请求&#x2F;filterOncePerRequest&#x2F;{value}时，成功绕过鉴权。</p>
+<p><img src="/3.jpg" alt="image"></p>
+</blockquote>
+<h2><span id="代码研究">代码研究</span></h2><blockquote>
+<p>Shiro 1.9（漏洞版本）和1.10（修复后版本），修改点在org.apache.shiro.web.servlet.OncePerRequestFilter.doFilter处，修改前1.9版本如下：</p>
+<p><img src="/2025/12/08/CVE-2022-40664-Apache-Shiro/4.png" alt="image"></p>
+<p>修改后1.10版本如下：</p>
+<p><img src="/2025/12/08/CVE-2022-40664-Apache-Shiro/5.png" alt="image"></p>
+<p>显然在判断request.getAttribute(alreadyFilteredAttributeName) 不为空的同时，添加了必须保证filterOncePerRequest也为True的条件。</p>
+<p>从上面代码可以看出，在该请求处理过第一次之后，为请求添加了属性shiroFilter.FILTERED&#x3D;true，在第二次forward请求进来时，会进到第一个if，跳过本Filter的执行。这种处理方式可能就是漏洞产生的原因。</p>
+<p>在改动处打断点并debug，发送如下请求：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/filterOncePerRequest/any</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>172.31.1.101:8081</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:105.0) Gecko/20100101 Firefox/105.0</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>keep-alive</span><br><span class="line"><span class="attribute">Upgrade-Insecure-Requests</span><span class="punctuation">: </span>1</span><br></pre></td></tr></table></figure>
+
+<p>经过判断，被判定为Filter ‘{}’ not yet executed. Executing now，表明该请求并没有进入过滤器。</p>
+<p><img src="/2025/12/08/CVE-2022-40664-Apache-Shiro/6.png" alt="image"></p>
+<p>如代码所示，发送GET &#x2F;filterOncePerRequest&#x2F;any请求后，会使用内部forward命令，再次发起GET &#x2F;permit&#x2F;any请求。</p>
+<p><img src="/2025/12/08/CVE-2022-40664-Apache-Shiro/7.png" alt="image"></p>
+<p>这时发现对于forward请求拦截器根本不会拦截，由此可见漏洞原因确实如前文所述：在该请求处理第一次后，为请求添加了属性shiroFilter.FILTERED&#x3D;true，在第二次forward请求进来时，会进到第一个if，跳过本Filter的执行，直接绕过了filter拦截器。</p>
+</blockquote>
+<h2><span id="原因分析">原因分析</span></h2><blockquote>
+<p>因为代码逻辑存在漏洞，1.10.0之前的版本在请求forward时不进行拦截鉴权，导致在代码里存在对请求进行forward处理时，对应请求会绕过鉴权的问题。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2025/12/08/CVE-2025-27817-Apache-Kafka/">
                 CVE-2025-27817 Apache Kafka Client 任意文件读取与SSRF 漏洞分析复现
             </a>
@@ -1070,60 +1149,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Hook/" rel="tag">Hook</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2025/12/03/UPnP/">
-                什么是 UPnP？这就是为什么您应该在路由器上禁用它的原因
-            </a>
-        </h2>
-    
-    <time>
-        Dec 3, 2025
-    </time>
-    <section class="content">
-        <h1><span id="什么是-upnp这就是为什么您应该在路由器上禁用它的原因">什么是 UPnP？这就是为什么您应该在路由器上禁用它的原因</span></h1><blockquote>
-<p>本文转自 <a target="_blank" rel="noopener" href="https://cn.windows-office.net/?p=39076">Windows社区</a> 并作补充</p>
-<p>如果您仔细查看过路由器的设置，您可能会发现一种名为“UPnP”的东西。虽然 UPnP 背后的技术旨在让您的生活变得更加方便，但网络犯罪分子可以利用它来攻击您的设备。那么，让我们探讨一下什么是 UPnP 以及为什么应该禁用它。</p>
-</blockquote>
-<h2><span id="什么是-upnp">什么是 UPnP？</span></h2><blockquote>
-<p>UPnP 代表“通用即插即用”。就其本身而言，它不是恶意服务——它的发明是为了让您的生活更轻松。</p>
-<p>UPnP 允许本地网络上通过路由器连接的设备相互查找。例如，如果您购买了一台通过 Wi-Fi 运行的全新打印机，您将希望您的设备（例如计算机和手机）能够“看到”它并向其发送打印作业。</p>
-<p>如果没有 UPnP，您需要通过其 IP 地址手动告知每个设备您的打印机在网络上的位置。但是，UPnP 允许打印机向所有其他设备广播其存在，以便它们可以“看到”它并使用它进行打印。此外，您的设备会自动处理端口和通信，从而允许最少的用户交互来进行设置。</p>
-</blockquote>
-<h2><span id="为什么-upnp-存在安全风险">为什么 UPnP 存在安全风险？</span></h2><blockquote>
-<p>不幸的是，虽然 UPnP 使您的设备更容易找到彼此，但它也为恶意软件和不良行为者访问您的网络打开了大门。</p>
-<p>例如，采用专为远程访问而设计的室内摄像机。如果该摄像头的安全性很差，并且允许外部任何人使用 WAN 上的 UPnP（广域网 - 进入您家的互联网）访问它，则黑客可能会跳入并监视内部发生的情况。如果他们知道摄像头中的房子在哪里，他们就可以利用这些信息来了解房主何时外出并实施入室盗窃。或者只是观察您的日常活动。</p>
-<p>此外，如果网络上的设备感染了恶意软件，病毒可以检查它是否可以跳转到网络上的其他设备。如果启用了 UPnP，恶意软件可以使用这些开放通道跳转到更多计算机并在您的本地网络中传播。</p>
-</blockquote>
-<h2><span id="通过-upnp-进行攻击有多现实">通过 UPnP 进行攻击有多现实？</span></h2><blockquote>
-<p>这听起来可能很可怕，但您遇到 UPnP 攻击的可能性有多大？</p>
-<p>如果您的路由器性能良好，它不会支持 WAN 上的 UPnP，这就排除了黑客使用该技术进行远程攻击的可能性。您更容易受到 LAN（局域网 - 您家中的本地网络）的攻击，其中一台设备被感染并在整个网络中传播。</p>
-<p>但是，如果您确保设备免受恶意软件的侵害、安全地浏览并安装最好的防病毒程序之一，那么您很有可能相信您的设备不会传播病毒。如果您想确定，可以在路由器上禁用 UPnP。</p>
-</blockquote>
-<h2><span id="如果禁用-upnp-会发生什么">如果禁用 UPnP 会发生什么？</span></h2><blockquote>
-<p>如果禁用 UPnP，您的路由器将不再自动管理连接到路由器的每个设备的端口。这意味着您需要手动端口转发才能让它们相互通信。</p>
-<p>因此，您需要做出决定。您是否更喜欢 UPnP 的便利性，它可以让您轻松地将设备连接到 LAN？或者您是否担心有人利用这些渠道造成损害并窃取数据？如果您喜欢方便，请坚持使用 UPnP 并确保您的设备安全；如果您更喜欢安全性，请手动处理端口转发，这样它们就不会被利用。</p>
-</blockquote>
-<h3><span id="如何禁用-upnp">如何禁用 UPnP？</span></h3><blockquote>
-<p>如果您决定取消 UPnP，则需要访问路由器。您会经常这样做，因为每次需要转发新端口时（即将新设备连接到网络时），您都需要重新访问它。</p>
-<p>我们在保护路由器安全的简单提示中介绍了禁用 UPnP，因此如果您想最大限度地提高路由器的安全性，请务必检查一下。</p>
-<p>UPnP 是一项有用的功能，但网络犯罪分子可以利用它。虽然您可以禁用它并执行手动端口转发，但由于良好的浏览习惯和可靠的安全性，有些人可能永远不会遇到 UPnP 的攻击。因此，在决定是否启用 UPnP 时，值得权衡这两个论点。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/UPnP/" rel="tag">UPnP</a>
             </div>
         
 

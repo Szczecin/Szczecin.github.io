@@ -82,6 +82,76 @@
 
     
         <h2 class="title">
+            <a href="/2023/09/02/Process-Hide/">
+                Linux当中如何隐藏和查看进程
+            </a>
+        </h2>
+    
+    <time>
+        Sep 2, 2023
+    </time>
+    <section class="content">
+        <h1><span id="linux当中如何隐藏和查看进程">Linux当中如何隐藏和查看进程</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/zfw_666666/article/details/126658093">CN-FuWei</a> 并作补充</p>
+</blockquote>
+<h2><span id="前言">前言</span></h2><blockquote>
+<p>进程是执行程序的过程，类似于按照图纸，真正去盖房子的过程。</p>
+<p>同一个程序可以执行多次，每次都可以在内存中开辟独立的空间来装载，从而产生多个进程。不同的进程还可以拥有各自独立的IO接口。操作系统的一个重要功能就是为进程提供方便，比如说为进程分配内存空间，管理进程的相关信息等等，就好像是为我们准备好了一个精美的地址。</p>
+<p>进程信息是proc目录下动态生成，每个动态创建的进程ID号下面详细的记录了关于该进程的fd,mem,io,cpuset等进程信息。</p>
+<p>Linux 内核提供了一种通过 &#x2F;proc 文件系统，在运行时访问内核内部数据结构、改变内核设置的机制。proc文件系统是一个伪文件系统，它只存在内存当中，而不占用外存空间。</p>
+<p><strong>通过它可以访问系统内核数据。</strong>用户和应用程序可以通过proc得到系统的信息，并可以改变内核的某些参数。</p>
+<p>由于系统的信息，如进程，是动态改变的，所以用户或应用程序读取proc文件时，proc文件系统动态的。在&#x2F;proc下还有三个很重要的目录：net，scsi和sys。sys目录是可写的，可以通过它来访问或修改内核的参数，而net和scsi则依赖于内核配置。例如，如果系统不支持scsi，则scsi 目录不存在。</p>
+<p>除了以上介绍的这些，还有的是一些以数字命名的目录，它们是进程目录。系统中当前运行的每一个进程都有对应的一个目录在&#x2F;proc下，以进程的 PID号为目录名，它们是读取进程信息的接口。而self目录则是读取进程本身的信息接口。</p>
+<p>读取&#x2F;proc&#x2F;self&#x2F;maps可以得到当前进程的内存映射关系，通过读该文件的内容可以得到内存代码段基址。</p>
+</blockquote>
+<h2><span id="一-隐藏进程">一、隐藏进程</span></h2><blockquote>
+<p>利用mount —bind 将另外一个目录挂载覆盖至&#x2F;proc&#x2F;目录下指定进程ID的目录，我们知道ps、top等工具会读取&#x2F;proc目录下获取进程信息，如果将进程ID的目录信息覆盖，则原来的进程信息将从ps的输出结果中隐匿。</p>
+<p>比如当前有一个minio进程（pid：1945）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@docker]-[~]-ps -ef|grep minio</span><br><span class="line">root       1945   1924  0 08:06 ?        00:00:10 minio server /data --console-address 0.0.0.0:9999</span><br></pre></td></tr></table></figure>
+
+<p>现在我们将该进程隐藏：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#首先，创建一个空目录（无任何挂载）</span></span><br><span class="line"><span class="built_in">mkdir</span> -p /empty/dir</span><br><span class="line"><span class="comment">#将空目录进行挂载</span></span><br><span class="line">mount -o <span class="built_in">bind</span> /empty/dir/ /proc/1945</span><br></pre></td></tr></table></figure>
+
+<p>然后，我们再来查询看看进程是否隐藏：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@docker]-[~]-<span class="comment">#ps -ef|grep minio</span></span><br><span class="line">root      46358  32804  0 10:54 pts/0    00:00:00 grep --color=auto minio</span><br></pre></td></tr></table></figure>
+
+<p>发现，进程已经被我们隐藏掉了。</p>
+</blockquote>
+<h2><span id="二-隐藏进程侦查">二、隐藏进程侦查</span></h2><h3><span id="21-方式一mounts">2.1 方式一（mounts）</span></h3><blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@docker]-[/proc]-<span class="comment">#cat /proc/mounts </span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2023/09/02/Process-Hide/1.png" alt="image"></p>
+</blockquote>
+<h3><span id="22-方式二sysdig">2.2 方式二（sysdig）</span></h3><blockquote>
+<p>下载安装：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -s https://s3.amazonaws.com/download.draios.com/stable/install-sysdig | sudo bash</span><br><span class="line"></span><br><span class="line">[root@docker]-[~]-<span class="comment">#sysdig -c topprocs_cpu</span></span><br></pre></td></tr></table></figure>
+<p><img src="/2023/09/02/Process-Hide/2.png" alt="image"></p>
+</blockquote>
+<h3><span id="23-方式三unhide">2.3 方式三（unhide）</span></h3><blockquote>
+<p>下载安装：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum -y install unhide</span><br></pre></td></tr></table></figure>
+
+<p>暴力扫描隐藏进程：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">unhide checkbrute</span><br></pre></td></tr></table></figure>
+<p><img src="/2023/09/02/Process-Hide/3.png" alt="image"></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Process/" rel="tag">Process</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2023/09/02/WeChat-Session-Key/">
                 安全课堂｜关于小程序session_key泄露漏洞
             </a>
@@ -810,129 +880,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Proxy/" rel="tag">Proxy</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2023/06/27/HTTP-request-smuggling-vulnerability/">
-                HTTP请求走私漏洞
-            </a>
-        </h2>
-    
-    <time>
-        Jun 27, 2023
-    </time>
-    <section class="content">
-        <h1><span id="http请求走私漏洞">HTTP请求走私漏洞</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_46150940/article/details/115311234">Atkxor</a> 并作补充</p>
-</blockquote>
-<h2><span id="简介">简介</span></h2><blockquote>
-<p>HTTP请求走私是一种干扰网站处理从一个或多个用户接收的HTTP请求序列的方式的技术。请求走私漏洞本质上通常很关键，它使攻击者可以绕过安全控制，未经授权访问敏感数据并直接危害其他应用程序用户。</p>
-<ul>
-<li>利用Content-Length字段来判定请求体的内容长度</li>
-<li>利用Transfer-Encoding字段来判定请求体的结束位置</li>
-</ul>
-</blockquote>
-<h2><span id="基础知识">基础知识</span></h2><h3><span id="content-length">Content-Length</span></h3><blockquote>
-<p>Content-Length即为实体长度。浏览器可以通过 Content-Length 的长度信息，判断出响应实体已结束。通常如果 Content-Length 比实际长度短，会造成内容被截断；如果比实体内容长，会造成 pending。</p>
-</blockquote>
-<h3><span id="transfer-encoding">Transfer-Encoding</span></h3><blockquote>
-<p>历史上 Transfer-Encoding 可以有多种取值，但最新的 HTTP 规范里，只定义了一种传输编码：分块编码（chunked）。<br>分块编码相当简单，在头部加入 Transfer-Encoding: chunked 之后，就代表这个报文采用了分块编码。这时，报文中的实体需要改为用一系列分块来传输。每个分块包含十六进制的长度值和数据，长度值独占一行，长度不包括它结尾的 CRLF（\r\n），也不包括分块数据结尾的 CRLF。最后一个分块长度值必须为 0，对应的分块数据没有内容，表示实体结束。</p>
-</blockquote>
-<h3><span id="cl与te解析优先级顺序">CL与TE解析优先级顺序</span></h3><blockquote>
-<p>CL表示Content-Length，TE表示Transfer-Encoding。优先级顺序详见 <a target="_blank" rel="noopener" href="https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.3">RFC7230 section 3.3.3</a></p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">If a message is received with both a Transfer-Encoding and a</span><br><span class="line">Content-Length header field, the Transfer-Encoding overrides the</span><br><span class="line">Content-Length. Such a message might indicate an attempt to perform</span><br><span class="line">request smuggling (Section 9.5) or response splitting (Section 9.4)</span><br><span class="line">and ought to be handled as an error. A sender MUST remove the received Content-Length field prior to forwarding such a message downstream.</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>TE 优先于 CL ，但可以通过一些方式绕过</p>
-</blockquote>
-<h2><span id="请求走私分类">请求走私分类</span></h2><blockquote>
-<p>请求走私攻击包括将Content-Length标头和Transfer-Encoding 标头都放入单个HTTP请求中并进行处理，以便前端服务器和后端服务器以不同的方式处理请求。完成此操作的确切方式取决于两个服务器的行为：</p>
-<ul>
-<li>CL不为0:前端代理服务器允许请求携带请求体，而后端服务器不允许请求携带请求体。</li>
-<li>CL-CL：前端服务器使用Transfer-Encoding头，而后端服务器使用Content-Length头。</li>
-<li>CL-TE：前端服务器使用Content-Length标头，而后端服务器使用Transfer- Encoding标头。</li>
-<li>TE-TE：前端服务器和后端服务器都支持Transfer-Encoding标头，但是可以通过某种方式混淆标头来诱导其中一台服务器不对其进行处理。</li>
-<li>TE-CL：前端服务器使用Transfer-Encoding头，而后端服务器使用Content-Length头。</li>
-</ul>
-</blockquote>
-<h3><span id="cl不为0">CL不为0</span></h3><blockquote>
-<p>所有不携带请求体的HTTP请求都有可能受此影响,这里以GET请求为例。<br>当前端服务器允许GET请求携带请求体，而后端服务器不允许GET请求携带请求体，它会直接忽略掉GET请求中的Content-Length头，不进行处理。这就有可能导致请求走私。<br>比如构造请求：</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>44\r\n</span><br><span class="line">\r\n</span><br><span class="line">GET /secret HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br><span class="line">\r\n</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>注：\r\n表示 CRLF即换行</p>
-</blockquote>
-<blockquote>
-<p>前端服务器处理了Content-Length，而后端服务器没有处理 Content-Length ，基于pipeline机制认为这是两个独立的请求：<br>第一个请求：</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET / HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>第二个请求：</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET /secret HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br></pre></td></tr></table></figure>
-
-<h3><span id="cl-cl漏洞">CL-CL漏洞</span></h3><blockquote>
-<p>RFC7230规范：在RFC7230的第3.3.3节中的第四条中，规定当服务器收到的请求中包含两个Content-Length，而且两者的值不同时，需要返回400错误。<br>构造请求：</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">POST / HTTP/1.1\r\n</span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>demo.com\r\n</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>5\r\n</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>6\r\n</span><br><span class="line">\r\n</span><br><span class="line">12345\r\n</span><br><span class="line">a</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>得到响应，返回400 Bad Request<br><img src="/2023/06/27/HTTP-request-smuggling-vulnerability/1.png" alt="image"></p>
-</blockquote>
-<blockquote>
-<p>触发过程：但是总有服务器不会严格的实现该规范，假设中间的代理服务器和后端的源站服务器在收到类似的请求时，都不会返回400错误，但是中间代理服务器按照第一个Content-Length的值对请求进行处理，而后端源站服务器按照第二个Content-Length的值进行处理。</p>
-</blockquote>
-<h3><span id="cl-te漏洞">CL-TE漏洞</span></h3><blockquote>
-<p>CL-TE，就是当收到存在两个请求头的请求包时，前端代理服务器只处理Content-Length请求头，而后端服务器会遵守RFC2616的规定，忽略掉Content-Length，处理Transfer-Encoding请求头。<br><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/lab-basic-cl-te">CL.TE实验环境</a></p>
-</blockquote>
-<h3><span id="te-te漏洞">TE-TE漏洞</span></h3><blockquote>
-<p>在这里，前端服务器和后端服务器都支持Transfer-Encoding标头，但是可以通过对标头进行某种方式的混淆来诱导其中一台服务器不对其进行处理。<br>详见 RFC7230 section 3.3.3.3</p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">If a Transfer-Encoding header field is present in a response and</span><br><span class="line">the chunked transfer coding is not the final encoding, the</span><br><span class="line">message body length is determined by reading the connection until</span><br><span class="line">it is closed by the server.  If a Transfer-Encoding header field</span><br><span class="line">is present in a request and the chunked transfer coding is not</span><br><span class="line">the final encoding, the message body length cannot be determined</span><br><span class="line">reliably; the server MUST respond with the 400 (Bad Request)</span><br><span class="line">status code and then close the connection.</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>这里列出七种混淆方式:</p>
-</blockquote>
-<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">Transfer-Encoding</span><span class="punctuation">: </span>xchunked</span><br><span class="line"></span><br><span class="line">Transfer-Encoding : chunked</span><br><span class="line"></span><br><span class="line"><span class="attribute">Transfer-Encoding</span><span class="punctuation">: </span>x</span><br><span class="line"></span><br><span class="line">Transfer-Encoding:[tab]chunked</span><br><span class="line"></span><br><span class="line">[space]Transfer-Encoding: chunked</span><br><span class="line"></span><br><span class="line"><span class="attribute">X</span><span class="punctuation">: </span>X[\n]Transfer-Encoding: chunked</span><br><span class="line"></span><br><span class="line">Transfer-Encoding</span><br><span class="line">: chunked</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>之所以在处理这些请求头时会出现问题，是因为在实际的HTTP协议实现中，很少有代码精确的遵循了其中的规范，以此导致面对变形的请求头时会出现不同的处理方式。<br><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/lab-obfuscating-te-header">TE.CL实验环境</a></p>
-</blockquote>
-<h3><span id="te-cl漏洞">TE-CL漏洞</span></h3><blockquote>
-<p>所谓TE-CL，就是当收到存在两个请求头的请求包时，前端代理服务器处理Transfer-Encoding这一请求头，而后端服务器处理Content-Length请求头。<br><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/lab-basic-cl-te">TE.CL验环境</a></p>
-</blockquote>
-<h2><span id="绕过前端服务器安全控制">绕过前端服务器安全控制</span></h2><h3><span id="利用cl-te漏洞绕过">利用CL-TE漏洞绕过</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/exploiting/lab-bypass-front-end-controls-cl-te">CL.TE实验环境</a></p>
-</blockquote>
-<h3><span id="利用te-cl漏洞绕过">利用TE-CL漏洞绕过</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/exploiting/lab-bypass-front-end-controls-cl-te">TE.CL实验环境</a></p>
-</blockquote>
-<h2><span id="漏洞防御">漏洞防御</span></h2><blockquote>
-<p>在前端服务器通过同一网络连接将多个请求转发到后端服务器的情况下，会出现HTTP请求走私漏洞，并且后端连接所使用的协议会带来两个服务器不同意边界的风险。要求。防止HTTP请求走私漏洞的一些通用方法如下：</p>
-<ul>
-<li>禁用后端连接的重用，以便每个后端请求通过单独的网络连接发送。</li>
-<li>使用HTTP &#x2F; 2进行后端连接，因为此协议可防止对请求之间的边界产生歧义。</li>
-<li>前端服务器和后端服务器使用完全相同的Web服务器软件，以便它们就请求之间的界限达成一致。<br>在某些情况下，可以通过使前端服务器规范歧义请求或使后端服务器拒绝歧义请求并关闭网络连接来避免漏洞。但是，这些方法比上面确定的通用缓解措施更容易出错。</li>
-</ul>
-</blockquote>
-<h2><span id="参考文章">参考文章</span></h2><blockquote>
-<p>(<a target="_blank" rel="noopener" href="https://paper.seebug.org/1048">https://paper.seebug.org/1048</a>)<br>(<a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling">https://portswigger.net/web-security/request-smuggling</a>)<br>(<a target="_blank" rel="noopener" href="https://portswigger.net/web-security/request-smuggling/exploiting">https://portswigger.net/web-security/request-smuggling/exploiting</a>)</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/HTTP/" rel="tag">HTTP</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

